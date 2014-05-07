@@ -5,9 +5,9 @@
 A RESTful schema registry based on vschema:
 
 ```
-GET endpoint/schema/<vendor>/<name>/<x>
-GET endpoint/schema/<vendor>/<name>/<x:y>
-GET endpoint/schema/<vendor>/<name>/<x:y:z>
+GET endpoint/schema/<vendor>/<object>/<x>
+GET endpoint/schema/<vendor>/<object>/<x:y>
+GET endpoint/schema/<vendor>/<object>/<x:y:z>
 ```
 
 ### Limitations
