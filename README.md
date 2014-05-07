@@ -1,5 +1,4 @@
-schema-registry
-===============
+# Schema Registry
 
 A RESTful schema registry based on vschema
 
