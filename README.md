@@ -1,6 +1,8 @@
 # Schema Registry
 
-A RESTful schema registry based on vschema
+### Elevator pitch
+
+A RESTful schema registry based on vschema:
 
 ```
 GET endpoint/schema/<vendor>/<name>/<x>
