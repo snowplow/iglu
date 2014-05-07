@@ -3,9 +3,11 @@ schema-registry
 
 A RESTful schema registry based on vschema
 
+```
 GET endpoint/schema/<vendor>/<name>/<x>
 GET endpoint/schema/<vendor>/<name>/<x:y>
 GET endpoint/schema/<vendor>/<name>/<x:y:z>
+```
 
 Currently has no authentication. You'll have to whitelist access.
 
