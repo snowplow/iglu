@@ -1,4 +1,4 @@
-# Schema Registry
+# Iglu Schema Repository
 
 ### Elevator pitch
 
