@@ -2,7 +2,7 @@
 
 Iglu is a schema repository for **[JSON Schema] [json-schema]** from the team at **[Snowplow Analytics] [snowplow-website]**. A schema repository (sometimes called a registry) is like npm or Maven or git but holds data schemas instead of code.
 
-Iglu is used extensively in [Snowplow] [snowplow-repo]. For a presentation on how we came to build Iglu, see **[this blog post] [snowplow-schema-post]**.
+Iglu is used extensively in **[Snowplow] [snowplow-repo]**. For a presentation on how we came to build Iglu, see **[this blog post] [snowplow-schema-post]**.
 
 ## Iglu technology 101
 
