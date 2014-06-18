@@ -11,7 +11,7 @@ Iglu consists of two key components:
 1. Clients that can resolve schemas from one or more Iglu repositories
 2. Servers that can host an Iglu repository over HTTP
 
-We also operate **[Iglu Central] [iglu-central]** (**[repo] [iglu-central-repo]**), which is like RubyGems.org or Maven Central but for storing publically-available self-describing JSON Schemas.
+We also operate **[Iglu Central] [iglu-central]** (**[repo] [iglu-central-repo]**), which is like RubyGems.org or Maven Central but for storing publically-available JSON Schemas.
 
 At this time, Iglu only supports **[self-describing JSON Schemas] [self-desc-jsons]** that use **[SchemaVer] [schemaver]**.
 
