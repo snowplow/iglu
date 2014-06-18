@@ -9,7 +9,7 @@ Iglu is used extensively in **[Snowplow] [snowplow-repo]**. For a presentation o
 Iglu consists of two key components:
 
 1. Clients that can resolve schemas from one or more Iglu repositories
-2. Iglu repository implementations
+2. Servers that can host an Iglu repository over HTTP
 
 We also operate **[Iglu Central] [iglu-central]**, which is like RubyGems or Maven Central but for storing publically-available self-describing JSON Schemas.
 
