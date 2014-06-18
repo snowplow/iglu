@@ -1,8 +1,8 @@
 # Iglu Schema Repository
 
-Iglu is a schema repository for [JSON Schema] [json-schema] from the team at [Snowplow Analytics] [snowplow-website]. A schema repository (sometimes called a registry) is like npm or Maven or git but holds data schemas instead of code.
+Iglu is a schema repository for **[JSON Schema] [json-schema]** from the team at **[Snowplow Analytics] [snowplow-website]**. A schema repository (sometimes called a registry) is like npm or Maven or git but holds data schemas instead of code.
 
-Iglu is used extensively in [Snowplow] [snowplow-repo]. For a presentation on how we came to build Iglu, see [this blog post] [snowplow-schema-post].
+Iglu is used extensively in [Snowplow] [snowplow-repo]. For a presentation on how we came to build Iglu, see **[this blog post] [snowplow-schema-post]**.
 
 ## Iglu technology 101
 
@@ -11,9 +11,9 @@ Iglu consists of two key components:
 1. Clients that can resolve schemas from one or more Iglu repositories
 2. Iglu repository implementations
 
-We also operate [Iglu Central] [iglu-central], which is like RubyGems or Maven Central but for storing publically-available self-describing JSON Schemas.
+We also operate **[Iglu Central] [iglu-central]**, which is like RubyGems or Maven Central but for storing publically-available self-describing JSON Schemas.
 
-At this time, Iglu only supports [self-describing JSON Schemas] [self-desc-jsons] that use [SchemaVer] [schemaver].
+At this time, Iglu only supports **[self-describing JSON Schemas] [self-desc-jsons]** that use **[SchemaVer] [schemaver]**.
 
 ## Find out more
 
