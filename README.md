@@ -1,5 +1,7 @@
 # Iglu Schema Repository
 
+Iglu is the first schema repository for [JSON Schema] [json-schema]. A schema repository (sometimes called a registry) is like npm or Maven or git but holds data schemas instead of code.
+
 ### Elevator pitch
 
 A RESTful schema registry based on vschema:
@@ -20,3 +22,5 @@ GET endpoint/schema/<vendor>/<object>/<x:y:z>
 ### Prior art
 
 * https://github.com/linkedin/camus/tree/master/camus-schema-registry
+
+[json-schema]: http://json-schema.org/
