@@ -21,12 +21,6 @@ At this time, Iglu only supports **[self-describing JSON Schemas] [self-desc-jso
 |-------------------------------------|-------------------------------|-----------------------------------|---------------------------------------------|
 | [![i1] [techdocs-image]] [techdocs] | [![i2] [setup-image]] [setup] | [![i3] [roadmap-image]] [roadmap] | [![i4] [contributing-image]] [contributing] |
 
-### Prior art
-
-TODO: move this into docs
-
-* https://github.com/linkedin/camus/tree/master/camus-schema-registry
-
 ## Questions or need help?
 
 All support for Iglu is handled through the standard Snowplow Analytics channels. Check out the **[Talk to us] [talk-to-us]** page on the Snowplow wiki.
