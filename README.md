@@ -11,6 +11,8 @@ Iglu consists of two key components:
 1. Clients that can resolve schemas from one or more Iglu repositories
 2. Servers that can host an Iglu repository over HTTP
 
+![iglu-technical-architecture] [iglu-technical-architecture]
+
 We also operate **[Iglu Central] [iglu-central]** (**[repo] [iglu-central-repo]**), which is like RubyGems.org or Maven Central but for storing publically-available JSON Schemas.
 
 At this time, Iglu only supports **[self-describing JSON Schemas] [self-desc-jsons]** that use **[SchemaVer] [schemaver]**.
@@ -48,6 +50,8 @@ limitations under the License.
 [schemaver]: http://snowplowanalytics.com/blog/2014/05/13/introducing-schemaver-for-semantic-versioning-of-schemas/
 
 [iglu-central]: http://iglucentral.com
+
+[iglu-technical-architecture]: https://github.com/snowplow/iglu/wiki/images/technical-architecture.png
 
 [techdocs-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/techdocs.png
 [setup-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/setup.png
