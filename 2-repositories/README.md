@@ -16,13 +16,15 @@ We currently have two Iglu "repo" technologies available for deploying your Iglu
 
 Iglu Central ([http://iglucentral.com] [iglucentral-website]) is a public repository of JSON Schemas hosted by [Snowplow Analytics] [snowplow-website].
 
-We do not git-submodule Iglu Central into the main Iglu repository because it is fast-moving. Its GitHub repository is [snowplow/iglu-central] [iglucentral-repo]s.
+We do not git-submodule Iglu Central into the main Iglu repository because it is fast-moving. Its GitHub repository is [snowplow/iglu-central] [iglucentral-repo].
 
 ## Find out more
 
 | **[Technical Docs] [techdocs]**     | **[Setup Guide] [setup]**     | **[Roadmap] [roadmap]**           | **[Contributing] [contributing]**           |
 |-------------------------------------|-------------------------------|-----------------------------------|---------------------------------------------|
 | [![i1] [techdocs-image]] [techdocs] | [![i2] [setup-image]] [setup] | [![i3] [roadmap-image]] [roadmap] | [![i4] [contributing-image]] [contributing] |
+
+[snowplow-wiki]: https://github.com/snowplow/snowplow/wiki
 
 [r1]: ./jvm-embedded-repo
 [r2]: ./static-repo
