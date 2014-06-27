@@ -51,7 +51,7 @@ limitations under the License.
 
 [iglu-central]: http://iglucentral.com
 
-[iglu-technical-architecture]: https://github.com/snowplow/iglu/wiki/images/technical-architecture.png
+[iglu-technical-architecture]: https://github.com/snowplow/iglu/wiki/technical-documentation/images/technical-architecture.png
 
 [techdocs-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/techdocs.png
 [setup-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/setup.png
