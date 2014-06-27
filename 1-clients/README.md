@@ -1,7 +1,5 @@
 # Iglu clients
 
-## Overview
-
 Iglu clients are used for interacting with Iglu server repos and for resolving schemas in embedded and remote Iglu schema repositories.
 
 ## Available clients
