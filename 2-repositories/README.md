@@ -31,6 +31,7 @@ We do not git-submodule Iglu Central into the main Iglu repository because it is
 
 [iglucentral-website]: http://iglucentral.com/
 [iglucentral-repo]: https://github.com/snowplow/iglu-central
+[snowplow-website]: http://snowplowanalytics.com
 
 [techdocs-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/techdocs.png
 [setup-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/setup.png
