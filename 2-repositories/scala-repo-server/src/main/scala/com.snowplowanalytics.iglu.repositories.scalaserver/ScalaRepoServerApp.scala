@@ -17,11 +17,15 @@ package com.snowplowanalytics.iglu.repositories.scalaserver
 // Java
 import java.io.File
 
+// Scala
+import scala.concurrent.duration._
+
 // Akka and Spray
-import akka.actor.ActorSystem
+import akka.actor.{ ActorSystem, Props }
 import akka.io.IO
+import akka.pattern.ask
+import akka.util.Timeout
 import spray.can.Http
-import spray.routing.SimpleRoutingApp
 
 //Argot
 import org.clapper.argot._
@@ -32,7 +36,7 @@ import com.typesafe.config.{ ConfigFactory, Config, ConfigException }
 //Logging
 import org.slf4j.LoggerFactory
 
-object ScalaRepoServer extends App with SimpleRoutingApp {
+object ScalaRepoServer extends App {
   lazy val log = LoggerFactory.getLogger(getClass())
   import log.{ error, debug, info, trace }
 
@@ -65,7 +69,12 @@ object ScalaRepoServer extends App with SimpleRoutingApp {
   val rawConf = config.value.getOrElse(ConfigFactory.load("application"))
   val serverConfig = new RepoServerConfig(rawConf)
 
-  println(serverConfig.interface)
+  implicit val system = ActorSystem("scala-repo-server")
+  val service = system.actorOf(Props[RepoServiceActor], "repo-service")
+  implicit val timeout = Timeout(5.seconds)
+
+  IO(Http) ? Http.Bind(service, interface = serverConfig.interface,
+                       port = serverConfig.port)
 }
 
 class RepoServerConfig(config: Config) {
