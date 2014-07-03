@@ -22,7 +22,8 @@ object Dependencies {
 
   object V {
     // Scala
-    val akka      = "2.2.4"
+    val akka      = "2.3.0"
+    val argot     = "1.0.2"
     val spray     = "1.3.1"
     val storehaus = "0.9.0"
 
@@ -33,6 +34,8 @@ object Dependencies {
   object Libraries {
     // Scala
     val akkaActor     = "com.typesafe.akka" %% "akka-actor"             % V.akka
+    val akkaSlf4j     = "com.typesafe.akka" %% "akka-slf4j"             % V.akka
+    val argot         = "org.clapper"       %% "argot"                  % V.argot
     val sprayCan      = "io.spray"          % "spray-can"               % V.spray
     val sprayRouting  = "io.spray"          % "spray-routing"           % V.spray
     val storehausCore = "com.twitter"       % "storehaus-core_2.10"     % V.storehaus

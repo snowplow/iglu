@@ -31,6 +31,8 @@ object ScalaRepoServerBuild extends Build {
       libraryDependencies ++= Seq(
         // Scala
         Libraries.akkaActor,
+        Libraries.akkaSlf4j,
+        Libraries.argot,
         Libraries.sprayCan,
         Libraries.sprayRouting,
         Libraries.storehausCore,
