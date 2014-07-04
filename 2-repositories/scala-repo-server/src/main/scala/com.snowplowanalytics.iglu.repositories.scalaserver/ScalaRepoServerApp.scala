@@ -79,6 +79,14 @@ object ScalaRepoServer extends App {
 
 class RepoServerConfig(config: Config) {
   private val repoServer = config.getConfig("repo-server")
+  private val dynamo = repoServer.getConfig("dynamodb")
+  
   val interface = repoServer.getString("interface")
   val port = repoServer.getInt("port")
+
+  val awsAccessKey = dynamo.getString("awsAccessKey")
+  val awsSecretKey = dynamo.getString("awsSecretKey")
+  val tableName = dynamo.getString("tableName")
+  val primaryKeyColumn = dynamo.getString("primaryKeyColumn")
+  val valueColumn = dynamo.getString("valueColumn")
 }
