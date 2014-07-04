@@ -67,26 +67,19 @@ object ScalaRepoServer extends App {
   parser.parse(args)
 
   val rawConf = config.value.getOrElse(ConfigFactory.load("application"))
-  val serverConfig = new RepoServerConfig(rawConf)
+  val repoConfig = new RepoConfig(rawConf)
 
   implicit val system = ActorSystem("scala-repo-server")
-  val service = system.actorOf(Props[RepoServiceActor], "repo-service")
   implicit val timeout = Timeout(5.seconds)
+  val service = system.actorOf(Props(classOf[RepoServiceActor], repoConfig),
+                               "repo-service")
 
-  IO(Http) ? Http.Bind(service, interface = serverConfig.interface,
-                       port = serverConfig.port)
+  IO(Http) ? Http.Bind(service, interface = repoConfig.interface,
+                       port = repoConfig.port)
 }
 
-class RepoServerConfig(config: Config) {
+class RepoConfig(config: Config) {
   private val repoServer = config.getConfig("repo-server")
-  private val dynamo = repoServer.getConfig("dynamodb")
-  
   val interface = repoServer.getString("interface")
   val port = repoServer.getInt("port")
-
-  val awsAccessKey = dynamo.getString("awsAccessKey")
-  val awsSecretKey = dynamo.getString("awsSecretKey")
-  val tableName = dynamo.getString("tableName")
-  val primaryKeyColumn = dynamo.getString("primaryKeyColumn")
-  val valueColumn = dynamo.getString("valueColumn")
 }

@@ -14,30 +14,46 @@
 */
 package com.snowplowanalytics.iglu.repositories.scalaserver
 
+// AWS
+import com.amazonaws.services.dynamodbv2.model._
+
 // Akka and Spray
 import akka.actor.Actor
 import spray.http._
 import spray.routing._
 import MediaTypes._
 
-class RepoServiceActor extends Actor with RepoService {
+// Storehaus
+import com.twitter.storehaus.dynamodb.DynamoStringStore
+
+class RepoServiceActor(config: RepoConfig)
+    extends Actor with RepoService {
   def actorRefFactory = context
+
   def receive = runRoute(tmpRoute)
 }
 
 trait RepoService extends HttpService {
+  val store = DynamoStringStore(
+    DynamoDBConfig.awsAccessKey,
+    DynamoDBConfig.awsSecretKey,
+    DynamoDBConfig.tableName,
+    DynamoDBConfig.primaryKeyColumn,
+    DynamoDBConfig.valueColumn)
+  
+  val tmpKey = "test"
+
   val tmpRoute =
     path("") {
       get {
-        respondWithMediaType(`text/html`) {
-          complete {
-            <html>
-              <body>
-                <h1>Hi</h1>
-              </body>
-            </html>
+          respondWithMediaType(`text/html`) {
+            complete {
+              start + store.get(tmpKey).get + end
+            }
           }
-        }
       }
     }
+
+  val start = "<html><body>"
+  val end = "</html></body>"
 }
