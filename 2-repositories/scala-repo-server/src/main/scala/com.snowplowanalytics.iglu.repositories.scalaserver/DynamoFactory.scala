@@ -15,10 +15,21 @@
 */
 package com.snowplowanalytics.iglu.repositories.scalaserver
 
-object DynamoDBConfig {
-  val awsAccessKey = "xxx"
-  val awsSecretKey = "yyy"
-  val tableName = "Schemas"
-  val primaryKeyColumn = "SchemaID"
-  val valueColumn = "Schema"
+// Storehaus
+import com.twitter.storehaus.dynamodb.DynamoStringStore
+import com.twitter.storehaus.Store
+
+trait DBFactory {
+  def getStore: Store[String, String]
+}
+
+object DynamoFactory extends DBFactory {
+  private val awsAccessKey = "xxx"
+  private val awsSecretKey = "yyy"
+  private val tableName = "Schemas"
+  private val primaryKeyColumn = "SchemaID"
+  private val valueColumn = "Schema"
+
+  def getStore: DynamoStringStore = DynamoStringStore(
+    awsAccessKey, awsSecretKey, tableName, primaryKeyColumn, valueColumn)
 }

@@ -23,9 +23,6 @@ import spray.http._
 import spray.routing._
 import MediaTypes._
 
-// Storehaus
-import com.twitter.storehaus.dynamodb.DynamoStringStore
-
 class RepoServiceActor(config: RepoConfig)
     extends Actor with RepoService {
   def actorRefFactory = context
@@ -34,12 +31,7 @@ class RepoServiceActor(config: RepoConfig)
 }
 
 trait RepoService extends HttpService {
-  val store = DynamoStringStore(
-    DynamoDBConfig.awsAccessKey,
-    DynamoDBConfig.awsSecretKey,
-    DynamoDBConfig.tableName,
-    DynamoDBConfig.primaryKeyColumn,
-    DynamoDBConfig.valueColumn)
+  val store = DynamoFactory.getStore
   
   val tmpKey = "test"
 
