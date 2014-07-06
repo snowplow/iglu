@@ -36,16 +36,17 @@ trait RepoService extends HttpService {
   val tmpKey = "test"
 
   val tmpRoute =
-    path("") {
-      get {
-          respondWithMediaType(`text/html`) {
-            complete {
-              start + store.get(tmpKey).get + end
+    path("[a-z.]+".r / "[a-zA-Z0-9_-]".r / "[a-z]+".r / "[0-9]+-[0-9]+-[0-9]+".r) {
+      (vendor, name, format, version) =>
+        get {
+            respondWithMediaType(`application/json`) {
+              complete {
+                store.get(vendor + name + format + version).get match {
+                  case Some(str) => str
+                  case None => "{ 404 }"
+                }
+              }
             }
-          }
-      }
+        }
     }
-
-  val start = "<html><body>"
-  val end = "</html></body>"
 }
