@@ -21,6 +21,7 @@ import akka.actor.Actor
 import spray.http._
 import spray.routing._
 import MediaTypes._
+import StatusCodes._
 
 // Twitter
 import com.twitter.util.Await
@@ -45,7 +46,7 @@ trait RepoService extends HttpService {
                 get(vendor + "/" + name + "/" + format + "/" + version))
                 match {
                   case Some(str) => str
-                  case None => ""
+                  case None => NotFound
                 }
             }
           }

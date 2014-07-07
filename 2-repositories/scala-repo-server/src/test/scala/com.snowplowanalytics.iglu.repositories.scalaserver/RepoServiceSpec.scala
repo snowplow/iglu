@@ -27,11 +27,21 @@ class RepoServiceSpec extends Specification
   def actorRefFactory = system
 
   val url = "/com.snowplowanalytics.snowplow/ad_click/jsonschema/1-0-0"
+  val faultyUrl = "/com.snowplowanalytics.snowplow/ad_click/jsonchema/1-0-0"
 
   "RepoService" should {
     "return a proper json for GET requests to the " + url + " path" in {
       Get(url) ~> route ~> check {
+        status === OK
         responseAs[String] must contain("\"name\": \"ad_click\"")
+      }
+    }
+
+    "return a 404 for GET requests for which the key is not in the db" in {
+      Get(faultyUrl) ~> route ~> check {
+        status === NotFound
+        responseAs[String] must
+          contain("The requested resource could not be found")
       }
     }
 
