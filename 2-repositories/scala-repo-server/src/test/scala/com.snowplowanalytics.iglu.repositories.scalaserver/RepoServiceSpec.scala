@@ -26,21 +26,23 @@ class RepoServiceSpec extends Specification
     with Specs2RouteTest with RepoService {
   def actorRefFactory = system
 
+  val url = "/com.snowplowanalytics.snowplow/ad_click/jsonschema/1-0-0"
+
   "RepoService" should {
-    "return \"hi\" for GET requests to the root path" in {
-      Get() ~> tmpRoute ~> check {
-        responseAs[String] must contain("Hi")
+    "return a proper json for GET requests to the " + url + " path" in {
+      Get(url) ~> route ~> check {
+        responseAs[String] must contain("\"name\": \"ad_click\"")
       }
     }
 
     "leave GET requests to other paths unhandled" in {
-      Get("/test") ~> tmpRoute ~> check {
+      Get("/test") ~> route ~> check {
         handled must beFalse
       }
     }
 
-    "return a MethodNotAllowed error for PUT requests to the root path" in {
-      Put() ~> sealRoute(tmpRoute) ~> check {
+    "return MethodNotAllowed for PUT requests to the " + url + " path" in {
+      Put(url) ~> sealRoute(route) ~> check {
         status === MethodNotAllowed
         responseAs[String] === "HTTP method not allowed, supported methods: GET"
       }

@@ -35,7 +35,8 @@ class RepoServiceActor(config: RepoConfig)
 trait RepoService extends HttpService {
   val store = DynamoFactory.getStore
 
-  val route = path("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+  val route = rejectEmptyResponse {
+    path("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
     "[0-9]+-[0-9]+-[0-9]+".r) { (vendor, name, format, version) =>
       get {
           respondWithMediaType(`application/json`) {
@@ -44,18 +45,11 @@ trait RepoService extends HttpService {
                 get(vendor + "/" + name + "/" + format + "/" + version))
                 match {
                   case Some(str) => str
-                  case None => Await.result(store.get("404")) match {
-                    case Some(str) => str
-                    case None => """{
-                      "status": {
-                        "message": "Internal server error",
-                        "status_code": 500
-                      }
-                    }"""
-                  }
+                  case None => ""
                 }
             }
           }
       }
     }
+  }
 }
