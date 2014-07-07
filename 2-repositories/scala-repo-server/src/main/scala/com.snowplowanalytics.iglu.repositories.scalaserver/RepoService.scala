@@ -1,4 +1,4 @@
-/* 
+/*
 * Copyright (c) 2014 Snowplow Analytics Ltd. All rights reserved.
 *
 * This program is licensed to you under the Apache License Version 2.0, and
@@ -14,39 +14,48 @@
 */
 package com.snowplowanalytics.iglu.repositories.scalaserver
 
-// AWS
-import com.amazonaws.services.dynamodbv2.model._
-
-// Akka and Spray
+// Akka
 import akka.actor.Actor
+
+// Spray
 import spray.http._
 import spray.routing._
 import MediaTypes._
+
+// Twitter
+import com.twitter.util.Await
 
 class RepoServiceActor(config: RepoConfig)
     extends Actor with RepoService {
   def actorRefFactory = context
 
-  def receive = runRoute(tmpRoute)
+  def receive = runRoute(route)
 }
 
 trait RepoService extends HttpService {
   val store = DynamoFactory.getStore
-  
-  val tmpKey = "test"
 
-  val tmpRoute =
-    path("[a-z.]+".r / "[a-zA-Z0-9_-]".r / "[a-z]+".r / "[0-9]+-[0-9]+-[0-9]+".r) {
-      (vendor, name, format, version) =>
-        get {
-            respondWithMediaType(`application/json`) {
-              complete {
-                store.get(vendor + name + format + version).get match {
+  val route = path("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+    "[0-9]+-[0-9]+-[0-9]+".r) { (vendor, name, format, version) =>
+      get {
+          respondWithMediaType(`application/json`) {
+            complete {
+              Await.result(store.
+                get(vendor + "/" + name + "/" + format + "/" + version))
+                match {
                   case Some(str) => str
-                  case None => "{ 404 }"
+                  case None => Await.result(store.get("404")) match {
+                    case Some(str) => str
+                    case None => """{
+                      "status": {
+                        "message": "Internal server error",
+                        "status_code": 500
+                      }
+                    }"""
+                  }
                 }
-              }
             }
-        }
+          }
+      }
     }
 }
