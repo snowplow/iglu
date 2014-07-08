@@ -31,17 +31,32 @@ class RepoServiceSpec extends Specification
 
   "RepoService" should {
     "return a proper json for GET requests to the " + url + " path" in {
-      Get(url) ~> route ~> check {
+      Get(url) ~> addHeader("api-key", "benRead") ~> route ~> check {
         status === OK
         responseAs[String] must contain("\"name\": \"ad_click\"")
       }
     }
 
     "return a 404 for GET requests for which the key is not in the db" in {
-      Get(faultyUrl) ~> route ~> check {
+      Get(faultyUrl) ~> addHeader("api-key", "benRead") ~> route ~> check {
         status === NotFound
         responseAs[String] must
           contain("The requested resource could not be found")
+      }
+    }
+
+    "return a 401 if no api-key is found" in {
+      Get(url) ~> addHeader("api-key", "ben") ~> route ~> check {
+        status === Unauthorized
+        responseAs[String] must
+          contain("The supplied authentication is invalid")
+      }
+    }
+
+    "return a 401 if no api-key is provided" in {
+      Get(url) ~> route ~> check {
+        status === Unauthorized
+        responseAs[String] must contain("The resource requires authentication")
       }
     }
 
@@ -51,8 +66,8 @@ class RepoServiceSpec extends Specification
       }
     }
 
-    "return MethodNotAllowed for PUT requests to the " + url + " path" in {
-      Put(url) ~> sealRoute(route) ~> check {
+    "return MethodNotAllowed for DELETE requests to the " + url + " path" in {
+      Delete(url) ~> sealRoute(route) ~> check {
         status === MethodNotAllowed
         responseAs[String] === "HTTP method not allowed, supported methods: GET"
       }
