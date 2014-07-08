@@ -71,8 +71,7 @@ object ScalaRepoServer extends App {
 
   implicit val system = ActorSystem("scala-repo-server")
   implicit val timeout = Timeout(5.seconds)
-  val service = system.actorOf(Props(classOf[RepoServiceActor], repoConfig),
-                               "repo-service")
+  val service = system.actorOf(Props[RepoServiceActor], "repo-service")
 
   IO(Http) ? Http.Bind(service, interface = repoConfig.interface,
                        port = repoConfig.port)

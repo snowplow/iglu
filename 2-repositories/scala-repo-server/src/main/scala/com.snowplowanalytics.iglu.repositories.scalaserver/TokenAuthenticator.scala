@@ -56,7 +56,7 @@ object TokenAuthenticator{
   }
 
   def apply[T](headerName: String)(authenticator: (String => Future[Option[T]]))
-    (implicit executionContext: ExecutionContext) {
+    (implicit executionContext: ExecutionContext) = {
 
     def extractor(context: RequestContext) =
       TokenExtraction.fromHeader(headerName)(context)

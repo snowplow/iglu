@@ -17,6 +17,9 @@ package com.snowplowanalytics.iglu.repositories.scalaserver
 // Akka
 import akka.actor.Actor
 
+// Scala
+import scala.concurrent.ExecutionContext.Implicits.global
+
 // Spray
 import spray.http._
 import spray.routing._
@@ -26,8 +29,7 @@ import StatusCodes._
 // Twitter
 import com.twitter.util.Await
 
-class RepoServiceActor(config: RepoConfig)
-    extends Actor with RepoService {
+class RepoServiceActor extends Actor with RepoService {
   def actorRefFactory = context
 
   def receive = runRoute(route)
@@ -35,22 +37,41 @@ class RepoServiceActor(config: RepoConfig)
 
 trait RepoService extends HttpService {
   val store = DynamoFactory.getStore
+  
+  val authenticator = TokenAuthenticator[String]("api-key") {
+    key => util.FutureConverter.fromTwitter(store.get(key))
+  }
+  def auth: Directive1[String] = authenticate(authenticator)
 
   val route = rejectEmptyResponse {
     path("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
     "[0-9]+-[0-9]+-[0-9]+".r) { (vendor, name, format, version) =>
-      get {
-          respondWithMediaType(`application/json`) {
+      auth { permission =>
+        get {
+            respondWithMediaType(`application/json`) {
+              complete {
+                Await.result(store.
+                  get(vendor + "/" + name + "/" + format + "/" + version))
+                  match {
+                    case Some(str) => str
+                    case None => NotFound
+                  }
+              }
+            }
+        } ~
+        post {
+          respondWithMediaType(`text/html`) {
             complete {
-              Await.result(store.
-                get(vendor + "/" + name + "/" + format + "/" + version))
-                match {
-                  case Some(str) => str
-                  case None => NotFound
-                }
+              if (permission == "write") {
+                "<html><body>Good</body></html>"
+              } else {
+                Unauthorized
+              }
             }
           }
+        }
       }
+
     }
   }
 }
