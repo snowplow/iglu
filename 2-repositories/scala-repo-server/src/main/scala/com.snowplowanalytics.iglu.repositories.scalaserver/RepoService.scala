@@ -36,39 +36,45 @@ class RepoServiceActor extends Actor with RepoService {
 }
 
 trait RepoService extends HttpService {
-  val store = DynamoFactory.getStore
+  val schemaStore = DynamoFactory.schemaStore
+  val apiKeyStore = DynamoFactory.getStore("ApiKeys", "ApiKey", "Permission")
   
   val authenticator = TokenAuthenticator[String]("api-key") {
-    key => util.FutureConverter.fromTwitter(store.get(key))
+    key => util.FutureConverter.fromTwitter(apiKeyStore.get(key))
   }
   def auth: Directive1[String] = authenticate(authenticator)
 
   val route = rejectEmptyResponse {
-    path("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+    pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
     "[0-9]+-[0-9]+-[0-9]+".r) { (vendor, name, format, version) =>
       auth { permission =>
-        get {
-            respondWithMediaType(`application/json`) {
-              complete {
-                Await.result(store.
-                  get(vendor + "/" + name + "/" + format + "/" + version))
-                  match {
-                    case Some(str) => str
-                    case None => NotFound
-                  }
+        pathEnd {
+          get {
+              respondWithMediaType(`application/json`) {
+                complete {
+                  Await.result(schemaStore.
+                    get(s"${vendor}/${name}/${format}/${version}"))
+                    match {
+                      case Some(str) => str
+                      case None => NotFound
+                    }
+                }
               }
-            }
+          }
         } ~
         post {
-          respondWithMediaType(`text/html`) {
-            complete {
-              if (permission == "write") {
-                "<html><body>Good</body></html>"
-              } else {
-                Unauthorized
+          anyParam('json)(json =>
+            respondWithMediaType(`text/html`) {
+              complete {
+                if (permission == "write") {
+                  schemaStore.put((s"${vendor}/${name}/${format}/${version}",
+                    Some(json)))
+                  "Success"
+                } else {
+                  Unauthorized
+                }
               }
-            }
-          }
+            })
         }
       }
 

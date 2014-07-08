@@ -20,7 +20,10 @@ import com.twitter.storehaus.dynamodb.DynamoStringStore
 import com.twitter.storehaus.Store
 
 trait DBFactory {
-  def getStore: Store[String, String]
+  val schemaStore: Store[String, String]
+
+  def getStore(tableName: String, primaryKeyColumn: String, valueColumn: String)
+    : Store[String, String]
 }
 
 object DynamoFactory extends DBFactory {
@@ -30,6 +33,10 @@ object DynamoFactory extends DBFactory {
   private val primaryKeyColumn = "SchemaID"
   private val valueColumn = "Schema"
 
-  def getStore: DynamoStringStore = DynamoStringStore(
+  val schemaStore: DynamoStringStore = DynamoStringStore(
     awsAccessKey, awsSecretKey, tableName, primaryKeyColumn, valueColumn)
+
+  def getStore(tableName: String, primaryKeyColumn: String,
+    valueColumn: String): DynamoStringStore = DynamoStringStore(
+      awsAccessKey, awsSecretKey, tableName, primaryKeyColumn, valueColumn)
 }
