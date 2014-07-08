@@ -21,22 +21,25 @@ import com.twitter.storehaus.Store
 
 trait DBFactory {
   val schemaStore: Store[String, String]
+  protected val schemaTableName = "Schemas"
+  protected val schemaPrimaryKey = "SchemaID"
+  protected val schemaValueColumn = "Schema"
 
-  def getStore(tableName: String, primaryKeyColumn: String, valueColumn: String)
-    : Store[String, String]
+  val apiKeyStore: Store[String, String]
+  protected val apiKeyTableName = "ApiKeys"
+  protected val apiKeyPrimaryKey = "ApiKey"
+  protected val apiKeyValueColumn = "Permission"
 }
 
 object DynamoFactory extends DBFactory {
   private val awsAccessKey = "xxx"
   private val awsSecretKey = "yyy"
-  private val tableName = "Schemas"
-  private val primaryKeyColumn = "SchemaID"
-  private val valueColumn = "Schema"
 
   val schemaStore: DynamoStringStore = DynamoStringStore(
-    awsAccessKey, awsSecretKey, tableName, primaryKeyColumn, valueColumn)
+    awsAccessKey, awsSecretKey,
+    schemaTableName, schemaPrimaryKey, schemaValueColumn)
 
-  def getStore(tableName: String, primaryKeyColumn: String,
-    valueColumn: String): DynamoStringStore = DynamoStringStore(
-      awsAccessKey, awsSecretKey, tableName, primaryKeyColumn, valueColumn)
+  val apiKeyStore: DynamoStringStore = DynamoStringStore(
+    awsAccessKey, awsSecretKey,
+    apiKeyTableName, apiKeyPrimaryKey, apiKeyValueColumn)
 }
