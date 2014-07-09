@@ -13,20 +13,13 @@
 * governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.repositories.scalaserver
-
-// This project
-import core.SchemaActor
-import core.SchemaActor._
+package api
 
 // Akka
-import akka.actor.{ Actor, Props, ActorSystem }
-import akka.pattern.ask
-import akka.util.Timeout
+import akka.actor.Actor
 
 // Scala
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent.Await
 
 // Spray
 import spray.http._
@@ -34,18 +27,19 @@ import spray.routing._
 import MediaTypes._
 import StatusCodes._
 
+// Twitter
+import com.twitter.util.Await
+
 class RepoServiceActor extends Actor with RepoService {
-  implicit def actorRefFactory = context
+  def actorRefFactory = context
 
   def receive = runRoute(route)
 }
 
 trait RepoService extends HttpService {
+  val schemaStore = DynamoFactory.schemaStore
   val apiKeyStore = DynamoFactory.apiKeyStore
-
-  val schemaActor = actorRefFactory.actorOf(Props[SchemaActor])
-  implicit val timeout = Timeout(5.seconds)
-
+  
   val authenticator = TokenAuthenticator[String]("api-key") {
     key => util.FutureConverter.fromTwitter(apiKeyStore.get(key))
   }
@@ -58,15 +52,14 @@ trait RepoService extends HttpService {
       auth { permission =>
         pathEnd {
           get {
-            respondWithMediaType(`application/json`) {
-              complete {
-                Await.result(schemaActor ? Get(key), 5.seconds).
-                asInstanceOf[Option[String]] match {
-                  case Some(str) => str
-                  case None => NotFound
+              respondWithMediaType(`application/json`) {
+                complete {
+                  Await.result(schemaStore.get(key)) match {
+                    case Some(str) => str
+                    case None => NotFound
+                  }
                 }
               }
-            }
           }
         } ~
         anyParam('json)(json =>
@@ -74,12 +67,11 @@ trait RepoService extends HttpService {
             respondWithMediaType(`text/html`) {
               complete {
                 if (permission == "write") {
-                  Await.result(schemaActor ? Get(key), 5.seconds).
-                  asInstanceOf[Option[String]] match {
+                  Await.result(schemaStore.get(key)) match {
                     //return unauthorized for now
                     case Some(str) => Unauthorized
                     case None => {
-                      schemaActor ! Put((key, Some(json)))
+                      schemaStore.put((key, Some(json)))
                       "Success"
                     }
                   }

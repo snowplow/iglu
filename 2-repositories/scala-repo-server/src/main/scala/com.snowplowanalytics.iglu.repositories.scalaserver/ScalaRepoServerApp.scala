@@ -14,6 +14,9 @@
 */
 package com.snowplowanalytics.iglu.repositories.scalaserver
 
+// This project
+import core.SchemaActor
+
 // Java
 import java.io.File
 
@@ -70,8 +73,11 @@ object ScalaRepoServer extends App {
   val repoConfig = new RepoConfig(rawConf)
 
   implicit val system = ActorSystem("scala-repo-server")
+
   implicit val timeout = Timeout(5.seconds)
   val service = system.actorOf(Props[RepoServiceActor], "repo-service")
+  //tmp
+  val schemaActor = system.actorOf(Props[SchemaActor], "schema-actor")
 
   IO(Http) ? Http.Bind(service, interface = repoConfig.interface,
                        port = repoConfig.port)

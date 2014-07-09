@@ -22,7 +22,7 @@ object Dependencies {
 
   object V {
     // Scala
-    val akka      = "2.3.0"
+    val akka      = "2.3.4"
     val argot     = "1.0.2"
     val spray     = "1.3.1"
     val storehaus = "0.9.0"
