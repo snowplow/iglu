@@ -13,39 +13,33 @@
 * governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.repositories.scalaserver
+package api
 
 // This project
-import core.SchemaActor
 import core.SchemaActor._
 
 // Akka
-import akka.actor.{ Actor, Props, ActorSystem }
+import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
 
 // Scala
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+// for some reason mapTo doesnt work without it
+import scala.reflect.ClassTag
 import scala.util.{ Success, Failure }
 
 // Spray
-import spray.http._
+import spray.http.StatusCodes._
+import spray.http.MediaTypes._
 import spray.routing._
-import MediaTypes._
-import StatusCodes._
 
-class RepoServiceActor extends Actor with RepoService {
-  implicit def actorRefFactory = context
-
-  def receive = runRoute(route)
-}
-
-trait RepoService extends HttpService {
-  val apiKeyStore = DynamoFactory.apiKeyStore
-
-  val schemaActor = actorRefFactory.actorOf(Props[SchemaActor])
+class SchemaService(schema: ActorRef)
+(implicit executionContext: ExecutionContext) extends Directives {
   implicit val timeout = Timeout(5.seconds)
 
+  val apiKeyStore = DynamoFactory.apiKeyStore
   val authenticator = TokenAuthenticator[String]("api-key") {
     key => util.FutureConverter.fromTwitter(apiKeyStore.get(key))
   }
@@ -59,7 +53,7 @@ trait RepoService extends HttpService {
         pathEnd {
           get {
             respondWithMediaType(`application/json`) {
-              onComplete((schemaActor ? Get(key)).mapTo[Option[String]]) {
+              onComplete((schema ? Get(key)).mapTo[Option[String]]) {
                 case Success(opt) => complete {
                   opt match {
                     case Some(str) => str
@@ -76,13 +70,13 @@ trait RepoService extends HttpService {
           post {
             respondWithMediaType(`text/html`) {
               if (permission == "write") {
-                onComplete((schemaActor ? Get(key)).mapTo[Option[String]]) {
+                onComplete((schema ? Get(key)).mapTo[Option[String]]) {
                   case Success(opt) => complete {
                     opt match {
                       case Some(str) => (Unauthorized,
                         "This schema already exists")
                       case None => {
-                        schemaActor ! Put((key, Some(json)))
+                        schema ! Put((key, Some(json)))
                         (OK, "Success")
                       }
                     }
