@@ -16,6 +16,9 @@
 package com.snowplowanalytics.iglu.repositories.scalaserver
 package core
 
+// This project
+import util.DynamoFactory
+
 // Akka
 import akka.actor.Actor
 

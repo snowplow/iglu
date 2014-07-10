@@ -17,6 +17,7 @@ package api
 
 // This project
 import core.SchemaActor._
+import util.{ DynamoFactory, TokenAuthenticator }
 
 // Akka
 import akka.actor.ActorRef

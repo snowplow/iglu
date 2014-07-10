@@ -14,6 +14,7 @@
 * language governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.repositories.scalaserver
+package util
 
 // Storehaus
 import com.twitter.storehaus.dynamodb.DynamoStringStore
