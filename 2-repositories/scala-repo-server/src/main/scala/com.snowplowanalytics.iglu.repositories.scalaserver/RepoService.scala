@@ -70,13 +70,6 @@ trait RepoService extends HttpService {
                 case Failure(ex) => complete(InternalServerError,
                   s"An error occured: ${ex.getMessage}")
               }
-              //  complete {
-              //    Await.result(schemaActor ? Get(key), 5.seconds).
-              //    asInstanceOf[Option[String]] match {
-              //      case Some(str) => str
-              //      case None => NotFound
-              //    }
-              //  }
             }
           }
         } ~
@@ -98,15 +91,6 @@ trait RepoService extends HttpService {
                   case Failure(ex) => complete(InternalServerError,
                     s"An error occured: ${ex.getMessage}")
                 }
-                //Await.result(schemaActor ? Get(key), 5.seconds).
-                //asInstanceOf[Option[String]] match {
-                //  //return unauthorized for now
-                //  case Some(str) => Unauthorized
-                //  case None => {
-                //    schemaActor ! Put((key, Some(json)))
-                //    "Success"
-                //  }
-                //}
               } else {
                 complete(Unauthorized, "You do not have sufficient privileges")
               }
