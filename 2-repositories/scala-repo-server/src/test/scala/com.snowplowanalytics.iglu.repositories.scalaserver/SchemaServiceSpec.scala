@@ -13,21 +13,29 @@
 * governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.repositories.scalaserver
+package test
+
+// This project
+import api.{ Api, SchemaService }
+import core.SchemaActor
+
+// Akka
+import akka.actor.Props
 
 // Scala
 import scala.concurrent.duration._
 
-// Specs2 and spray testing
+// Specs2
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
-import spray.testkit.Specs2RouteTest
 
 // Spray
 import spray.http._
 import StatusCodes._
+import spray.testkit.Specs2RouteTest
 
-class RepoServiceSpec extends Specification
-    with Specs2RouteTest with RepoService with NoTimeConversions {
+class SchemaServiceSpec extends Specification
+    with Api with Specs2RouteTest with NoTimeConversions {
   def actorRefFactory = system
 
   // Increase test timeout
@@ -47,17 +55,17 @@ class RepoServiceSpec extends Specification
   val postUrl7 = "/com.snowplowanalytics.snowplow/unit_test7/jsonschema/1-0-0"
   val postUrl8 = url + "?json={%20%22json%22%20}"
 
-  "RepoService" should {
+  "SchemaService" should {
     "for GET requests" should {
       "return a proper json for GET requests to the " + url + " path" in {
-        Get(url) ~> addHeader("api-key", "benRead") ~> route ~> check {
+        Get(url) ~> addHeader("api-key", "benRead") ~> routes ~> check {
           status === OK
           responseAs[String] must contain("\"name\": \"ad_click\"")
         }
       }
 
       "return a 404 for GET requests for which the key is not in the db" in {
-        Get(faultyUrl) ~> addHeader("api-key", "benRead") ~> route ~> check {
+        Get(faultyUrl) ~> addHeader("api-key", "benRead") ~> routes ~> check {
           status === NotFound
           responseAs[String] must
             contain("The requested resource could not be found")
@@ -65,7 +73,7 @@ class RepoServiceSpec extends Specification
       }
 
       "return a 401 if no api-key is found" in {
-        Get(url) ~> addHeader("api-key", "ben") ~> sealRoute(route) ~> check {
+        Get(url) ~> addHeader("api-key", "ben") ~> sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
             contain("The supplied authentication is invalid")
@@ -73,7 +81,7 @@ class RepoServiceSpec extends Specification
       }
 
       "return a 401 if no api-key is provided" in {
-        Get(url) ~> sealRoute(route) ~> check {
+        Get(url) ~> sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
             contain("The resource requires authentication")
@@ -81,7 +89,7 @@ class RepoServiceSpec extends Specification
       }
 
       "leave GET requests to other paths unhandled" in {
-        Get("/test") ~> route ~> check {
+        Get("/test") ~> routes ~> check {
           handled must beFalse
         }
       }
@@ -91,7 +99,7 @@ class RepoServiceSpec extends Specification
       //should be removed from db before running tests for now
       "return success if the json is passed as form data" in {
         Post(postUrl1, FormData(Seq("json" -> "{ \"json\" }"))) ~>
-        addHeader("api-key", "benWrite") ~> sealRoute(route) ~> check {
+        addHeader("api-key", "benWrite") ~> sealRoute(routes) ~> check {
           status === OK
           responseAs[String] === "Success"
         }
@@ -100,7 +108,7 @@ class RepoServiceSpec extends Specification
       //should be removed from db before running tests for now
       "return success if the json is passed as query parameter" in {
         Post(postUrl2) ~> addHeader("api-key", "benWrite") ~>
-        sealRoute(route) ~> check {
+        sealRoute(routes) ~> check {
           status === OK
           responseAs[String] === "Success"
         }
@@ -108,7 +116,7 @@ class RepoServiceSpec extends Specification
 
       "return a 401 if the schema already exists with form data" in {
         Post(postUrl8) ~> addHeader("api-key", "benWrite") ~>
-        sealRoute(route) ~> check {
+        sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] === "This schema already exists"
         }
@@ -116,7 +124,7 @@ class RepoServiceSpec extends Specification
 
       "return a 401 if the schema already exists with query param" in {
         Post(url, FormData(Seq("json" -> "{ \"json\" }"))) ~>
-        addHeader("api-key", "benWrite") ~> sealRoute(route) ~> check {
+        addHeader("api-key", "benWrite") ~> sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] === "This schema already exists"
         }
@@ -124,7 +132,7 @@ class RepoServiceSpec extends Specification
 
       "return a 405 if no form or query param is specified" in {
         Post(postUrl3) ~> addHeader("api-key", "benWrite") ~>
-        sealRoute(route) ~> check {
+        sealRoute(routes) ~> check {
           status === MethodNotAllowed
           responseAs[String] must contain("HTTP method not allowed")
         }
@@ -132,7 +140,7 @@ class RepoServiceSpec extends Specification
 
       "return 401 if the api key doesn't have sufficient permissions " +
       "with query param" in {
-        Post(postUrl4) ~> addHeader("api-key", "benRead") ~> sealRoute(route) ~>
+        Post(postUrl4) ~> addHeader("api-key", "benRead") ~> sealRoute(routes) ~>
         check {
           status === Unauthorized
           responseAs[String] must
@@ -143,7 +151,7 @@ class RepoServiceSpec extends Specification
       "return a 401 if the api key doesn't have sufficient permissions " +
       "with form data" in {
         Post(postUrl5, FormData(Seq("json" -> "{ \"json\" }"))) ~>
-        addHeader("api-key", "benRead") ~> sealRoute(route) ~> check {
+        addHeader("api-key", "benRead") ~> sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
             contain("You do not have sufficient privileges")
@@ -151,7 +159,7 @@ class RepoServiceSpec extends Specification
       }
 
       "return a 401 if no api-key is specified with query param" in {
-        Post(postUrl6) ~> sealRoute(route) ~> check {
+        Post(postUrl6) ~> sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must contain("The resource requires authentication")
         }
@@ -159,7 +167,7 @@ class RepoServiceSpec extends Specification
 
       "return a 401 if no api-key is specified with form data" in {
         Post(postUrl7, FormData(Seq("json" -> "{ \"json\" }"))) ~>
-        sealRoute(route) ~> check {
+        sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must contain("The resource requires authentication")
         }

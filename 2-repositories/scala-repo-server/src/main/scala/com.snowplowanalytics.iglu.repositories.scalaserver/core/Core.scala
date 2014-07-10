@@ -43,5 +43,5 @@ trait BootedCore extends Core with Api {
 trait CoreActors {
   this: Core =>
 
-  val schema = system.actorOf(Props[SchemaActor])
+  lazy val schema = system.actorOf(Props[SchemaActor])
 }

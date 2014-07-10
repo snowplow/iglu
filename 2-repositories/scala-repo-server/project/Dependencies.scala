@@ -28,7 +28,7 @@ object Dependencies {
     val storehaus = "0.9.0"
 
     // Scala (test only)
-    val specs2    = "2.3.12"
+    val specs2    = "2.3.13"
   }
 
   object Libraries {
