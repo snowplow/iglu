@@ -37,14 +37,15 @@ class RepoServiceSpec extends Specification
   val faultyUrl = "/com.snowplowanalytics.snowplow/ad_click/jsonchema/1-0-0"
   val postUrl1 = "/com.snowplowanalytics.snowplow/unit_test1/jsonschema/1-0-0"
   val postUrl2 = "/com.snowplowanalytics.snowplow/unit_test2/jsonschema/1-0-0" +
-    "?json={%20json%20}"
-  val postUrl3 = faultyUrl
+    "?json={%20%22json%22%20}"
+  val postUrl3 = "/com.snowplowanalytics.snowplow/unit_test3/jsonschema/1-0-0"
   val postUrl4 = "/com.snowplowanalytics.snowplow/unit_test4/jsonschema/1-0-0" +
-    "?json={%20json%20}"
+    "?json={%20%22json%22%20}"
   val postUrl5 = "/com.snowplowanalytics.snowplow/unit_test5/jsonschema/1-0-0"
   val postUrl6 = "/com.snowplowanalytics.snowplow/unit_test6/jsonschema/1-0-0" +
-    "?json={%20json%20}"
+    "?json={%20%22json%22%20}"
   val postUrl7 = "/com.snowplowanalytics.snowplow/unit_test7/jsonschema/1-0-0"
+  val postUrl8 = url + "?json={%20%22json%22%20}"
 
   "RepoService" should {
     "for GET requests" should {
@@ -105,6 +106,22 @@ class RepoServiceSpec extends Specification
         }
       }
 
+      "return a 401 if the schema already exists with form data" in {
+        Post(postUrl8) ~> addHeader("api-key", "benWrite") ~>
+        sealRoute(route) ~> check {
+          status === Unauthorized
+          responseAs[String] === "This schema already exists"
+        }
+      }
+
+      "return a 401 if the schema already exists with query param" in {
+        Post(url, FormData(Seq("json" -> "{ \"json\" }"))) ~>
+        addHeader("api-key", "benWrite") ~> sealRoute(route) ~> check {
+          status === Unauthorized
+          responseAs[String] === "This schema already exists"
+        }
+      }
+
       "return a 405 if no form or query param is specified" in {
         Post(postUrl3) ~> addHeader("api-key", "benWrite") ~>
         sealRoute(route) ~> check {
@@ -119,17 +136,17 @@ class RepoServiceSpec extends Specification
         check {
           status === Unauthorized
           responseAs[String] must
-            contain("Authentication is possible but has failed")
+            contain("You do not have sufficient privileges")
         }
       }
 
       "return a 401 if the api key doesn't have sufficient permissions " +
-      "with form param" in {
+      "with form data" in {
         Post(postUrl5, FormData(Seq("json" -> "{ \"json\" }"))) ~>
         addHeader("api-key", "benRead") ~> sealRoute(route) ~> check {
           status === Unauthorized
           responseAs[String] must
-            contain("Authentication is possible but has failed")
+            contain("You do not have sufficient privileges")
         }
       }
 

@@ -27,6 +27,7 @@ import akka.util.Timeout
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.Await
+import scala.util.{ Success, Failure }
 
 // Spray
 import spray.http._
@@ -59,33 +60,55 @@ trait RepoService extends HttpService {
         pathEnd {
           get {
             respondWithMediaType(`application/json`) {
-              complete {
-                Await.result(schemaActor ? Get(key), 5.seconds).
-                asInstanceOf[Option[String]] match {
-                  case Some(str) => str
-                  case None => NotFound
+              onComplete((schemaActor ? Get(key)).mapTo[Option[String]]) {
+                case Success(opt) => complete {
+                  opt match {
+                    case Some(str) => str
+                    case None => NotFound
+                  }
                 }
+                case Failure(ex) => complete(InternalServerError,
+                  s"An error occured: ${ex.getMessage}")
               }
+              //  complete {
+              //    Await.result(schemaActor ? Get(key), 5.seconds).
+              //    asInstanceOf[Option[String]] match {
+              //      case Some(str) => str
+              //      case None => NotFound
+              //    }
+              //  }
             }
           }
         } ~
         anyParam('json)(json =>
           post {
             respondWithMediaType(`text/html`) {
-              complete {
-                if (permission == "write") {
-                  Await.result(schemaActor ? Get(key), 5.seconds).
-                  asInstanceOf[Option[String]] match {
-                    //return unauthorized for now
-                    case Some(str) => Unauthorized
-                    case None => {
-                      schemaActor ! Put((key, Some(json)))
-                      "Success"
+              if (permission == "write") {
+                onComplete((schemaActor ? Get(key)).mapTo[Option[String]]) {
+                  case Success(opt) => complete {
+                    opt match {
+                      case Some(str) => (Unauthorized,
+                        "This schema already exists")
+                      case None => {
+                        schemaActor ! Put((key, Some(json)))
+                        (OK, "Success")
+                      }
                     }
                   }
-                } else {
-                  Unauthorized
+                  case Failure(ex) => complete(InternalServerError,
+                    s"An error occured: ${ex.getMessage}")
                 }
+                //Await.result(schemaActor ? Get(key), 5.seconds).
+                //asInstanceOf[Option[String]] match {
+                //  //return unauthorized for now
+                //  case Some(str) => Unauthorized
+                //  case None => {
+                //    schemaActor ! Put((key, Some(json)))
+                //    "Success"
+                //  }
+                //}
+              } else {
+                complete(Unauthorized, "You do not have sufficient privileges")
               }
             }
           })
