@@ -33,7 +33,7 @@ case class Schema(
 )
 
 object SchemaDAO {
-  object SchemTable extends Table[Schema]("schemas") {
+  class SchemTable(tag: Tag) extends Table[Schema](tag, "schemas") {
     def schemaId = column[Int](
       "schemaId", O.AutoInc, O.PrimaryKey, O.DBType("bigint"))
     def vendor = column[String]("vendor", O.DBType("varchar(200)"), O.NotNull)
@@ -46,26 +46,45 @@ object SchemaDAO {
     def * = (schemaId ~ vendor ~ name ~ format ~ version ~ schema) <>
       (Schema, Schema.unapply _)
 
-    def forInsert = (vendor ~ name ~ format ~ version ~ schema)
-      returning schemaId
+    def forInsert = 
+      (vendor ~ name ~ format ~ version ~ schema) returning schemaId
   }
 
   case class Result(result: String)
   implicit val resultFormat = jsonFormat1(Result)
   def result(res: String) = new Result(res).toJson.compactPrint
 
-  def getAllFromVendor(vendor: String) =
-    Query(SchemTable).where(_.vendor is vendor).list.toJson.compactPrint
+  def getAllFromVendor(vendor: String): Option[String] = {
+    val l = Query(SchemTable).where(_.vendor is vendor).list
+    if (l.count > 0) {
+      Some(l.toJson.compactPrint)
+    } else {
+      None
+    }
+  }
 
-  def getAllFromName(vendor: String, name: String) =
-    Query(SchemaTable).where(s => s.vendor is vendor && s.name is name).
-      list.toJson.compactPrint
+  def getAllFromName(vendor: String, name: String): Option[String] = {
+    val l = Query(SchemaTable).where(s => s.vendor is vendor && s.name is name).
+      list
+    if (l.count > 0) {
+      Some(l.toJson.compactPrint)
+    } else {
+      None
+    }
+  }
 
-  def getAllFromFormat(vendor: String, name: String, format: String) =
-    Query(SchemaTable).where(s =>
+  def getAllFromFormat(vendor: String, name: String, format: String):
+  Option[String] = {
+    val l = Query(SchemaTable).where(s =>
         s.vendor is vendor &&
         s.name is name &&
-        s.format is format).list.toJson.compactPrint
+        s.format is format).list
+    if (l.count > 0) {
+      Some(l.toJson.compactPrint)
+    } else {
+      None
+    }
+  }
 
   def get(vendor: String, name: String, format: String, version: String):
     Option[String] = {

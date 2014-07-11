@@ -37,6 +37,7 @@ object ScalaRepoServerBuild extends Build {
         Libraries.slf4j,
         Libraries.slick,
         Libraries.sprayCan,
+        Libraries.sprayJson,
         Libraries.sprayRouting,
         Libraries.storehausCore,
         Libraries.storehausDDB,
