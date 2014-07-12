@@ -15,12 +15,16 @@
 package com.snowplowanalytics.iglu.repositories.scalaserver
 package model
 
+// This project
+import util.PostgresDB
+
 // Slick
 import scala.slick.driver.PostgresDriver
 import scala.slick.driver.PostgresDriver.simple._
 
 //Spray
-import spray.json.DefaultJsonProtocol._
+import spray.json._
+import DefaultJsonProtocol._
 
 case class Schema(
   schemaId: Int,
@@ -32,8 +36,8 @@ case class Schema(
   //created: DateTime
 )
 
-object SchemaDAO {
-  class SchemTable(tag: Tag) extends Table[Schema](tag, "schemas") {
+object SchemaDAO extends PostgresDB {
+  class Schemas(tag: Tag) extends Table[Schema](tag, "schemas") {
     def schemaId = column[Int](
       "schemaId", O.AutoInc, O.PrimaryKey, O.DBType("bigint"))
     def vendor = column[String]("vendor", O.DBType("varchar(200)"), O.NotNull)
@@ -43,31 +47,29 @@ object SchemaDAO {
     def schema = column[String]("version", O.DBType("json"), O.NotNull)
     //def created = column[DateTime]("created", O.DBType("timestamp"), O.NotNull)
 
-    def * = (schemaId ~ vendor ~ name ~ format ~ version ~ schema) <>
-      (Schema, Schema.unapply _)
-
-    def forInsert = 
-      (vendor ~ name ~ format ~ version ~ schema) returning schemaId
+    def * = (schemaId, vendor, name, format, version, schema) <>
+      (Schema.tupled, Schema.unapply)
   }
+
+  val schemas = TableQuery[Schemas]
 
   case class Result(result: String)
   implicit val resultFormat = jsonFormat1(Result)
   def result(res: String) = new Result(res).toJson.compactPrint
 
   def getAllFromVendor(vendor: String): Option[String] = {
-    val l = Query(SchemTable).where(_.vendor is vendor).list
-    if (l.count > 0) {
-      Some(l.toJson.compactPrint)
+    val l = schemas.filter(_.vendor === vendor).list
+    if (l.length > 0) {
+      Some(l.toString)
     } else {
       None
     }
   }
 
   def getAllFromName(vendor: String, name: String): Option[String] = {
-    val l = Query(SchemaTable).where(s => s.vendor is vendor && s.name is name).
-      list
-    if (l.count > 0) {
-      Some(l.toJson.compactPrint)
+    val l = schemas.filter(s => s.vendor === vendor && s.name === name).list
+    if (l.length > 0) {
+      Some(l.toString)
     } else {
       None
     }
@@ -75,12 +77,12 @@ object SchemaDAO {
 
   def getAllFromFormat(vendor: String, name: String, format: String):
   Option[String] = {
-    val l = Query(SchemaTable).where(s =>
-        s.vendor is vendor &&
-        s.name is name &&
-        s.format is format).list
-    if (l.count > 0) {
-      Some(l.toJson.compactPrint)
+    val l = schemas.filter(s =>
+        s.vendor === vendor &&
+        s.name === name &&
+        s.format === format).list
+    if (l.length > 0) {
+      Some(l.toString)
     } else {
       None
     }
@@ -88,13 +90,13 @@ object SchemaDAO {
 
   def get(vendor: String, name: String, format: String, version: String):
     Option[String] = {
-      val l = Query(SchemaTable).where(s =>
-          s.vendor is vendor &&
-          s.name is name &&
-          s.format is format &&
-          s.version is version).list
-      if (l.count == 1) {
-        Some(l.toJson.compactPrint)
+      val l = schemas.filter(s =>
+          s.vendor === vendor &&
+          s.name === name &&
+          s.format === format &&
+          s.version === version).list
+      if (l.length == 1) {
+        Some(l.toString)
       } else {
         None
       }
@@ -102,8 +104,8 @@ object SchemaDAO {
 
   def add(vendor: String, name: String, format: String, version: String,
     schema: String): String =
-      SchemaTable.forInsert.
-        insert(vendor, name, format, version, schema) match {
+      schemas.map(s => (s.vendor, s.name, s.format, s.version, s.schema)) +=
+        (vendor, name, format, version, schema) match {
           case 0 => result("Something went wrong")
           case n => result("Schema successfully added")
         }

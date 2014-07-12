@@ -15,6 +15,9 @@
 package com.snowplowanalytics.iglu.repositories.scalaserver
 package model
 
+// This project
+import util.PostgresDB
+
 // Java
 import java.util.UUID
 
@@ -24,7 +27,8 @@ import scala.slick.driver.PostgresDriver.simple._
 import scala.slick.lifted.Tag
 
 // Spray
-import spray.json.DefaultJsonProtocol._
+import spray.json._
+import DefaultJsonProtocol._
 
 case class ApiKey(
   uid: UUID,
@@ -33,29 +37,33 @@ case class ApiKey(
   //created: DateTime
 )
 
-object ApiKeyDAO {
-  class ApiKeyTable(tag: Tag) extends Table[ApiKey](tag, "apikeys") {
+object ApiKeyDAO extends PostgresDB {
+  class ApiKeys(tag: Tag) extends Table[ApiKey](tag, "apikeys") {
     def uid = column[UUID]("uid", O.PrimaryKey, O.DBType("uuid"))
     def owner = column[String]("vendor", O.DBType("varchar(200)"), O.NotNull)
     def permission = column[String]("permission",
       O.DBType("varchar(20)"), O.NotNull, O.Default[String]("read"))
     //def created = column[DateTime]("created", ).DBType("timestamp"), O.NotNull)
 
-    def * = (uid ~ owner ~ permission) <> (ApiKey, ApiKey.unpply)
-
-    def forInsert = (owner ~ permission) returning uid
+    def * = (uid, owner, permission) <> (ApiKey.tupled, ApiKey.unapply)
   }
 
+  val apiKeys = TableQuery[ApiKeys]
+
   def get(uid: UUID): Option[String] = {
-    val l = Query(ApiKeyTable).where(_.uid is uid).list
-    if (l.count == 1) {
-      Some(l.toJson.compactPrint)
+    val l = apiKeys.filter(_.uid === uid).list
+    if (l.length == 1) {
+      Some(l.toString)
     } else {
       None
     }
   }
 
   //dunno if I should generate them here or in the associated actor
-  def add(owner: String, permission: String): String =
-    ApiKeyTable.forInsert.insert(owner, permission)
+  def add(uid: UUID, owner: String, permission: String): String =
+    apiKeys.map(a => (a.uid, a.owner, a.permission)) +=
+      (uid, owner, permission) match {
+        case 0 => "Something went wrong"
+        case n => "Api key successfully added"
+      }
 }
