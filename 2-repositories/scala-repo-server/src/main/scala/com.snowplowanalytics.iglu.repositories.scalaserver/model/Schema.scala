@@ -58,7 +58,9 @@ object SchemaDAO extends PostgresDB {
   def result(res: String) = new Result(res).toJson.compactPrint
 
   def getAllFromVendor(vendor: String): Option[String] = {
-    val l = schemas.filter(_.vendor === vendor).list
+    val l: List[(String, String, String, String)] =
+      schemas.filter(_.vendor === vendor).
+      map(s => (s.name, s.format, s.version, s.schema)).list
     if (l.length > 0) {
       Some(l.toString)
     } else {
@@ -67,7 +69,9 @@ object SchemaDAO extends PostgresDB {
   }
 
   def getAllFromName(vendor: String, name: String): Option[String] = {
-    val l = schemas.filter(s => s.vendor === vendor && s.name === name).list
+    val l: List[(String, String, String)] =
+      schemas.filter(s => s.vendor === vendor && s.name === name).
+      map(s => (s.format, s.version, s.schema)).list
     if (l.length > 0) {
       Some(l.toString)
     } else {
@@ -77,10 +81,10 @@ object SchemaDAO extends PostgresDB {
 
   def getAllFromFormat(vendor: String, name: String, format: String):
   Option[String] = {
-    val l = schemas.filter(s =>
+    val l: List[(String, String)] = schemas.filter(s =>
         s.vendor === vendor &&
         s.name === name &&
-        s.format === format).list
+        s.format === format).map(s => (s.version, s.schema)).list
     if (l.length > 0) {
       Some(l.toString)
     } else {
@@ -90,11 +94,11 @@ object SchemaDAO extends PostgresDB {
 
   def get(vendor: String, name: String, format: String, version: String):
     Option[String] = {
-      val l = schemas.filter(s =>
+      val l: List[String] = schemas.filter(s =>
           s.vendor === vendor &&
           s.name === name &&
           s.format === format &&
-          s.version === version).list
+          s.version === version).map(_.schema).list
       if (l.length == 1) {
         Some(l.toString)
       } else {
