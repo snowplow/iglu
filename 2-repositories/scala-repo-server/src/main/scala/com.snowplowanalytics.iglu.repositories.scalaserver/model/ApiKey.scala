@@ -54,9 +54,18 @@ object ApiKeyDAO extends PostgresDB {
 
   val apiKeys = TableQuery[ApiKeys]
 
-  def get(uid: UUID): Option[(String, String)] = {
-    val l: List[(String, String)] =
-      apiKeys.filter(_.uid === uid).map(a => (a.owner, a.permission)).list
+  //def get(uid: UUID): Option[(String, String)] = {
+  //  val l: List[(String, String)] =
+  //    apiKeys.filter(_.uid === uid).map(a => (a.owner, a.permission)).list
+  //  if (l.length == 1) {
+  //    Some(l(1))
+  //  } else {
+  //    None
+  //  }
+  //}
+
+  def get(uid: UUID): Option[String] = {
+    val l: List[String] = apiKeys.filter(_.uid === uid).map(_.permission).list
     if (l.length == 1) {
       Some(l(1))
     } else {
@@ -64,17 +73,21 @@ object ApiKeyDAO extends PostgresDB {
     }
   }
 
-  //dunno if I should generate them here or in the associated actor
-  def add(uid: UUID, owner: String, permission: String): String =
+  def add(owner: String, permission: String): String = {
+    var uid = UUID.randomUUID()
+    while(get(uid) != None) {
+      uid = UUID.randomUUID()
+    }
     apiKeys.insert(ApiKey(uid, owner, permission, new DateTime())) match {
-        case 0 => "Something went wrong"
-        case n => "Api key successfully added"
+        case 0 => "500"
+        case n => uid.toString
       }
+  }
   
-  def delete(uid: UUID): String =
+  def delete(uid: UUID): Int =
     apiKeys.filter(_.uid === uid).delete match {
-      case 0 => "UUID not found"
-      case 1 => "Api key successfully deleted"
-      case _ => "Something went wrong"
+      case 0 => 404
+      case 1 => 200
+      case _ => 500
     }
 }

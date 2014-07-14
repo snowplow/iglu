@@ -14,18 +14,29 @@
 * language governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.repositories.scalaserver
-package util
+package core
 
-import scala.concurrent.{ Future, Promise }
-import com.twitter.util.{ Future => TwitterFuture, Throw, Return }
+// This project
+import model.ApiKeyDAO
 
-object FutureConverter {
-  def fromTwitter[A](twitterFuture: TwitterFuture[A]): Future[A] = {
-    val promise = Promise[A]
-    twitterFuture respond {
-      case Return(a) => promise success a
-      case Throw(e) => promise failure e
-    }
-    promise.future
+// Akka
+import akka.actor.Actor
+
+// Java
+import java.util.UUID
+
+object ApiKeyActor {
+  case class GetKey(uid: UUID)
+  case class AddKey(owner: String, permission: String)
+  case class DeleteKey(uid: UUID)
+}
+
+class ApiKeyActor extends Actor {
+  import ApiKeyActor._
+
+  def receive = {
+    case GetKey(uid) => sender ! ApiKeyDAO.get(uid)
+    case AddKey(owner, permission) => sender ! ApiKeyDAO.add(owner, permission)
+    case DeleteKey(uid) => sender ! ApiKeyDAO.delete(uid)
   }
 }

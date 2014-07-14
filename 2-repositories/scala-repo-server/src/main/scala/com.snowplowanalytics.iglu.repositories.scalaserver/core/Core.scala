@@ -44,4 +44,5 @@ trait CoreActors {
   this: Core =>
 
   lazy val schema = system.actorOf(Props[SchemaActor])
+  lazy val apiKey = system.actorOf(Props[ApiKeyActor])
 }

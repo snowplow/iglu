@@ -31,7 +31,6 @@ object Dependencies {
     val slick = "2.0.2"
     val spray = "1.3.1"
     val sprayj = "1.2.5"
-    val storehaus = "0.9.0"
 
     // Scala (test only)
     val specs2    = "2.3.13"
@@ -50,8 +49,6 @@ object Dependencies {
     val sprayCan      = "io.spray"             %  "spray-can"         % V.spray
     val sprayJson     = "io.spray"             %% "spray-json"        % V.sprayj
     val sprayRouting  = "io.spray"             %  "spray-routing"     % V.spray
-    val storehausCore = "com.twitter"          %  "storehaus-core_2.10" % V.storehaus
-    val storehausDDB  = "com.twitter"          %  "storehaus-dynamodb_2.10" % V.storehaus
 
     // Scala (test only)
     val specs2        = "org.specs2"         %% "specs2-core"  % V.specs2 % "test"

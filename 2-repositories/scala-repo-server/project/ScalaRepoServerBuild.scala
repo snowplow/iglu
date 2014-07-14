@@ -41,8 +41,6 @@ object ScalaRepoServerBuild extends Build {
         Libraries.sprayCan,
         Libraries.sprayJson,
         Libraries.sprayRouting,
-        Libraries.storehausCore,
-        Libraries.storehausDDB,
         // Scala (test only)
         Libraries.specs2,
         Libraries.sprayTestKit

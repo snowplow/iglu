@@ -17,26 +17,23 @@ package com.snowplowanalytics.iglu.repositories.scalaserver
 package core
 
 // This project
-import util.DynamoFactory
+import model.SchemaDAO
 
 // Akka
 import akka.actor.Actor
 
-// Twitter
-import com.twitter.util.Await
-
 object SchemaActor {
-  case class Get(schemaId: String)
-  case class Put(schema: (String, Option[String]))
+  case class GetSchema(vendor: String, name: String, format: String,
+    version: String)
+  case class AddSchema(vendor: String, name: String, format: String,
+    version: String, schema: String)
 }
 
 class SchemaActor extends Actor {
   import SchemaActor._
 
-  val store = DynamoFactory.schemaStore
-
   def receive = {
-    case Get(schemaId) => sender ! Await.result(store.get(schemaId))
-    case Put(schema) => sender ! store.put(schema)
+    case GetSchema(v, n, f, vs) => sender ! SchemaDAO.get(v, n, f, vs)
+    case AddSchema(v, n, f, vs, s) => sender ! SchemaDAO.add(v, n, f, vs, s)
   }
 }

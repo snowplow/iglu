@@ -17,12 +17,16 @@ package api
 
 // This project
 import core.SchemaActor._
-import util.{ DynamoFactory, TokenAuthenticator }
+import core.ApiKeyActor._
+import util.TokenAuthenticator
 
 // Akka
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
+
+// Java
+import java.util.UUID
 
 // Scala
 import scala.concurrent.ExecutionContext
@@ -36,34 +40,33 @@ import spray.http.StatusCodes._
 import spray.http.MediaTypes._
 import spray.routing._
 
-class SchemaService(schema: ActorRef)
+class SchemaService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives {
   implicit val timeout = Timeout(5.seconds)
 
-  val apiKeyStore = DynamoFactory.apiKeyStore
   val authenticator = TokenAuthenticator[String]("api-key") {
-    key => util.FutureConverter.fromTwitter(apiKeyStore.get(key))
+    key => (apiKey ? GetKey(UUID.fromString(key))).mapTo[Option[String]]
   }
   def auth: Directive1[String] = authenticate(authenticator)
 
   val route = rejectEmptyResponse {
     pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-    "[0-9]+-[0-9]+-[0-9]+".r) { (vendor, name, format, version) => {
-      val key = s"${vendor}/${name}/${format}/${version}"
+    "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) => {
       auth { permission =>
         pathEnd {
           get {
             respondWithMediaType(`application/json`) {
-              onComplete((schema ? Get(key)).mapTo[Option[String]]) {
-                case Success(opt) => complete {
-                  opt match {
-                    case Some(str) => str
-                    case None => NotFound
+              onComplete((schema ? GetSchema(v, n, f, vs)).
+                mapTo[Option[String]]) {
+                  case Success(opt) => complete {
+                    opt match {
+                      case Some(str) => str
+                      case None => NotFound
+                    }
                   }
+                  case Failure(ex) => complete(InternalServerError,
+                    s"An error occured: ${ex.getMessage}")
                 }
-                case Failure(ex) => complete(InternalServerError,
-                  s"An error occured: ${ex.getMessage}")
-              }
             }
           }
         } ~
@@ -71,15 +74,12 @@ class SchemaService(schema: ActorRef)
           post {
             respondWithMediaType(`text/html`) {
               if (permission == "write") {
-                onComplete((schema ? Get(key)).mapTo[Option[String]]) {
-                  case Success(opt) => complete {
-                    opt match {
-                      case Some(str) => (Unauthorized,
-                        "This schema already exists")
-                      case None => {
-                        schema ! Put((key, Some(json)))
-                        (OK, "Success")
-                      }
+                onComplete((schema ? AddSchema(v, n, f, vs, json)).mapTo[Int]) {
+                  case Success(status) => complete {
+                    status match {
+                      case 401 => (Unauthorized, "This schema already exists")
+                      case 500 => (InternalServerError, "Something went wrong")
+                      case 200 => (OK, "Schema added successfully")
                     }
                   }
                   case Failure(ex) => complete(InternalServerError,

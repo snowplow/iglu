@@ -57,10 +57,6 @@ object SchemaDAO extends PostgresDB {
 
   val schemas = TableQuery[Schemas]
 
-  case class Result(result: String)
-  implicit val resultFormat = jsonFormat1(Result)
-  def result(res: String) = new Result(res).toJson.compactPrint
-
   def getAllFromVendor(vendor: String): Option[String] = {
     val l: List[(String, String, String, String)] =
       schemas.filter(_.vendor === vendor).
@@ -111,11 +107,14 @@ object SchemaDAO extends PostgresDB {
     }
 
   def add(vendor: String, name: String, format: String, version: String,
-    schema: String): String =
-      schemas.map(s =>
+    schema: String): Int =
+      get(vendor, name, format, version) match {
+        case Some(str) => 401
+        case None => schemas.map(s =>
           (s.vendor, s.name, s.format, s.version, s.schema, s.created)) +=
-        (vendor, name, format, version, schema, new DateTime()) match {
-          case 0 => result("Something went wrong")
-          case n => result("Schema successfully added")
-        }
+            (vendor, name, format, version, schema, new DateTime()) match {
+              case 0 => 500
+              case n => 200
+            }
+      }
 }
