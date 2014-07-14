@@ -18,6 +18,10 @@ package model
 // This project
 import util.PostgresDB
 
+// Joda
+import org.joda.time.DateTime
+import com.github.tototoshi.slick.PostgresJodaSupport._
+
 // Slick
 import scala.slick.driver.PostgresDriver
 import scala.slick.driver.PostgresDriver.simple._
@@ -32,8 +36,8 @@ case class Schema(
   name: String,
   format: String,
   version: String,
-  schema: String
-  //created: DateTime
+  schema: String,
+  created: DateTime
 )
 
 object SchemaDAO extends PostgresDB {
@@ -45,9 +49,9 @@ object SchemaDAO extends PostgresDB {
     def format = column[String]("format", O.DBType("varchar(50)"), O.NotNull)
     def version = column[String]("version", O.DBType("varchar(50)"), O.NotNull)
     def schema = column[String]("version", O.DBType("json"), O.NotNull)
-    //def created = column[DateTime]("created", O.DBType("timestamp"), O.NotNull)
+    def created = column[DateTime]("created", O.DBType("timestamp"), O.NotNull)
 
-    def * = (schemaId, vendor, name, format, version, schema) <>
+    def * = (schemaId, vendor, name, format, version, schema, created) <>
       (Schema.tupled, Schema.unapply)
   }
 
@@ -60,9 +64,9 @@ object SchemaDAO extends PostgresDB {
   def getAllFromVendor(vendor: String): Option[String] = {
     val l: List[(String, String, String, String)] =
       schemas.filter(_.vendor === vendor).
-      map(s => (s.name, s.format, s.version, s.schema)).list
+        map(s => (s.name, s.format, s.version, s.schema)).list
     if (l.length > 0) {
-      Some(l.toString)
+      Some(l.toJson.compactPrint)
     } else {
       None
     }
@@ -71,9 +75,9 @@ object SchemaDAO extends PostgresDB {
   def getAllFromName(vendor: String, name: String): Option[String] = {
     val l: List[(String, String, String)] =
       schemas.filter(s => s.vendor === vendor && s.name === name).
-      map(s => (s.format, s.version, s.schema)).list
+        map(s => (s.format, s.version, s.schema)).list
     if (l.length > 0) {
-      Some(l.toString)
+      Some(l.toJson.compactPrint)
     } else {
       None
     }
@@ -86,7 +90,7 @@ object SchemaDAO extends PostgresDB {
         s.name === name &&
         s.format === format).map(s => (s.version, s.schema)).list
     if (l.length > 0) {
-      Some(l.toString)
+      Some(l.toJson.compactPrint)
     } else {
       None
     }
@@ -100,7 +104,7 @@ object SchemaDAO extends PostgresDB {
           s.format === format &&
           s.version === version).map(_.schema).list
       if (l.length == 1) {
-        Some(l.toString)
+        Some(l(1).toString)
       } else {
         None
       }
@@ -108,8 +112,9 @@ object SchemaDAO extends PostgresDB {
 
   def add(vendor: String, name: String, format: String, version: String,
     schema: String): String =
-      schemas.map(s => (s.vendor, s.name, s.format, s.version, s.schema)) +=
-        (vendor, name, format, version, schema) match {
+      schemas.map(s =>
+          (s.vendor, s.name, s.format, s.version, s.schema, s.created)) +=
+        (vendor, name, format, version, schema, new DateTime()) match {
           case 0 => result("Something went wrong")
           case n => result("Schema successfully added")
         }

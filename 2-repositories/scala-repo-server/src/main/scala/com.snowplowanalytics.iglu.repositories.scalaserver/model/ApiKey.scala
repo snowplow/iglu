@@ -21,6 +21,10 @@ import util.PostgresDB
 // Java
 import java.util.UUID
 
+// Joda
+import org.joda.time.DateTime
+import com.github.tototoshi.slick.PostgresJodaSupport._
+
 // Slick
 import scala.slick.driver.PostgresDriver
 import scala.slick.driver.PostgresDriver.simple._
@@ -33,8 +37,8 @@ import DefaultJsonProtocol._
 case class ApiKey(
   uid: UUID,
   owner: String,
-  permission: String
-  //created: DateTime
+  permission: String,
+  created: DateTime
 )
 
 object ApiKeyDAO extends PostgresDB {
@@ -43,17 +47,18 @@ object ApiKeyDAO extends PostgresDB {
     def owner = column[String]("vendor", O.DBType("varchar(200)"), O.NotNull)
     def permission = column[String]("permission",
       O.DBType("varchar(20)"), O.NotNull, O.Default[String]("read"))
-    //def created = column[DateTime]("created", ).DBType("timestamp"), O.NotNull)
+    def created = column[DateTime]("created", O.DBType("timestamp"), O.NotNull)
 
-    def * = (uid, owner, permission) <> (ApiKey.tupled, ApiKey.unapply)
+    def * = (uid, owner, permission, created) <> (ApiKey.tupled, ApiKey.unapply)
   }
 
   val apiKeys = TableQuery[ApiKeys]
 
-  def get(uid: UUID): Option[String] = {
-    val l = apiKeys.filter(_.uid === uid).list
+  def get(uid: UUID): Option[(String, String)] = {
+    val l: List[(String, String)] =
+      apiKeys.filter(_.uid === uid).map(a => (a.owner, a.permission)).list
     if (l.length == 1) {
-      Some(l.toString)
+      Some(l(1))
     } else {
       None
     }
@@ -61,9 +66,15 @@ object ApiKeyDAO extends PostgresDB {
 
   //dunno if I should generate them here or in the associated actor
   def add(uid: UUID, owner: String, permission: String): String =
-    apiKeys.map(a => (a.uid, a.owner, a.permission)) +=
-      (uid, owner, permission) match {
+    apiKeys.insert(ApiKey(uid, owner, permission, new DateTime())) match {
         case 0 => "Something went wrong"
         case n => "Api key successfully added"
       }
+  
+  def delete(uid: UUID): String =
+    apiKeys.filter(_.uid === uid).delete match {
+      case 0 => "UUID not found"
+      case 1 => "Api key successfully deleted"
+      case _ => "Something went wrong"
+    }
 }

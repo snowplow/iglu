@@ -32,7 +32,9 @@ object ScalaRepoServerBuild extends Build {
         // Scala
         Libraries.akkaActor,
         Libraries.akkaSlf4j,
-        Libraries.argot,
+        Libraries.joda,
+        Libraries.jodaMapper,
+        Libraries.jodaTime,
         Libraries.postgres,
         Libraries.slf4j,
         Libraries.slick,
