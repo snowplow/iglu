@@ -50,13 +50,94 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   def auth: Directive1[String] = authenticate(authenticator)
 
   val route = rejectEmptyResponse {
-    pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-    "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) => {
+    pathPrefix("[a-z.]+".r) { v => {
       auth { permission =>
+        pathPrefix("[a-zA-Z0-9_-]+".r) { n => {
+          pathPrefix("a-z]+".r) { f => {
+            pathPrefix("[0-9]+-[0-9]+-[0-9]+".r) { vs => {
+              pathEnd {
+                get {
+                  respondWithMediaType(`application/json`) {
+                    onComplete((schema ? GetSchema(v, n, f, vs)).
+                      mapTo[Option[String]]) {
+                        case Success(opt) => complete {
+                          opt match {
+                            case Some(str) => str
+                            case None => NotFound
+                          }
+                        }
+                        case Failure(ex) => complete(InternalServerError,
+                          s"An error occured: ${ex.getMessage}")
+                      }
+                  }
+                }
+              } ~
+              anyParam('json)(json =>
+                post {
+                  respondWithMediaType(`text/html`) {
+                    //review
+                    if(permission == "write") {
+                      onComplete((schema ? AddSchema(v, n, f, vs, json)).
+                        mapTo[Int]) {
+                          case Success(status) => complete {
+                            status match {
+                              case 401 => (Unauthorized,
+                                "This schema already exists")
+                              case 500 => (InternalServerError,
+                                "Something went wrong")
+                              case 200 => (OK, "Schema added successfully")
+                            }
+                          }
+                          case Failure(ex) => complete(InternalServerError,
+                            s"An error occured: ${ex.getMessage}")
+                        }
+                    } else {
+                      complete(Unauthorized,
+                        "You do not have sufficient privileges")
+                    }
+                  }
+                })
+            }} ~
+            pathEnd {
+              get {
+                respondWithMediaType(`application/json`) {
+                  onComplete((schema ? GetSchemasFromFormat(v, n, f)).
+                    mapTo[Option[String]]) {
+                      case Success(opt) => complete {
+                        opt match {
+                          case Some(str) => str
+                          case None => NotFound
+                        }
+                      }
+                      case Failure(ex) => complete(InternalServerError,
+                        s"An error occured: ${ex.getMessage}")
+                    }
+                }
+              }
+            }
+          }} ~
+          pathEnd {
+            get {
+              respondWithMediaType(`application/json`) {
+                onComplete((schema ? GetSchemasFromName(v, n)).
+                  mapTo[Option[String]]) {
+                    case Success(opt) => complete {
+                      opt match {
+                        case Some(str) => str
+                        case None => NotFound
+                      }
+                    }
+                    case Failure(ex) => complete(InternalServerError,
+                      s"An error occured: ${ex.getMessage}")
+                  }
+              }
+            }
+          }
+        }} ~
         pathEnd {
           get {
             respondWithMediaType(`application/json`) {
-              onComplete((schema ? GetSchema(v, n, f, vs)).
+              onComplete((schema ? GetSchemasFromVendor(v)).
                 mapTo[Option[String]]) {
                   case Success(opt) => complete {
                     opt match {
@@ -69,28 +150,52 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
                 }
             }
           }
-        } ~
-        anyParam('json)(json =>
-          post {
-            respondWithMediaType(`text/html`) {
-              if (permission == "write") {
-                onComplete((schema ? AddSchema(v, n, f, vs, json)).mapTo[Int]) {
-                  case Success(status) => complete {
-                    status match {
-                      case 401 => (Unauthorized, "This schema already exists")
-                      case 500 => (InternalServerError, "Something went wrong")
-                      case 200 => (OK, "Schema added successfully")
-                    }
-                  }
-                  case Failure(ex) => complete(InternalServerError,
-                    s"An error occured: ${ex.getMessage}")
-                }
-              } else {
-                complete(Unauthorized, "You do not have sufficient privileges")
-              }
-            }
-          })
+        }
       }
     }}
   }
+
+
+    //pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+    //"[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) => {
+    //  auth { permission =>
+    //    pathEnd {
+    //      get {
+    //        respondWithMediaType(`application/json`) {
+    //          onComplete((schema ? GetSchema(v, n, f, vs)).
+    //            mapTo[Option[String]]) {
+    //              case Success(opt) => complete {
+    //                opt match {
+    //                  case Some(str) => str
+    //                  case None => NotFound
+    //                }
+    //              }
+    //              case Failure(ex) => complete(InternalServerError,
+    //                s"An error occured: ${ex.getMessage}")
+    //            }
+    //        }
+    //      }
+    //    } ~
+    //    anyParam('json)(json =>
+    //      post {
+    //        respondWithMediaType(`text/html`) {
+    //          if (permission == "write") {
+    //            onComplete((schema ? AddSchema(v, n, f, vs, json)).mapTo[Int]) {
+    //              case Success(status) => complete {
+    //                status match {
+    //                  case 401 => (Unauthorized, "This schema already exists")
+    //                  case 500 => (InternalServerError, "Something went wrong")
+    //                  case 200 => (OK, "Schema added successfully")
+    //                }
+    //              }
+    //              case Failure(ex) => complete(InternalServerError,
+    //                s"An error occured: ${ex.getMessage}")
+    //            }
+    //          } else {
+    //            complete(Unauthorized, "You do not have sufficient privileges")
+    //          }
+    //        }
+    //      })
+    //  }
+    //}}
 }
