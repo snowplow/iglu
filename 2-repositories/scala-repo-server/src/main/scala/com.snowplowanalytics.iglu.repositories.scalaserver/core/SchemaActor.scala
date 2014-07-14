@@ -25,6 +25,9 @@ import akka.actor.Actor
 object SchemaActor {
   case class GetSchema(vendor: String, name: String, format: String,
     version: String)
+  case class GetSchemasFromVendor(vendor: String)
+  case class GetSchemasFromName(vendor: String, name: String)
+  case class GetSchemasFromFormat(vendor: String, name: String, format: String)
   case class AddSchema(vendor: String, name: String, format: String,
     version: String, schema: String)
 }
@@ -34,6 +37,10 @@ class SchemaActor extends Actor {
 
   def receive = {
     case GetSchema(v, n, f, vs) => sender ! SchemaDAO.get(v, n, f, vs)
+    case GetSchemasFromVendor(v) => sender ! SchemaDAO.getFromVendor(v)
+    case GetSchemasFromName(v, n) => sender ! SchemaDAO.getFromName(v, n)
+    case GetSchemasFromFormat(v, n, f) =>
+      sender ! SchemaDAO.getFromFormat(v, n, f)
     case AddSchema(v, n, f, vs, s) => sender ! SchemaDAO.add(v, n, f, vs, s)
   }
 }

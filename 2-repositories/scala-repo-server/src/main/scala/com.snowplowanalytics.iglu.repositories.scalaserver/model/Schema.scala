@@ -57,10 +57,11 @@ object SchemaDAO extends PostgresDB {
 
   val schemas = TableQuery[Schemas]
 
-  def getAllFromVendor(vendor: String): Option[String] = {
-    val l: List[(String, String, String, String)] =
+  def getFromVendor(vendor: String): Option[String] = {
+    val l: List[(String, String, String, String, String)] =
       schemas.filter(_.vendor === vendor).
-        map(s => (s.name, s.format, s.version, s.schema)).list
+        map(s => (s.name, s.format, s.version, s.schema, s.created.toString)).
+        list
     if (l.length > 0) {
       Some(l.toJson.compactPrint)
     } else {
@@ -68,10 +69,10 @@ object SchemaDAO extends PostgresDB {
     }
   }
 
-  def getAllFromName(vendor: String, name: String): Option[String] = {
-    val l: List[(String, String, String)] =
+  def getFromName(vendor: String, name: String): Option[String] = {
+    val l: List[(String, String, String, String)] =
       schemas.filter(s => s.vendor === vendor && s.name === name).
-        map(s => (s.format, s.version, s.schema)).list
+        map(s => (s.format, s.version, s.schema, s.created.toString)).list
     if (l.length > 0) {
       Some(l.toJson.compactPrint)
     } else {
@@ -79,12 +80,14 @@ object SchemaDAO extends PostgresDB {
     }
   }
 
-  def getAllFromFormat(vendor: String, name: String, format: String):
+  def getFromFormat(vendor: String, name: String, format: String):
   Option[String] = {
-    val l: List[(String, String)] = schemas.filter(s =>
+    val l: List[(String, String, String)] =
+      schemas.filter(s =>
         s.vendor === vendor &&
         s.name === name &&
-        s.format === format).map(s => (s.version, s.schema)).list
+        s.format === format).
+      map(s => (s.version, s.schema, s.created.toString)).list
     if (l.length > 0) {
       Some(l.toJson.compactPrint)
     } else {
@@ -94,11 +97,11 @@ object SchemaDAO extends PostgresDB {
 
   def get(vendor: String, name: String, format: String, version: String):
     Option[String] = {
-      val l: List[String] = schemas.filter(s =>
+      val l: List[(String, String)] = schemas.filter(s =>
           s.vendor === vendor &&
           s.name === name &&
           s.format === format &&
-          s.version === version).map(_.schema).list
+          s.version === version).map(s => (s.schema, s.created.toString)).list
       if (l.length == 1) {
         Some(l(1).toString)
       } else {
