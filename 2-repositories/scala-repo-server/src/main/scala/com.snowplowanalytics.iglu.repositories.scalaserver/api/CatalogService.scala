@@ -28,7 +28,7 @@ import akka.util.Timeout
 // Java
 import java.util.UUID
 
-// Scala
+//Scala
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
@@ -39,7 +39,7 @@ import spray.http.StatusCodes._
 import spray.http.MediaTypes._
 import spray.routing._
 
-class SchemaService(schema: ActorRef, apiKey: ActorRef)
+class CatalogService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives {
   implicit val timeout = Timeout(5.seconds)
 
@@ -49,13 +49,42 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   def auth: Directive1[String] = authenticate(authenticator)
 
   val route = rejectEmptyResponse {
-    pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-    "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) => {
+    pathPrefix("[a-z]+".r) { v => {
       auth { permission =>
-        pathEnd {
+        respondWithMediaType(`application/json`) {
           get {
-            respondWithMediaType(`application/json`) {
-              onComplete((schema ? GetSchema(v, n, f, vs)).
+            pathPrefix("[a-zA-Z0-9_-]+".r) { n => {
+              pathPrefix("[a-z]+".r) { f => {
+                pathEnd {
+                  onComplete((schema ? GetSchemasFromFormat(v, n, f)).
+                    mapTo[Option[String]]) {
+                      case Success(opt) => complete {
+                        opt match {
+                          case Some(str) => str
+                          case None => NotFound
+                        }
+                      }
+                      case Failure(ex) => complete(InternalServerError,
+                        s"An error occured: ${ex.getMessage}")
+                    }
+                }
+              }} ~
+              pathEnd {
+                onComplete((schema ? GetSchemasFromName(v, n)).
+                  mapTo[Option[String]]) {
+                    case Success(opt) => complete {
+                      opt match {
+                        case Some(str) => str
+                        case None => NotFound
+                      }
+                    }
+                    case Failure(ex) => complete(InternalServerError,
+                      s"An error occured: ${ex.getMessage}")
+                  }
+              }
+            }} ~
+            pathEnd {
+              onComplete((schema ? GetSchemasFromVendor(v)).
                 mapTo[Option[String]]) {
                   case Success(opt) => complete {
                     opt match {
@@ -68,27 +97,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
                 }
             }
           }
-        } ~
-        anyParam('json)(json =>
-          post {
-            respondWithMediaType(`text/html`) {
-              if (permission == "write") {
-                onComplete((schema ? AddSchema(v, n, f, vs, json)).mapTo[Int]) {
-                  case Success(status) => complete {
-                    status match {
-                      case 401 => (Unauthorized, "This schema already exists")
-                      case 500 => (InternalServerError, "Something went wrong")
-                      case 200 => (OK, "Schema added successfully")
-                    }
-                  }
-                  case Failure(ex) => complete(InternalServerError,
-                    s"An error occured: ${ex.getMessage}")
-                }
-              } else {
-                complete(Unauthorized, "You do not have sufficient privileges")
-              }
-            }
-          })
+        }
       }
     }}
   }
