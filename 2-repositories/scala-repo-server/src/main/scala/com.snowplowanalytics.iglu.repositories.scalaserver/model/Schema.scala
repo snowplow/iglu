@@ -113,14 +113,14 @@ object SchemaDAO extends PostgresDB {
     }
 
   def add(vendor: String, name: String, format: String, version: String,
-    schema: String): Int =
+    schema: String): (StatusCode, String) =
       get(vendor, name, format, version) match {
-        case (OK, j) => 401
+        case (OK, j) => (Unauthorized, "This schema already exists")
         case c => schemas.map(s =>
           (s.vendor, s.name, s.format, s.version, s.schema, s.created)) +=
             (vendor, name, format, version, schema, new DateTime()) match {
-              case 0 => 500
-              case n => 200
+              case 0 => (InternalServerError, "Something went wrong")
+              case n => (OK, "Schema added successfully")
             }
       }
 }

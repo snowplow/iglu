@@ -61,18 +61,12 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
         } ~
         anyParam('json)(json =>
           post {
-            respondWithMediaType(`text/html`) {
+            respondWithMediaType(`application/json`) {
+              //review
               if (permission == "write") {
-                onComplete((schema ? AddSchema(v, n, f, vs, json)).mapTo[Int]) {
-                  case Success(status) => complete {
-                    status match {
-                      case 401 => (Unauthorized, "This schema already exists")
-                      case 500 => (InternalServerError, "Something went wrong")
-                      case 200 => (OK, "Schema added successfully")
-                    }
-                  }
-                  case Failure(ex) => complete(InternalServerError,
-                    s"An error occured: ${ex.getMessage}")
+                complete {
+                  (schema ? AddSchema(v, n, f, vs, json)).
+                    mapTo[(StatusCode, String)]
                 }
               } else {
                 complete(Unauthorized, "You do not have sufficient privileges")

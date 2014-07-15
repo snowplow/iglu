@@ -61,7 +61,8 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
               }} ~
               pathEnd {
                 complete {
-                  (schema ? GetSchemasFromName(v, n)).mapTo[(StatusCode, String)]
+                  (schema ? GetSchemasFromName(v, n)).
+                    mapTo[(StatusCode, String)]
                 }
               }
             }} ~
