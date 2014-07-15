@@ -25,6 +25,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import spray.routing.HttpService
 
 trait Api extends HttpService with CoreActors with Core {
-  lazy val routes = new CatalogService(schema, apiKey).route ~
+  lazy val routes = new ApiKeyGenService(apiKey).route ~
+    new CatalogService(schema, apiKey).route ~
     new SchemaService(schema, apiKey).route
 }

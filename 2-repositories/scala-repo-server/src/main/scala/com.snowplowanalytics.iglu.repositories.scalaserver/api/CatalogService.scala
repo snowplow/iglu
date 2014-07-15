@@ -33,21 +33,21 @@ import scala.reflect.ClassTag
 
 // Spray
 import spray.http.StatusCode
-import spray.http.StatusCodes._
 import spray.http.MediaTypes._
 import spray.routing._
 
 class CatalogService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
-  val authenticator = TokenAuthenticator[String]("api-key") {
-    key => (apiKey ? GetKey(UUID.fromString(key))).mapTo[Option[String]]
+  val authenticator = TokenAuthenticator[(String, String)]("api-key") {
+    key => (apiKey ? GetKey(UUID.fromString(key))).
+      mapTo[Option[(String, String)]]
   }
-  def auth: Directive1[String] = authenticate(authenticator)
+  def auth: Directive1[(String, String)] = authenticate(authenticator)
 
   val route = rejectEmptyResponse {
     pathPrefix("[a-z]+".r) { v => {
-      auth { permission =>
+      auth { authTuple =>
         respondWithMediaType(`application/json`) {
           get {
             pathPrefix("[a-zA-Z0-9_-]+".r) { n => {

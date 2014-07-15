@@ -16,7 +16,6 @@ package com.snowplowanalytics.iglu.repositories.scalaserver
 package api
 
 // This project
-import core.SchemaActor._
 import core.ApiKeyActor._
 import util.TokenAuthenticator
 
@@ -32,13 +31,16 @@ import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 
 // Spray
+import spray.http.MediaTypes._
 import spray.http.StatusCode
 import spray.http.StatusCodes._
-import spray.http.MediaTypes._
 import spray.routing._
 
-class SchemaService(schema: ActorRef, apiKey: ActorRef)
+class ApiKeyGenService(apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
+
+  private val uidRegex =
+    "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 
   val authenticator = TokenAuthenticator[(String, String)]("api-key") {
     key => (apiKey ? GetKey(UUID.fromString(key))).
@@ -47,33 +49,35 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   def auth: Directive1[(String, String)] = authenticate(authenticator)
 
   val route = rejectEmptyResponse {
-    pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-    "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) => {
-      auth { authTuple =>
-        pathEnd {
-          get {
-            respondWithMediaType(`application/json`) {
-              complete {
-                (schema ? GetSchema(v, n, f, vs)).mapTo[(StatusCode, String)]
-              }
-            }
-          }
-        } ~
-        anyParam('json)(json =>
-          post {
-            respondWithMediaType(`application/json`) {
-              //review
-              if (authTuple._2 == "write") {
-                complete {
-                  (schema ? AddSchema(v, n, f, vs, json)).
-                    mapTo[(StatusCode, String)]
+    path("apikeygen") {
+      respondWithMediaType(`application/json`) {
+        auth { authTuple =>
+          if(authTuple._2 == "super") {
+            anyParams('owner)(owner =>
+              validate(owner matches "[a-z.]+", "Invalid owner") {
+                post {
+                  complete {
+                    (apiKey ? AddKey(authTuple._1, authTuple._2)).
+                      mapTo[(StatusCode, String)]
+                  }
                 }
-              } else {
-                complete(Unauthorized, "You do not have sufficient privileges")
               }
-            }
-          })
+            ) ~
+            anyParams('key)(key =>
+              validate(key matches uidRegex, "Invalid regex") {
+                delete {
+                  complete {
+                    (apiKey ? DeleteKey(UUID.fromString(key))).
+                      mapTo[(StatusCode, String)]
+                  }
+                }
+              }
+            )
+          } else {
+            complete(Unauthorized, "You do not have sufficient privileges")
+          }
+        }
       }
-    }}
+    }
   }
 }

@@ -33,6 +33,8 @@ import scala.slick.lifted.Tag
 // Spray
 import spray.json._
 import DefaultJsonProtocol._
+import spray.http.StatusCode
+import spray.http.StatusCodes._
 
 case class ApiKey(
   uid: UUID,
@@ -54,18 +56,9 @@ object ApiKeyDAO extends PostgresDB {
 
   val apiKeys = TableQuery[ApiKeys]
 
-  //def get(uid: UUID): Option[(String, String)] = {
-  //  val l: List[(String, String)] =
-  //    apiKeys.filter(_.uid === uid).map(a => (a.owner, a.permission)).list
-  //  if (l.length == 1) {
-  //    Some(l(1))
-  //  } else {
-  //    None
-  //  }
-  //}
-
-  def get(uid: UUID): Option[String] = {
-    val l: List[String] = apiKeys.filter(_.uid === uid).map(_.permission).list
+  def get(uid: UUID): Option[(String, String)] = {
+    val l: List[(String, String)] = apiKeys.filter(_.uid === uid).
+      map(k => (k.owner, k.permission)).list
     if (l.length == 1) {
       Some(l(1))
     } else {
@@ -73,21 +66,21 @@ object ApiKeyDAO extends PostgresDB {
     }
   }
 
-  def add(owner: String, permission: String): String = {
+  def add(owner: String, permission: String): (StatusCode, String) = {
     var uid = UUID.randomUUID()
     while(get(uid) != None) {
       uid = UUID.randomUUID()
     }
     apiKeys.insert(ApiKey(uid, owner, permission, new DateTime())) match {
-        case 0 => "500"
-        case n => uid.toString
+        case 0 => (InternalServerError, "Something went wrong")
+        case n => (OK, uid.toString)
       }
   }
   
-  def delete(uid: UUID): Int =
+  def delete(uid: UUID): (StatusCode, String) =
     apiKeys.filter(_.uid === uid).delete match {
-      case 0 => 404
-      case 1 => 200
-      case _ => 500
+      case 0 => (NotFound, "Api key not found")
+      case 1 => (OK, "Api key successfully deleted")
+      case _ => (InternalServerError, "Something went wrong")
     }
 }
