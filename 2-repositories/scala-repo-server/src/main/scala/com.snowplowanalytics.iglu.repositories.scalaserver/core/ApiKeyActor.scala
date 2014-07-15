@@ -27,7 +27,7 @@ import java.util.UUID
 
 object ApiKeyActor {
   case class GetKey(uid: UUID)
-  case class AddKey(owner: String, permission: String)
+  case class AddBothKey(owner: String)
   case class DeleteKey(uid: UUID)
 }
 
@@ -36,7 +36,7 @@ class ApiKeyActor extends Actor {
 
   def receive = {
     case GetKey(uid) => sender ! ApiKeyDAO.get(uid)
-    case AddKey(owner, permission) => sender ! ApiKeyDAO.add(owner, permission)
+    case AddBothKey(owner) => sender ! ApiKeyDAO.addReadWrite(owner)
     case DeleteKey(uid) => sender ! ApiKeyDAO.delete(uid)
   }
 }

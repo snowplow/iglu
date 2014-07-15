@@ -76,6 +76,19 @@ object ApiKeyDAO extends PostgresDB {
         case n => (OK, uid.toString)
       }
   }
+
+  def addReadWrite(owner: String): (StatusCode, String) = {
+    val (statusRead, keyRead) = add(owner, "read")
+    val (statusWrite, keyWrite) = add(owner, "write")
+    if(statusRead == InternalServerError ||
+      statusWrite == InternalServerError) {
+        delete(UUID.fromString(keyRead))
+        delete(UUID.fromString(keyWrite))
+        (InternalServerError, "Something went wrong")
+      } else {
+        (OK, Map("read" -> keyRead, "write" -> keyWrite).toJson.compactPrint)
+      }
+  }
   
   def delete(uid: UUID): (StatusCode, String) =
     apiKeys.filter(_.uid === uid).delete match {

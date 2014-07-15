@@ -57,7 +57,7 @@ class ApiKeyGenService(apiKey: ActorRef)
               validate(owner matches "[a-z.]+", "Invalid owner") {
                 post {
                   complete {
-                    (apiKey ? AddKey(authTuple._1, authTuple._2)).
+                    (apiKey ? AddBothKey(owner)).
                       mapTo[(StatusCode, String)]
                   }
                 }
