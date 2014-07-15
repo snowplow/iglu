@@ -23,25 +23,23 @@ import util.TokenAuthenticator
 // Akka
 import akka.actor.ActorRef
 import akka.pattern.ask
-import akka.util.Timeout
 
 // Java
 import java.util.UUID
 
 // Scala
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.{ Success, Failure }
 
 // Spray
+import spray.http.StatusCode
 import spray.http.StatusCodes._
 import spray.http.MediaTypes._
 import spray.routing._
 
 class SchemaService(schema: ActorRef, apiKey: ActorRef)
-(implicit executionContext: ExecutionContext) extends Directives {
-  implicit val timeout = Timeout(5.seconds)
+(implicit executionContext: ExecutionContext) extends Directives with Service {
 
   val authenticator = TokenAuthenticator[String]("api-key") {
     key => (apiKey ? GetKey(UUID.fromString(key))).mapTo[Option[String]]
@@ -55,17 +53,9 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
         pathEnd {
           get {
             respondWithMediaType(`application/json`) {
-              onComplete((schema ? GetSchema(v, n, f, vs)).
-                mapTo[Option[String]]) {
-                  case Success(opt) => complete {
-                    opt match {
-                      case Some(str) => str
-                      case None => NotFound
-                    }
-                  }
-                  case Failure(ex) => complete(InternalServerError,
-                    s"An error occured: ${ex.getMessage}")
-                }
+              complete {
+                (schema ? GetSchema(v, n, f, vs)).mapTo[(StatusCode, String)]
+              }
             }
           }
         } ~

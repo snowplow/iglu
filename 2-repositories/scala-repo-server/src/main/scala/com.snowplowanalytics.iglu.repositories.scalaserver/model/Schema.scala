@@ -27,6 +27,8 @@ import scala.slick.driver.PostgresDriver
 import scala.slick.driver.PostgresDriver.simple._
 
 //Spray
+import spray.http.StatusCode
+import spray.http.StatusCodes._
 import spray.json._
 import DefaultJsonProtocol._
 
@@ -57,31 +59,31 @@ object SchemaDAO extends PostgresDB {
 
   val schemas = TableQuery[Schemas]
 
-  def getFromVendor(vendor: String): Option[String] = {
+  def getFromVendor(vendor: String): (StatusCode, String) = {
     val l: List[(String, String, String, String, String)] =
       schemas.filter(_.vendor === vendor).
         map(s => (s.name, s.format, s.version, s.schema, s.created.toString)).
         list
     if (l.length > 0) {
-      Some(l.toJson.compactPrint)
+      (OK, l.toJson.compactPrint)
     } else {
-      None
+      (NotFound, "There are no schema for this vendor")
     }
   }
 
-  def getFromName(vendor: String, name: String): Option[String] = {
+  def getFromName(vendor: String, name: String): (StatusCode, String) = {
     val l: List[(String, String, String, String)] =
       schemas.filter(s => s.vendor === vendor && s.name === name).
         map(s => (s.format, s.version, s.schema, s.created.toString)).list
     if (l.length > 0) {
-      Some(l.toJson.compactPrint)
+      (OK, l.toJson.compactPrint)
     } else {
-      None
+      (NotFound, "There are no schema for this vendor, name combination")
     }
   }
 
   def getFromFormat(vendor: String, name: String, format: String):
-  Option[String] = {
+  (StatusCode, String) = {
     val l: List[(String, String, String)] =
       schemas.filter(s =>
         s.vendor === vendor &&
@@ -89,31 +91,32 @@ object SchemaDAO extends PostgresDB {
         s.format === format).
       map(s => (s.version, s.schema, s.created.toString)).list
     if (l.length > 0) {
-      Some(l.toJson.compactPrint)
+      (OK, l.toJson.compactPrint)
     } else {
-      None
+      (NotFound,
+        "There are no schema for this vendor, name, format combination")
     }
   }
 
   def get(vendor: String, name: String, format: String, version: String):
-    Option[String] = {
+    (StatusCode, String) = {
       val l: List[(String, String)] = schemas.filter(s =>
           s.vendor === vendor &&
           s.name === name &&
           s.format === format &&
           s.version === version).map(s => (s.schema, s.created.toString)).list
       if (l.length == 1) {
-        Some(l(1).toString)
+        (OK, l(1).toString)
       } else {
-        None
+        (NotFound, "There are no schema available here")
       }
     }
 
   def add(vendor: String, name: String, format: String, version: String,
     schema: String): Int =
       get(vendor, name, format, version) match {
-        case Some(str) => 401
-        case None => schemas.map(s =>
+        case (OK, j) => 401
+        case c => schemas.map(s =>
           (s.vendor, s.name, s.format, s.version, s.schema, s.created)) +=
             (vendor, name, format, version, schema, new DateTime()) match {
               case 0 => 500

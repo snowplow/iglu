@@ -23,25 +23,22 @@ import util.TokenAuthenticator
 // Akka
 import akka.actor.ActorRef
 import akka.pattern.ask
-import akka.util.Timeout
 
 // Java
 import java.util.UUID
 
 //Scala
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
 import scala.reflect.ClassTag
-import scala.util.{ Success, Failure }
 
 // Spray
+import spray.http.StatusCode
 import spray.http.StatusCodes._
 import spray.http.MediaTypes._
 import spray.routing._
 
 class CatalogService(schema: ActorRef, apiKey: ActorRef)
-(implicit executionContext: ExecutionContext) extends Directives {
-  implicit val timeout = Timeout(5.seconds)
+(implicit executionContext: ExecutionContext) extends Directives with Service {
 
   val authenticator = TokenAuthenticator[String]("api-key") {
     key => (apiKey ? GetKey(UUID.fromString(key))).mapTo[Option[String]]
@@ -56,45 +53,22 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
             pathPrefix("[a-zA-Z0-9_-]+".r) { n => {
               pathPrefix("[a-z]+".r) { f => {
                 pathEnd {
-                  onComplete((schema ? GetSchemasFromFormat(v, n, f)).
-                    mapTo[Option[String]]) {
-                      case Success(opt) => complete {
-                        opt match {
-                          case Some(str) => str
-                          case None => NotFound
-                        }
-                      }
-                      case Failure(ex) => complete(InternalServerError,
-                        s"An error occured: ${ex.getMessage}")
-                    }
+                  complete {
+                    (schema ? GetSchemasFromFormat(v, n, f)).
+                      mapTo[(StatusCode, String)]
+                  }
                 }
               }} ~
               pathEnd {
-                onComplete((schema ? GetSchemasFromName(v, n)).
-                  mapTo[Option[String]]) {
-                    case Success(opt) => complete {
-                      opt match {
-                        case Some(str) => str
-                        case None => NotFound
-                      }
-                    }
-                    case Failure(ex) => complete(InternalServerError,
-                      s"An error occured: ${ex.getMessage}")
-                  }
+                complete {
+                  (schema ? GetSchemasFromName(v, n)).mapTo[(StatusCode, String)]
+                }
               }
             }} ~
             pathEnd {
-              onComplete((schema ? GetSchemasFromVendor(v)).
-                mapTo[Option[String]]) {
-                  case Success(opt) => complete {
-                    opt match {
-                      case Some(str) => str
-                      case None => NotFound
-                    }
-                  }
-                  case Failure(ex) => complete(InternalServerError,
-                    s"An error occured: ${ex.getMessage}")
-                }
+              complete {
+                (schema ? GetSchemasFromVendor(v)).mapTo[(StatusCode, String)]
+              }
             }
           }
         }
