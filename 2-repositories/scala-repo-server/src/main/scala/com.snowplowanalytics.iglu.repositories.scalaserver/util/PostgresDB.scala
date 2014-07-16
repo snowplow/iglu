@@ -20,7 +20,7 @@ import slick.driver.PostgresDriver.simple._
 
 trait PostgresDB {
   def db = Database.forURL(
-    url = s"jdbc:postgresal://${Config.pgHost}:${Config.pgPort}/${Config.pgDbName}",
+    url = s"jdbc:postgresql://${Config.pgHost}:${Config.pgPort}/${Config.pgDbName}",
     driver = Config.pgDriver
   )
 
