@@ -63,7 +63,6 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
           anyParam('json)(json =>
             post {
               respondWithMediaType(`application/json`) {
-                //review
                 if (authTuple._2 == "write") {
                   complete {
                     (schema ? AddSchema(v, n, f, vs, json)).

@@ -16,11 +16,7 @@ package com.snowplowanalytics.iglu.repositories.scalaserver
 package test
 
 // This project
-import api.{ Api, SchemaService }
-import core.SchemaActor
-
-// Akka
-import akka.actor.Props
+import api.Api
 
 // Scala
 import scala.concurrent.duration._
@@ -35,7 +31,7 @@ import StatusCodes._
 import spray.testkit.Specs2RouteTest
 
 class SchemaServiceSpec extends Specification
-    with Api with Specs2RouteTest with NoTimeConversions {
+  with Api with Specs2RouteTest with NoTimeConversions {
 
   def actorRefFactory = system
 
