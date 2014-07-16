@@ -32,6 +32,7 @@ import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 
 // Spray
+import spray.http.StatusCodes._
 import spray.http.StatusCode
 import spray.http.MediaTypes._
 import spray.routing._
@@ -48,30 +49,34 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
   val route = rejectEmptyResponse {
     pathPrefix("[a-z]+".r) { v => {
       auth { authTuple =>
-        respondWithMediaType(`application/json`) {
-          get {
-            pathPrefix("[a-zA-Z0-9_-]+".r) { n => {
-              pathPrefix("[a-z]+".r) { f => {
+        if (v startsWith authTuple._1) {
+          respondWithMediaType(`application/json`) {
+            get {
+              pathPrefix("[a-zA-Z0-9_-]+".r) { n => {
+                pathPrefix("[a-z]+".r) { f => {
+                  pathEnd {
+                    complete {
+                      (schema ? GetSchemasFromFormat(v, n, f)).
+                        mapTo[(StatusCode, String)]
+                    }
+                  }
+                }} ~
                 pathEnd {
                   complete {
-                    (schema ? GetSchemasFromFormat(v, n, f)).
+                    (schema ? GetSchemasFromName(v, n)).
                       mapTo[(StatusCode, String)]
                   }
                 }
               }} ~
               pathEnd {
                 complete {
-                  (schema ? GetSchemasFromName(v, n)).
-                    mapTo[(StatusCode, String)]
+                  (schema ? GetSchemasFromVendor(v)).mapTo[(StatusCode, String)]
                 }
-              }
-            }} ~
-            pathEnd {
-              complete {
-                (schema ? GetSchemasFromVendor(v)).mapTo[(StatusCode, String)]
               }
             }
           }
+        } else {
+          complete(Unauthorized, "You do not have sufficient privileges")
         }
       }
     }}
