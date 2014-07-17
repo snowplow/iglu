@@ -26,5 +26,7 @@ object Config {
   val pgHost = config.getString("postgres.host")
   val pgPort = config.getInt("postgres.port")
   val pgDbName = config.getString("postgres.dbname")
+  val pgUsername = config.getString("postgres.username")
+  val pgPassword = config.getString("postgres.password")
   val pgDriver = config.getString("postgres.driver")
 }
