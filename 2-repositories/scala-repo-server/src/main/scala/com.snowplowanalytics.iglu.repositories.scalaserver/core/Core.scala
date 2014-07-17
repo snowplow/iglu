@@ -18,6 +18,7 @@ package core
 
 //This project
 import api.{ Api, RoutedHttpService }
+import util.PostgresDB
 
 // Akka
 import akka.actor.{ ActorSystem, Props }
@@ -30,10 +31,12 @@ trait Core {
   protected implicit def system: ActorSystem
 }
 
-trait BootedCore extends Core with Api {
+trait BootedCore extends Core with Api with PostgresDB {
   def system = ActorSystem("scala-repo-server")
   def actorRefFactory = system
   val rootService = system.actorOf(Props(new RoutedHttpService(routes)))
+
+  startPostgres
 
   IO(Http)(system) ! Http.Bind(rootService, "localhost", port = 8080)
 

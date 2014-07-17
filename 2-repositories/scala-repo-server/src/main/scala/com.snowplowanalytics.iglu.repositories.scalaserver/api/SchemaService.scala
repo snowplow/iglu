@@ -69,12 +69,13 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
                       mapTo[(StatusCode, String)]
                   }
                 } else {
-                  complete(Unauthorized, "You do not have sufficient privileges")
+                  complete(Unauthorized,
+                    "You do not have sufficient privileges")
                 }
               }
             })
         } else {
-          complete(Unauthorized, "You do not have suffiient privileges")
+          complete(Unauthorized, "You do not have sufficient privileges")
         }
       }
     }}

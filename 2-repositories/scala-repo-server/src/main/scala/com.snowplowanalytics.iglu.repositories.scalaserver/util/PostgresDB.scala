@@ -15,8 +15,12 @@
 package com.snowplowanalytics.iglu.repositories.scalaserver
 package util
 
+// This project
+import model.{ SchemaDAO, ApiKeyDAO }
+
 // Slick
 import slick.driver.PostgresDriver.simple._
+import slick.jdbc.meta.MTable
 
 trait PostgresDB {
   def db = Database.forURL(
@@ -27,4 +31,13 @@ trait PostgresDB {
   )
 
   implicit val session: Session = db.createSession()
+
+  def startPostgres = {
+    if (MTable.getTables("schemas").list.isEmpty) {
+      SchemaDAO.createTable
+    }
+    if (MTable.getTables("apikeys").list.isEmpty) {
+      ApiKeyDAO.createTable
+    }
+  }
 }

@@ -45,12 +45,12 @@ case class Schema(
 object SchemaDAO extends PostgresDB {
   class Schemas(tag: Tag) extends Table[Schema](tag, "schemas") {
     def schemaId = column[Int](
-      "schemaId", O.AutoInc, O.PrimaryKey, O.DBType("bigint"))
+      "schemaid", O.AutoInc, O.PrimaryKey, O.DBType("serial"))
     def vendor = column[String]("vendor", O.DBType("varchar(200)"), O.NotNull)
     def name = column[String]("name", O.DBType("varchar(50)"), O.NotNull)
     def format = column[String]("format", O.DBType("varchar(50)"), O.NotNull)
     def version = column[String]("version", O.DBType("varchar(50)"), O.NotNull)
-    def schema = column[String]("version", O.DBType("json"), O.NotNull)
+    def schema = column[String]("schema", O.DBType("varchar(4000)"), O.NotNull)
     def created = column[DateTime]("created", O.DBType("timestamp"), O.NotNull)
 
     def * = (schemaId, vendor, name, format, version, schema, created) <>
@@ -58,6 +58,8 @@ object SchemaDAO extends PostgresDB {
   }
 
   val schemas = TableQuery[Schemas]
+
+  def createTable = schemas.ddl.create
 
   def getFromVendor(vendor: String): (StatusCode, String) = {
     val l: List[(String, String, String, String, String)] =
@@ -67,7 +69,7 @@ object SchemaDAO extends PostgresDB {
     if (l.length > 0) {
       (OK, l.toJson.compactPrint)
     } else {
-      (NotFound, "There are no schema for this vendor")
+      (NotFound, "There are no schemas for this vendor")
     }
   }
 
@@ -78,7 +80,7 @@ object SchemaDAO extends PostgresDB {
     if (l.length > 0) {
       (OK, l.toJson.compactPrint)
     } else {
-      (NotFound, "There are no schema for this vendor, name combination")
+      (NotFound, "There are no schemas for this vendor, name combination")
     }
   }
 
@@ -94,7 +96,7 @@ object SchemaDAO extends PostgresDB {
       (OK, l.toJson.compactPrint)
     } else {
       (NotFound,
-        "There are no schema for this vendor, name, format combination")
+        "There are no schemas for this vendor, name, format combination")
     }
   }
 
@@ -106,9 +108,9 @@ object SchemaDAO extends PostgresDB {
           s.format === format &&
           s.version === version).map(s => (s.schema, s.created.toString)).list
       if (l.length == 1) {
-        (OK, l(1).toString)
+        (OK, l(0).toString)
       } else {
-        (NotFound, "There are no schema available here")
+        (NotFound, "There are no schemas available here")
       }
     }
 
@@ -116,9 +118,9 @@ object SchemaDAO extends PostgresDB {
     schema: String): (StatusCode, String) =
       get(vendor, name, format, version) match {
         case (OK, j) => (Unauthorized, "This schema already exists")
-        case c => schemas.map(s =>
-          (s.vendor, s.name, s.format, s.version, s.schema, s.created)) +=
-            (vendor, name, format, version, schema, new DateTime()) match {
+        case c => schemas.insert(
+          Schema(0, vendor, name, format, version, schema, new DateTime()))
+            match {
               case 0 => (InternalServerError, "Something went wrong")
               case n => (OK, "Schema added successfully")
             }

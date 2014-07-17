@@ -35,13 +35,15 @@ class CatalogServiceSpec extends Specification
 
   def actorRefFactory = system
 
-  implicit val routeTestTimeout = RouteTestTimeout(5 seconds)
+  implicit val routeTestTimeout = RouteTestTimeout(10 seconds)
 
   val readKey = "6eadba20-9b9f-4648-9c23-770272f8d627"
 
-  val vendorUrl = "/com.snowplowanalytics.snowplow/"
-  val nameUrl = "/com.snowplowanalytics.snowplow/ad_click/"
-  val formatUrl = "/com.snowplowanalytics.snowplow/ad_click/jsonformat"
+  val vendorUrl = "/com.snowplowanalytics.snowplow"
+  val nameUrl = "/com.snowplowanalytics.snowplow/ad_click"
+  val formatUrl = "/com.snowplowanalytics.snowplow/ad_click/jsonschema"
+
+  sequential
   
   "CatalogService" should {
     "for GET requests" should {
@@ -49,8 +51,9 @@ class CatalogServiceSpec extends Specification
         "return the catalog of available schemas for this vendor" in {
           Get(vendorUrl) ~> addHeader("api-key", readKey) ~> routes ~> check {
             status === OK
-            responseAs[String] must contain("\"name\": \"ad_click\"") and
-              contain("\"name\": \"ad_click2\"")
+            responseAs[String] must
+              contain("\\\"name\\\": \\\"ad_click\\\"") and
+              contain("\\\"name\\\": \\\"ad_click2\\\"")
           }
         }
       }
@@ -59,8 +62,9 @@ class CatalogServiceSpec extends Specification
         "return the catalog of available schemas for this name" in {
           Get(nameUrl) ~> addHeader("api-key", readKey) ~> routes ~> check {
             status === OK
-            responseAs[String] must contain("\"version\": \"1-0-0\"") and
-              contain("\"version\": \"1-0-0\"")
+            responseAs[String] must
+              contain("\\\"version\\\": \\\"1-0-0\\\"") and
+              contain("\\\"version\\\": \\\"1-0-1\\\"")
           }
         }
       }
@@ -69,8 +73,9 @@ class CatalogServiceSpec extends Specification
         "return the catalog of available schemas for this format" in {
           Get(formatUrl) ~> addHeader("api-key", readKey) ~> routes ~> check {
             status === OK
-            responseAs[String] must contain("\"version\": \"1-0-0\"") and
-              contain("\"version\": \"1-0-0\"")
+            responseAs[String] must
+              contain("\\\"version\\\": \\\"1-0-0\\\"") and
+              contain("\\\"version\\\": \\\"1-0-1\\\"")
           }
         }
       }

@@ -40,7 +40,7 @@ class ApiKeyGenServiceSpec extends Specification
 
   def actorRefFactory = system
 
-  implicit val routeTestTimeout = RouteTestTimeout(5 seconds)
+  implicit val routeTestTimeout = RouteTestTimeout(30 seconds)
 
   val uidRegex =
     "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}".r
@@ -51,9 +51,11 @@ class ApiKeyGenServiceSpec extends Specification
   var readKey = ""
   var writeKey = ""
 
-  val deleteUrl = "/apiKeygen?key="
+  val deleteUrl = "/apikeygen?key="
   val ownerUrl = "/apikeygen?owner=com.test.dont.take.this"
   val conflictingOwnerUrl = "/apikeygen?owner=com.test.dont"
+
+  sequential
 
   "ApiKeyGenService" should {
 

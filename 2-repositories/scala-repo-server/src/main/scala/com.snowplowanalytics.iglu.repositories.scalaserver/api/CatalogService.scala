@@ -47,7 +47,7 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
   def auth: Directive1[(String, String)] = authenticate(authenticator)
 
   val route = rejectEmptyResponse {
-    pathPrefix("[a-z]+".r) { v => {
+    pathPrefix("[a-z.]+".r) { v => {
       auth { authTuple =>
         if (v startsWith authTuple._1) {
           respondWithMediaType(`application/json`) {

@@ -35,7 +35,7 @@ class SchemaServiceSpec extends Specification
 
   def actorRefFactory = system
 
-  implicit val routeTestTimeout = RouteTestTimeout(5 seconds)
+  implicit val routeTestTimeout = RouteTestTimeout(10 seconds)
 
   val readKey = "6eadba20-9b9f-4648-9c23-770272f8d627"
   val writeKey = "a89c5f27-fe76-4754-8a07-d41884af1074"
@@ -56,8 +56,12 @@ class SchemaServiceSpec extends Specification
   val postUrl7 = "/com.snowplowanalytics.snowplow/unit_test7/jsonschema/1-0-0"
   val postUrl8 = url + "?json={%20%22json%22%20}"
 
+  sequential
+
   "SchemaService" should {
+
     "for GET requests" should {
+
       "return a proper json for GET requests to the " + url + " path" in {
         Get(url) ~> addHeader("api-key", readKey) ~> routes ~> check {
           status === OK
@@ -69,7 +73,7 @@ class SchemaServiceSpec extends Specification
         Get(faultyUrl) ~> addHeader("api-key", readKey) ~> routes ~> check {
           status === NotFound
           responseAs[String] must
-            contain("The requested resource could not be found")
+            contain("There are no schemas available here")
         }
       }
 
@@ -113,7 +117,7 @@ class SchemaServiceSpec extends Specification
         Post(postUrl1, FormData(Seq("json" -> "{ \"json\" }"))) ~>
           addHeader("api-key", writeKey) ~> sealRoute(routes) ~> check {
             status === OK
-            responseAs[String] === "Success"
+            responseAs[String] === "Schema added successfully"
           }
       }
 
@@ -122,7 +126,7 @@ class SchemaServiceSpec extends Specification
         Post(postUrl2) ~> addHeader("api-key", writeKey) ~>
           sealRoute(routes) ~> check {
             status === OK
-            responseAs[String] === "Success"
+            responseAs[String] === "Schema added successfully"
           }
       }
 
