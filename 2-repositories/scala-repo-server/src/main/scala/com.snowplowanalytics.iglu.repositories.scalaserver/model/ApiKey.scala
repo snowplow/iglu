@@ -66,15 +66,24 @@ object ApiKeyDAO extends PostgresDB {
     }
   }
 
-  def add(owner: String, permission: String): (StatusCode, String) = {
-    var uid = UUID.randomUUID()
-    while(get(uid) != None) {
-      uid = UUID.randomUUID()
-    }
-    apiKeys.insert(ApiKey(uid, owner, permission, new DateTime())) match {
-        case 0 => (InternalServerError, "Something went wrong")
-        case n => (OK, uid.toString)
+  private def validate(owner: String): Boolean = {
+    val l: List[String] = apiKeys.map(_.owner).list
+    l.filter(o => (o.startsWith(owner) || (owner.startsWith(o)))).length == 0
+  }
+
+  private def add(owner: String, permission: String): (StatusCode, String) = {
+    if(validate(owner)) {
+      var uid = UUID.randomUUID()
+      while(get(uid) != None) {
+        uid = UUID.randomUUID()
       }
+      apiKeys.insert(ApiKey(uid, owner, permission, new DateTime())) match {
+          case 0 => (InternalServerError, "Something went wrong")
+          case n => (OK, uid.toString)
+        }
+    } else {
+      (Unauthorized, "This vendor is conflicting with an existing one")
+    }
   }
 
   def addReadWrite(owner: String): (StatusCode, String) = {
