@@ -62,14 +62,14 @@ class SchemaServiceSpec extends Specification
 
     "for GET requests" should {
 
-      "return a proper json for GET requests to the " + url + " path" in {
+      "return a proper json for well-formed GET requests" in {
         Get(url) ~> addHeader("api-key", readKey) ~> routes ~> check {
           status === OK
           responseAs[String] must contain("\"name\": \"ad_click\"")
         }
       }
 
-      "return a 404 for GET requests for which the key is not in the db" in {
+      "return a 404 for GET requests for which the schema is not in the db" in {
         Get(faultyUrl) ~> addHeader("api-key", readKey) ~> routes ~> check {
           status === NotFound
           responseAs[String] must
@@ -113,6 +113,7 @@ class SchemaServiceSpec extends Specification
 
     "for POST requests" should {
 
+      //should be removed from db before running tests for now
       "return success if the json is passed as form data" in {
         Post(postUrl1, FormData(Seq("json" -> "{ \"json\" }"))) ~>
           addHeader("api-key", writeKey) ~> sealRoute(routes) ~> check {
