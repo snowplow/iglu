@@ -118,7 +118,7 @@ class SchemaServiceSpec extends Specification
         Post(postUrl1, FormData(Seq("json" -> """{ "some": "json" }"""))) ~>
           addHeader("api-key", writeKey) ~> sealRoute(routes) ~> check {
             status === OK
-            responseAs[String] === "Schema added successfully"
+            responseAs[String] must contain("Schema added successfully")
           }
       }
 
@@ -127,7 +127,7 @@ class SchemaServiceSpec extends Specification
         Post(postUrl2) ~> addHeader("api-key", writeKey) ~>
           sealRoute(routes) ~> check {
             status === OK
-            responseAs[String] === "Schema added successfully"
+            responseAs[String] must contain("Schema added successfully")
           }
       }
 
@@ -135,7 +135,7 @@ class SchemaServiceSpec extends Specification
         Post(postUrl8) ~> addHeader("api-key", writeKey) ~>
           sealRoute(routes) ~> check {
             status === Unauthorized
-            responseAs[String] === "This schema already exists"
+            responseAs[String] must contain("This schema already exists")
           }
       }
 
@@ -143,7 +143,7 @@ class SchemaServiceSpec extends Specification
         Post(url, FormData(Seq("json" -> """{ "some": "json" }"""))) ~>
           addHeader("api-key", writeKey) ~> sealRoute(routes) ~> check {
             status === Unauthorized
-            responseAs[String] === "This schema already exists"
+            responseAs[String] must contain("This schema already exists")
           }
       }
 

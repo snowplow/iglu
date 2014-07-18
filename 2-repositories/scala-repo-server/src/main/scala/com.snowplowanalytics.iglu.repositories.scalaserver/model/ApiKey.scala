@@ -31,7 +31,7 @@ import DefaultJsonProtocol._
 import spray.http.StatusCode
 import spray.http.StatusCodes._
 
-object ApiKeyDAO extends PostgresDB {
+object ApiKeyDAO extends PostgresDB with DAO {
   case class ApiKey(
     uid: UUID,
     owner: String,
@@ -97,14 +97,14 @@ object ApiKeyDAO extends PostgresDB {
   def addReadWrite(owner: String): (StatusCode, String) = {
     val (statusRead, keyRead) = add(owner, "read")
     if (statusRead == Unauthorized) {
-      (statusRead, keyRead)
+      (statusRead, result(401, keyRead))
     } else {
       val (statusWrite, keyWrite) = add(owner, "write")
       if(statusRead == InternalServerError ||
         statusWrite == InternalServerError) {
           delete(UUID.fromString(keyRead))
           delete(UUID.fromString(keyWrite))
-          (InternalServerError, "Something went wrong")
+          (InternalServerError, result(500, "Something went wrong"))
         } else {
           (OK, Map("read" -> keyRead, "write" -> keyWrite).toJson.prettyPrint)
         }
@@ -113,8 +113,8 @@ object ApiKeyDAO extends PostgresDB {
   
   def delete(uid: UUID): (StatusCode, String) =
     apiKeys.filter(_.uid === uid).delete match {
-      case 0 => (NotFound, "Api key not found")
-      case 1 => (OK, "Api key successfully deleted")
-      case _ => (InternalServerError, "Something went wrong")
+      case 0 => (NotFound, result(404, "Api key not found"))
+      case 1 => (OK, result(200, "Api key successfully deleted"))
+      case _ => (InternalServerError, result(500, "Something went wrong"))
     }
 }

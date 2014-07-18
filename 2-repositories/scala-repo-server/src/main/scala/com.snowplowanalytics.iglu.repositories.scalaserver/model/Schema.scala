@@ -28,25 +28,10 @@ import spray.http.StatusCodes._
 import spray.json._
 import DefaultJsonProtocol._
 
-object SchemaDAO extends PostgresDB {
+object SchemaDAO extends PostgresDB with DAO {
 
   case class Schema(schemaId: Int, vendor: String, name: String, format: String,
     version: String, schema: JsValue, created: LocalDateTime)
-
-  case class ReturnedSchema(schema: JsValue, created: String)
-  implicit val schemaFormat = jsonFormat2(ReturnedSchema)
-
-  case class ReturnedSchemaFormat(schema: JsValue, version: String,
-    created: String)
-  implicit val formatFormat = jsonFormat3(ReturnedSchemaFormat)
-
-  case class ReturnedSchemaName(schema: JsValue, format: String,
-    version: String, created: String)
-  implicit val nameFormat = jsonFormat4(ReturnedSchemaName)
-
-  case class ReturnedSchemaVendor(schema: JsValue, name: String, format: String,
-    version: String, created: String)
-  implicit val vendorFormat = jsonFormat5(ReturnedSchemaVendor)
 
   class Schemas(tag: Tag) extends Table[Schema](tag, "schemas") {
     def schemaId = column[Int](
@@ -65,6 +50,21 @@ object SchemaDAO extends PostgresDB {
 
   val schemas = TableQuery[Schemas]
 
+  case class ReturnedSchema(schema: JsValue, created: String)
+  implicit val schemaFormat = jsonFormat2(ReturnedSchema)
+
+  case class ReturnedSchemaFormat(schema: JsValue, version: String,
+    created: String)
+  implicit val formatFormat = jsonFormat3(ReturnedSchemaFormat)
+
+  case class ReturnedSchemaName(schema: JsValue, format: String,
+    version: String, created: String)
+  implicit val nameFormat = jsonFormat4(ReturnedSchemaName)
+
+  case class ReturnedSchemaVendor(schema: JsValue, name: String, format: String,
+    version: String, created: String)
+  implicit val vendorFormat = jsonFormat5(ReturnedSchemaVendor)
+
   def createTable = schemas.ddl.create
 
   def getFromVendor(vendor: String): (StatusCode, String) = {
@@ -77,7 +77,7 @@ object SchemaDAO extends PostgresDB {
     if (l.length > 0) {
       (OK, l.toJson.prettyPrint)
     } else {
-      (NotFound, "There are no schemas for this vendor")
+      (NotFound, result(404, "There are no schemas for this vendor"))
     }
   }
 
@@ -91,7 +91,8 @@ object SchemaDAO extends PostgresDB {
     if (l.length > 0) {
       (OK, l.toJson.prettyPrint)
     } else {
-      (NotFound, "There are no schemas for this vendor, name combination")
+      (NotFound, result(404,
+        "There are no schemas for this vendor, name combination"))
     }
   }
 
@@ -109,8 +110,8 @@ object SchemaDAO extends PostgresDB {
     if (l.length > 0) {
       (OK, l.toJson.prettyPrint)
     } else {
-      (NotFound,
-        "There are no schemas for this vendor, name, format combination")
+      (NotFound, result(404,
+        "There are no schemas for this vendor, name, format combination"))
     }
   }
 
@@ -124,23 +125,24 @@ object SchemaDAO extends PostgresDB {
         map(s => (s.schema, s.created)).list.
         map(s => ReturnedSchema(s._1, s._2.toString("MM/dd/yyyy HH:mm:ss")))
 
-      // need review
       if (l.length == 1) {
         (OK, l(0).toJson.prettyPrint)
       } else {
-        (NotFound, "There are no schemas available here")
+        (NotFound, result(404, "There are no schemas available here"))
       }
     }
 
   def add(vendor: String, name: String, format: String, version: String,
     schema: String): (StatusCode, String) =
       get(vendor, name, format, version) match {
-        case (OK, j) => (Unauthorized, "This schema already exists")
+        case (OK, j) => (Unauthorized,
+          result(401, "This schema already exists"))
         case c => schemas.insert(
           Schema(0, vendor, name, format, version, schema.parseJson,
             new LocalDateTime())) match {
-              case 0 => (InternalServerError, "Something went wrong")
-              case n => (OK, "Schema added successfully")
+              case 0 => (InternalServerError,
+                result(500, "Something went wrong"))
+              case n => (OK, result(200, "Schema added successfully"))
             }
       }
 }
