@@ -31,14 +31,14 @@ import DefaultJsonProtocol._
 import spray.http.StatusCode
 import spray.http.StatusCodes._
 
-case class ApiKey(
-  uid: UUID,
-  owner: String,
-  permission: String,
-  created: LocalDateTime
-)
-
 object ApiKeyDAO extends PostgresDB {
+  case class ApiKey(
+    uid: UUID,
+    owner: String,
+    permission: String,
+    created: LocalDateTime
+  )
+
   class ApiKeys(tag: Tag) extends Table[ApiKey](tag, "apikeys") {
     def uid = column[UUID]("uid", O.PrimaryKey, O.DBType("uuid"))
     def owner = column[String]("vendor", O.DBType("varchar(200)"), O.NotNull)
@@ -106,7 +106,7 @@ object ApiKeyDAO extends PostgresDB {
           delete(UUID.fromString(keyWrite))
           (InternalServerError, "Something went wrong")
         } else {
-          (OK, Map("read" -> keyRead, "write" -> keyWrite).toJson.compactPrint)
+          (OK, Map("read" -> keyRead, "write" -> keyWrite).toJson.prettyPrint)
         }
     }
   }

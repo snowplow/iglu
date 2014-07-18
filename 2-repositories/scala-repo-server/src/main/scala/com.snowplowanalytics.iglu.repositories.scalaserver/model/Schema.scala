@@ -28,17 +28,26 @@ import spray.http.StatusCodes._
 import spray.json._
 import DefaultJsonProtocol._
 
-case class Schema(
-  schemaId: Int,
-  vendor: String,
-  name: String,
-  format: String,
-  version: String,
-  schema: JsValue,
-  created: LocalDateTime
-)
-
 object SchemaDAO extends PostgresDB {
+
+  case class Schema(schemaId: Int, vendor: String, name: String, format: String,
+    version: String, schema: JsValue, created: LocalDateTime)
+
+  case class ReturnedSchema(schema: JsValue, created: String)
+  implicit val schemaFormat = jsonFormat2(ReturnedSchema)
+
+  case class ReturnedSchemaFormat(schema: JsValue, version: String,
+    created: String)
+  implicit val formatFormat = jsonFormat3(ReturnedSchemaFormat)
+
+  case class ReturnedSchemaName(schema: JsValue, format: String,
+    version: String, created: String)
+  implicit val nameFormat = jsonFormat4(ReturnedSchemaName)
+
+  case class ReturnedSchemaVendor(schema: JsValue, name: String, format: String,
+    version: String, created: String)
+  implicit val vendorFormat = jsonFormat5(ReturnedSchemaVendor)
+
   class Schemas(tag: Tag) extends Table[Schema](tag, "schemas") {
     def schemaId = column[Int](
       "schemaid", O.AutoInc, O.PrimaryKey, O.DBType("serial"))
@@ -59,10 +68,10 @@ object SchemaDAO extends PostgresDB {
   def createTable = schemas.ddl.create
 
   def getFromVendor(vendor: String): (StatusCode, String) = {
-    val l: List[(String, String, String, String, String)] =
+    val l: List[ReturnedSchemaVendor] =
       schemas.filter(_.vendor === vendor).
-        map(s => (s.name, s.format, s.version, s.schema, s.created)).list.
-        map(s => (s._1, s._2, s._3, s._4.prettyPrint,
+        map(s => (s.schema, s.name, s.format, s.version, s.created)).list.
+        map(s => ReturnedSchemaVendor(s._1, s._2, s._3, s._4,
           s._5.toString("MM/dd/yyyy HH:mm:ss")))
 
     if (l.length > 0) {
@@ -73,10 +82,10 @@ object SchemaDAO extends PostgresDB {
   }
 
   def getFromName(vendor: String, name: String): (StatusCode, String) = {
-    val l: List[(String, String, String, String)] =
+    val l: List[ReturnedSchemaName] =
       schemas.filter(s => s.vendor === vendor && s.name === name).
-        map(s => (s.format, s.version, s.schema, s.created)).list.
-        map(s => (s._1, s._2, s._3.prettyPrint,
+        map(s => (s.schema, s.format, s.version, s.created)).list.
+        map(s => ReturnedSchemaName(s._1, s._2, s._3,
           s._4.toString("MM/dd/yyyy HH:mm:ss")))
 
     if (l.length > 0) {
@@ -88,13 +97,14 @@ object SchemaDAO extends PostgresDB {
 
   def getFromFormat(vendor: String, name: String, format: String):
   (StatusCode, String) = {
-    val l: List[(String, String, String)] =
+    val l: List[ReturnedSchemaFormat] =
       schemas.filter(s =>
         s.vendor === vendor &&
         s.name === name &&
         s.format === format).
-      map(s => (s.version, s.schema, s.created)).list.
-      map(s => (s._1, s._2.prettyPrint, s._3.toString("MM/dd/yyyy HH:mm:ss")))
+      map(s => (s.schema, s.version, s.created)).list.
+      map(s => ReturnedSchemaFormat(s._1, s._2,
+        s._3.toString("MM/dd/yyyy HH:mm:ss")))
 
     if (l.length > 0) {
       (OK, l.toJson.prettyPrint)
@@ -106,17 +116,17 @@ object SchemaDAO extends PostgresDB {
 
   def get(vendor: String, name: String, format: String, version: String):
     (StatusCode, String) = {
-      val l: List[(String, String)] = schemas.filter(s =>
+      val l: List[ReturnedSchema] = schemas.filter(s =>
           s.vendor === vendor &&
           s.name === name &&
           s.format === format &&
           s.version === version).
         map(s => (s.schema, s.created)).list.
-        map(s => (s._1.prettyPrint, s._2.toString("MM/dd/yyyy HH:mm:ss")))
+        map(s => ReturnedSchema(s._1, s._2.toString("MM/dd/yyyy HH:mm:ss")))
 
+      // need review
       if (l.length == 1) {
-        (OK, Map("schema" -> l(0)._1, "createdAt" -> l(0)._2).
-          toJson.prettyPrint)
+        (OK, l(0).toJson.prettyPrint)
       } else {
         (NotFound, "There are no schemas available here")
       }
