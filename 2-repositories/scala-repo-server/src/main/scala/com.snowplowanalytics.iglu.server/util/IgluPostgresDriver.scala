@@ -12,15 +12,21 @@
 * implied.  See the Apache License Version 2.0 for the specific language
 * governing permissions and limitations there under.
 */
-package com.snowplowanalytics.iglu.repositories.scalaserver
-package api
+package com.snowplowanalytics.iglu.server
+package util
 
-// Akka
-import akka.util.Timeout
+import slick.driver.PostgresDriver
+import com.github.tminglei.slickpg._
 
-// Scala
-import scala.concurrent.duration._
+object IgluPostgresDriver extends PostgresDriver
+  with PgSprayJsonSupport with array.PgArrayJdbcTypes with PgDateSupportJoda {
 
-trait Service {
-  implicit val timeout = Timeout(10.seconds)
+  override lazy val Implicit =
+    new Implicits with JsonImplicits with DateTimeImplicits
+
+  override val simple =
+    new Implicits with SimpleQL with DateTimeImplicits with JsonImplicits {
+      implicit val strListTypeMapper =
+        new SimpleArrayListJdbcType[String]("text")
+    }
 }

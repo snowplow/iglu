@@ -13,7 +13,7 @@
 * express or implied.  See the Apache License Version 2.0 for the specific
 * language governing permissions and limitations there under.
 */
-package com.snowplowanalytics.iglu.repositories.scalaserver
+package com.snowplowanalytics.iglu.server
 package core
 
 //This project

@@ -12,10 +12,21 @@
 * implied.  See the Apache License Version 2.0 for the specific language
 * governing permissions and limitations there under.
 */
-package com.snowplowanalytics.iglu.repositories.scalaserver
+package com.snowplowanalytics.iglu.server
+package util
 
-// This project
-import api.Api
-import core.{ BootedCore, Core, CoreActors }
+import com.typesafe.config.ConfigFactory
 
-object Boot extends App with BootedCore with Core with CoreActors with Api
+object Config {
+  val config = ConfigFactory.load()
+
+  val interface = config.getString("repo-server.interface")
+  val port = config.getInt("repo-server.port")
+
+  val pgHost = config.getString("postgres.host")
+  val pgPort = config.getInt("postgres.port")
+  val pgDbName = config.getString("postgres.dbname")
+  val pgUsername = config.getString("postgres.username")
+  val pgPassword = config.getString("postgres.password")
+  val pgDriver = config.getString("postgres.driver")
+}

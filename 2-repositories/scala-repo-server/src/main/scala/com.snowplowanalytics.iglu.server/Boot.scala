@@ -12,17 +12,10 @@
 * implied.  See the Apache License Version 2.0 for the specific language
 * governing permissions and limitations there under.
 */
-package com.snowplowanalytics.iglu.repositories.scalaserver
-package model
+package com.snowplowanalytics.iglu.server
 
-// Spray
-import spray.json._
-import DefaultJsonProtocol._
+// This project
+import api.Api
+import core.{ BootedCore, Core, CoreActors }
 
-trait DAO {
-  case class Result(status: Int, message: String)
-  implicit val resultFormat = jsonFormat2(Result)
-
-  def result(status: Int, message: String): String =
-    Result(status, message).toJson.prettyPrint
-}
+object Boot extends App with BootedCore with Core with CoreActors with Api

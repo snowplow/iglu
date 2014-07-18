@@ -20,8 +20,8 @@ object BuildSettings {
   //Basic settings for our app
   lazy val basicSettings = Seq[Setting[_]](
     organization            := "Snowplow Analytics Ltd",
-    version                 := "0.1.0",
-    description             := "Scala repository server for Iglu",
+    version                 := "0.2.0",
+    description             := "Scala server for Iglu",
     scalaVersion            := "2.10.1",
     scalacOptions           := Seq("-deprecation", "-encoding", "utf8",
                                "-unchecked", "-feature"),
@@ -38,7 +38,7 @@ object BuildSettings {
       (d, v, n, o) =>
         val file = d / "settings.scala"
         IO.write(file, s"""
-          |package com.snowplowanalytics.iglu.repositories.scalaserver.generated
+          |package com.snowplowanalytics.iglu.server.generated
           |object Settings {
           |  val organization = "$o"
           |  val version = "$v"

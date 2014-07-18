@@ -12,21 +12,33 @@
 * implied.  See the Apache License Version 2.0 for the specific language
 * governing permissions and limitations there under.
 */
-package com.snowplowanalytics.iglu.repositories.scalaserver
+package com.snowplowanalytics.iglu.server
 package util
 
-import com.typesafe.config.ConfigFactory
+// This project
+import model.{ SchemaDAO, ApiKeyDAO }
+import IgluPostgresDriver.simple._
 
-object Config {
-  val config = ConfigFactory.load()
+// Slick
+import slick.jdbc.meta.MTable
 
-  val interface = config.getString("repo-server.interface")
-  val port = config.getInt("repo-server.port")
+trait PostgresDB {
+  def db = Database.forURL(
+    url =
+      s"jdbc:postgresql://${Config.pgHost}:${Config.pgPort}/${Config.pgDbName}",
+    user = Config.pgUsername,
+    password = Config.pgPassword,
+    driver = Config.pgDriver
+  )
 
-  val pgHost = config.getString("postgres.host")
-  val pgPort = config.getInt("postgres.port")
-  val pgDbName = config.getString("postgres.dbname")
-  val pgUsername = config.getString("postgres.username")
-  val pgPassword = config.getString("postgres.password")
-  val pgDriver = config.getString("postgres.driver")
+  implicit val session: Session = db.createSession()
+
+  def startPostgres = {
+    if (MTable.getTables("schemas").list.isEmpty) {
+      SchemaDAO.createTable
+    }
+    if (MTable.getTables("apikeys").list.isEmpty) {
+      ApiKeyDAO.createTable
+    }
+  }
 }

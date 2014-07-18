@@ -12,33 +12,15 @@
 * implied.  See the Apache License Version 2.0 for the specific language
 * governing permissions and limitations there under.
 */
-package com.snowplowanalytics.iglu.repositories.scalaserver
-package util
+package com.snowplowanalytics.iglu.server
+package api
 
-// This project
-import model.{ SchemaDAO, ApiKeyDAO }
-import IgluPostgresDriver.simple._
+// Akka
+import akka.util.Timeout
 
-// Slick
-import slick.jdbc.meta.MTable
+// Scala
+import scala.concurrent.duration._
 
-trait PostgresDB {
-  def db = Database.forURL(
-    url =
-      s"jdbc:postgresql://${Config.pgHost}:${Config.pgPort}/${Config.pgDbName}",
-    user = Config.pgUsername,
-    password = Config.pgPassword,
-    driver = Config.pgDriver
-  )
-
-  implicit val session: Session = db.createSession()
-
-  def startPostgres = {
-    if (MTable.getTables("schemas").list.isEmpty) {
-      SchemaDAO.createTable
-    }
-    if (MTable.getTables("apikeys").list.isEmpty) {
-      ApiKeyDAO.createTable
-    }
-  }
+trait Service {
+  implicit val timeout = Timeout(10.seconds)
 }

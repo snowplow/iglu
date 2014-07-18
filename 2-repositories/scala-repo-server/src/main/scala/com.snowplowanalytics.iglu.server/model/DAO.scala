@@ -12,21 +12,17 @@
 * implied.  See the Apache License Version 2.0 for the specific language
 * governing permissions and limitations there under.
 */
-package com.snowplowanalytics.iglu.repositories.scalaserver
-package util
+package com.snowplowanalytics.iglu.server
+package model
 
-import slick.driver.PostgresDriver
-import com.github.tminglei.slickpg._
+// Spray
+import spray.json._
+import DefaultJsonProtocol._
 
-object IgluPostgresDriver extends PostgresDriver
-  with PgSprayJsonSupport with array.PgArrayJdbcTypes with PgDateSupportJoda {
+trait DAO {
+  case class Result(status: Int, message: String)
+  implicit val resultFormat = jsonFormat2(Result)
 
-  override lazy val Implicit =
-    new Implicits with JsonImplicits with DateTimeImplicits
-
-  override val simple =
-    new Implicits with SimpleQL with DateTimeImplicits with JsonImplicits {
-      implicit val strListTypeMapper =
-        new SimpleArrayListJdbcType[String]("text")
-    }
+  def result(status: Int, message: String): String =
+    Result(status, message).toJson.prettyPrint
 }

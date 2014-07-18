@@ -25,7 +25,7 @@ object ScalaRepoServerBuild extends Build {
   }
 
   // Define our project with basic information and library dependencies
-  lazy val project = Project("iglu-repo-server", file("."))
+  lazy val project = Project("iglu--server", file("."))
     .settings(buildSettings: _*)
     .settings(
       libraryDependencies ++= Seq(
