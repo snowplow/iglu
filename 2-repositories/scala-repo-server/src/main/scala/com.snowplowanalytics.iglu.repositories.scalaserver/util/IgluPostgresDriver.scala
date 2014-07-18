@@ -15,30 +15,18 @@
 package com.snowplowanalytics.iglu.repositories.scalaserver
 package util
 
-// This project
-import model.{ SchemaDAO, ApiKeyDAO }
-import IgluPostgresDriver.simple._
+import slick.driver.PostgresDriver
+import com.github.tminglei.slickpg._
 
-// Slick
-import slick.jdbc.meta.MTable
+object IgluPostgresDriver extends PostgresDriver
+  with PgSprayJsonSupport with array.PgArrayJdbcTypes with PgDateSupportJoda {
 
-trait PostgresDB {
-  def db = Database.forURL(
-    url =
-      s"jdbc:postgresql://${Config.pgHost}:${Config.pgPort}/${Config.pgDbName}",
-    user = Config.pgUsername,
-    password = Config.pgPassword,
-    driver = Config.pgDriver
-  )
+  override lazy val Implicit =
+    new Implicits with JsonImplicits with DateTimeImplicits
 
-  implicit val session: Session = db.createSession()
-
-  def startPostgres = {
-    if (MTable.getTables("schemas").list.isEmpty) {
-      SchemaDAO.createTable
+  override val simple =
+    new Implicits with SimpleQL with DateTimeImplicits with JsonImplicits {
+      implicit val strListTypeMapper =
+        new SimpleArrayListJdbcType[String]("text")
     }
-    if (MTable.getTables("apikeys").list.isEmpty) {
-      ApiKeyDAO.createTable
-    }
-  }
 }

@@ -17,14 +17,10 @@ package model
 
 // This project
 import util.PostgresDB
+import util.IgluPostgresDriver.simple._
 
 // Joda
-import org.joda.time.DateTime
-import com.github.tototoshi.slick.PostgresJodaSupport._
-
-// Slick
-import scala.slick.driver.PostgresDriver
-import scala.slick.driver.PostgresDriver.simple._
+import org.joda.time.LocalDateTime
 
 //Spray
 import spray.http.StatusCode
@@ -38,8 +34,8 @@ case class Schema(
   name: String,
   format: String,
   version: String,
-  schema: String,
-  created: DateTime
+  schema: JsValue,
+  created: LocalDateTime
 )
 
 object SchemaDAO extends PostgresDB {
@@ -50,8 +46,9 @@ object SchemaDAO extends PostgresDB {
     def name = column[String]("name", O.DBType("varchar(50)"), O.NotNull)
     def format = column[String]("format", O.DBType("varchar(50)"), O.NotNull)
     def version = column[String]("version", O.DBType("varchar(50)"), O.NotNull)
-    def schema = column[String]("schema", O.DBType("varchar(4000)"), O.NotNull)
-    def created = column[DateTime]("created", O.DBType("timestamp"), O.NotNull)
+    def schema = column[JsValue]("schema", O.DBType("json"), O.NotNull)
+    def created = column[LocalDateTime]("created", O.DBType("timestamp"),
+      O.NotNull)
 
     def * = (schemaId, vendor, name, format, version, schema, created) <>
       (Schema.tupled, Schema.unapply)
@@ -64,10 +61,12 @@ object SchemaDAO extends PostgresDB {
   def getFromVendor(vendor: String): (StatusCode, String) = {
     val l: List[(String, String, String, String, String)] =
       schemas.filter(_.vendor === vendor).
-        map(s => (s.name, s.format, s.version, s.schema, s.created.toString)).
-        list
+        map(s => (s.name, s.format, s.version, s.schema, s.created)).list.
+        map(s => (s._1, s._2, s._3, s._4.prettyPrint,
+          s._5.toString("MM/dd/yyyy HH:mm:ss")))
+
     if (l.length > 0) {
-      (OK, l.toJson.compactPrint)
+      (OK, l.toJson.prettyPrint)
     } else {
       (NotFound, "There are no schemas for this vendor")
     }
@@ -76,9 +75,12 @@ object SchemaDAO extends PostgresDB {
   def getFromName(vendor: String, name: String): (StatusCode, String) = {
     val l: List[(String, String, String, String)] =
       schemas.filter(s => s.vendor === vendor && s.name === name).
-        map(s => (s.format, s.version, s.schema, s.created.toString)).list
+        map(s => (s.format, s.version, s.schema, s.created)).list.
+        map(s => (s._1, s._2, s._3.prettyPrint,
+          s._4.toString("MM/dd/yyyy HH:mm:ss")))
+
     if (l.length > 0) {
-      (OK, l.toJson.compactPrint)
+      (OK, l.toJson.prettyPrint)
     } else {
       (NotFound, "There are no schemas for this vendor, name combination")
     }
@@ -91,9 +93,11 @@ object SchemaDAO extends PostgresDB {
         s.vendor === vendor &&
         s.name === name &&
         s.format === format).
-      map(s => (s.version, s.schema, s.created.toString)).list
+      map(s => (s.version, s.schema, s.created)).list.
+      map(s => (s._1, s._2.prettyPrint, s._3.toString("MM/dd/yyyy HH:mm:ss")))
+
     if (l.length > 0) {
-      (OK, l.toJson.compactPrint)
+      (OK, l.toJson.prettyPrint)
     } else {
       (NotFound,
         "There are no schemas for this vendor, name, format combination")
@@ -106,9 +110,13 @@ object SchemaDAO extends PostgresDB {
           s.vendor === vendor &&
           s.name === name &&
           s.format === format &&
-          s.version === version).map(s => (s.schema, s.created.toString)).list
+          s.version === version).
+        map(s => (s.schema, s.created)).list.
+        map(s => (s._1.prettyPrint, s._2.toString("MM/dd/yyyy HH:mm:ss")))
+
       if (l.length == 1) {
-        (OK, l(0).toString)
+        (OK, Map("schema" -> l(0)._1, "createdAt" -> l(0)._2).
+          toJson.prettyPrint)
       } else {
         (NotFound, "There are no schemas available here")
       }
@@ -119,8 +127,8 @@ object SchemaDAO extends PostgresDB {
       get(vendor, name, format, version) match {
         case (OK, j) => (Unauthorized, "This schema already exists")
         case c => schemas.insert(
-          Schema(0, vendor, name, format, version, schema, new DateTime()))
-            match {
+          Schema(0, vendor, name, format, version, schema.parseJson,
+            new LocalDateTime())) match {
               case 0 => (InternalServerError, "Something went wrong")
               case n => (OK, "Schema added successfully")
             }

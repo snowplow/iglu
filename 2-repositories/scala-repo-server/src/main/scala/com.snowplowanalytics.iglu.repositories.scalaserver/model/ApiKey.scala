@@ -17,18 +17,13 @@ package model
 
 // This project
 import util.PostgresDB
+import util.IgluPostgresDriver.simple._
 
 // Java
 import java.util.UUID
 
 // Joda
-import org.joda.time.DateTime
-import com.github.tototoshi.slick.PostgresJodaSupport._
-
-// Slick
-import scala.slick.driver.PostgresDriver
-import scala.slick.driver.PostgresDriver.simple._
-import scala.slick.lifted.Tag
+import org.joda.time.LocalDateTime
 
 // Spray
 import spray.json._
@@ -40,7 +35,7 @@ case class ApiKey(
   uid: UUID,
   owner: String,
   permission: String,
-  created: DateTime
+  created: LocalDateTime
 )
 
 object ApiKeyDAO extends PostgresDB {
@@ -49,7 +44,8 @@ object ApiKeyDAO extends PostgresDB {
     def owner = column[String]("vendor", O.DBType("varchar(200)"), O.NotNull)
     def permission = column[String]("permission",
       O.DBType("varchar(20)"), O.NotNull, O.Default[String]("read"))
-    def created = column[DateTime]("created", O.DBType("timestamp"), O.NotNull)
+    def created = column[LocalDateTime]("created", O.DBType("timestamp"),
+      O.NotNull)
 
     def * = (uid, owner, permission, created) <> (ApiKey.tupled, ApiKey.unapply)
   }
@@ -88,7 +84,8 @@ object ApiKeyDAO extends PostgresDB {
       while(get(uid) != None) {
         uid = UUID.randomUUID()
       }
-      apiKeys.insert(ApiKey(uid, owner, permission, new DateTime())) match {
+      apiKeys.insert(
+        ApiKey(uid, owner, permission, new LocalDateTime())) match {
           case 0 => (InternalServerError, "Something went wrong")
           case n => (OK, uid.toString)
         }

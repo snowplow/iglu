@@ -46,15 +46,15 @@ class SchemaServiceSpec extends Specification
   val faultyUrl = "/com.snowplowanalytics.snowplow/ad_click/jsonchema/1-0-0"
   val postUrl1 = "/com.snowplowanalytics.snowplow/unit_test1/jsonschema/1-0-0"
   val postUrl2 = "/com.snowplowanalytics.snowplow/unit_test2/jsonschema/1-0-0" +
-    "?json={%20%22json%22%20}"
+    "?json={%20%22some%22:%20%22json%22%20}"
   val postUrl3 = "/com.snowplowanalytics.snowplow/unit_test3/jsonschema/1-0-0"
   val postUrl4 = "/com.snowplowanalytics.snowplow/unit_test4/jsonschema/1-0-0" +
-    "?json={%20%22json%22%20}"
+    "?json={%20%22some%22:%20%22json%22%20}"
   val postUrl5 = "/com.snowplowanalytics.snowplow/unit_test5/jsonschema/1-0-0"
   val postUrl6 = "/com.snowplowanalytics.snowplow/unit_test6/jsonschema/1-0-0" +
-    "?json={%20%22json%22%20}"
+    "?json={%20%22some%22:%20%22json%22%20}"
   val postUrl7 = "/com.snowplowanalytics.snowplow/unit_test7/jsonschema/1-0-0"
-  val postUrl8 = url + "?json={%20%22json%22%20}"
+  val postUrl8 = url + "?json={%20%22some%22:%20%22json%22%20}"
 
   sequential
 
@@ -65,7 +65,7 @@ class SchemaServiceSpec extends Specification
       "return a proper json for well-formed GET requests" in {
         Get(url) ~> addHeader("api-key", readKey) ~> routes ~> check {
           status === OK
-          responseAs[String] must contain("\"name\": \"ad_click\"")
+          responseAs[String] must contain("\\\"name\\\": \\\"ad_click\\\"")
         }
       }
 
@@ -115,7 +115,7 @@ class SchemaServiceSpec extends Specification
 
       //should be removed from db before running tests for now
       "return success if the json is passed as form data" in {
-        Post(postUrl1, FormData(Seq("json" -> "{ \"json\" }"))) ~>
+        Post(postUrl1, FormData(Seq("json" -> """{ "some": "json" }"""))) ~>
           addHeader("api-key", writeKey) ~> sealRoute(routes) ~> check {
             status === OK
             responseAs[String] === "Schema added successfully"
@@ -140,7 +140,7 @@ class SchemaServiceSpec extends Specification
       }
 
       "return a 401 if the schema already exists with query param" in {
-        Post(url, FormData(Seq("json" -> "{ \"json\" }"))) ~>
+        Post(url, FormData(Seq("json" -> """{ "some": "json" }"""))) ~>
           addHeader("api-key", writeKey) ~> sealRoute(routes) ~> check {
             status === Unauthorized
             responseAs[String] === "This schema already exists"
@@ -167,7 +167,7 @@ class SchemaServiceSpec extends Specification
 
       """return a 401 if the api key doesn't have sufficient permissions
         with form data""" in {
-          Post(postUrl5, FormData(Seq("json" -> "{ \"json\" }"))) ~>
+          Post(postUrl5, FormData(Seq("json" -> """{ "some": "json" }"""))) ~>
             addHeader("api-key", readKey) ~> sealRoute(routes) ~> check {
               status === Unauthorized
               responseAs[String] must
@@ -184,7 +184,7 @@ class SchemaServiceSpec extends Specification
       }
 
       "return a 401 if no api-key is specified with form data" in {
-        Post(postUrl7, FormData(Seq("json" -> "{ \"json\" }"))) ~>
+        Post(postUrl7, FormData(Seq("json" -> """{ "some": "json" }"""))) ~>
           sealRoute(routes) ~> check {
             status === Unauthorized
             responseAs[String] must
@@ -204,7 +204,7 @@ class SchemaServiceSpec extends Specification
 
       """return a 401 if the owner of the api key is not a prefix of the
         schema's vendor with form data""" in {
-          Post(postUrl7, FormData(Seq("json" -> "{ \"json\" }"))) ~>
+          Post(postUrl7, FormData(Seq("json" -> """{ "some": "json" }"""))) ~>
             addHeader("api-key", wrongVendorKey) ~> sealRoute(routes) ~> check {
               status === Unauthorized
               responseAs[String] must
