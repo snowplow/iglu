@@ -18,7 +18,7 @@ package core
 
 //This project
 import api.{ Api, RoutedHttpService }
-import util.PostgresDB
+import util.{ PostgresDB, Config }
 
 // Akka
 import akka.actor.{ ActorSystem, Props }
@@ -38,7 +38,8 @@ trait BootedCore extends Core with Api with PostgresDB {
 
   startPostgres
 
-  IO(Http)(system) ! Http.Bind(rootService, "localhost", port = 8080)
+  IO(Http)(system) !
+    Http.Bind(rootService, Config.interface, port = Config.port)
 
   sys.addShutdownHook(system.shutdown())
 }
