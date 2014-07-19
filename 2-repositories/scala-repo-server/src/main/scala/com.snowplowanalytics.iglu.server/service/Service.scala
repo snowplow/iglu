@@ -13,7 +13,7 @@
 * governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.server
-package api
+package service
 
 // Akka
 import akka.util.Timeout

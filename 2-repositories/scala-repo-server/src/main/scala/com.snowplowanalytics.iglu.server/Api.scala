@@ -13,10 +13,9 @@
 * governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.server
-package api
 
 // This project
-import core.{ Core, CoreActors }
+import service.{ ApiKeyGenService, SchemaService, CatalogService }
 
 // Scala
 import scala.concurrent.ExecutionContext.Implicits.global

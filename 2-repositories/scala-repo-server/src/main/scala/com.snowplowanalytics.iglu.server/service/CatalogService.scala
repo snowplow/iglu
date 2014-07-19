@@ -13,11 +13,11 @@
 * governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.server
-package api
+package service
 
 // This project
-import core.SchemaActor._
-import core.ApiKeyActor._
+import actor.SchemaActor._
+import actor.ApiKeyActor._
 import util.TokenAuthenticator
 
 // Akka
@@ -27,17 +27,17 @@ import akka.pattern.ask
 // Java
 import java.util.UUID
 
-// Scala
+//Scala
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 
 // Spray
-import spray.http.StatusCode
 import spray.http.StatusCodes._
+import spray.http.StatusCode
 import spray.http.MediaTypes._
 import spray.routing._
 
-class SchemaService(schema: ActorRef, apiKey: ActorRef)
+class CatalogService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
   val authenticator = TokenAuthenticator[(String, String)]("api-key") {
@@ -47,33 +47,34 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   def auth: Directive1[(String, String)] = authenticate(authenticator)
 
   val route = rejectEmptyResponse {
-    pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-    "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) => {
+    pathPrefix("[a-z.]+".r) { v => {
       auth { authTuple =>
         if (v startsWith authTuple._1) {
-          pathEnd {
+          respondWithMediaType(`application/json`) {
             get {
-              respondWithMediaType(`application/json`) {
+              pathPrefix("[a-zA-Z0-9_-]+".r) { n => {
+                pathPrefix("[a-z]+".r) { f => {
+                  pathEnd {
+                    complete {
+                      (schema ? GetSchemasFromFormat(v, n, f)).
+                        mapTo[(StatusCode, String)]
+                    }
+                  }
+                }} ~
+                pathEnd {
+                  complete {
+                    (schema ? GetSchemasFromName(v, n)).
+                      mapTo[(StatusCode, String)]
+                  }
+                }
+              }} ~
+              pathEnd {
                 complete {
-                  (schema ? GetSchema(v, n, f, vs)).mapTo[(StatusCode, String)]
+                  (schema ? GetSchemasFromVendor(v)).mapTo[(StatusCode, String)]
                 }
               }
             }
-          } ~
-          anyParam('json)(json =>
-            post {
-              respondWithMediaType(`application/json`) {
-                if (authTuple._2 == "write") {
-                  complete {
-                    (schema ? AddSchema(v, n, f, vs, json)).
-                      mapTo[(StatusCode, String)]
-                  }
-                } else {
-                  complete(Unauthorized,
-                    "You do not have sufficient privileges")
-                }
-              }
-            })
+          }
         } else {
           complete(Unauthorized, "You do not have sufficient privileges")
         }

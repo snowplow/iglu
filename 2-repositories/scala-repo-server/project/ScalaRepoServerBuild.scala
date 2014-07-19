@@ -43,6 +43,7 @@ object ScalaRepoServerBuild extends Build {
         Libraries.sprayJson,
         Libraries.sprayRouting,
         // Scala (test only)
+        Libraries.akkaTestKit,
         Libraries.specs2,
         Libraries.sprayTestKit
       )

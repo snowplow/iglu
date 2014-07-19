@@ -53,6 +53,7 @@ object Dependencies {
     val sprayRouting  = "io.spray"             %  "spray-routing"       % V.spray
 
     // Scala (test only)
+    val akkaTestKit   = "com.typesafe.akka"  %% "akka-testkit"  % V.akka   % "test"
     val specs2        = "org.specs2"         %% "specs2-core"   % V.specs2 % "test"
     val sprayTestKit  = "io.spray"           %  "spray-testkit" % V.spray  % "test"
   }

@@ -14,7 +14,7 @@
 * language governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.server
-package core
+package actor
 
 // This project
 import model.SchemaDAO

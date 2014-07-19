@@ -14,8 +14,4 @@
 */
 package com.snowplowanalytics.iglu.server
 
-// This project
-import api.Api
-import core.{ BootedCore, Core, CoreActors }
-
 object Boot extends App with BootedCore with Core with CoreActors with Api

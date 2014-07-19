@@ -14,10 +14,10 @@
 * language governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.server
-package core
 
 //This project
-import api.{ Api, RoutedHttpService }
+import actor.{ SchemaActor, ApiKeyActor }
+import service.RoutedHttpService
 import util.{ PostgresDB, Config }
 
 // Akka
