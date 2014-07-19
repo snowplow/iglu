@@ -32,7 +32,7 @@ trait Core {
 }
 
 trait BootedCore extends Core with Api with PostgresDB {
-  def system = ActorSystem("scala-repo-server")
+  def system = ActorSystem("iglu-server")
   def actorRefFactory = system
   val rootService = system.actorOf(Props(new RoutedHttpService(routes)))
 
