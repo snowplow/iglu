@@ -66,6 +66,7 @@ object SchemaDAO extends PostgresDB with DAO {
   implicit val vendorFormat = jsonFormat5(ReturnedSchemaVendor)
 
   def createTable = schemas.ddl.create
+  def dropTable = schemas.ddl.drop
 
   def getFromVendor(vendor: String): (StatusCode, String) = {
     val l: List[ReturnedSchemaVendor] =

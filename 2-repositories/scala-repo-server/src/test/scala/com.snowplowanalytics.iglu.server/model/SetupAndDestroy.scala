@@ -21,7 +21,7 @@ import util.Config
 // Slick
 import scala.slick.driver.JdbcDriver.backend.Database
 import Database.dynamicSession
-import scala.slick.jdbc.{ GetResult, StaticQuery => Q }
+import scala.slick.jdbc.{ StaticQuery => Q }
 
 trait SetupAndDestroy extends BeforeAndAfterAll {
   private val dbName = "unittest"
