@@ -56,7 +56,8 @@ class ApiKeyDAO(val db: Database) extends DAO {
 
   val apiKeys = TableQuery[ApiKeys]
 
-  def createTable = db.withDynSession(apiKeys.ddl.create)
+  def createTable = db withDynSession { apiKeys.ddl.create }
+  def dropTable = db withDynSession { apiKeys.ddl.drop }
 
   def get(uid: UUID): Option[(String, String)] = {
     db withDynSession {

@@ -60,8 +60,9 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
     "for AddBothKey" should {
 
       "return a 200 for a non-conflicting owner" in {
-        val future = key ? AddBothKey("com.unit.test")
+        val future = key ? AddBothKey("com.actor.unit.test")
         val Success((status: StatusCode, result: String)) = future.value.get
+
         val map = result.parseJson.convertTo[Map[String, String]]
         readKey = map getOrElse("read", "")
         writeKey = map getOrElse("write", "")
@@ -70,7 +71,7 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
       }
 
       "return a 401 if the owner is conflicting" in {
-        val future = key ? AddBothKey("com.unit")
+        val future = key ? AddBothKey("com.actor.unit")
         val Success((status: StatusCode, result: String)) = future.value.get
         status must be(Unauthorized)
         result must contain("This vendor is conflicting with an existing one")
@@ -83,7 +84,7 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
         val future = key ? GetKey(UUID.fromString(readKey))
         val Success(Some((owner: String, permission: String))) =
           future.value.get
-        owner must contain("com.unit.test")
+        owner must contain("com.actor.unit.test")
         permission must contain("read")
       }
 

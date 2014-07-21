@@ -24,7 +24,7 @@ import Database.dynamicSession
 import slick.jdbc.{ StaticQuery => Q }
 
 trait SetupAndDestroy extends BeforeAndAfterAll {
-  private val dbName = "unittest"
+  private val dbName = getClass.getSimpleName.toLowerCase
 
   private val db = Database.forURL(
     url =

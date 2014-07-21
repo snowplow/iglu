@@ -27,7 +27,6 @@ import scala.slick.jdbc.{ StaticQuery => Q }
 // Specs2
 import org.specs2.mutable.Specification
 
-
 // Spray
 import spray.http.StatusCodes._
 
