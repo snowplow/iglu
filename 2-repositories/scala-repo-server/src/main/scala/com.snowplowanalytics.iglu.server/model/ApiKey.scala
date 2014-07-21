@@ -31,7 +31,10 @@ import DefaultJsonProtocol._
 import spray.http.StatusCode
 import spray.http.StatusCodes._
 
-object ApiKeyDAO extends PostgresDB with DAO {
+class ApiKeyDAO(val db: Database) extends DAO {
+
+  implicit val session = db.createSession
+
   case class ApiKey(
     uid: UUID,
     owner: String,

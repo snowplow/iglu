@@ -19,9 +19,9 @@ package test.model
 import util.Config
 
 // Slick
-import scala.slick.driver.JdbcDriver.backend.Database
+import slick.driver.JdbcDriver.backend.Database
 import Database.dynamicSession
-import scala.slick.jdbc.{ StaticQuery => Q }
+import slick.jdbc.{ StaticQuery => Q }
 
 trait SetupAndDestroy extends BeforeAndAfterAll {
   private val dbName = "unittest"
@@ -36,14 +36,14 @@ trait SetupAndDestroy extends BeforeAndAfterAll {
 
   def beforeAll() {
     db withDynSession {
-      Q.updateNA(s"drop databse if exists ${dbName};").execute
+      Q.updateNA(s"drop database if exists ${dbName};").execute
       Q.updateNA(s"create database ${dbName};").execute
     }
   }
 
   def afterAll() {
     db withDynSession {
-      Q.updateNA(s"drop database ${dbName};").execute
+      //Q.updateNA(s"drop database ${dbName};").execute
     }
   }
 

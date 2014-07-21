@@ -28,7 +28,9 @@ import spray.http.StatusCodes._
 import spray.json._
 import DefaultJsonProtocol._
 
-object SchemaDAO extends PostgresDB with DAO {
+class SchemaDAO(val db: Database) extends DAO {
+
+  implicit val session = db.createSession
 
   case class Schema(schemaId: Int, vendor: String, name: String, format: String,
     version: String, schema: JsValue, created: LocalDateTime)

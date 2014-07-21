@@ -22,8 +22,8 @@ import IgluPostgresDriver.simple._
 // Slick
 import slick.jdbc.meta.MTable
 
-trait PostgresDB {
-  def db = Database.forURL(
+object PostgresDB {
+  val db = Database.forURL(
     url =
       s"jdbc:postgresql://${Config.pgHost}:${Config.pgPort}/${Config.pgDbName}",
     user = Config.pgUsername,
@@ -31,14 +31,12 @@ trait PostgresDB {
     driver = Config.pgDriver
   )
 
-  implicit val session: Session = db.createSession()
-
-  def startPostgres = {
-    if (MTable.getTables("schemas").list.isEmpty) {
-      SchemaDAO.createTable
-    }
-    if (MTable.getTables("apikeys").list.isEmpty) {
-      ApiKeyDAO.createTable
-    }
-  }
+  //def startPostgres = {
+  //  if (MTable.getTables("schemas").list.isEmpty) {
+  //    SchemaDAO.createTable
+  //  }
+  //  if (MTable.getTables("apikeys").list.isEmpty) {
+  //    ApiKeyDAO.createTable
+  //  }
+  //}
 }

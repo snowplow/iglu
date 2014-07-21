@@ -18,6 +18,7 @@ package actor
 
 // This project
 import model.SchemaDAO
+import util.PostgresDB
 
 // Akka
 import akka.actor.Actor
@@ -35,12 +36,14 @@ object SchemaActor {
 class SchemaActor extends Actor {
   import SchemaActor._
 
+  private val schema = new SchemaDAO(PostgresDB.db)
+
   def receive = {
-    case GetSchema(v, n, f, vs) => sender ! SchemaDAO.get(v, n, f, vs)
-    case GetSchemasFromVendor(v) => sender ! SchemaDAO.getFromVendor(v)
-    case GetSchemasFromName(v, n) => sender ! SchemaDAO.getFromName(v, n)
+    case GetSchema(v, n, f, vs) => sender ! schema.get(v, n, f, vs)
+    case GetSchemasFromVendor(v) => sender ! schema.getFromVendor(v)
+    case GetSchemasFromName(v, n) => sender ! schema.getFromName(v, n)
     case GetSchemasFromFormat(v, n, f) =>
-      sender ! SchemaDAO.getFromFormat(v, n, f)
-    case AddSchema(v, n, f, vs, s) => sender ! SchemaDAO.add(v, n, f, vs, s)
+      sender ! schema.getFromFormat(v, n, f)
+    case AddSchema(v, n, f, vs, s) => sender ! schema.add(v, n, f, vs, s)
   }
 }

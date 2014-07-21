@@ -18,6 +18,7 @@ package actor
 
 // This project
 import model.ApiKeyDAO
+import util.PostgresDB
 
 // Akka
 import akka.actor.Actor
@@ -34,9 +35,11 @@ object ApiKeyActor {
 class ApiKeyActor extends Actor {
   import ApiKeyActor._
 
+  val apiKey = new ApiKeyDAO(PostgresDB.db)
+
   def receive = {
-    case GetKey(uid) => sender ! ApiKeyDAO.get(uid)
-    case AddBothKey(owner) => sender ! ApiKeyDAO.addReadWrite(owner)
-    case DeleteKey(uid) => sender ! ApiKeyDAO.delete(uid)
+    case GetKey(uid) => sender ! apiKey.get(uid)
+    case AddBothKey(owner) => sender ! apiKey.addReadWrite(owner)
+    case DeleteKey(uid) => sender ! apiKey.delete(uid)
   }
 }

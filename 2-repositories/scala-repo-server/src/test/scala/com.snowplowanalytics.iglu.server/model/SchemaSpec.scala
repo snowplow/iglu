@@ -33,6 +33,8 @@ import spray.http.StatusCodes._
 
 class SchemaSpec extends Specification with SetupAndDestroy {
 
+  val schema = new SchemaDAO(database)
+
   sequential
 
   "SchemaDAO" should {
@@ -40,7 +42,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for createTable" should {
 
       "create the schemas table" in {
-        SchemaDAO.createTable
+        schema.createTable
         database withDynSession {
           Q.queryNA[Int](
             """select count(*)
@@ -53,7 +55,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for add" should {
 
       "add a schema properly" in {
-        val (status, res) = SchemaDAO.add("com.benfradet", "unit_test",
+        val (status, res) = schema.add("com.benfradet", "unit_test",
           "jsonschema", "1-0-0", """{ "some": "json" }""")
         status === OK
         res must contain("Schema added successfully")
@@ -70,7 +72,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "not add a schema if it already exists" in {
-        val (status, res) = SchemaDAO.add("com.benfradet", "unit_test",
+        val (status, res) = schema.add("com.benfradet", "unit_test",
           "jsonschema", "1-0-0", """"{ "some": "json" }""")
         status must be(Unauthorized)
         res must contain("This schema already exists")
@@ -90,10 +92,10 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for get" should {
 
       "retrieve a schema properly" in {
-        val (status, res) = SchemaDAO.get("com.benfradet", "unit_test",
+        val (status, res) = schema.get("com.benfradet", "unit_test",
           "jsonschema", "1-0-0")
         status === OK
-        res must contain("""{ "some": "json" }""")
+        res must contain(""""some": "json"""")
 
         database withDynSession {
           Q.queryNA[Int](
@@ -107,7 +109,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "return not found if the schema is not in the db" in {
-        val (status, res) = SchemaDAO.get("com.benfradet", "unit_test2",
+        val (status, res) = schema.get("com.benfradet", "unit_test2",
           "jsonschema", "1-0-0")
         status === NotFound
         res must contain("There are no schemas available here")
@@ -119,7 +121,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             where vendor = 'com.benfradet' and
             name = 'unit_test2' and
             format = 'jsonschema' and
-            version = '1-0-0';"""").first === 0
+            version = '1-0-0';""").first === 0
         }
       }
     }
@@ -127,10 +129,10 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for getFromFormat" should {
 
       "retrieve a schema properly" in {
-        val (status, res) = SchemaDAO.getFromFormat("com.benfradet",
+        val (status, res) = schema.getFromFormat("com.benfradet",
           "unit_test", "jsonschema")
         status === OK
-        res must contain("""{ "some": "json" }""")
+        res must contain(""""some": "json"""")
 
         database withDynSession {
           Q.queryNA[Int](
@@ -143,10 +145,10 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "return not found if the schema is not in the db" in {
-        val (status, res) = SchemaDAO.getFromFormat("com.benfradet",
+        val (status, res) = schema.getFromFormat("com.benfradet",
           "unit_test2", "jsonschema")
         status === NotFound
-        res must contain("There are no schmas for this vendor, name, format")
+        res must contain("There are no schemas for this vendor, name, format")
 
         database withDynSession {
           Q.queryNA[Int](
@@ -162,9 +164,9 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for getFromName" should {
 
       "retrieve a schema properly" in {
-        val (status, res) = SchemaDAO.getFromName("com.benfradet", "unit_test")
+        val (status, res) = schema.getFromName("com.benfradet", "unit_test")
         status === OK
-        res must contain("""{ "some": "json" }""")
+        res must contain(""""some": "json"""")
 
         database withDynSession {
           Q.queryNA[Int](
@@ -176,7 +178,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "return not found if the schema is not in the db" in {
-        val (status, res) = SchemaDAO.getFromName("com.benfradet", "unit_test2")
+        val (status, res) = schema.getFromName("com.benfradet", "unit_test2")
         status === NotFound
         res must contain("There are no schemas for this vendor, name")
 
@@ -193,9 +195,9 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for getFromVendor" should {
 
       "return a schema properly" in {
-        val (status, res) = SchemaDAO.getFromVendor("com.benfradet")
+        val (status, res) = schema.getFromVendor("com.benfradet")
         status === OK
-        res must contain("""{ "some": "json" }""")
+        res must contain(""""some": "json"""")
 
         database withDynSession {
           Q.queryNA[Int](
@@ -206,7 +208,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "return not found if the schema is not in the db" in {
-        val (status, res) = SchemaDAO.getFromVendor("com.ben")
+        val (status, res) = schema.getFromVendor("com.ben")
         status === NotFound
         res must contain("There are no schemas for this vendor")
 
@@ -222,7 +224,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for dropTable" should {
 
       "drop the table properly" in {
-        SchemaDAO.dropTable
+        schema.dropTable
 
         database withDynSession {
           Q.queryNA[Int](

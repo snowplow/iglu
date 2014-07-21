@@ -17,6 +17,7 @@ package com.snowplowanalytics.iglu.server
 
 //This project
 import actor.{ SchemaActor, ApiKeyActor }
+import model.{ SchemaDAO, ApiKeyDAO }
 import service.RoutedHttpService
 import util.{ PostgresDB, Config }
 
@@ -27,16 +28,27 @@ import akka.io.IO
 // Spray
 import spray.can.Http
 
+// Slick
+import slick.driver.JdbcDriver.backend.Database.dynamicSession
+import slick.jdbc.meta.MTable
+
 trait Core {
   protected implicit def system: ActorSystem
 }
 
-trait BootedCore extends Core with Api with PostgresDB {
+trait BootedCore extends Core with Api {
   def system = ActorSystem("iglu-server")
   def actorRefFactory = system
   val rootService = system.actorOf(Props(new RoutedHttpService(routes)))
 
-  startPostgres
+  PostgresDB.db withDynSession {
+    if (MTable.getTables("schemas").list.isEmpty) {
+      new SchemaDAO(PostgresDB.db).createTable
+    }
+    if (MTable.getTables("apikeys").list.isEmpty) {
+      new ApiKeyDAO(PostgresDB.db).createTable
+    }
+  }
 
   IO(Http)(system) !
     Http.Bind(rootService, Config.interface, port = Config.port)
