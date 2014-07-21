@@ -30,13 +30,4 @@ object PostgresDB {
     password = Config.pgPassword,
     driver = Config.pgDriver
   )
-
-  //def startPostgres = {
-  //  if (MTable.getTables("schemas").list.isEmpty) {
-  //    SchemaDAO.createTable
-  //  }
-  //  if (MTable.getTables("apikeys").list.isEmpty) {
-  //    ApiKeyDAO.createTable
-  //  }
-  //}
 }

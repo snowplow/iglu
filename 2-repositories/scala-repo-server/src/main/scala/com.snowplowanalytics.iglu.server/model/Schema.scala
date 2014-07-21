@@ -22,6 +22,9 @@ import util.IgluPostgresDriver.simple._
 // Joda
 import org.joda.time.LocalDateTime
 
+// Slick
+import Database.dynamicSession
+
 //Spray
 import spray.http.StatusCode
 import spray.http.StatusCodes._
@@ -29,8 +32,6 @@ import spray.json._
 import DefaultJsonProtocol._
 
 class SchemaDAO(val db: Database) extends DAO {
-
-  implicit val session = db.createSession
 
   case class Schema(schemaId: Int, vendor: String, name: String, format: String,
     version: String, schema: JsValue, created: LocalDateTime)
@@ -67,85 +68,95 @@ class SchemaDAO(val db: Database) extends DAO {
     version: String, created: String)
   implicit val vendorFormat = jsonFormat5(ReturnedSchemaVendor)
 
-  def createTable = schemas.ddl.create
-  def dropTable = schemas.ddl.drop
+  def createTable = db withDynSession { schemas.ddl.create }
+  def dropTable = db withDynSession { schemas.ddl.drop }
 
   def getFromVendor(vendor: String): (StatusCode, String) = {
-    val l: List[ReturnedSchemaVendor] =
-      schemas.filter(_.vendor === vendor).
-        map(s => (s.schema, s.name, s.format, s.version, s.created)).list.
-        map(s => ReturnedSchemaVendor(s._1, s._2, s._3, s._4,
-          s._5.toString("MM/dd/yyyy HH:mm:ss")))
+    db withDynSession {
+      val l: List[ReturnedSchemaVendor] =
+        schemas.filter(_.vendor === vendor).
+          map(s => (s.schema, s.name, s.format, s.version, s.created)).list.
+          map(s => ReturnedSchemaVendor(s._1, s._2, s._3, s._4,
+            s._5.toString("MM/dd/yyyy HH:mm:ss")))
 
-    if (l.length > 0) {
-      (OK, l.toJson.prettyPrint)
-    } else {
-      (NotFound, result(404, "There are no schemas for this vendor"))
+      if (l.length > 0) {
+        (OK, l.toJson.prettyPrint)
+      } else {
+        (NotFound, result(404, "There are no schemas for this vendor"))
+      }
     }
   }
 
   def getFromName(vendor: String, name: String): (StatusCode, String) = {
-    val l: List[ReturnedSchemaName] =
-      schemas.filter(s => s.vendor === vendor && s.name === name).
-        map(s => (s.schema, s.format, s.version, s.created)).list.
-        map(s => ReturnedSchemaName(s._1, s._2, s._3,
-          s._4.toString("MM/dd/yyyy HH:mm:ss")))
+    db withDynSession {
+      val l: List[ReturnedSchemaName] =
+        schemas.filter(s => s.vendor === vendor && s.name === name).
+          map(s => (s.schema, s.format, s.version, s.created)).list.
+          map(s => ReturnedSchemaName(s._1, s._2, s._3,
+            s._4.toString("MM/dd/yyyy HH:mm:ss")))
 
-    if (l.length > 0) {
-      (OK, l.toJson.prettyPrint)
-    } else {
-      (NotFound, result(404,
-        "There are no schemas for this vendor, name combination"))
+      if (l.length > 0) {
+        (OK, l.toJson.prettyPrint)
+      } else {
+        (NotFound, result(404,
+          "There are no schemas for this vendor, name combination"))
+      }
     }
   }
 
   def getFromFormat(vendor: String, name: String, format: String):
-  (StatusCode, String) = {
-    val l: List[ReturnedSchemaFormat] =
-      schemas.filter(s =>
-        s.vendor === vendor &&
-        s.name === name &&
-        s.format === format).
-      map(s => (s.schema, s.version, s.created)).list.
-      map(s => ReturnedSchemaFormat(s._1, s._2,
-        s._3.toString("MM/dd/yyyy HH:mm:ss")))
+    (StatusCode, String) = {
+      db withDynSession {
+        val l: List[ReturnedSchemaFormat] =
+          schemas.filter(s =>
+            s.vendor === vendor &&
+            s.name === name &&
+            s.format === format).
+          map(s => (s.schema, s.version, s.created)).list.
+          map(s => ReturnedSchemaFormat(s._1, s._2,
+            s._3.toString("MM/dd/yyyy HH:mm:ss")))
 
-    if (l.length > 0) {
-      (OK, l.toJson.prettyPrint)
-    } else {
-      (NotFound, result(404,
-        "There are no schemas for this vendor, name, format combination"))
+        if (l.length > 0) {
+          (OK, l.toJson.prettyPrint)
+        } else {
+          (NotFound, result(404,
+            "There are no schemas for this vendor, name, format combination"))
+        }
+      }
     }
-  }
 
   def get(vendor: String, name: String, format: String, version: String):
     (StatusCode, String) = {
-      val l: List[ReturnedSchema] = schemas.filter(s =>
-          s.vendor === vendor &&
-          s.name === name &&
-          s.format === format &&
-          s.version === version).
-        map(s => (s.schema, s.created)).list.
-        map(s => ReturnedSchema(s._1, s._2.toString("MM/dd/yyyy HH:mm:ss")))
+      db withDynSession {
+        val l: List[ReturnedSchema] = schemas.filter(s =>
+            s.vendor === vendor &&
+            s.name === name &&
+            s.format === format &&
+            s.version === version).
+          map(s => (s.schema, s.created)).list.
+          map(s => ReturnedSchema(s._1, s._2.toString("MM/dd/yyyy HH:mm:ss")))
 
-      if (l.length == 1) {
-        (OK, l(0).toJson.prettyPrint)
-      } else {
-        (NotFound, result(404, "There are no schemas available here"))
+        if (l.length == 1) {
+          (OK, l(0).toJson.prettyPrint)
+        } else {
+          (NotFound, result(404, "There are no schemas available here"))
+        }
       }
     }
 
   def add(vendor: String, name: String, format: String, version: String,
     schema: String): (StatusCode, String) =
-      get(vendor, name, format, version) match {
-        case (OK, j) => (Unauthorized,
-          result(401, "This schema already exists"))
-        case c => schemas.insert(
-          Schema(0, vendor, name, format, version, schema.parseJson,
-            new LocalDateTime())) match {
-              case 0 => (InternalServerError,
-                result(500, "Something went wrong"))
-              case n => (OK, result(200, "Schema added successfully"))
-            }
+      db withDynSession {
+        get(vendor, name, format, version) match {
+          case (OK, j) => (Unauthorized,
+            result(401, "This schema already exists"))
+          case c => schemas.insert(
+            Schema(0, vendor, name, format, version, schema.parseJson,
+              new LocalDateTime())) match {
+                case 0 => (InternalServerError,
+                  result(500, "Something went wrong"))
+                case n => (OK, result(200, "Schema added successfully"))
+              }
+        }
       }
 }

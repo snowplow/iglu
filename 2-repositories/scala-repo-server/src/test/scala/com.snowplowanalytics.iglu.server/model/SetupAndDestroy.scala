@@ -43,7 +43,7 @@ trait SetupAndDestroy extends BeforeAndAfterAll {
 
   def afterAll() {
     db withDynSession {
-      //Q.updateNA(s"drop database ${dbName};").execute
+      Q.updateNA(s"drop database ${dbName};").execute
     }
   }
 

@@ -25,6 +25,9 @@ import java.util.UUID
 // Joda
 import org.joda.time.LocalDateTime
 
+// Slick
+import Database.dynamicSession
+
 // Spray
 import spray.json._
 import DefaultJsonProtocol._
@@ -32,8 +35,6 @@ import spray.http.StatusCode
 import spray.http.StatusCodes._
 
 class ApiKeyDAO(val db: Database) extends DAO {
-
-  implicit val session = db.createSession
 
   case class ApiKey(
     uid: UUID,
@@ -55,69 +56,79 @@ class ApiKeyDAO(val db: Database) extends DAO {
 
   val apiKeys = TableQuery[ApiKeys]
 
-  def createTable = apiKeys.ddl.create
+  def createTable = db.withDynSession(apiKeys.ddl.create)
 
   def get(uid: UUID): Option[(String, String)] = {
-    val l: List[(String, String)] = apiKeys.filter(_.uid === uid).
-      map(k => (k.owner, k.permission)).list
-    if (l.length == 1) {
-      Some(l(0))
-    } else {
-      None
+    db withDynSession {
+      val l: List[(String, String)] = apiKeys.filter(_.uid === uid).
+        map(k => (k.owner, k.permission)).list
+      if (l.length == 1) {
+        Some(l(0))
+      } else {
+        None
+      }
     }
   }
 
   private def validate(owner: String, permission: String): Boolean = {
-    val l: List[(String, String)] =
-      apiKeys.map(a => (a.owner, a.permission)).list
-    val owners = l.filter(a => (a._1 == owner && a._2 != permission))
-    val startWithOwners = l.filter(o =>
-        ((o._1.startsWith(owner) || owner.startsWith(o._1)) && o._1 != owner))
+    db withDynSession {
+      val l: List[(String, String)] =
+        apiKeys.map(a => (a.owner, a.permission)).list
+      val owners = l.filter(a => (a._1 == owner && a._2 != permission))
+      val startWithOwners = l.filter(o =>
+          ((o._1.startsWith(owner) || owner.startsWith(o._1)) && o._1 != owner))
 
-    if (startWithOwners.length > 0 || owners.length > 1) {
-      false
-    } else {
-      true
+      if (startWithOwners.length > 0 || owners.length > 1) {
+        false
+      } else {
+        true
+      }
     }
   }
 
   private def add(owner: String, permission: String): (StatusCode, String) = {
-    if(validate(owner, permission)) {
-      var uid = UUID.randomUUID()
-      while(get(uid) != None) {
-        uid = UUID.randomUUID()
-      }
-      apiKeys.insert(
-        ApiKey(uid, owner, permission, new LocalDateTime())) match {
-          case 0 => (InternalServerError, "Something went wrong")
-          case n => (OK, uid.toString)
+    db withDynSession {
+      if(validate(owner, permission)) {
+        var uid = UUID.randomUUID()
+        while(get(uid) != None) {
+          uid = UUID.randomUUID()
         }
-    } else {
-      (Unauthorized, "This vendor is conflicting with an existing one")
+        apiKeys.insert(
+          ApiKey(uid, owner, permission, new LocalDateTime())) match {
+            case 0 => (InternalServerError, "Something went wrong")
+            case n => (OK, uid.toString)
+          }
+      } else {
+        (Unauthorized, "This vendor is conflicting with an existing one")
+      }
     }
   }
 
   def addReadWrite(owner: String): (StatusCode, String) = {
-    val (statusRead, keyRead) = add(owner, "read")
-    if (statusRead == Unauthorized) {
-      (statusRead, result(401, keyRead))
-    } else {
-      val (statusWrite, keyWrite) = add(owner, "write")
-      if(statusRead == InternalServerError ||
-        statusWrite == InternalServerError) {
-          delete(UUID.fromString(keyRead))
-          delete(UUID.fromString(keyWrite))
-          (InternalServerError, result(500, "Something went wrong"))
-        } else {
-          (OK, Map("read" -> keyRead, "write" -> keyWrite).toJson.prettyPrint)
-        }
+    db withDynSession {
+      val (statusRead, keyRead) = add(owner, "read")
+      if (statusRead == Unauthorized) {
+        (statusRead, result(401, keyRead))
+      } else {
+        val (statusWrite, keyWrite) = add(owner, "write")
+        if(statusRead == InternalServerError ||
+          statusWrite == InternalServerError) {
+            delete(UUID.fromString(keyRead))
+            delete(UUID.fromString(keyWrite))
+            (InternalServerError, result(500, "Something went wrong"))
+          } else {
+            (OK, Map("read" -> keyRead, "write" -> keyWrite).toJson.prettyPrint)
+          }
+      }
     }
   }
   
   def delete(uid: UUID): (StatusCode, String) =
-    apiKeys.filter(_.uid === uid).delete match {
-      case 0 => (NotFound, result(404, "Api key not found"))
-      case 1 => (OK, result(200, "Api key successfully deleted"))
-      case _ => (InternalServerError, result(500, "Something went wrong"))
+    db withDynSession {
+      apiKeys.filter(_.uid === uid).delete match {
+        case 0 => (NotFound, result(404, "Api key not found"))
+        case 1 => (OK, result(200, "Api key successfully deleted"))
+        case _ => (InternalServerError, result(500, "Something went wrong"))
+      }
     }
 }
