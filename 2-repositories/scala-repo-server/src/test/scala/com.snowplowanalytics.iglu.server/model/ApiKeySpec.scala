@@ -39,6 +39,10 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
 
   val apiKey = new ApiKeyDAO(database)
 
+  val tableName = "apikeys"
+  val owner = "com.unittest"
+  val faultyOwner = "com.unit"
+
   var readKey = ""
   var writeKey = ""
 
@@ -52,9 +56,9 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
         apiKey.createTable
         database withDynSession {
           Q.queryNA[Int](
-            """select count(*)
+            s"""select count(*)
             from pg_catalog.pg_tables
-            where tablename = 'apikeys';""").first === 1
+            where tablename = '${tableName}';""").first === 1
         }
       }
     }
@@ -62,7 +66,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
     "for addReadWrite" should {
 
       "add the api keys properly" in {
-        val (status, res) = apiKey.addReadWrite("com.unittest")
+        val (status, res) = apiKey.addReadWrite(owner)
         val map = res.parseJson.convertTo[Map[String, String]]
         readKey = map getOrElse("read", "")
         writeKey = map getOrElse("write", "")
@@ -72,25 +76,29 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
-            from apikeys
+            from ${tableName}
             where uid = '${readKey}';""").first === 1
           Q.queryNA[Int](
             s"""select count(*)
-            from apikeys
+            from ${tableName}
             where uid = '${writeKey}';""").first === 1
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${owner}';""").first === 2
         }
       }
 
       "not add api keys if the owner is conflicting with an existing one" in {
-        val (status, res) = apiKey.addReadWrite("com.unit")
+        val (status, res) = apiKey.addReadWrite(faultyOwner)
         status === Unauthorized
         res must contain("This vendor is conflicting with an existing one")
 
         database withDynSession {
           Q.queryNA[Int](
-            """select count(*)
-            from apikeys
-            where vendor = 'com.unit';""").first === 0
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${faultyOwner}';""").first === 0
         }
       }
     }
@@ -100,7 +108,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
       "properly retrieve the api key" in {
         apiKey.get(UUID.fromString(readKey)) match {
           case Some((owner, permission)) =>
-            owner must contain("com.unittest")
+            owner must contain(owner)
             permission must contain("read")
           case _ => failure
         }
@@ -108,7 +116,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
-            from apikeys
+            from ${tableName}
             where uid = '${readKey}';""").first === 1
         }
       }
@@ -123,7 +131,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
-            from apikeys
+            from ${tableName}
             where uid = '${uid.toString}';""").first === 0
         }
       }
@@ -140,7 +148,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
-            from apikeys
+            from ${tableName}
             where uid = '${readKey}';""").first === 0
         }
 
@@ -149,7 +157,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
-            from apikeys
+            from ${tableName}
             where uid = '${writeKey}';""").first === 0
         }
       }
@@ -162,7 +170,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
-            from apikeys
+            from ${tableName}
             where uid = '${readKey}';""").first === 0
         }
       }

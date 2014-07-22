@@ -34,6 +34,16 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
   val schema = new SchemaDAO(database)
 
+  val tableName = "schemas"
+  val vendor = "com.unittest"
+  val vendor2 = "com.test"
+  val name = "unit_test"
+  val name2 = "unit_test2"
+  val format = "jsonschema"
+  val version = "1-0-0"
+  val schemaDef = """{ "some": "json" }"""
+  val innerSchema = """"some": "json""""
+
   sequential
 
   "SchemaDAO" should {
@@ -44,9 +54,9 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         schema.createTable
         database withDynSession {
           Q.queryNA[Int](
-            """select count(*)
+            s"""select count(*)
             from pg_catalog.pg_tables
-            where tablename = 'schemas';""").first === 1
+            where tablename = '${tableName}';""").first === 1
         }
       }
     }
@@ -54,36 +64,34 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for add" should {
 
       "add a schema properly" in {
-        val (status, res) = schema.add("com.benfradet", "unit_test",
-          "jsonschema", "1-0-0", """{ "some": "json" }""")
+        val (status, res) = schema.add(vendor, name, format, version, schemaDef)
         status === OK
         res must contain("Schema added successfully")
 
         database withDynSession {
           Q.queryNA[Int](
-            """select count(*)
-            from schemas
-            where vendor = 'com.benfradet' and
-              name = 'unit_test' and
-              format = 'jsonschema' and
-              version = '1-0-0';""").first === 1
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}' and
+              name = '${name}' and
+              format = '${format}' and
+              version = '${version}';""").first === 1
         }
       }
 
       "not add a schema if it already exists" in {
-        val (status, res) = schema.add("com.benfradet", "unit_test",
-          "jsonschema", "1-0-0", """"{ "some": "json" }""")
+        val (status, res) = schema.add(vendor, name, format, version, schemaDef)
         status must be(Unauthorized)
         res must contain("This schema already exists")
 
         database withDynSession {
           Q.queryNA[Int](
-            """select count(*)
-            from schemas
-            where vendor = 'com.benfradet' and
-              name = 'unit_test' and
-              format = 'jsonschema' and
-              version = '1-0-0';""").first === 1
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}' and
+              name = '${name}' and
+              format = '${format}' and
+              version = '${version}';""").first === 1
         }
       }
     }
@@ -91,36 +99,34 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for get" should {
 
       "retrieve a schema properly" in {
-        val (status, res) = schema.get("com.benfradet", "unit_test",
-          "jsonschema", "1-0-0")
+        val (status, res) = schema.get(vendor, name, format, version)
         status === OK
-        res must contain(""""some": "json"""")
+        res must contain(innerSchema)
 
         database withDynSession {
           Q.queryNA[Int](
-            """select count(*)
-            from schemas
-            where vendor = 'com.benfradet' and
-              name = 'unit_test' and
-              format = 'jsonschema' and
-              version = '1-0-0';""").first === 1
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}' and
+              name = '${name}' and
+              format = '${format}' and
+              version = '${version}';""").first === 1
         }
       }
 
       "return not found if the schema is not in the db" in {
-        val (status, res) = schema.get("com.benfradet", "unit_test2",
-          "jsonschema", "1-0-0")
+        val (status, res) = schema.get(vendor, name2, format, version)
         status === NotFound
         res must contain("There are no schemas available here")
 
         database withDynSession {
           Q.queryNA[Int](
-            """select count(*)
-            from schemas
-            where vendor = 'com.benfradet' and
-            name = 'unit_test2' and
-            format = 'jsonschema' and
-            version = '1-0-0';""").first === 0
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}' and
+            name = '${name2}' and
+            format = '${format}' and
+            version = '${version}';""").first === 0
         }
       }
     }
@@ -128,34 +134,32 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for getFromFormat" should {
 
       "retrieve a schema properly" in {
-        val (status, res) = schema.getFromFormat("com.benfradet",
-          "unit_test", "jsonschema")
+        val (status, res) = schema.getFromFormat(vendor, name, format)
         status === OK
-        res must contain(""""some": "json"""")
+        res must contain(innerSchema)
 
         database withDynSession {
           Q.queryNA[Int](
-            """select count(*)
-            from schemas
-            where vendor = 'com.benfradet' and
-              name = 'unit_test' and
-              format = 'jsonschema';""").first === 1
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}' and
+              name = '${name}' and
+              format = '${format}';""").first === 1
         }
       }
 
       "return not found if the schema is not in the db" in {
-        val (status, res) = schema.getFromFormat("com.benfradet",
-          "unit_test2", "jsonschema")
+        val (status, res) = schema.getFromFormat(vendor, name2, format)
         status === NotFound
         res must contain("There are no schemas for this vendor, name, format")
 
         database withDynSession {
           Q.queryNA[Int](
-            """select count(*)
-            from schemas
-            where vendor = 'com.benfradet' and
-              name = 'unit_test2' and
-              format = 'jsonschema';""").first === 0
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}' and
+              name = '${name2}' and
+              format = '${format}';""").first === 0
         }
       }
     }
@@ -163,30 +167,30 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for getFromName" should {
 
       "retrieve a schema properly" in {
-        val (status, res) = schema.getFromName("com.benfradet", "unit_test")
+        val (status, res) = schema.getFromName(vendor, name)
         status === OK
-        res must contain(""""some": "json"""")
+        res must contain(innerSchema)
 
         database withDynSession {
           Q.queryNA[Int](
-            """select count(*)
-            from schemas
-            where vendor = 'com.benfradet' and
-              name = 'unit_test';""").first === 1
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}' and
+              name = '${name}';""").first === 1
         }
       }
 
       "return not found if the schema is not in the db" in {
-        val (status, res) = schema.getFromName("com.benfradet", "unit_test2")
+        val (status, res) = schema.getFromName(vendor, name2)
         status === NotFound
         res must contain("There are no schemas for this vendor, name")
 
         database withDynSession {
           Q.queryNA[Int](
-            """select count(*)
-            from schemas
-            where vendor = 'com.benfradet' and
-              name = 'unit_test2';""").first === 0
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}' and
+              name = '${name2}';""").first === 0
         }
       }
     }
@@ -194,28 +198,28 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for getFromVendor" should {
 
       "return a schema properly" in {
-        val (status, res) = schema.getFromVendor("com.benfradet")
+        val (status, res) = schema.getFromVendor(vendor)
         status === OK
-        res must contain(""""some": "json"""")
+        res must contain(innerSchema)
 
         database withDynSession {
           Q.queryNA[Int](
-            """select count(*)
-            from schemas
-            where vendor = 'com.benfradet';""").first === 1
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}';""").first === 1
         }
       }
 
       "return not found if the schema is not in the db" in {
-        val (status, res) = schema.getFromVendor("com.ben")
+        val (status, res) = schema.getFromVendor(vendor2)
         status === NotFound
         res must contain("There are no schemas for this vendor")
 
         database withDynSession {
           Q.queryNA[Int](
-            """select count(*)
-            from schemas
-            where vendor = 'com.ben';""").first === 0
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor2}';""").first === 0
         }
       }
     }
@@ -229,7 +233,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             """select count(*)
             from pg_catalog.pg_tables
-            where tablename = 'schemas';""").first === 0
+            where tablename = '${tableName}';""").first === 0
         }
       }
     }
