@@ -25,12 +25,12 @@ object Dependencies {
     val akka  = "2.3.4"
     val joda = "1.6"
     val jodaTime = "2.3"
+    val json4s = "3.2.10"
     val postgres = "9.1-901-1.jdbc4"
     val slf4j = "1.6.4"
     val slick = "2.0.2"
     val slickpg = "0.6.0-R1"
     val spray = "1.3.1"
-    val sprayj = "1.2.5"
 
     // Scala (test only)
     val specs2    = "2.3.13"
@@ -42,14 +42,17 @@ object Dependencies {
     val akkaSlf4j     = "com.typesafe.akka"    %% "akka-slf4j"          % V.akka
     val joda          = "org.joda"             %  "joda-convert"        % V.joda
     val jodaTime      = "joda-time"            %  "joda-time"           % V.jodaTime
+    val json4s        = "org.json4s"           %% "json4s-jackson"      % V.json4s
+    //tmp before update to slick-pg
+    val json4sNative  = "org.json4s"           %% "json4s-native"       % V.json4s
+    val json4sScalaz  = "org.json4s"           %% "json4s-scalaz"       % V.json4s
     val postgres      = "postgresql"           %  "postgresql"          % V.postgres
     val slick         = "com.typesafe.slick"   %% "slick"               % V.slick
     val slickpg       = "com.github.tminglei"  %% "slick-pg"            % V.slickpg
     val slickpgJoda   = "com.github.tminglei"  %% "slick-pg_joda-time"  % V.slickpg
-    val slickpgJson   = "com.github.tminglei"  %% "slick-pg_spray-json" % V.slickpg
+    val slickpgJson   = "com.github.tminglei"  %% "slick-pg_json4s"     % V.slickpg
     val slf4j         = "org.slf4j"            %  "slf4j-nop"           % V.slf4j
     val sprayCan      = "io.spray"             %  "spray-can"           % V.spray
-    val sprayJson     = "io.spray"             %% "spray-json"          % V.sprayj
     val sprayRouting  = "io.spray"             %  "spray-routing"       % V.spray
 
     // Scala (test only)

@@ -15,14 +15,15 @@
 package com.snowplowanalytics.iglu.server
 package model
 
-// Spray
-import spray.json._
-import DefaultJsonProtocol._
+// Json4s
+import org.json4s.DefaultFormats
+import org.json4s.jackson.Serialization.writePretty
 
 trait DAO {
   case class Result(status: Int, message: String)
-  implicit val resultFormat = jsonFormat2(Result)
+
+  implicit val formats = DefaultFormats
 
   def result(status: Int, message: String): String =
-    Result(status, message).toJson.prettyPrint
+    writePretty(Result(status, message))
 }

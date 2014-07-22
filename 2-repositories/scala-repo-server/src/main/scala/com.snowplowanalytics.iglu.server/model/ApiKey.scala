@@ -16,8 +16,8 @@ package com.snowplowanalytics.iglu.server
 package model
 
 // This project
-import util.PostgresDB
 import util.IgluPostgresDriver.simple._
+import util.IgluPostgresDriver.jsonMethods._
 
 // Java
 import java.util.UUID
@@ -25,12 +25,13 @@ import java.util.UUID
 // Joda
 import org.joda.time.LocalDateTime
 
+// Json4s
+import org.json4s.jackson.Serialization.writePretty
+
 // Slick
 import Database.dynamicSession
 
 // Spray
-import spray.json._
-import DefaultJsonProtocol._
 import spray.http.StatusCode
 import spray.http.StatusCodes._
 
@@ -118,7 +119,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
             delete(UUID.fromString(keyWrite))
             (InternalServerError, result(500, "Something went wrong"))
           } else {
-            (OK, Map("read" -> keyRead, "write" -> keyWrite).toJson.prettyPrint)
+            (OK, writePretty(Map("read" -> keyRead, "write" -> keyWrite)))
           }
       }
     }

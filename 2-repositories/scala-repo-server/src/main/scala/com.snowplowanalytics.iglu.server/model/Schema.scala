@@ -16,11 +16,15 @@ package com.snowplowanalytics.iglu.server
 package model
 
 // This project
-import util.PostgresDB
 import util.IgluPostgresDriver.simple._
+import util.IgluPostgresDriver.jsonMethods._
 
 // Joda
 import org.joda.time.LocalDateTime
+
+// Json4s
+import org.json4s.JValue
+import org.json4s.jackson.Serialization.writePretty
 
 // Slick
 import Database.dynamicSession
@@ -28,13 +32,11 @@ import Database.dynamicSession
 //Spray
 import spray.http.StatusCode
 import spray.http.StatusCodes._
-import spray.json._
-import DefaultJsonProtocol._
 
 class SchemaDAO(val db: Database) extends DAO {
 
   case class Schema(schemaId: Int, vendor: String, name: String, format: String,
-    version: String, schema: JsValue, created: LocalDateTime)
+    version: String, schema: JValue, created: LocalDateTime)
 
   class Schemas(tag: Tag) extends Table[Schema](tag, "schemas") {
     def schemaId = column[Int](
@@ -43,7 +45,7 @@ class SchemaDAO(val db: Database) extends DAO {
     def name = column[String]("name", O.DBType("varchar(50)"), O.NotNull)
     def format = column[String]("format", O.DBType("varchar(50)"), O.NotNull)
     def version = column[String]("version", O.DBType("varchar(50)"), O.NotNull)
-    def schema = column[JsValue]("schema", O.DBType("json"), O.NotNull)
+    def schema = column[JValue]("schema", O.DBType("json"), O.NotNull)
     def created = column[LocalDateTime]("created", O.DBType("timestamp"),
       O.NotNull)
 
@@ -53,20 +55,13 @@ class SchemaDAO(val db: Database) extends DAO {
 
   val schemas = TableQuery[Schemas]
 
-  case class ReturnedSchema(schema: JsValue, created: String)
-  implicit val schemaFormat = jsonFormat2(ReturnedSchema)
-
-  case class ReturnedSchemaFormat(schema: JsValue, version: String,
+  case class ReturnedSchema(schema: JValue, created: String)
+  case class ReturnedSchemaFormat(schema: JValue, version: String,
     created: String)
-  implicit val formatFormat = jsonFormat3(ReturnedSchemaFormat)
-
-  case class ReturnedSchemaName(schema: JsValue, format: String,
+  case class ReturnedSchemaName(schema: JValue, format: String,
     version: String, created: String)
-  implicit val nameFormat = jsonFormat4(ReturnedSchemaName)
-
-  case class ReturnedSchemaVendor(schema: JsValue, name: String, format: String,
+  case class ReturnedSchemaVendor(schema: JValue, name: String, format: String,
     version: String, created: String)
-  implicit val vendorFormat = jsonFormat5(ReturnedSchemaVendor)
 
   def createTable = db withDynSession { schemas.ddl.create }
   def dropTable = db withDynSession { schemas.ddl.drop }
@@ -80,7 +75,7 @@ class SchemaDAO(val db: Database) extends DAO {
             s._5.toString("MM/dd/yyyy HH:mm:ss")))
 
       if (l.length > 0) {
-        (OK, l.toJson.prettyPrint)
+        (OK, writePretty(l))
       } else {
         (NotFound, result(404, "There are no schemas for this vendor"))
       }
@@ -96,7 +91,7 @@ class SchemaDAO(val db: Database) extends DAO {
             s._4.toString("MM/dd/yyyy HH:mm:ss")))
 
       if (l.length > 0) {
-        (OK, l.toJson.prettyPrint)
+        (OK, writePretty(l))
       } else {
         (NotFound, result(404,
           "There are no schemas for this vendor, name combination"))
@@ -117,7 +112,7 @@ class SchemaDAO(val db: Database) extends DAO {
             s._3.toString("MM/dd/yyyy HH:mm:ss")))
 
         if (l.length > 0) {
-          (OK, l.toJson.prettyPrint)
+          (OK, writePretty(l))
         } else {
           (NotFound, result(404,
             "There are no schemas for this vendor, name, format combination"))
@@ -137,7 +132,7 @@ class SchemaDAO(val db: Database) extends DAO {
           map(s => ReturnedSchema(s._1, s._2.toString("MM/dd/yyyy HH:mm:ss")))
 
         if (l.length == 1) {
-          (OK, l(0).toJson.prettyPrint)
+          (OK, writePretty(l(0)))
         } else {
           (NotFound, result(404, "There are no schemas available here"))
         }
@@ -151,7 +146,7 @@ class SchemaDAO(val db: Database) extends DAO {
           case (OK, j) => (Unauthorized,
             result(401, "This schema already exists"))
           case c => schemas.insert(
-            Schema(0, vendor, name, format, version, schema.parseJson,
+            Schema(0, vendor, name, format, version, parse(schema),
               new LocalDateTime())) match {
                 case 0 => (InternalServerError,
                   result(500, "Something went wrong"))
