@@ -15,6 +15,9 @@
 package com.snowplowanalytics.iglu.server
 package util
 
+// This project
+import IgluPostgresDriver.simple._
+
 import com.typesafe.config.ConfigFactory
 
 object Config {
@@ -29,4 +32,11 @@ object Config {
   val pgUsername = config.getString("postgres.username")
   val pgPassword = config.getString("postgres.password")
   val pgDriver = config.getString("postgres.driver")
+
+  val db = Database.forURL(
+    url = s"jdbc:postgresql://${pgHost}:${pgPort}/${pgDbName}",
+    user = pgUsername,
+    password = pgPassword,
+    driver = pgDriver
+  )
 }

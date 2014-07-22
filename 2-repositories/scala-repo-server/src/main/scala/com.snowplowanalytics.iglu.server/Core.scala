@@ -19,7 +19,7 @@ package com.snowplowanalytics.iglu.server
 import actor.{ SchemaActor, ApiKeyActor }
 import model.{ SchemaDAO, ApiKeyDAO }
 import service.RoutedHttpService
-import util.{ PostgresDB, Config }
+import util.Config
 
 // Akka
 import akka.actor.{ ActorSystem, Props }
@@ -41,12 +41,12 @@ trait BootedCore extends Core with Api {
   def actorRefFactory = system
   val rootService = system.actorOf(Props(new RoutedHttpService(routes)))
 
-  PostgresDB.db withDynSession {
+  Config.db withDynSession {
     if (MTable.getTables("schemas").list.isEmpty) {
-      new SchemaDAO(PostgresDB.db).createTable
+      new SchemaDAO(Config.db).createTable
     }
     if (MTable.getTables("apikeys").list.isEmpty) {
-      new ApiKeyDAO(PostgresDB.db).createTable
+      new ApiKeyDAO(Config.db).createTable
     }
   }
 
