@@ -36,9 +36,9 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
   val tableName = "schemas"
   val vendor = "com.unittest"
-  val vendor2 = "com.test"
+  val faultyVendor = "com.test"
   val name = "unit_test"
-  val name2 = "unit_test2"
+  val faultyName = "unit_test2"
   val format = "jsonschema"
   val version = "1-0-0"
   val schemaDef = """{ "some": "json" }"""
@@ -115,7 +115,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "return not found if the schema is not in the db" in {
-        val (status, res) = schema.get(vendor, name2, format, version)
+        val (status, res) = schema.get(vendor, faultyName, format, version)
         status === NotFound
         res must contain("There are no schemas available here")
 
@@ -124,7 +124,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             s"""select count(*)
             from ${tableName}
             where vendor = '${vendor}' and
-            name = '${name2}' and
+            name = '${faultyName}' and
             format = '${format}' and
             version = '${version}';""").first === 0
         }
@@ -149,7 +149,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "return not found if the schema is not in the db" in {
-        val (status, res) = schema.getFromFormat(vendor, name2, format)
+        val (status, res) = schema.getFromFormat(vendor, faultyName, format)
         status === NotFound
         res must contain("There are no schemas for this vendor, name, format")
 
@@ -158,7 +158,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             s"""select count(*)
             from ${tableName}
             where vendor = '${vendor}' and
-              name = '${name2}' and
+              name = '${faultyName}' and
               format = '${format}';""").first === 0
         }
       }
@@ -181,7 +181,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "return not found if the schema is not in the db" in {
-        val (status, res) = schema.getFromName(vendor, name2)
+        val (status, res) = schema.getFromName(vendor, faultyName)
         status === NotFound
         res must contain("There are no schemas for this vendor, name")
 
@@ -190,7 +190,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             s"""select count(*)
             from ${tableName}
             where vendor = '${vendor}' and
-              name = '${name2}';""").first === 0
+              name = '${faultyName}';""").first === 0
         }
       }
     }
@@ -211,7 +211,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "return not found if the schema is not in the db" in {
-        val (status, res) = schema.getFromVendor(vendor2)
+        val (status, res) = schema.getFromVendor(faultyVendor)
         status === NotFound
         res must contain("There are no schemas for this vendor")
 
@@ -219,7 +219,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where vendor = '${vendor2}';""").first === 0
+            where vendor = '${faultyVendor}';""").first === 0
         }
       }
     }

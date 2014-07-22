@@ -45,6 +45,15 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
 
   val schema = TestActorRef(new SchemaActor)
 
+  val vendor = "com.unittest"
+  val faultyVendor = "com.test"
+  val name = "unit_test3"
+  val faultyName = "unit_test4"
+  val format = "jsonschema"
+  val version = "1-0-0"
+  val schemaDef = """{ "some": "json" }"""
+  val innerSchema = """"some": "json""""
+
   sequential
 
   "SchemaActor" should {
@@ -52,16 +61,16 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
     "for AddSchema" should {
 
       "return a 200 if the schema doesnt already exist" in {
-        val future = schema ? AddSchema("com.benfradet", "ut_schemaActor",
-          "jsonschema", "1-0-0", """{ "some": "json" }""")
+        val future = schema ? AddSchema(vendor, name, format, version,
+          schemaDef)
         val Success((status: StatusCode, result: String)) = future.value.get
         status must be(OK)
         result must contain("Schema added successfully")
       }
 
       "return a 401 if the schema already exists" in {
-        val future = schema ? AddSchema("com.benfradet", "ut_schemaActor",
-          "jsonschema", "1-0-0", """"some": "json"""")
+        val future = schema ? AddSchema(vendor, name, format, version,
+          schemaDef)
         val Success((status: StatusCode, result: String)) = future.value.get
         status must be(Unauthorized)
         result must contain("This schema already exists")
@@ -71,16 +80,14 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
     "for GetSchema" should {
 
       "return a 200 if the schema exists" in {
-        val future = schema ? GetSchema("com.benfradet", "ut_schemaActor",
-          "jsonschema", "1-0-0")
+        val future = schema ? GetSchema(vendor, name, format, version)
         val Success((status: StatusCode, result: String)) = future.value.get
         status must be(OK)
-        result must contain(""""some": "json"""")
+        result must contain(innerSchema)
       }
 
       "return a 404 if the schema doesnt exist" in {
-        val future = schema ? GetSchema("com.benfradet", "ut_notFound",
-          "jsonschema", "1-0-0")
+        val future = schema ? GetSchema(vendor, faultyName, format, version)
         val Success((status: StatusCode, result: String)) = future.value.get
         status must be(NotFound)
         result must contain("There are no schemas available here")
@@ -90,16 +97,14 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
     "for GetSchemasFromFormat" should {
 
       "return a 200 if there are schemas available" in {
-        val future = schema ? GetSchemasFromFormat("com.benfradet",
-          "ut_schemaActor", "jsonschema")
+        val future = schema ? GetSchemasFromFormat(vendor, name, format)
         val Success((status: StatusCode, result: String)) = future.value.get
         status must be(OK)
-        result must contain(""""some": "json"""")
+        result must contain(innerSchema)
       }
 
       "return a 404 if there are no schemas available" in {
-        val future = schema ? GetSchemasFromFormat("com.benfradet",
-          "ut_notFound", "jsonschema")
+        val future = schema ? GetSchemasFromFormat(vendor, faultyName, format)
         val Success((status: StatusCode, result: String)) = future.value.get
         status must be(NotFound)
         result must contain("There are no schemas for this vendor, name")
@@ -109,16 +114,14 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
     "for GetSchemasFromName" should {
 
       "return a 200 if there are schemas available" in {
-        val future =
-          schema ? GetSchemasFromName("com.benfradet", "ut_schemaActor")
+        val future = schema ? GetSchemasFromName(vendor, name)
         val Success((status: StatusCode, result: String)) = future.value.get
         status must be(OK)
-        result must contain(""""some": "json"""")
+        result must contain(innerSchema)
       }
 
       "return a 404 if there are no schemas available" in {
-        val future =
-          schema ? GetSchemasFromName("com.benfradet", "ut_notFound")
+        val future = schema ? GetSchemasFromName(vendor, faultyName)
         val Success((status: StatusCode, result: String)) = future.value.get
         status must be(NotFound)
         result must contain("There are no schemas for this vendor, name")
@@ -128,14 +131,14 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
     "for GetSchemasFromVendor" should {
 
       "return a 200 if there are schemas available" in {
-        val future = schema ? GetSchemasFromVendor("com.benfradet")
+        val future = schema ? GetSchemasFromVendor(vendor)
         val Success((status: StatusCode, result: String)) = future.value.get
         status must be(OK)
-        result must contain(""""some": "json"""")
+        result must contain(innerSchema)
       }
 
       "return a 404 if there are no schemas available" in {
-        val future = schema ? GetSchemasFromVendor("com.notfound")
+        val future = schema ? GetSchemasFromVendor(faultyVendor)
         val Success((status: StatusCode, result: String)) = future.value.get
         status must be(NotFound)
         result must contain("There are no schemas for this vendor")
