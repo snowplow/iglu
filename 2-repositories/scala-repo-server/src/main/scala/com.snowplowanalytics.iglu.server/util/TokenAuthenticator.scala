@@ -29,6 +29,7 @@ object TokenAuthenticator{
    * Extract the token from the specified header
    */
   type TokenExtractor = RequestContext => Option[String]
+
   object TokenExtraction {
     def fromHeader(headerName: String): TokenExtractor = {
       context: RequestContext =>
