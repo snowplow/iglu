@@ -17,13 +17,14 @@ package util
 
 import slick.driver.PostgresDriver
 import com.github.tminglei.slickpg._
+import org.json4s.JValue
 
 object IgluPostgresDriver extends PostgresDriver
   with PgJson4sSupport with array.PgArrayJdbcTypes with PgDateSupportJoda {
 
-  type DOCType = text.Document
+  type DOCType = JValue
   
-  override val jsonMethods = org.json4s.native.JsonMethods
+  override val jsonMethods = org.json4s.jackson.JsonMethods
 
   override lazy val Implicit =
     new Implicits with JsonImplicits with DateTimeImplicits

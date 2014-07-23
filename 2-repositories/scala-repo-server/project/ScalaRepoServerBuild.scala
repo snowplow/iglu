@@ -35,7 +35,6 @@ object ScalaRepoServerBuild extends Build {
         Libraries.joda,
         Libraries.jodaTime,
         Libraries.json4s,
-        Libraries.json4sNative,
         Libraries.json4sScalaz,
         Libraries.slf4j,
         Libraries.slick,

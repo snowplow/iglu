@@ -43,8 +43,6 @@ object Dependencies {
     val joda          = "org.joda"             %  "joda-convert"        % V.joda
     val jodaTime      = "joda-time"            %  "joda-time"           % V.jodaTime
     val json4s        = "org.json4s"           %% "json4s-jackson"      % V.json4s
-    //tmp before update to slick-pg
-    val json4sNative  = "org.json4s"           %% "json4s-native"       % V.json4s
     val json4sScalaz  = "org.json4s"           %% "json4s-scalaz"       % V.json4s
     val postgres      = "postgresql"           %  "postgresql"          % V.postgres
     val slick         = "com.typesafe.slick"   %% "slick"               % V.slick
