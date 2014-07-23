@@ -56,8 +56,8 @@ class CatalogServiceSpec extends Specification
           Get(vendorUrl) ~> addHeader("api-key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must
-              contain("\"name\": \"ad_click\"") and
-              contain("\"name\": \"ad_click2\"")
+              contain("\"name\" : \"ad_click\"") and
+              contain("\"name\" : \"ad_click2\"")
           }
         }
 
@@ -84,8 +84,8 @@ class CatalogServiceSpec extends Specification
           Get(nameUrl) ~> addHeader("api-key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must
-              contain("\"version\": \"1-0-0\"") and
-              contain("\"version\": \"1-0-1\"")
+              contain("\"version\" : \"1-0-0\"") and
+              contain("\"version\" : \"1-0-1\"")
           }
         }
 
@@ -112,8 +112,8 @@ class CatalogServiceSpec extends Specification
           Get(formatUrl) ~> addHeader("api-key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must
-              contain("\"version\": \"1-0-0\"") and
-              contain("\"version\": \"1-0-1\"")
+              contain("\"version\" : \"1-0-0\"") and
+              contain("\"version\" : \"1-0-1\"")
           }
         }
 

@@ -62,7 +62,7 @@ class SchemaServiceSpec extends Specification
       "return a proper json for well-formed GET requests" in {
         Get(url) ~> addHeader("api-key", readKey) ~> routes ~> check {
           status === OK
-          responseAs[String] must contain("\"name\": \"ad_click\"")
+          responseAs[String] must contain("\"name\" : \"ad_click\"")
         }
       }
 

@@ -23,6 +23,11 @@ import util.Config
 // Java
 import java.util.UUID
 
+// Json4s
+import org.json4s._
+import org.json4s.DefaultFormats
+import org.json4s.jackson.JsonMethods._
+
 // Slick
 import scala.slick.driver.JdbcDriver.backend.Database.dynamicSession
 import scala.slick.jdbc.{ StaticQuery => Q }
@@ -31,13 +36,13 @@ import scala.slick.jdbc.{ StaticQuery => Q }
 import org.specs2.mutable.Specification
 
 // Spray
-import spray.json._
-import DefaultJsonProtocol._
 import spray.http.StatusCodes._
 
 class ApiKeySpec extends Specification with SetupAndDestroy {
 
   val apiKey = new ApiKeyDAO(database)
+
+  implicit val formats = DefaultFormats
 
   val tableName = "apikeys"
   val owner = "com.unittest"
@@ -67,7 +72,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
 
       "add the api keys properly" in {
         val (status, res) = apiKey.addReadWrite(owner)
-        val map = res.parseJson.convertTo[Map[String, String]]
+        val map = parse(res).extract[Map[String, String]]
         readKey = map getOrElse("read", "")
         writeKey = map getOrElse("write", "")
 

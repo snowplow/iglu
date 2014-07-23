@@ -41,8 +41,8 @@ class SchemaSpec extends Specification with SetupAndDestroy {
   val faultyName = "unit_test2"
   val format = "jsonschema"
   val version = "1-0-0"
-  val schemaDef = """{ "some": "json" }"""
-  val innerSchema = """"some": "json""""
+  val schemaDef = """{ "some" : "json" }"""
+  val innerSchema = """"some" : "json""""
 
   sequential
 

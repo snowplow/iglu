@@ -18,6 +18,11 @@ package test.service
 // Java
 import java.util.UUID
 
+// Json4s
+import org.json4s._
+import org.json4s.DefaultFormats
+import org.json4s.jackson.JsonMethods._
+
 // Scala
 import scala.concurrent.duration._
 
@@ -28,8 +33,6 @@ import org.specs2.time.NoTimeConversions
 // Spray
 import spray.http._
 import StatusCodes._
-import spray.json._
-import DefaultJsonProtocol._
 import spray.testkit.Specs2RouteTest
 
 class ApiKeyGenServiceSpec extends Specification
@@ -38,6 +41,8 @@ class ApiKeyGenServiceSpec extends Specification
   def actorRefFactory = system
 
   implicit val routeTestTimeout = RouteTestTimeout(30 seconds)
+
+  implicit val formats = DefaultFormats
 
   val uidRegex =
     "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}".r
@@ -73,7 +78,7 @@ class ApiKeyGenServiceSpec extends Specification
               status === OK
               val response = responseAs[String]
               response must contain("read") and contain("write")
-              val map = JsonParser(response).convertTo[Map[String, String]]
+              val map = parse(response).extract[Map[String, String]]
               readKey = map getOrElse("read", "")
               writeKey = map getOrElse("write", "")
               readKey must beMatching(uidRegex)

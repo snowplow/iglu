@@ -51,8 +51,8 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
   val faultyName = "unit_test4"
   val format = "jsonschema"
   val version = "1-0-0"
-  val schemaDef = """{ "some": "json" }"""
-  val innerSchema = """"some": "json""""
+  val schemaDef = """{ "some" : "json" }"""
+  val innerSchema = """"some" : "json""""
 
   sequential
 

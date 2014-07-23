@@ -28,6 +28,11 @@ import akka.util.Timeout
 // Java
 import java.util.UUID
 
+// Json4s
+import org.json4s._
+import org.json4s.DefaultFormats
+import org.json4s.jackson.JsonMethods._
+
 // Scala
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -40,8 +45,6 @@ import org.specs2.time.NoTimeConversions
 // Spray
 import spray.http.StatusCode
 import spray.http.StatusCodes._
-import spray.json._
-import DefaultJsonProtocol._
 
 class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
   with ImplicitSender with NoTimeConversions {
@@ -49,6 +52,8 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
   implicit val timeout = Timeout(10.seconds)
 
   val key = TestActorRef(new ApiKeyActor)
+
+  implicit val formats = DefaultFormats
 
   val owner = "com.actor.unit.test"
   val faultyOwner = "com.actor.unit"
@@ -66,7 +71,7 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
         val future = key ? AddBothKey(owner)
         val Success((status: StatusCode, result: String)) = future.value.get
 
-        val map = result.parseJson.convertTo[Map[String, String]]
+        val map = parse(result).extract[Map[String, String]]
         readKey = map getOrElse("read", "")
         writeKey = map getOrElse("write", "")
         status must be(OK)
