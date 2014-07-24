@@ -46,6 +46,29 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   }
   def auth: Directive1[(String, String)] = authenticate(authenticator)
 
+  //val validator = JsonSchemaValidator[String]("json") {
+  //  json => (schema ? Validate(json)).mapTo[Option[String]]
+  //}
+  //def validateJson: Directive1[String] = {
+  //  validator match {
+  //    case Right(json) => provide(json)
+  //    case Left(rejection) => reject(rejection)
+  //    case _ => reject
+  //  }
+  //}
+
+  def validateJson: Directive1[String] =
+    anyParam('json) flatMap { json =>
+      onSuccess((schema ? Validate(json)).mapTo[Option[String]]) flatMap {
+        ext =>
+          ext match {
+            case Some(j) => provide(j)
+            case _ => reject(MalformedQueryParamRejection("json",
+              "The json provided is not a valid self-describing json"))
+          }
+      }
+    }
+
   val route = rejectEmptyResponse {
     pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
     "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) => {
@@ -60,7 +83,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
               }
             }
           } ~
-          anyParam('json)(json =>
+          validateJson { json =>
             post {
               respondWithMediaType(`application/json`) {
                 if (authTuple._2 == "write") {
@@ -73,7 +96,8 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
                     "You do not have sufficient privileges")
                 }
               }
-            })
+            }
+          }
         } else {
           complete(Unauthorized, "You do not have sufficient privileges")
         }

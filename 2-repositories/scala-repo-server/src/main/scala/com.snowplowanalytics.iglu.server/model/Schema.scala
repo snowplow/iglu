@@ -18,6 +18,10 @@ package model
 // This project
 import util.IgluPostgresDriver.simple._
 import util.IgluPostgresDriver.jsonMethods._
+import validation.ValidatableJsonMethods._
+
+// Jackson
+import com.fasterxml.jackson.databind.JsonNode
 
 // Joda
 import org.joda.time.LocalDateTime
@@ -25,6 +29,22 @@ import org.joda.time.LocalDateTime
 // Json4s
 import org.json4s.JValue
 import org.json4s.jackson.Serialization.writePretty
+
+// Json schema
+import com.github.fge.jsonschema.SchemaVersion
+import com.github.fge.jsonschema.cfg.ValidationConfiguration
+import com.github.fge.jsonschema.main.{
+  JsonSchemaFactory,
+  JsonValidator
+}
+import com.github.fge.jsonschema.core.report.{
+  ListReportProvider,
+  ProcessingMessage,
+  LogLevel
+}
+
+// Scala
+import scala.collection.JavaConversions._
 
 // Slick
 import Database.dynamicSession
@@ -154,4 +174,15 @@ class SchemaDAO(val db: Database) extends DAO {
               }
         }
       }
+
+  def validate(json: String): Option[String] = {
+    val jsonNode = mapper.valueToTree[JsonNode](parse(json))
+    val schemaNode = mapper.valueToTree[JsonNode](parse(
+      get("com.snowplowanalytics.self-desc", "schema", "jsonschema", "1-0-0").
+      _2))
+    validateAgainstSchema(schemaNode, jsonNode) match {
+      case Some(j) => Some(json)
+      case _ => None
+    }
+  }
 }

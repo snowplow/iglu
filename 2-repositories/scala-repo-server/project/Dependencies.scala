@@ -26,6 +26,9 @@ object Dependencies {
     val joda = "1.6"
     val jodaTime = "2.3"
     val json4s = "3.2.10"
+    // remove once json4s 3.2.11 is out
+    val jsonDatabind = "2.3.3"
+    val jsonValidator = "2.2.5"
     val postgres = "9.1-901-1.jdbc4"
     val slf4j = "1.6.4"
     val slick = "2.0.2"
@@ -38,20 +41,22 @@ object Dependencies {
 
   object Libraries {
     // Scala
-    val akkaActor     = "com.typesafe.akka"    %% "akka-actor"          % V.akka
-    val akkaSlf4j     = "com.typesafe.akka"    %% "akka-slf4j"          % V.akka
-    val joda          = "org.joda"             %  "joda-convert"        % V.joda
-    val jodaTime      = "joda-time"            %  "joda-time"           % V.jodaTime
-    val json4s        = "org.json4s"           %% "json4s-jackson"      % V.json4s
-    val json4sScalaz  = "org.json4s"           %% "json4s-scalaz"       % V.json4s
-    val postgres      = "postgresql"           %  "postgresql"          % V.postgres
-    val slick         = "com.typesafe.slick"   %% "slick"               % V.slick
-    val slickpg       = "com.github.tminglei"  %% "slick-pg"            % V.slickpg
-    val slickpgJoda   = "com.github.tminglei"  %% "slick-pg_joda-time"  % V.slickpg
-    val slickpgJson   = "com.github.tminglei"  %% "slick-pg_json4s"     % V.slickpg
-    val slf4j         = "org.slf4j"            %  "slf4j-nop"           % V.slf4j
-    val sprayCan      = "io.spray"             %  "spray-can"           % V.spray
-    val sprayRouting  = "io.spray"             %  "spray-routing"       % V.spray
+    val akkaActor     = "com.typesafe.akka"    %% "akka-actor"            % V.akka
+    val akkaSlf4j     = "com.typesafe.akka"    %% "akka-slf4j"            % V.akka
+    val joda          = "org.joda"             %  "joda-convert"          % V.joda
+    val jodaTime      = "joda-time"            %  "joda-time"             % V.jodaTime
+    val json4s        = "org.json4s"           %% "json4s-jackson"        % V.json4s
+    val jsonDatabind  = "com.fasterxml.jackson.core" % "jackson-databind" % V.jsonDatabind
+    val json4sScalaz  = "org.json4s"           %% "json4s-scalaz"         % V.json4s
+    val jsonValidator = "com.github.fge"       %  "json-schema-validator" % V.jsonValidator
+    val postgres      = "postgresql"           %  "postgresql"            % V.postgres
+    val slick         = "com.typesafe.slick"   %% "slick"                 % V.slick
+    val slickpg       = "com.github.tminglei"  %% "slick-pg"              % V.slickpg
+    val slickpgJoda   = "com.github.tminglei"  %% "slick-pg_joda-time"    % V.slickpg
+    val slickpgJson   = "com.github.tminglei"  %% "slick-pg_json4s"       % V.slickpg
+    val slf4j         = "org.slf4j"            %  "slf4j-nop"             % V.slf4j
+    val sprayCan      = "io.spray"             %  "spray-can"             % V.spray
+    val sprayRouting  = "io.spray"             %  "spray-routing"         % V.spray
 
     // Scala (test only)
     val akkaTestKit   = "com.typesafe.akka"  %% "akka-testkit"  % V.akka   % "test"

@@ -25,7 +25,7 @@ object ScalaRepoServerBuild extends Build {
   }
 
   // Define our project with basic information and library dependencies
-  lazy val project = Project("iglu--server", file("."))
+  lazy val project = Project("iglu-server", file("."))
     .settings(buildSettings: _*)
     .settings(
       libraryDependencies ++= Seq(
@@ -36,6 +36,8 @@ object ScalaRepoServerBuild extends Build {
         Libraries.jodaTime,
         Libraries.json4s,
         Libraries.json4sScalaz,
+        Libraries.jsonDatabind,
+        Libraries.jsonValidator,
         Libraries.slf4j,
         Libraries.slick,
         Libraries.slickpg,

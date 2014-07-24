@@ -24,13 +24,14 @@ import util.Config
 import akka.actor.Actor
 
 object SchemaActor {
-  case class GetSchema(vendor: String, name: String, format: String,
-    version: String)
-  case class GetSchemasFromVendor(vendor: String)
-  case class GetSchemasFromName(vendor: String, name: String)
-  case class GetSchemasFromFormat(vendor: String, name: String, format: String)
   case class AddSchema(vendor: String, name: String, format: String,
     version: String, schema: String)
+  case class GetSchema(vendor: String, name: String, format: String,
+    version: String)
+  case class GetSchemasFromFormat(vendor: String, name: String, format: String)
+  case class GetSchemasFromName(vendor: String, name: String)
+  case class GetSchemasFromVendor(vendor: String)
+  case class Validate(json: String)
 }
 
 class SchemaActor extends Actor {
@@ -39,11 +40,12 @@ class SchemaActor extends Actor {
   private val schema = new SchemaDAO(Config.db)
 
   def receive = {
+    case AddSchema(v, n, f, vs, s) => sender ! schema.add(v, n, f, vs, s)
     case GetSchema(v, n, f, vs) => sender ! schema.get(v, n, f, vs)
-    case GetSchemasFromVendor(v) => sender ! schema.getFromVendor(v)
-    case GetSchemasFromName(v, n) => sender ! schema.getFromName(v, n)
     case GetSchemasFromFormat(v, n, f) =>
       sender ! schema.getFromFormat(v, n, f)
-    case AddSchema(v, n, f, vs, s) => sender ! schema.add(v, n, f, vs, s)
+    case GetSchemasFromName(v, n) => sender ! schema.getFromName(v, n)
+    case GetSchemasFromVendor(v) => sender ! schema.getFromVendor(v)
+    case Validate(j) => sender ! schema.validate(j)
   }
 }
