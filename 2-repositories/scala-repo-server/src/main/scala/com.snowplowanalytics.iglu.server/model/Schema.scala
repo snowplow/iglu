@@ -17,7 +17,7 @@ package model
 
 // This project
 import util.IgluPostgresDriver.simple._
-import util.IgluPostgresDriver.jsonMethods._
+//import util.IgluPostgresDriver.jsonMethods._
 import validation.ValidatableJsonMethods._
 
 // Jackson
@@ -28,6 +28,7 @@ import org.joda.time.LocalDateTime
 
 // Json4s
 import org.json4s.JValue
+import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.writePretty
 
 // Json schema
@@ -56,7 +57,7 @@ import spray.http.StatusCodes._
 class SchemaDAO(val db: Database) extends DAO {
 
   case class Schema(schemaId: Int, vendor: String, name: String, format: String,
-    version: String, schema: JValue, created: LocalDateTime)
+    version: String, schema: String, /*schema: JValue,*/ created: LocalDateTime)
 
   class Schemas(tag: Tag) extends Table[Schema](tag, "schemas") {
     def schemaId = column[Int](
@@ -65,7 +66,8 @@ class SchemaDAO(val db: Database) extends DAO {
     def name = column[String]("name", O.DBType("varchar(50)"), O.NotNull)
     def format = column[String]("format", O.DBType("varchar(50)"), O.NotNull)
     def version = column[String]("version", O.DBType("varchar(50)"), O.NotNull)
-    def schema = column[JValue]("schema", O.DBType("json"), O.NotNull)
+    def schema = column[String]("schema", O.DBType("text"), O.NotNull)
+    //def schema = column[JValue]("schema", O.DBType("json"), O.NotNull)
     def created = column[LocalDateTime]("created", O.DBType("timestamp"),
       O.NotNull)
 
@@ -91,7 +93,7 @@ class SchemaDAO(val db: Database) extends DAO {
       val l: List[ReturnedSchemaVendor] =
         schemas.filter(_.vendor === vendor).
           map(s => (s.schema, s.name, s.format, s.version, s.created)).list.
-          map(s => ReturnedSchemaVendor(s._1, s._2, s._3, s._4,
+          map(s => ReturnedSchemaVendor(parse(s._1), s._2, s._3, s._4,
             s._5.toString("MM/dd/yyyy HH:mm:ss")))
 
       if (l.length > 0) {
@@ -107,7 +109,7 @@ class SchemaDAO(val db: Database) extends DAO {
       val l: List[ReturnedSchemaName] =
         schemas.filter(s => s.vendor === vendor && s.name === name).
           map(s => (s.schema, s.format, s.version, s.created)).list.
-          map(s => ReturnedSchemaName(s._1, s._2, s._3,
+          map(s => ReturnedSchemaName(parse(s._1), s._2, s._3,
             s._4.toString("MM/dd/yyyy HH:mm:ss")))
 
       if (l.length > 0) {
@@ -128,7 +130,7 @@ class SchemaDAO(val db: Database) extends DAO {
             s.name === name &&
             s.format === format).
           map(s => (s.schema, s.version, s.created)).list.
-          map(s => ReturnedSchemaFormat(s._1, s._2,
+          map(s => ReturnedSchemaFormat(parse(s._1), s._2,
             s._3.toString("MM/dd/yyyy HH:mm:ss")))
 
         if (l.length > 0) {
@@ -149,7 +151,8 @@ class SchemaDAO(val db: Database) extends DAO {
             s.format === format &&
             s.version === version).
           map(s => (s.schema, s.created)).list.
-          map(s => ReturnedSchema(s._1, s._2.toString("MM/dd/yyyy HH:mm:ss")))
+          map(s => ReturnedSchema(parse(s._1), 
+            s._2.toString("MM/dd/yyyy HH:mm:ss")))
 
         if (l.length == 1) {
           (OK, writePretty(l(0)))
@@ -159,6 +162,19 @@ class SchemaDAO(val db: Database) extends DAO {
       }
     }
 
+  private def getNoMetadata(vendor: String, name: String, format: String,
+    version: String): String =
+      db withDynSession {
+        val l: List[String] = schemas.filter(s =>
+            s.vendor === vendor &&
+            s.name === name &&
+            s.format === format &&
+            s.version === version).
+          map(_.schema).list
+
+        l(0)
+      }
+
   def add(vendor: String, name: String, format: String, version: String,
     schema: String): (StatusCode, String) =
       db withDynSession {
@@ -166,7 +182,7 @@ class SchemaDAO(val db: Database) extends DAO {
           case (OK, j) => (Unauthorized,
             result(401, "This schema already exists"))
           case c => schemas.insert(
-            Schema(0, vendor, name, format, version, parse(schema),
+            Schema(0, vendor, name, format, version, schema,
               new LocalDateTime())) match {
                 case 0 => (InternalServerError,
                   result(500, "Something went wrong"))
@@ -175,14 +191,15 @@ class SchemaDAO(val db: Database) extends DAO {
         }
       }
 
-  def validate(json: String): Option[String] = {
-    val jsonNode = mapper.valueToTree[JsonNode](parse(json))
-    val schemaNode = mapper.valueToTree[JsonNode](parse(
-      get("com.snowplowanalytics.self-desc", "schema", "jsonschema", "1-0-0").
-      _2))
-    validateAgainstSchema(schemaNode, jsonNode) match {
-      case Some(j) => Some(json)
-      case _ => None
+  def validate(json: String): (StatusCode, String) = {
+    val jsonNode = asJsonNode(parse(json))
+    val schemaNode = asJsonNode(parse(getNoMetadata(
+      "com.snowplowanalytics.self-desc", "schema", "jsonschema", "1-0-0")))
+
+    validateAgainstSchema(jsonNode, schemaNode) match {
+      case Some(j) => (OK, json)
+      case _ => (BadRequest,
+        result(400, "The json provided is not a valid self-describing json"))
     }
   }
 }

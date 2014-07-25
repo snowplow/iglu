@@ -17,7 +17,6 @@ package model
 
 // This project
 import util.IgluPostgresDriver.simple._
-import util.IgluPostgresDriver.jsonMethods._
 
 // Java
 import java.util.UUID

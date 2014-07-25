@@ -46,25 +46,13 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   }
   def auth: Directive1[(String, String)] = authenticate(authenticator)
 
-  //val validator = JsonSchemaValidator[String]("json") {
-  //  json => (schema ? Validate(json)).mapTo[Option[String]]
-  //}
-  //def validateJson: Directive1[String] = {
-  //  validator match {
-  //    case Right(json) => provide(json)
-  //    case Left(rejection) => reject(rejection)
-  //    case _ => reject
-  //  }
-  //}
-
   def validateJson: Directive1[String] =
     anyParam('json) flatMap { json =>
-      onSuccess((schema ? Validate(json)).mapTo[Option[String]]) flatMap {
+      onSuccess((schema ? Validate(json)).mapTo[(StatusCode, String)]) flatMap {
         ext =>
           ext match {
-            case Some(j) => provide(j)
-            case _ => reject(MalformedQueryParamRejection("json",
-              "The json provided is not a valid self-describing json"))
+            case (OK, j) => provide(j)
+            case res => complete(res)
           }
       }
     }
@@ -83,9 +71,9 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
               }
             }
           } ~
-          validateJson { json =>
-            post {
-              respondWithMediaType(`application/json`) {
+          respondWithMediaType(`application/json`) {
+            validateJson { json =>
+              post {
                 if (authTuple._2 == "write") {
                   complete {
                     (schema ? AddSchema(v, n, f, vs, json)).
