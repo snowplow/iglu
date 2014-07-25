@@ -27,7 +27,7 @@ import akka.actor.Actor
 import java.util.UUID
 
 object ApiKeyActor {
-  case class GetKey(uid: UUID)
+  case class GetKey(uid: String)
   case class AddBothKey(owner: String)
   case class DeleteKey(uid: UUID)
 }

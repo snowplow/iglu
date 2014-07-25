@@ -36,6 +36,9 @@ import spray.http.StatusCodes._
 
 class ApiKeyDAO(val db: Database) extends DAO {
 
+  private val uidRegex =
+    "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+
   case class ApiKey(
     uid: UUID,
     owner: String,
@@ -59,15 +62,20 @@ class ApiKeyDAO(val db: Database) extends DAO {
   def createTable = db withDynSession { apiKeys.ddl.create }
   def dropTable = db withDynSession { apiKeys.ddl.drop }
 
-  def get(uid: UUID): Option[(String, String)] = {
-    db withDynSession {
-      val l: List[(String, String)] = apiKeys.filter(_.uid === uid).
-        map(k => (k.owner, k.permission)).list
-      if (l.length == 1) {
-        Some(l(0))
-      } else {
-        None
+  def get(uid: String): Option[(String, String)] = {
+    if (uid matches uidRegex) {
+      val uuid = UUID.fromString(uid)
+      db withDynSession {
+        val l: List[(String, String)] = apiKeys.filter(_.uid === uuid).
+          map(k => (k.owner, k.permission)).list
+        if (l.length == 1) {
+          Some(l(0))
+        } else {
+          None
+        }
       }
+    } else {
+      None
     }
   }
 
@@ -90,10 +98,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
   private def add(owner: String, permission: String): (StatusCode, String) = {
     db withDynSession {
       if(validate(owner, permission)) {
-        var uid = UUID.randomUUID()
-        while(get(uid) != None) {
-          uid = UUID.randomUUID()
-        }
+        val uid = UUID.randomUUID()
         apiKeys.insert(
           ApiKey(uid, owner, permission, new LocalDateTime())) match {
             case 0 => (InternalServerError, "Something went wrong")

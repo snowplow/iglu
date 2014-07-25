@@ -24,9 +24,6 @@ import util.TokenAuthenticator
 import akka.actor.ActorRef
 import akka.pattern.ask
 
-// Java
-import java.util.UUID
-
 //Scala
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
@@ -41,8 +38,7 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
   val authenticator = TokenAuthenticator[(String, String)]("api-key") {
-    key => (apiKey ? GetKey(UUID.fromString(key))).
-      mapTo[Option[(String, String)]]
+    key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
   }
   def auth: Directive1[(String, String)] = authenticate(authenticator)
 

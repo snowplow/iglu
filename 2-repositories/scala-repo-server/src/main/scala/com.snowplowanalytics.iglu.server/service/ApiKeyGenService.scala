@@ -43,8 +43,7 @@ class ApiKeyGenService(apiKey: ActorRef)
     "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 
   val authenticator = TokenAuthenticator[(String, String)]("api-key") {
-    key => (apiKey ? GetKey(UUID.fromString(key))).
-      mapTo[Option[(String, String)]]
+    key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
   }
   def auth: Directive1[(String, String)] = authenticate(authenticator)
 
