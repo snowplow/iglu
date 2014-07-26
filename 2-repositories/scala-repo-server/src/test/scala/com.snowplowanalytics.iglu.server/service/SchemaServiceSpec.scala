@@ -38,6 +38,7 @@ class SchemaServiceSpec extends Specification
   val writeKey = "a89c5f27-fe76-4754-8a07-d41884af1074"
   val faultyKey = "51ffa158-ba4b-4e27-a4ff-dfb5639b5453"
   val wrongVendorKey = "83e7c051-cd68-4e44-8b36-09182fa158d5"
+  val notUuidKey = "83e7c051-cd68-4e44-8b36-09182f8d5"
 
   val validSchema = 
     """{
@@ -67,14 +68,9 @@ class SchemaServiceSpec extends Specification
   val postUrl3 = "/" + vendor + "/unit_test3/" + format + "/" + version
   val postUrl4 = "/" + vendor + "/unit_test4/" + format + "/" + version +
     "?json=" + validSchemaUri
-  val postUrl5 = "/" + vendor + "/unit_test5/" + format + "/" + version
-  val postUrl6 = "/" + vendor + "/unit_test6/" + format + "/" + version +
-    "?json=" + validSchemaUri
-  val postUrl7 = "/" + vendor + "/unit_test7/" + format + "/" + version
-  val postUrl8 = url + "?json=" + validSchemaUri
-  val postUrl9 = "/" + vendor + "/unit_test9/" + format + "/" + version +
+  val postUrl6 = url + "?json=" + validSchemaUri
+  val postUrl7 = "/" + vendor + "/unit_test7/" + format + "/" + version +
     "?json=" + invalidSchemaUri
-   val postUrl10 = "/" + vendor + "/unit_test10/" + format + "/" + version
 
   sequential
 
@@ -97,8 +93,17 @@ class SchemaServiceSpec extends Specification
         }
       }
 
-      "return a 401 if no api-key is found" in {
+      "return a 401 if no api-key is found in the db" in {
         Get(url) ~> addHeader("api-key", faultyKey) ~> sealRoute(routes) ~>
+          check {
+            status === Unauthorized
+            responseAs[String] must
+              contain("The supplied authentication is invalid")
+          }
+      }
+
+      "return a 401 if the api key provided is not an uuid" in {
+        Get(url) ~> addHeader("api-key", notUuidKey) ~> sealRoute(routes) ~>
           check {
             status === Unauthorized
             responseAs[String] must
@@ -152,7 +157,7 @@ class SchemaServiceSpec extends Specification
       }
 
       "return a 401 if the schema already exists with form data" in {
-        Post(postUrl8) ~> addHeader("api-key", writeKey) ~>
+        Post(postUrl6) ~> addHeader("api-key", writeKey) ~>
           sealRoute(routes) ~> check {
             status === Unauthorized
             responseAs[String] must contain("This schema already exists")
@@ -187,7 +192,7 @@ class SchemaServiceSpec extends Specification
 
       """return a 401 if the api key doesn't have sufficient permissions
         with form data""" in {
-          Post(postUrl5, FormData(Seq("json" -> validSchema))) ~>
+          Post(postUrl3, FormData(Seq("json" -> validSchema))) ~>
             addHeader("api-key", readKey) ~> sealRoute(routes) ~> check {
               status === Unauthorized
               responseAs[String] must
@@ -196,7 +201,7 @@ class SchemaServiceSpec extends Specification
       }
 
       "return a 401 if no api-key is specified with query param" in {
-        Post(postUrl6) ~> sealRoute(routes) ~> check {
+        Post(postUrl4) ~> sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
             contain("The resource requires authentication")
@@ -204,11 +209,29 @@ class SchemaServiceSpec extends Specification
       }
 
       "return a 401 if no api-key is specified with form data" in {
-        Post(postUrl7, FormData(Seq("json" -> validSchema))) ~>
+        Post(postUrl3, FormData(Seq("json" -> validSchema))) ~>
           sealRoute(routes) ~> check {
             status === Unauthorized
             responseAs[String] must
               contain("The resource requires authentication")
+        }
+      }
+
+      "return a 401 if the api key is not an uuid with form data" in {
+        Post(postUrl3, FormData(Seq("json" -> validSchema))) ~>
+          addHeader("api-key", notUuidKey) ~> sealRoute(routes) ~> check {
+            status === Unauthorized
+            responseAs[String] must
+              contain("The supplied authentication is invalid")
+        }
+      }
+
+      "return a 401 if the api key is not an uuid with query param" in {
+        Post(postUrl4) ~> addHeader("api-key", notUuidKey) ~>
+          sealRoute(routes) ~> check {
+            status === Unauthorized
+            responseAs[String] must
+              contain("The supplied authentication is invalid")
         }
       }
 
@@ -224,7 +247,7 @@ class SchemaServiceSpec extends Specification
 
       """return a 401 if the owner of the api key is not a prefix of the
         schema's vendor with form data""" in {
-          Post(postUrl7, FormData(Seq("json" -> validSchema))) ~>
+          Post(postUrl3, FormData(Seq("json" -> validSchema))) ~>
             addHeader("api-key", wrongVendorKey) ~> sealRoute(routes) ~> check {
               status === Unauthorized
               responseAs[String] must
@@ -234,7 +257,7 @@ class SchemaServiceSpec extends Specification
 
       """return a 400 if the supplied json is not self-describing with query
       param""" in {
-        Post(postUrl9) ~> addHeader("api-key", writeKey) ~> sealRoute(routes) ~>
+        Post(postUrl7) ~> addHeader("api-key", writeKey) ~> sealRoute(routes) ~>
           check {
             status === BadRequest
             responseAs[String] must contain("The json provided is not a valid")
@@ -243,7 +266,7 @@ class SchemaServiceSpec extends Specification
 
       """"return a 400 if the supplied json is not self-describing with form
       data""" in {
-        Post(postUrl10, FormData(Seq("json" -> invalidSchema))) ~>
+        Post(postUrl3, FormData(Seq("json" -> invalidSchema))) ~>
           addHeader("api-key", writeKey) ~> sealRoute(routes) ~> check {
             status === BadRequest
             responseAs[String] must contain("The json provided is not a valid")

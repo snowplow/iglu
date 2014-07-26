@@ -111,7 +111,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
     "for get" should {
 
       "properly retrieve the api key" in {
-        apiKey.get(UUID.fromString(readKey)) match {
+        apiKey.get(readKey) match {
           case Some((owner, permission)) =>
             owner must contain(owner)
             permission must contain("read")
@@ -127,7 +127,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
       }
 
       "return None if the api key is not in the db" in {
-        val uid = UUID.randomUUID
+        val uid = UUID.randomUUID.toString
         apiKey.get(uid) match {
           case None => success
           case _ => failure
@@ -137,7 +137,22 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where uid = '${uid.toString}';""").first === 0
+            where uid = '${uid}';""").first === 0
+        }
+      }
+
+      "return None if the api key is not a uuid" in {
+        val notUid = "this-is-not-an-uuid"
+        apiKey.get(notUid) match {
+          case None => success
+          case _ => failure
+        }
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where uid = '${notUid}';""").first === 0
         }
       }
     }

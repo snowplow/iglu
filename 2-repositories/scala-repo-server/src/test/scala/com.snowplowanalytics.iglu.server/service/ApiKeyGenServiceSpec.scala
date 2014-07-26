@@ -49,6 +49,7 @@ class ApiKeyGenServiceSpec extends Specification
 
   val superKey = "d0ca1d61-f6a8-4b40-a421-dbec5b9cdbad"
   val notSuperKey = "6eadba20-9b9f-4648-9c23-770272f8d627"
+  val notUuidKey = "6ead20-9b9f-4648-9c23-770272f8d627"
 
   var readKey = ""
   var writeKey = ""
@@ -68,6 +69,15 @@ class ApiKeyGenServiceSpec extends Specification
           sealRoute(routes) ~> check {
             status === Unauthorized
             responseAs[String] must contain("You do not have sufficient privil")
+          }
+      }
+
+      "return a 401 if the key provided is not an uuid" in {
+        Post(ownerUrl) ~> addHeader("api-key", notUuidKey) ~>
+          sealRoute(routes) ~> check {
+            status === Unauthorized
+            responseAs[String] must
+              contain("The supplied authentication is invalid")
           }
       }
       

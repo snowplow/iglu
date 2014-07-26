@@ -89,7 +89,7 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
     "for GetKey" should {
 
       "return a valid (owner, permission) pair" in {
-        val future = key ? GetKey(UUID.fromString(readKey))
+        val future = key ? GetKey(readKey)
         val Success(Some((owner: String, permission: String))) =
           future.value.get
         owner must contain(owner)
@@ -97,7 +97,14 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
       }
 
       "return None if the api key is not found" in {
-        val future = key ? GetKey(UUID.randomUUID())
+        val future = key ? GetKey(UUID.randomUUID.toString)
+        val Success(None) = future.value.get
+        success
+      }
+
+      "return None if the api key is not an uuid" in {
+        val notUuidKey = "this-is-not-an-uid"
+        val future = key ? GetKey(notUuidKey)
         val Success(None) = future.value.get
         success
       }
