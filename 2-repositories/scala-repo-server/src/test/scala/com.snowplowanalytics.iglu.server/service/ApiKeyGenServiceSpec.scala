@@ -106,7 +106,7 @@ class ApiKeyGenServiceSpec extends Specification
       }
     }
 
-    "for DELETE requests" should {
+    "for DELETE requests with key param" should {
 
       "return a 401 if the key provided is not super" in {
         Delete(deleteUrl + readKey) ~> addHeader("api-key", notSuperKey) ~>
@@ -130,10 +130,32 @@ class ApiKeyGenServiceSpec extends Specification
             status === OK
             responseAs[String] must contain("Api key successfully deleted")
           }
-        Delete(deleteUrl + writeKey) ~> addHeader("api-key", superKey) ~>
+      }
+    }
+
+    "for DELETE requests with owner param" should {
+
+      "return a 401 if the key provided is not super" in {
+        Delete(ownerUrl) ~> addHeader("api-key", notSuperKey) ~>
+          sealRoute(routes) ~> check {
+            status === Unauthorized
+            responseAs[String] must contain("You do not have sufficient privil")
+          }
+      }
+
+      "return a 200 if there are keys associated with this owner" in {
+        Delete(ownerUrl) ~> addHeader("api-key", superKey) ~>
           sealRoute(routes) ~> check {
             status === OK
-            responseAs[String] must contain("Api key successfully deleted")
+            responseAs[String] must contain("Api key delete for ")
+          }
+      }
+
+      "return a 404 if there are no keys associated with this owner" in {
+        Delete(ownerUrl) ~> addHeader("api-key", superKey) ~>
+          sealRoute(routes) ~> check {
+            status === NotFound
+            responseAs[String] must contain("Owner not found")
           }
       }
     }

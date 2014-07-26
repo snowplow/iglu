@@ -47,6 +47,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
   val tableName = "apikeys"
   val owner = "com.unittest"
   val faultyOwner = "com.unit"
+  val notUid = "this-is-not-an-uuid"
 
   var readKey = ""
   var writeKey = ""
@@ -73,11 +74,13 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
       "add the api keys properly" in {
         val (status, res) = apiKey.addReadWrite(owner)
         val map = parse(res).extract[Map[String, String]]
+
         readKey = map getOrElse("read", "")
         writeKey = map getOrElse("write", "")
 
         status === OK
         res must contain("read") and contain("write")
+
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
@@ -142,7 +145,6 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
       }
 
       "return None if the api key is not a uuid" in {
-        val notUid = "this-is-not-an-uuid"
         apiKey.get(notUid) match {
           case None => success
           case _ => failure
@@ -160,30 +162,20 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
     "for delete" should {
 
       "properly delete an api key" in {
-        val (status, res) = apiKey.delete(UUID.fromString(readKey))
-        val (status2, res2) = apiKey.delete(UUID.fromString(writeKey))
-
+        val (status, res) = apiKey.delete(readKey)
         status === OK
         res must contain("Api key successfully deleted")
+
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
             where uid = '${readKey}';""").first === 0
         }
-
-        status2 === OK
-        res2 must contain("Api key successfully deleted")
-        database withDynSession {
-          Q.queryNA[Int](
-            s"""select count(*)
-            from ${tableName}
-            where uid = '${writeKey}';""").first === 0
-        }
       }
 
       "return not found if the api key is not in the database" in {
-        val (status, res) = apiKey.delete(UUID.fromString(readKey))
+        val (status, res) = apiKey.delete(readKey)
         status === NotFound
         res must contain("Api key not found")
 
@@ -192,6 +184,48 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
             s"""select count(*)
             from ${tableName}
             where uid = '${readKey}';""").first === 0
+        }
+      }
+
+      "return a 401 if the key is not an uuid" in {
+        val (status, res) = apiKey.delete(notUid)
+        status === Unauthorized
+        res must contain("The api key provided is not an UUID")
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where uid = '${notUid}';""").first === 0
+        }
+      }
+    }
+
+    "for deleteFromOwner" should {
+
+      "properly delete api keys associated with an owner" in {
+        val (status, res) = apiKey.deleteFromOwner(owner)
+        status === OK
+        res must contain("Api key delete for " + owner)
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where owner = '${owner}';""").first === 0
+        }
+      }
+
+      "return a 404 if there are no api keys associated with this owner" in {
+        val (status, res) = apiKey.deleteFromOwner(owner)
+        status === NotFound
+        res must contain("Owner not found")
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where owner = '${owner}';""").first === 0
         }
       }
     }

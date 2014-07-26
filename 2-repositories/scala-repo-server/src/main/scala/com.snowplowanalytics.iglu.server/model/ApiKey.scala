@@ -142,12 +142,12 @@ class ApiKeyDAO(val db: Database) extends DAO {
       (Unauthorized, result(401, "The api key provided is not an UUID"))
     }
 
-  def deleteFromOwner(owner: String) {
+  def deleteFromOwner(owner: String): (StatusCode, String) =
     db withDynSession {
       apiKeys.filter(_.owner === owner).delete match {
         case 0 => (NotFound, result(404, "Owner not found"))
+        case 1 => (OK, result(200, "Api key deleted for " + owner))
         case n => (OK, result(200, n + " api keys deleted for " + owner))
       }
     }
-  }
 }
