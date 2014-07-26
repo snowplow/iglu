@@ -36,11 +36,26 @@ trait Core {
   protected implicit def system: ActorSystem
 }
 
+/**
+ * This trait implements ``Core`` and starts the ``ActorSystem``
+ * and starts a new ``RoutedHttpService`` with the routes defined in the
+ * ``Api`` trait.
+ * It also creates the necessary tables if they are not present in the
+ * database.
+ * It registers the termination handler to stop the actor system when the
+ * JVM shuts down as well.
+ */
 trait BootedCore extends Core with Api {
+
+  // Creates a new ActorSystem
   def system = ActorSystem("iglu-server")
   def actorRefFactory = system
+
+  // Starts a new http service
   val rootService = system.actorOf(Props(new RoutedHttpService(routes)))
 
+  // Creates the necessary table is they are not already present in the
+  // database
   Config.db withDynSession {
     if (MTable.getTables("schemas").list.isEmpty) {
       new SchemaDAO(Config.db).createTable
@@ -50,12 +65,17 @@ trait BootedCore extends Core with Api {
     }
   }
 
+  // Starts the server
   IO(Http)(system) !
     Http.Bind(rootService, Config.interface, port = Config.port)
 
+  // Register the termination handler for when the JVM shuts down
   sys.addShutdownHook(system.shutdown())
 }
 
+/**
+ * Core actors maintains a reference to the different actors
+ */
 trait CoreActors {
   this: Core =>
 

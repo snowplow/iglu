@@ -23,7 +23,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 // Spray
 import spray.routing.HttpService
 
+/**
+ * Api trait regroups the route from all the different services.
+ */
 trait Api extends HttpService with CoreActors with Core {
+
   lazy val routes = new ApiKeyGenService(apiKey).route ~
     new SchemaService(schema, apiKey).route ~
     new CatalogService(schema, apiKey).route

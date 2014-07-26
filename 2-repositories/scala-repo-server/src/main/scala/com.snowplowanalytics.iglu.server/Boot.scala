@@ -14,4 +14,5 @@
 */
 package com.snowplowanalytics.iglu.server
 
+//Boot object starts the server
 object Boot extends App with BootedCore with Core with CoreActors with Api
