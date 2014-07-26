@@ -29,7 +29,8 @@ import java.util.UUID
 object ApiKeyActor {
   case class GetKey(uid: String)
   case class AddBothKey(owner: String)
-  case class DeleteKey(uid: UUID)
+  case class DeleteKey(uid: String)
+  case class DeleteKeys(owner: String)
 }
 
 class ApiKeyActor extends Actor {
@@ -41,5 +42,6 @@ class ApiKeyActor extends Actor {
     case GetKey(uid) => sender ! apiKey.get(uid)
     case AddBothKey(owner) => sender ! apiKey.addReadWrite(owner)
     case DeleteKey(uid) => sender ! apiKey.delete(uid)
+    case DeleteKeys(owner) => sender ! apiKey.deleteFromOwner(owner)
   }
 }

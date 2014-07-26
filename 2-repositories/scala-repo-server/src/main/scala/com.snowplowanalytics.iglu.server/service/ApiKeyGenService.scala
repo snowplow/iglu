@@ -23,9 +23,6 @@ import util.TokenAuthenticator
 import akka.actor.ActorRef
 import akka.pattern.ask
 
-// Java
-import java.util.UUID
-
 // Scala
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
@@ -38,9 +35,6 @@ import spray.routing._
 
 class ApiKeyGenService(apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
-
-  private val uidRegex =
-    "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 
   val authenticator = TokenAuthenticator[(String, String)]("api-key") {
     key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
@@ -56,19 +50,20 @@ class ApiKeyGenService(apiKey: ActorRef)
               validate(owner matches "[a-z.]+", "Invalid owner") {
                 post {
                   complete {
-                    (apiKey ? AddBothKey(owner)).
-                      mapTo[(StatusCode, String)]
+                    (apiKey ? AddBothKey(owner)).mapTo[(StatusCode, String)]
+                  }
+                } ~
+                delete {
+                  complete {
+                    (apiKey ? DeleteKeys(owner)).mapTo[(StatusCode, String)]
                   }
                 }
               }
             ) ~
             anyParams('key)(key =>
-              validate(key matches uidRegex, "Invalid regex") {
-                delete {
-                  complete {
-                    (apiKey ? DeleteKey(UUID.fromString(key))).
-                      mapTo[(StatusCode, String)]
-                  }
+              delete {
+                complete {
+                  (apiKey ? DeleteKey(key)).mapTo[(StatusCode, String)]
                 }
               }
             )

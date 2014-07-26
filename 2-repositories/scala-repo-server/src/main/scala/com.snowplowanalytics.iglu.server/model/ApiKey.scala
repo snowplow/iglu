@@ -119,8 +119,8 @@ class ApiKeyDAO(val db: Database) extends DAO {
         val (statusWrite, keyWrite) = add(owner, "write")
         if(statusRead == InternalServerError ||
           statusWrite == InternalServerError) {
-            delete(UUID.fromString(keyRead))
-            delete(UUID.fromString(keyWrite))
+            delete(keyRead)
+            delete(keyWrite)
             (InternalServerError, result(500, "Something went wrong"))
           } else {
             (OK, writePretty(Map("read" -> keyRead, "write" -> keyWrite)))
@@ -128,13 +128,26 @@ class ApiKeyDAO(val db: Database) extends DAO {
       }
     }
   }
-  
-  def delete(uid: UUID): (StatusCode, String) =
+
+  def delete(uid: String): (StatusCode, String) =
+    if (uid matches uidRegex) {
+      db withDynSession {
+        apiKeys.filter(_.uid === UUID.fromString(uid)).delete match {
+          case 0 => (NotFound, result(404, "Api key not found"))
+          case 1 => (OK, result(200, "Api key successfully deleted"))
+          case _ => (InternalServerError, result(500, "Something went wrong"))
+        }
+      }
+    } else {
+      (Unauthorized, result(401, "The api key provided is not an UUID"))
+    }
+
+  def deleteFromOwner(owner: String) {
     db withDynSession {
-      apiKeys.filter(_.uid === uid).delete match {
-        case 0 => (NotFound, result(404, "Api key not found"))
-        case 1 => (OK, result(200, "Api key successfully deleted"))
-        case _ => (InternalServerError, result(500, "Something went wrong"))
+      apiKeys.filter(_.owner === owner).delete match {
+        case 0 => (NotFound, result(404, "Owner not found"))
+        case n => (OK, result(200, n + " api keys deleted for " + owner))
       }
     }
+  }
 }
