@@ -147,7 +147,7 @@ class ApiKeyGenServiceSpec extends Specification
         Delete(ownerUrl) ~> addHeader("api-key", superKey) ~>
           sealRoute(routes) ~> check {
             status === OK
-            responseAs[String] must contain("Api key delete for ")
+            responseAs[String] must contain("Api key deleted for ")
           }
       }
 

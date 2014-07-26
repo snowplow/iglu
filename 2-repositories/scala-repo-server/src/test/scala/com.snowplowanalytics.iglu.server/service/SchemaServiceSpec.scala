@@ -32,7 +32,7 @@ class SchemaServiceSpec extends Specification
 
   def actorRefFactory = system
 
-  implicit val routeTestTimeout = RouteTestTimeout(10 seconds)
+  implicit val routeTestTimeout = RouteTestTimeout(20 seconds)
 
   val readKey = "6eadba20-9b9f-4648-9c23-770272f8d627"
   val writeKey = "a89c5f27-fe76-4754-8a07-d41884af1074"

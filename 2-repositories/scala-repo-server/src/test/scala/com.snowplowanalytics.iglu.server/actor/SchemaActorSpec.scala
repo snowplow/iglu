@@ -41,7 +41,7 @@ import spray.http.StatusCodes._
 class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
   with ImplicitSender with NoTimeConversions {
 
-  implicit val timeout = Timeout(10.seconds)
+  implicit val timeout = Timeout(20.seconds)
 
   val schema = TestActorRef(new SchemaActor)
 

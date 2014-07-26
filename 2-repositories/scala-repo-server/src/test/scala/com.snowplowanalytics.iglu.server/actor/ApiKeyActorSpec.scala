@@ -49,7 +49,7 @@ import spray.http.StatusCodes._
 class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
   with ImplicitSender with NoTimeConversions {
 
-  implicit val timeout = Timeout(10.seconds)
+  implicit val timeout = Timeout(20.seconds)
 
   val key = TestActorRef(new ApiKeyActor)
 

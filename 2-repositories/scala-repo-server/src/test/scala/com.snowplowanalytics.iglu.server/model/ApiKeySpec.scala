@@ -149,13 +149,6 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
           case None => success
           case _ => failure
         }
-
-        database withDynSession {
-          Q.queryNA[Int](
-            s"""select count(*)
-            from ${tableName}
-            where uid = '${notUid}';""").first === 0
-        }
       }
     }
 
@@ -191,13 +184,6 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
         val (status, res) = apiKey.delete(notUid)
         status === Unauthorized
         res must contain("The api key provided is not an UUID")
-
-        database withDynSession {
-          Q.queryNA[Int](
-            s"""select count(*)
-            from ${tableName}
-            where uid = '${notUid}';""").first === 0
-        }
       }
     }
 
@@ -206,13 +192,13 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
       "properly delete api keys associated with an owner" in {
         val (status, res) = apiKey.deleteFromOwner(owner)
         status === OK
-        res must contain("Api key delete for " + owner)
+        res must contain("Api key deleted for " + owner)
 
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where owner = '${owner}';""").first === 0
+            where vendor = '${owner}';""").first === 0
         }
       }
 
@@ -225,7 +211,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where owner = '${owner}';""").first === 0
+            where vendor = '${owner}';""").first === 0
         }
       }
     }

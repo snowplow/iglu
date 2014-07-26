@@ -32,7 +32,7 @@ class CatalogServiceSpec extends Specification
 
   def actorRefFactory = system
 
-  implicit val routeTestTimeout = RouteTestTimeout(10 seconds)
+  implicit val routeTestTimeout = RouteTestTimeout(20 seconds)
 
   val readKey = "6eadba20-9b9f-4648-9c23-770272f8d627"
   val otherKey = "83e7c051-cd68-4e44-8b36-09182fa158d5"
