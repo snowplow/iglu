@@ -23,29 +23,83 @@ import util.Config
 // Akka
 import akka.actor.Actor
 
+/**
+ * Object regrouping every message the ``SchemaActor`` can receive.
+ */
 object SchemaActor {
+
+  /**
+   * Message to send in order to add a schema based on its
+   * (vendor, name, format, version) tuple, validates that the schemas
+   * does not already exist.
+   */
   case class AddSchema(vendor: String, name: String, format: String,
     version: String, schema: String)
+
+  /**
+   * Message to send in order to retrieve a schema based on its
+   * (vendor, name, format, version) tuple.
+   */
   case class GetSchema(vendor: String, name: String, format: String,
     version: String)
+
+  /**
+   * Message to send in order to get every version of a schema.
+   */
   case class GetSchemasFromFormat(vendor: String, name: String, format: String)
+
+  /**
+   * Message to send in order to retrieve every format, version combination of
+   * a schema.
+   */
   case class GetSchemasFromName(vendor: String, name: String)
+
+  /**
+   * Message to send in order to retrieve every schema of a vendor.
+   */
   case class GetSchemasFromVendor(vendor: String)
+
+  /**
+   * Message to send in order to validate that a schema is self-describing.
+   */
   case class Validate(json: String)
 }
 
+/**
+ * Schema actor interfacing the services and the schema model.
+ */
 class SchemaActor extends Actor {
+
   import SchemaActor._
 
+  // Schema model
   private val schema = new SchemaDAO(Config.db)
 
+  /**
+   * Method specifying how the actor should handle the incoming messages.
+   */
   def receive = {
+
+    // Send the result of the DAO's add method back to message's sender
     case AddSchema(v, n, f, vs, s) => sender ! schema.add(v, n, f, vs, s)
+
+    // Send the result of the DAO's get method back to the message's sender
     case GetSchema(v, n, f, vs) => sender ! schema.get(v, n, f, vs)
+
+    // Send the result of the DAO's getFromFormat method back to the
+    // message's sender
     case GetSchemasFromFormat(v, n, f) =>
       sender ! schema.getFromFormat(v, n, f)
+
+    // Send the result of the DAO's getFromName method back to the message's
+    // sender
     case GetSchemasFromName(v, n) => sender ! schema.getFromName(v, n)
+
+    // Send the result of the DAO's getFromVendor method back to the message's
+    // sender
     case GetSchemasFromVendor(v) => sender ! schema.getFromVendor(v)
+
+    //Send the result of the DAO's validate method back to the message's sender
     case Validate(j) => sender ! schema.validate(j)
   }
 }

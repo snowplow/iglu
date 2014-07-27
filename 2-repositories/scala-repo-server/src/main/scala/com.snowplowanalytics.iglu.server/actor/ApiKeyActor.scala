@@ -26,22 +26,62 @@ import akka.actor.Actor
 // Java
 import java.util.UUID
 
+/**
+ * Object regrouping every message the ``ApiKeyActor`` can receive.
+ */
 object ApiKeyActor {
+
+  /**
+   * Message to send in order to retrieve a (owner, permission) pair if the
+   * key exists.
+   */
   case class GetKey(uid: String)
+
+  /**
+   * Message to send in order to add a (write, read) pair of keys for the
+   * specified owner if it is not conflicting with an existing one.
+   */
   case class AddBothKey(owner: String)
+
+  /**
+   * Message to send in order to delete a key specifying its uuid.
+   */
   case class DeleteKey(uid: String)
+
+  /**
+   * Message to send in order to delete every keys belonging to the specified
+   * owner.
+   */
   case class DeleteKeys(owner: String)
 }
 
+/**
+ * ApiKey actor interfacing between the services and the api key model.
+ */
 class ApiKeyActor extends Actor {
+
   import ApiKeyActor._
 
+  // ApiKey model
   val apiKey = new ApiKeyDAO(Config.db)
 
+  /**
+   * Method specifying how the actor should handle the incoming messages.
+   */
   def receive = {
+
+    // Send the result of the DAO's get method back to the message's sender
     case GetKey(uid) => sender ! apiKey.get(uid)
+
+    // Send the result of the DAO's addreadwrite method back to the message's
+    // sender
     case AddBothKey(owner) => sender ! apiKey.addReadWrite(owner)
+
+    // Send the result of the DAO's delete method back to the message's sender
     case DeleteKey(uid) => sender ! apiKey.delete(uid)
+
+    // Send the result of the DAO's deleteFromowner method back to the message's
+    // sender
     case DeleteKeys(owner) => sender ! apiKey.deleteFromOwner(owner)
   }
 }
