@@ -27,6 +27,10 @@ import spray.http.{ HttpEntity, StatusCode }
 import spray.routing._
 import spray.util.LoggingContext
 
+/**
+ * HttpService used to run the different routes coming from the
+ * ``SchemaService``, ``CatalogService`` and ``ApiKeyGenService``
+ */
 class RoutedHttpService(route: Route) extends Actor with HttpService
 with ActorLogging {
   implicit def actorRefFactory = context

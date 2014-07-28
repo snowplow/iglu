@@ -33,14 +33,30 @@ import spray.http.StatusCode
 import spray.http.StatusCodes._
 import spray.routing._
 
+/**
+ * Service to interact with api keys.
+ * @constructor create a new api key generation service with an apiKey actor
+ * @param apiKey a reference to a ``ApiKeyActor``
+ */
 class ApiKeyGenService(apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
+  /**
+   * Creates a ``TokenAuthenticator`` to extract the api-key http header and
+   * validates it against the database.
+   */
   val authenticator = TokenAuthenticator[(String, String)]("api-key") {
     key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
   }
+
+  /**
+   * Directive to authenticate a user using the authenticator.
+   */
   def auth: Directive1[(String, String)] = authenticate(authenticator)
 
+  /**
+   * Route handled by the api key generation service.
+   */
   val route = rejectEmptyResponse {
     path("apikeygen") {
       respondWithMediaType(`application/json`) {

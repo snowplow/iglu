@@ -34,14 +34,32 @@ import spray.http.StatusCodes._
 import spray.http.MediaTypes._
 import spray.routing._
 
+/**
+ * Service to interact with schemas.
+ * @constructor create a new schema service with a schema and apiKey actors
+ * @param schema a reference to a ``SchemaActor``
+ * @param apiKey a reference to a ``ApiKeyActor``
+ */
 class SchemaService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
+  /**
+   * Creates a ``TokenAuthenticator`` to extract the api-key http header and
+   * validates it against the database.
+   */
   val authenticator = TokenAuthenticator[(String, String)]("api-key") {
     key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
   }
+
+  /**
+   * Directive to authenticate a user using the authenticator.
+   */
   def auth: Directive1[(String, String)] = authenticate(authenticator)
 
+  /**
+   * Directive to validate the json provided (either by query param or form
+   * data) is self-describing.
+   */
   def validateJson: Directive1[String] =
     anyParam('json) flatMap { json =>
       onSuccess((schema ? Validate(json)).mapTo[(StatusCode, String)]) flatMap {
@@ -53,6 +71,9 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
       }
     }
 
+  /**
+   * Route handled by the schema service.
+   */
   val route = rejectEmptyResponse {
     pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
     "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) => {

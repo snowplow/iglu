@@ -34,14 +34,31 @@ import spray.http.StatusCode
 import spray.http.MediaTypes._
 import spray.routing._
 
+/**
+ * Service to retrieve multiple schemas in one request.
+ * @constructor create a new catalog service with a schema and apiKey actors
+ * @param schema a reference to a ``SchemaActor``
+ * @param apiKey a reference to a ``ApiKeyActor``
+ */
 class CatalogService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
+  /**
+   * Creates a ``TokenAuthenticator`` to extract the api-key http header and
+   * validates it against the database.
+   */
   val authenticator = TokenAuthenticator[(String, String)]("api-key") {
     key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
   }
+
+  /**
+   * Directive to authenticate a user using the authenticator.
+   */
   def auth: Directive1[(String, String)] = authenticate(authenticator)
 
+  /**
+   * Route handled by the catalog service.
+   */
   val route = rejectEmptyResponse {
     pathPrefix("[a-z.]+".r) { v => {
       auth { authTuple =>
