@@ -73,7 +73,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
     def * = (uid, owner, permission, created) <> (ApiKey.tupled, ApiKey.unapply)
   }
 
-  //Object used to access the database
+  //Object used to access the table
   val apiKeys = TableQuery[ApiKeys]
 
   /**
@@ -87,7 +87,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
   def dropTable = db withDynSession { apiKeys.ddl.drop }
 
   /**
-   * Get an api key from an uid.
+   * Gets an api key from an uuid.
    * @param uid the api key's uuid
    * @return an option containing a (owner, permission) pair
    */

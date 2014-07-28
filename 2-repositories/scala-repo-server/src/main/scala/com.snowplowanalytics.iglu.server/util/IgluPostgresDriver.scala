@@ -19,6 +19,9 @@ import slick.driver.PostgresDriver
 import com.github.tminglei.slickpg._
 //import org.json4s.JValue
 
+/**
+ * Extension of the ``PostgresDriver`` to support json column and timestamp.
+ */
 object IgluPostgresDriver extends PostgresDriver
   /*with PgJson4sSupport with array.PgArrayJdbcTypes*/ with PgDateSupportJoda {
 

@@ -23,13 +23,16 @@ import scala.concurrent.{ ExecutionContext, Future }
 import spray.routing.{ RequestContext, AuthenticationFailedRejection }
 import spray.routing.authentication.{ Authentication, ContextAuthenticator }
 
-object TokenAuthenticator{
+/**
+ * Object letting us authenticate users.
+ */
+object TokenAuthenticator {
 
-  /**
-   * Extract the token from the specified header
-   */
   type TokenExtractor = RequestContext => Option[String]
 
+  /**
+   * Extract the token from the specified header.
+   */
   object TokenExtraction {
     def fromHeader(headerName: String): TokenExtractor = {
       context: RequestContext =>
@@ -37,6 +40,11 @@ object TokenAuthenticator{
     }
   }
 
+  /**
+   * Under the hood class performing the authentication.
+   * @param extractor extracting the token from the request
+   * @param authenticator takes an api key and validates it through the dao
+   */
   class TokenAuthenticator[T](extractor: TokenExtractor,
     authenticator: (String => Future[Option[T]]))
     (implicit executionContext: ExecutionContext)
@@ -44,25 +52,42 @@ object TokenAuthenticator{
 
     import AuthenticationFailedRejection._
 
+    /**
+     * Performs the authentication.
+     * @param context the http request context necessary to extract the token
+     * @return a future containing the authentication which is of type
+     * Either[Rejection, T]
+     */
     def apply(context: RequestContext): Future[Authentication[T]] =
       extractor(context) match {
+        //if there is no api-key header provided
         case None => Future(
           Left(AuthenticationFailedRejection(CredentialsMissing, List())))
         case Some(token) =>
           authenticator(token) map {
+            //if the authentication succeeds
             case Some(t) => Right(t)
+            //if the authentication fails
             case None =>
               Left(AuthenticationFailedRejection(CredentialsRejected, List()))
           }
       }
   }
 
+  /**
+   * Entry point to perform the authentication.
+   * @param headerName containing the api key token to be extracted
+   * @param authenticator function taking a string and returning something if
+   * the authentication succeeds or nothing if the authentication fails
+   */
   def apply[T](headerName: String)(authenticator: (String => Future[Option[T]]))
     (implicit executionContext: ExecutionContext) = {
 
+    //Extracts the token from the http request
     def extractor(context: RequestContext) =
       TokenExtraction.fromHeader(headerName)(context)
     
+    //Performs the authentication
     new TokenAuthenticator(extractor, authenticator)
   }
 }

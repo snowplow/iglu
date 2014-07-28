@@ -20,19 +20,26 @@ import IgluPostgresDriver.simple._
 
 import com.typesafe.config.ConfigFactory
 
+/**
+ * Config object getting the information stored in application.conf
+ */
 object Config {
+
   val config = ConfigFactory.load()
 
+  //Interface on which the server will be running
   val interface = config.getString("repo-server.interface")
+  //Port on which the server will be running
   val port = config.getInt("repo-server.port")
 
-  val pgHost = config.getString("postgres.host")
-  val pgPort = config.getInt("postgres.port")
-  val pgDbName = config.getString("postgres.dbname")
-  val pgUsername = config.getString("postgres.username")
-  val pgPassword = config.getString("postgres.password")
-  val pgDriver = config.getString("postgres.driver")
+  private val pgHost = config.getString("postgres.host")
+  private val pgPort = config.getInt("postgres.port")
+  private val pgDbName = config.getString("postgres.dbname")
+  private val pgUsername = config.getString("postgres.username")
+  private val pgPassword = config.getString("postgres.password")
+  private val pgDriver = config.getString("postgres.driver")
 
+  //Reference to the database
   val db = Database.forURL(
     url = s"jdbc:postgresql://${pgHost}:${pgPort}/${pgDbName}",
     user = pgUsername,
