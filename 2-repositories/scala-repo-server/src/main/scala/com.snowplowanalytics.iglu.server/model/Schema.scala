@@ -54,11 +54,38 @@ import Database.dynamicSession
 import spray.http.StatusCode
 import spray.http.StatusCodes._
 
+/**
+ * DAO for accessiing the schemas table in the database
+ * @constructor create a schema DAO with a reference to the database
+ * @param db a reference to a ``Database``
+ */
 class SchemaDAO(val db: Database) extends DAO {
 
-  case class Schema(schemaId: Int, vendor: String, name: String, format: String,
-    version: String, schema: String, /*schema: JValue,*/ created: LocalDateTime)
+  /**
+   * Case class representing a schema in the database.
+   * @constructor create a schema from required data
+   * @param schemaId primary key
+   * @param vendor the scehma's vendor
+   * @param name the schema's name
+   * @param format the schema's format
+   * @param version the schema's version
+   * @param schema the json forming the schema
+   * @param created data at which point the schema was created
+   */
+  case class Schema(
+    schemaId: Int,
+    vendor: String,
+    name: String,
+    format: String,
+    version: String,
+    schema: String,
+    //schema: JValue,
+    created: LocalDateTime
+  )
 
+  /**
+   * Schema for the schemas table
+   */
   class Schemas(tag: Tag) extends Table[Schema](tag, "schemas") {
     def schemaId = column[Int](
       "schemaid", O.AutoInc, O.PrimaryKey, O.DBType("serial"))
@@ -75,8 +102,10 @@ class SchemaDAO(val db: Database) extends DAO {
       (Schema.tupled, Schema.unapply)
   }
 
+  //Object used to access the table
   val schemas = TableQuery[Schemas]
 
+  //Case classes for json formatting
   case class ReturnedSchema(schema: JValue, created: String)
   case class ReturnedSchemaFormat(schema: JValue, version: String,
     created: String)
@@ -85,9 +114,22 @@ class SchemaDAO(val db: Database) extends DAO {
   case class ReturnedSchemaVendor(schema: JValue, name: String, format: String,
     version: String, created: String)
 
+  /**
+   * Creates the schemas table.
+   */
   def createTable = db withDynSession { schemas.ddl.create }
+
+  /**
+   * Deletes the schemas table.
+   */
   def dropTable = db withDynSession { schemas.ddl.drop }
 
+  /**
+   * Gets every schema belongig to a specific vendor.
+   * @param vendor for which we wish to retrieve the schemas
+   * @return a status code and json containing the list of all schemas
+   * belonging to this vendor pair
+   */
   def getFromVendor(vendor: String): (StatusCode, String) = {
     db withDynSession {
       val l: List[ReturnedSchemaVendor] =
@@ -104,6 +146,13 @@ class SchemaDAO(val db: Database) extends DAO {
     }
   }
 
+  /**
+   * Gets every schemas for this specific vendor, name combination.
+   * @param vendor schemas' vendor
+   * @param name schemas' naeme
+   * @return a status code and json containing the list of all schemas
+   * satifsfying the query pair
+   */
   def getFromName(vendor: String, name: String): (StatusCode, String) = {
     db withDynSession {
       val l: List[ReturnedSchemaName] =
@@ -121,6 +170,14 @@ class SchemaDAO(val db: Database) extends DAO {
     }
   }
 
+  /**
+   * Retrieves every version of a schema.
+   * @param vendor schemas' vendor
+   * @param name schenas' name
+   * @param format schemas' format
+   * @return a status code and json containing the list of every version of a
+   * specific schema pair
+   */
   def getFromFormat(vendor: String, name: String, format: String):
     (StatusCode, String) = {
       db withDynSession {
@@ -142,6 +199,14 @@ class SchemaDAO(val db: Database) extends DAO {
       }
     }
 
+  /**
+   * Get a single schema specifying all its characteristics
+   * @param vendor the schema's vendor
+   * @param name the schema's name
+   * @param format the schema's format
+   * @param version the schema's version
+   * @return a status code and json containing the schema pair
+   */
   def get(vendor: String, name: String, format: String, version: String):
     (StatusCode, String) = {
       db withDynSession {
@@ -151,7 +216,7 @@ class SchemaDAO(val db: Database) extends DAO {
             s.format === format &&
             s.version === version).
           map(s => (s.schema, s.created)).list.
-          map(s => ReturnedSchema(parse(s._1), 
+          map(s => ReturnedSchema(parse(s._1),
             s._2.toString("MM/dd/yyyy HH:mm:ss")))
 
         if (l.length == 1) {
@@ -162,6 +227,14 @@ class SchemaDAO(val db: Database) extends DAO {
       }
     }
 
+  /**
+   * Gets a single schema without the metadata associated
+   * @param vendor the schema's vendor
+   * @param name the schema's name
+   * @param format the schema's format
+   * @param version the schema's version
+   * @return the schema without metadata
+   */
   private def getNoMetadata(vendor: String, name: String, format: String,
     version: String): String =
       db withDynSession {
@@ -175,6 +248,15 @@ class SchemaDAO(val db: Database) extends DAO {
         l(0)
       }
 
+  /**
+   * Adds a schema after validating it does not already exist.
+   * @param vendor the schema's vendor
+   * @param name the schema's name
+   * @param format the schema's format
+   * @param version the schema's version
+   * @param schema the schema itself
+   * @return a status code json response pair
+   */
   def add(vendor: String, name: String, format: String, version: String,
     schema: String): (StatusCode, String) =
       db withDynSession {
@@ -191,6 +273,11 @@ class SchemaDAO(val db: Database) extends DAO {
         }
       }
 
+  /**
+   * Validates that a json schema is self-describing.
+   * @param json the json to be validated
+   * @return a status code and json response pair
+   */
   def validate(json: String): (StatusCode, String) = {
     val jsonNode = asJsonNode(parse(json))
     val schemaNode = asJsonNode(parse(getNoMetadata(

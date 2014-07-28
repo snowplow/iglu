@@ -34,11 +34,24 @@ import Database.dynamicSession
 import spray.http.StatusCode
 import spray.http.StatusCodes._
 
+/**
+ * DAO for accessing the apikeys table in the database
+ * @constructor create an api key DAO with a reference to the database
+ * @param db a reference to a ``Database``
+ */
 class ApiKeyDAO(val db: Database) extends DAO {
 
   private val uidRegex =
     "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 
+  /**
+   * Case class representing an api key in the database.
+   * @constructor create an api key object from required data
+   * @param uid api key uuid serving as primary key
+   * @param owner of the api key
+   * @param permission api key permission in (read, write, super)
+   * @param created date at which point the api key was created
+   */
   case class ApiKey(
     uid: UUID,
     owner: String,
@@ -46,6 +59,9 @@ class ApiKeyDAO(val db: Database) extends DAO {
     created: LocalDateTime
   )
 
+  /**
+   * Schema for the apikeys table.
+   */
   class ApiKeys(tag: Tag) extends Table[ApiKey](tag, "apikeys") {
     def uid = column[UUID]("uid", O.PrimaryKey, O.DBType("uuid"))
     def owner = column[String]("vendor", O.DBType("varchar(200)"), O.NotNull)
@@ -57,11 +73,24 @@ class ApiKeyDAO(val db: Database) extends DAO {
     def * = (uid, owner, permission, created) <> (ApiKey.tupled, ApiKey.unapply)
   }
 
+  //Object used to access the database
   val apiKeys = TableQuery[ApiKeys]
 
+  /**
+   * Creates the apikeys table.
+   */
   def createTable = db withDynSession { apiKeys.ddl.create }
+
+  /**
+   * Deletes the apikeys table.
+   */
   def dropTable = db withDynSession { apiKeys.ddl.drop }
 
+  /**
+   * Get an api key from an uid.
+   * @param uid the api key's uuid
+   * @return an option containing a (owner, permission) pair
+   */
   def get(uid: String): Option[(String, String)] = {
     if (uid matches uidRegex) {
       val uuid = UUID.fromString(uid)
@@ -79,6 +108,15 @@ class ApiKeyDAO(val db: Database) extends DAO {
     }
   }
 
+  /**
+   * Validates that when adding a key it is not conflicting with an existing
+   * one. In particular, checks that there is not api key with the same (owner,
+   * permission) pair and that there is no owner already in the database with
+   * the same prefix.
+   * @param owner owner of the new api key being validated
+   * @param permission permission of the new api key being validated
+   * @return a boolean indicating whether or not we allow this new api key
+   */
   private def validate(owner: String, permission: String): Boolean = {
     db withDynSession {
       val l: List[(String, String)] =
@@ -95,6 +133,12 @@ class ApiKeyDAO(val db: Database) extends DAO {
     }
   }
 
+  /**
+   * Adds a new api key after validating it.
+   * @param owner owner of the new api key
+   * @param permission permission of the new api key
+   * @return a status code and a json response pair
+   */
   private def add(owner: String, permission: String): (StatusCode, String) = {
     db withDynSession {
       if(validate(owner, permission)) {
@@ -110,6 +154,11 @@ class ApiKeyDAO(val db: Database) extends DAO {
     }
   }
 
+  /**
+   * Adds both read and write api keys for an owner.
+   * @param owner owner of the new pair of keys
+   * @returns a status code and a json containing the pair of api keys.
+   */
   def addReadWrite(owner: String): (StatusCode, String) = {
     db withDynSession {
       val (statusRead, keyRead) = add(owner, "read")
@@ -129,6 +178,11 @@ class ApiKeyDAO(val db: Database) extends DAO {
     }
   }
 
+  /**
+   * Deletes an api key from its uuid.
+   * @param uid the api key's uuid
+   * @return a status code and json response pair
+   */
   def delete(uid: String): (StatusCode, String) =
     if (uid matches uidRegex) {
       db withDynSession {
@@ -142,6 +196,11 @@ class ApiKeyDAO(val db: Database) extends DAO {
       (Unauthorized, result(401, "The api key provided is not an UUID"))
     }
 
+  /**
+   * Deletes all api keys belonging to the specified owner.
+   * @param owner ownere of the api keys we want to delete
+   * @return a (status code, json response) pair
+   */
   def deleteFromOwner(owner: String): (StatusCode, String) =
     db withDynSession {
       apiKeys.filter(_.owner === owner).delete match {

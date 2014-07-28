@@ -19,11 +19,24 @@ package model
 import org.json4s.DefaultFormats
 import org.json4s.jackson.Serialization.writePretty
 
+/**
+ * Trait to be mixed in with every DAO.
+ */
 trait DAO {
-  case class Result(status: Int, message: String)
 
   implicit val formats = DefaultFormats
 
+  /**
+   * Case class defined for json formatting.
+   */
+  case class Result(status: Int, message: String)
+
+  /**
+   * Formats a (status and message to proper json.
+   * @param status the response's status
+   * @param message the response's message
+   * @return a well-formatted json
+   */
   def result(status: Int, message: String): String =
     writePretty(Result(status, message))
 }
