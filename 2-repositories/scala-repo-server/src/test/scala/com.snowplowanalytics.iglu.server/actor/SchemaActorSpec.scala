@@ -53,6 +53,16 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
   val version = "1-0-0"
   val schemaDef = """{ "some" : "json" }"""
   val innerSchema = """"some" : "json""""
+  val validSchema = 
+  """{
+    "self": {
+      "vendor": "com.snowplowanalytics.snowplow",
+      "name": "ad_click",
+      "format": "jsonschema",
+      "version": "1-0-0"
+    }
+  }"""
+  val notJson = "not json"
 
   sequential
 
@@ -142,6 +152,30 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
         val Success((status: StatusCode, result: String)) = future.value.get
         status must be(NotFound)
         result must contain("There are no schemas for this vendor")
+      }
+    }
+
+    "for Validate" should {
+
+      "return a 200 if the json provided is self-describing" in {
+        val future = schema ? Validate(validSchema)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status must be(OK)
+        result must contain(validSchema)
+      }
+
+      "return a 400 if the json provided is not self-describing" in {
+        val future = schema ? Validate(schemaDef)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status must be(BadRequest)
+        result must contain("The json provided is not a valid self-describing")
+      }
+
+      "return a 400 if the string provided is not a json" in {
+        val future = schema ? Validate(notJson)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status must be (BadRequest)
+        result must contain("The json provided is not valid")
       }
     }
   }

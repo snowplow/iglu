@@ -32,12 +32,12 @@ object Config {
   //Port on which the server will be running
   val port = config.getInt("repo-server.port")
 
-  private val pgHost = config.getString("postgres.host")
-  private val pgPort = config.getInt("postgres.port")
-  private val pgDbName = config.getString("postgres.dbname")
-  private val pgUsername = config.getString("postgres.username")
-  private val pgPassword = config.getString("postgres.password")
-  private val pgDriver = config.getString("postgres.driver")
+  val pgHost = config.getString("postgres.host")
+  val pgPort = config.getInt("postgres.port")
+  val pgDbName = config.getString("postgres.dbname")
+  val pgUsername = config.getString("postgres.username")
+  val pgPassword = config.getString("postgres.password")
+  val pgDriver = config.getString("postgres.driver")
 
   //Reference to the database
   val db = Database.forURL(

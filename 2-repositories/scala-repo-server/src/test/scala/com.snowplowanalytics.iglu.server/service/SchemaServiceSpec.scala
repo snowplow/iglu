@@ -50,6 +50,7 @@ class SchemaServiceSpec extends Specification
       }
     }"""
   val invalidSchema = """{ "some": "invalid schema" }"""
+  val notJson = "notjson"
 
   val validSchemaUri = validSchema.replaceAll(" ", "%20").
     replaceAll("\"", "%22").replaceAll("\n", "%0A")
@@ -71,6 +72,8 @@ class SchemaServiceSpec extends Specification
   val postUrl6 = url + "?json=" + validSchemaUri
   val postUrl7 = "/" + vendor + "/unit_test7/" + format + "/" + version +
     "?json=" + invalidSchemaUri
+  val postUrl8 = "/" + vendor + "/unit_test8/" + format + "/" + version +
+    "?json=" + notJson
 
   sequential
 
@@ -270,6 +273,22 @@ class SchemaServiceSpec extends Specification
           addHeader("api-key", writeKey) ~> sealRoute(routes) ~> check {
             status === BadRequest
             responseAs[String] must contain("The json provided is not a valid")
+          }
+      }
+
+      "return a 400 if the supplied string is not a json with query param" in {
+        Post(postUrl8) ~> addHeader("api-key", writeKey) ~> sealRoute(routes) ~>
+          check {
+            status === BadRequest
+            responseAs[String] must contain("The json provided is not valid")
+          }
+      }
+
+      "return a 400 if the supplied string is not a json with form data" in {
+        Post(postUrl3, FormData(Seq("json" -> notJson))) ~>
+          addHeader("api-key", writeKey) ~> sealRoute(routes) ~> check {
+            status === BadRequest
+            responseAs[String] must contain("The json provided is not valid")
           }
       }
     }

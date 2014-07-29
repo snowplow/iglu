@@ -43,6 +43,16 @@ class SchemaSpec extends Specification with SetupAndDestroy {
   val version = "1-0-0"
   val schemaDef = """{ "some" : "json" }"""
   val innerSchema = """"some" : "json""""
+  val validSchema = 
+  """{
+    "self": {
+      "vendor": "com.snowplowanalytics.snowplow",
+      "name": "ad_click",
+      "format": "jsonschema",
+      "version": "1-0-0"
+    }
+  }"""
+  val notJson = "not json"
 
   sequential
 
@@ -221,6 +231,82 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             from ${tableName}
             where vendor = '${faultyVendor}';""").first === 0
         }
+      }
+    }
+
+    "for validate" should {
+
+      "return a json if it is self-describing" in {
+
+        schema.add("com.snowplowanalytics.self-desc", "schema", "jsonschema",
+          "1-0-0", """
+          {
+            "$schema": "http://json-schema.org/draft-04/schema#",
+            "description": "Meta-schema for self-describing JSON schema",
+            "self": {
+              "vendor": "com.snowplowanalytics.self-desc",
+              "name": "schema",
+              "format": "jsonschema",
+              "version": "1-0-0"
+            },
+            "allOf": [
+            {
+              "properties": {
+                "self": {
+                  "type": "object",
+                  "properties": {
+                    "vendor": {
+                      "type": "string",
+                      "pattern": "^[a-zA-Z0-9-_.]+$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-zA-Z0-9-_]+$"
+                    },
+                    "format": {
+                      "type": "string",
+                      "pattern": "^[a-zA-Z0-9-_]+$"
+                    },
+                    "version": {
+                      "type": "string",
+                      "pattern": "^[0-9]+-[0-9]+-[0-9]+$"
+                    }
+                  },
+                  "required": [
+                  "vendor",
+                  "name",
+                  "format",
+                  "version"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+              "self"
+              ]
+            },
+            {
+              "$ref": "http://json-schema.org/draft-04/schema#"
+            }
+            ]
+          }
+          """)
+
+        val (status, res) = schema.validate(validSchema)
+        status === OK
+        res must contain(validSchema)
+      }
+
+      "return bad request if the json is not self-describing" in {
+        val (status, res) = schema.validate(schemaDef)
+        status === BadRequest
+        res must contain("The json provided is not a valid self-describing")
+      }
+
+      "return bad request if the string provided is not a json" in {
+        val (status, res) = schema.validate(notJson)
+        status === BadRequest
+        res must contain("The json provided is not valid")
       }
     }
 

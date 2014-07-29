@@ -274,19 +274,25 @@ class SchemaDAO(val db: Database) extends DAO {
       }
 
   /**
-   * Validates that a json schema is self-describing.
+   * Validates that the json schema provided is a well-formatted json and
+   * is self-describing.
    * @param json the json to be validated
    * @return a status code and json response pair
    */
   def validate(json: String): (StatusCode, String) = {
-    val jsonNode = asJsonNode(parse(json))
-    val schemaNode = asJsonNode(parse(getNoMetadata(
-      "com.snowplowanalytics.self-desc", "schema", "jsonschema", "1-0-0")))
+    parseOpt(json) match {
+      case Some(jvalue) => {
+        val jsonNode = asJsonNode(jvalue)
+        val schemaNode = asJsonNode(parse(getNoMetadata(
+          "com.snowplowanalytics.self-desc", "schema", "jsonschema", "1-0-0")))
 
-    validateAgainstSchema(jsonNode, schemaNode) match {
-      case Some(j) => (OK, json)
-      case _ => (BadRequest,
-        result(400, "The json provided is not a valid self-describing json"))
+        validateAgainstSchema(jsonNode, schemaNode) match {
+          case Some(j) => (OK, json)
+          case _ => (BadRequest, result(400,
+            "The json provided is not a valid self-describing json"))
+        }
+      }
+      case None => (BadRequest, result(400, "The json provided is not valid"))
     }
   }
 }
