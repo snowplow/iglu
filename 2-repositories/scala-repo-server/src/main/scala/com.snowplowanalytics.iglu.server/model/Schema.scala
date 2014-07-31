@@ -157,7 +157,7 @@ class SchemaDAO(val db: Database) extends DAO {
     db withDynSession {
       val l: List[ResSchemaKeys] =
         schemas.filter(_.vendor === vendor).
-        map(s => s.vendor, s.name, s.format, s.version, s.created).list.
+        map(s => (s.vendor, s.name, s.format, s.version, s.created)).list.
         map(s => ResSchemaKeys(s._1, s._2, s._3, s._4,
           s._5.toString("MM/dd/yyyy HH:mm:ss")))
 
@@ -206,7 +206,7 @@ class SchemaDAO(val db: Database) extends DAO {
           s.vendor === vendor &&
           s.name === name).
         map(s => (s.vendor, s.name, s.format, s.version, s.created)).list.
-        map(s => ResSchemaName(s._1, s._2, s._3, s._4,
+        map(s => ResSchemaKeys(s._1, s._2, s._3, s._4,
           s._5.toString("MM/dd/yyyy HH:mm:ss")))
 
       if (l.length > 0) {
@@ -256,11 +256,11 @@ class SchemaDAO(val db: Database) extends DAO {
   def getFromFormatOnlyKeys(vendor: String, name: String, format: String):
     (StatusCode, String) =
       db withDynSession {
-        val l: List[ResSchema] = schemas.filter(s =>
+        val l: List[ResSchemaKeys] = schemas.filter(s =>
             s.vendor === vendor &&
             s.name === name &&
             s.format === format).
-          map(s => (s.vendor, s.name, s.format, s.version, s.created)).list
+          map(s => (s.vendor, s.name, s.format, s.version, s.created)).list.
           map(s => ResSchemaKeys(s._1, s._2, s._3, s._4,
             s._5.toString("MM/dd/yyyy HH:mm:ss")))
 

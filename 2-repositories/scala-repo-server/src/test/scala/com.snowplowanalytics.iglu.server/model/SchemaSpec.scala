@@ -134,16 +134,53 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             s"""select count(*)
             from ${tableName}
             where vendor = '${vendor}' and
-            name = '${faultyName}' and
-            format = '${format}' and
-            version = '${version}';""").first === 0
+              name = '${faultyName}' and
+              format = '${format}' and
+              version = '${version}';""").first === 0
+        }
+      }
+    }
+
+    "for getOnlyKeys" should {
+
+      "retrieve metadata about a schema properly" in {
+        val (status, res) = schema.getOnlyKeys(vendor, name, format, version)
+        status === OK
+        res must contain(vendor) and contain(name) and contain(format) and
+          contain(version)
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}' and
+              name = '${name}' and
+              format = '${format}' and
+              version = '${version}';""").first === 1
+        }
+      }
+
+      "return not found if the schema is not in the db" in {
+        val (status, res) =
+          schema.getOnlyKeys(vendor, faultyName, format, version)
+        status === NotFound
+        res must contain("There are no schemas available here")
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}' and
+              name = '${faultyName}' and
+              format = '${format}' and
+              version = '${version}';""").first === 0
         }
       }
     }
 
     "for getFromFormat" should {
 
-      "retrieve a schema properly" in {
+      "retrieve schemas properly" in {
         val (status, res) = schema.getFromFormat(vendor, name, format)
         status === OK
         res must contain(innerSchema)
@@ -158,7 +195,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      "return not found if the schema is not in the db" in {
+      "return not found if there are no schemas matching the query" in {
         val (status, res) = schema.getFromFormat(vendor, faultyName, format)
         status === NotFound
         res must contain("There are no schemas for this vendor, name, format")
@@ -174,9 +211,43 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
     }
 
+    "for getFromFormatOnlyKeys" should {
+
+      "retrieve schemas properly" in {
+        val (status, res) = schema.getFromFormatOnlyKeys(vendor, name, format)
+        status === OK
+        res must contain(vendor) and contain(name) and contain(format)
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}' and
+              name = '${name}' and
+              format = '${format}';""").first === 1
+        }
+      }
+
+      "return not found if there are no schemas matching the query" in {
+        val (status, res) =
+          schema.getFromFormatOnlyKeys(vendor, faultyName, format)
+        status === NotFound
+        res must contain ("There are no schemas for this vendor, name, format")
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}' and
+              name = '${faultyName}' and
+              format = '${format}';""").first === 0
+        }
+      }
+    }
+
     "for getFromName" should {
 
-      "retrieve a schema properly" in {
+      "retrieve schemas properly" in {
         val (status, res) = schema.getFromName(vendor, name)
         status === OK
         res must contain(innerSchema)
@@ -190,8 +261,39 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      "return not found if the schema is not in the db" in {
+      "return not found if there are no schemas matching the query" in {
         val (status, res) = schema.getFromName(vendor, faultyName)
+        status === NotFound
+        res must contain("There are no schemas for this vendor, name")
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}' and
+              name = '${faultyName}';""").first === 0
+        }
+      }
+    }
+
+    "for getFromNameOnlyKeys" should {
+
+      "retrieve schemas properly" in {
+        val (status, res) = schema.getFromNameOnlyKeys(vendor, name)
+        status === OK
+        res must contain(vendor) and contain(name)
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}' and
+              name = '${name}';""").first === 1
+        }
+      }
+
+      "return not found if there are no schemas matching the query" in {
+        val (status, res) = schema.getFromNameOnlyKeys(vendor, faultyName)
         status === NotFound
         res must contain("There are no schemas for this vendor, name")
 
@@ -207,7 +309,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
     "for getFromVendor" should {
 
-      "return a schema properly" in {
+      "return schemas properly" in {
         val (status, res) = schema.getFromVendor(vendor)
         status === OK
         res must contain(innerSchema)
@@ -220,7 +322,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      "return not found if the schema is not in the db" in {
+      "return not found if there are no schemas matching the query" in {
         val (status, res) = schema.getFromVendor(faultyVendor)
         status === NotFound
         res must contain("There are no schemas for this vendor")
@@ -230,6 +332,35 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             s"""select count(*)
             from ${tableName}
             where vendor = '${faultyVendor}';""").first === 0
+        }
+      }
+    }
+
+    "for getFromVendorOnlyKeys" should {
+
+      "return schemas properly" in {
+        val (status, res) = schema.getFromVendorOnlyKeys(vendor)
+        status === OK
+        res must contain(vendor)
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}';""").first === 1
+        }
+      }
+
+      "return not found if there are no schemas matching the query" in {
+        val (status, res) = schema.getFromVendorOnlyKeys(faultyVendor)
+        status === NotFound
+        res must contain("There are no schemas for this vendor")
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${faultyVendor}';"""").first === 0
         }
       }
     }
