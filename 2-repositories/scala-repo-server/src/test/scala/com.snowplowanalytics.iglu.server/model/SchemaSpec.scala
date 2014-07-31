@@ -141,10 +141,10 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
     }
 
-    "for getOnlyKeys" should {
+    "for getMetadata" should {
 
       "retrieve metadata about a schema properly" in {
-        val (status, res) = schema.getOnlyKeys(vendor, name, format, version)
+        val (status, res) = schema.getMetadata(vendor, name, format, version)
         status === OK
         res must contain(vendor) and contain(name) and contain(format) and
           contain(version)
@@ -162,7 +162,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "return not found if the schema is not in the db" in {
         val (status, res) =
-          schema.getOnlyKeys(vendor, faultyName, format, version)
+          schema.getMetadata(vendor, faultyName, format, version)
         status === NotFound
         res must contain("There are no schemas available here")
 
@@ -211,10 +211,10 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
     }
 
-    "for getFromFormatOnlyKeys" should {
+    "for getMetadataFromFormat" should {
 
       "retrieve schemas properly" in {
-        val (status, res) = schema.getFromFormatOnlyKeys(vendor, name, format)
+        val (status, res) = schema.getMetadataFromFormat(vendor, name, format)
         status === OK
         res must contain(vendor) and contain(name) and contain(format)
 
@@ -230,7 +230,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "return not found if there are no schemas matching the query" in {
         val (status, res) =
-          schema.getFromFormatOnlyKeys(vendor, faultyName, format)
+          schema.getMetadataFromFormat(vendor, faultyName, format)
         status === NotFound
         res must contain ("There are no schemas for this vendor, name, format")
 
@@ -276,10 +276,10 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
     }
 
-    "for getFromNameOnlyKeys" should {
+    "for getMetadataFromName" should {
 
       "retrieve schemas properly" in {
-        val (status, res) = schema.getFromNameOnlyKeys(vendor, name)
+        val (status, res) = schema.getMetadataFromName(vendor, name)
         status === OK
         res must contain(vendor) and contain(name)
 
@@ -293,7 +293,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "return not found if there are no schemas matching the query" in {
-        val (status, res) = schema.getFromNameOnlyKeys(vendor, faultyName)
+        val (status, res) = schema.getMetadataFromName(vendor, faultyName)
         status === NotFound
         res must contain("There are no schemas for this vendor, name")
 
@@ -336,10 +336,10 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
     }
 
-    "for getFromVendorOnlyKeys" should {
+    "for getMetadataFromVendor" should {
 
       "return schemas properly" in {
-        val (status, res) = schema.getFromVendorOnlyKeys(vendor)
+        val (status, res) = schema.getMetadataFromVendor(vendor)
         status === OK
         res must contain(vendor)
 
@@ -352,7 +352,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "return not found if there are no schemas matching the query" in {
-        val (status, res) = schema.getFromVendorOnlyKeys(faultyVendor)
+        val (status, res) = schema.getMetadataFromVendor(faultyVendor)
         status === NotFound
         res must contain("There are no schemas for this vendor")
 

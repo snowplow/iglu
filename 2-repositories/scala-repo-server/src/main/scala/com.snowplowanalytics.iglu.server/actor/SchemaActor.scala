@@ -44,9 +44,21 @@ object SchemaActor {
     version: String)
 
   /**
+   * Message to send in order to retrieve metadata about a schema based on its
+   * (vendor, name, format, version) tuple.
+   */
+  case class GetMetadata(vendor: String, name: String, format: String,
+    version: String)
+
+  /**
    * Message to send in order to get every version of a schema.
    */
   case class GetSchemasFromFormat(vendor: String, name: String, format: String)
+
+  /**
+   * Message to send in order to get metadata about every version of a schema.
+   */
+  case class GetMetadataFromFormat(vendor: String, name: String, format: String)
 
   /**
    * Message to send in order to retrieve every format, version combination of
@@ -55,9 +67,21 @@ object SchemaActor {
   case class GetSchemasFromName(vendor: String, name: String)
 
   /**
-   * Message to send in order to retrieve every schema of a vendor.
+   * Message to send in order to retrieve metadata about every format, version
+   * combination of a schema.
+   */
+  case class GetMetadataFromName(vendor: String, name: String)
+
+  /**
+   * Message to send in order to retrieve every schema belonging to a vendor.
    */
   case class GetSchemasFromVendor(vendor: String)
+
+  /**
+   * Message to send in order to retrieve metadata about every schema belonging
+   * to a vendor.
+   */
+  case class GetMetadataFromVendor(vendor: String)
 
   /**
    * Message to send in order to validate that a schema is self-describing.
@@ -86,18 +110,35 @@ class SchemaActor extends Actor {
     // Send the result of the DAO's get method back to the message's sender
     case GetSchema(v, n, f, vs) => sender ! schema.get(v, n, f, vs)
 
+    // Send the result of the DAO's getMetadata method back to the message's
+    // sender
+    case GetMetadata(v, n, f, vs) => sender ! schema.getMetadata(v, n, f, vs)
+
     // Send the result of the DAO's getFromFormat method back to the
     // message's sender
     case GetSchemasFromFormat(v, n, f) =>
       sender ! schema.getFromFormat(v, n, f)
 
+    // Send the result of the DAO's getMetadataFromFormat back to the
+    // message's sender
+    case GetMetadataFromFormat(v, n, f) =>
+      sender ! schema.getMetadataFromFormat(v, n, f)
+
     // Send the result of the DAO's getFromName method back to the message's
     // sender
     case GetSchemasFromName(v, n) => sender ! schema.getFromName(v, n)
 
+    // Send the result of the DAO's getMetadataFromName method back to the
+    // message's sender
+    case GetMetadataFromName(v, n) => sender ! schema.getMetadataFromName(v, n)
+
     // Send the result of the DAO's getFromVendor method back to the message's
     // sender
     case GetSchemasFromVendor(v) => sender ! schema.getFromVendor(v)
+
+    // Send the result of the DAO's getMetadataFromVendr method back to the
+    // message's sender
+    case GetMetadataFromVendor(v) => sender ! schema.getMetadataFromVendor(v)
 
     //Send the result of the DAO's validate method back to the message's sender
     case Validate(j) => sender ! schema.validate(j)

@@ -113,7 +113,7 @@ class SchemaDAO(val db: Database) extends DAO {
     version: String, created: String)
   case class ResSchemaVendor(schema: JValue, name: String, format: String,
     version: String, created: String)
-  case class ResSchemaKeys(vendor: String, name: String, format: String,
+  case class ResMetadata(vendor: String, name: String, format: String,
     version: String, created: String)
 
   /**
@@ -153,12 +153,12 @@ class SchemaDAO(val db: Database) extends DAO {
    * @return a status code and json containing metadata about every schema
    * of this vendor pair
    */
-  def getFromVendorOnlyKeys(vendor: String): (StatusCode, String) =
+  def getMetadataFromVendor(vendor: String): (StatusCode, String) =
     db withDynSession {
-      val l: List[ResSchemaKeys] =
+      val l: List[ResMetadata] =
         schemas.filter(_.vendor === vendor).
         map(s => (s.vendor, s.name, s.format, s.version, s.created)).list.
-        map(s => ResSchemaKeys(s._1, s._2, s._3, s._4,
+        map(s => ResMetadata(s._1, s._2, s._3, s._4,
           s._5.toString("MM/dd/yyyy HH:mm:ss")))
 
       if (l.length > 0) {
@@ -199,14 +199,14 @@ class SchemaDAO(val db: Database) extends DAO {
    * @return a status code and json containing metadata about the schemas
    * satifsfying the query pair
    */
-  def getFromNameOnlyKeys(vendor: String, name: String): (StatusCode, String) =
+  def getMetadataFromName(vendor: String, name: String): (StatusCode, String) =
     db withDynSession {
-      val l: List[ResSchemaKeys] =
+      val l: List[ResMetadata] =
         schemas.filter(s =>
           s.vendor === vendor &&
           s.name === name).
         map(s => (s.vendor, s.name, s.format, s.version, s.created)).list.
-        map(s => ResSchemaKeys(s._1, s._2, s._3, s._4,
+        map(s => ResMetadata(s._1, s._2, s._3, s._4,
           s._5.toString("MM/dd/yyyy HH:mm:ss")))
 
       if (l.length > 0) {
@@ -253,15 +253,15 @@ class SchemaDAO(val db: Database) extends DAO {
    * @return a status code and json containing metadata about every version of a
    * specific schema pair
    */
-  def getFromFormatOnlyKeys(vendor: String, name: String, format: String):
+  def getMetadataFromFormat(vendor: String, name: String, format: String):
     (StatusCode, String) =
       db withDynSession {
-        val l: List[ResSchemaKeys] = schemas.filter(s =>
+        val l: List[ResMetadata] = schemas.filter(s =>
             s.vendor === vendor &&
             s.name === name &&
             s.format === format).
           map(s => (s.vendor, s.name, s.format, s.version, s.created)).list.
-          map(s => ResSchemaKeys(s._1, s._2, s._3, s._4,
+          map(s => ResMetadata(s._1, s._2, s._3, s._4,
             s._5.toString("MM/dd/yyyy HH:mm:ss")))
 
         if (l.length > 0) {
@@ -307,7 +307,7 @@ class SchemaDAO(val db: Database) extends DAO {
    * @param version the schema's version
    * @return a status code and json containing the metadata pair
    */
-  def getOnlyKeys(vendor: String, name: String, format: String,
+  def getMetadata(vendor: String, name: String, format: String,
     version: String): (StatusCode, String) =
       db withDynSession {
         val l = schemas.filter(s =>
@@ -316,7 +316,7 @@ class SchemaDAO(val db: Database) extends DAO {
             s.format === format &&
             s.version === version).
           map(s => (s.vendor, s.name, s.format, s.version, s.created)).list.
-          map(s => ResSchemaKeys(s._1, s._2, s._3, s._4,
+          map(s => ResMetadata(s._1, s._2, s._3, s._4,
             s._5.toString("MM/dd/yyyy HH:mm:ss")))
 
         if (l.length == 1) {
