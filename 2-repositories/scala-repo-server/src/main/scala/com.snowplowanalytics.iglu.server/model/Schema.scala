@@ -106,12 +106,14 @@ class SchemaDAO(val db: Database) extends DAO {
   val schemas = TableQuery[Schemas]
 
   //Case classes for json formatting
-  case class ReturnedSchema(schema: JValue, created: String)
-  case class ReturnedSchemaFormat(schema: JValue, version: String,
+  case class ResSchema(schema: JValue, created: String)
+  case class ResSchemaFormat(schema: JValue, version: String,
     created: String)
-  case class ReturnedSchemaName(schema: JValue, format: String,
+  case class ResSchemaName(schema: JValue, format: String,
     version: String, created: String)
-  case class ReturnedSchemaVendor(schema: JValue, name: String, format: String,
+  case class ResSchemaVendor(schema: JValue, name: String, format: String,
+    version: String, created: String)
+  case class ResSchemaKeys(vendor: String, name: String, format: String,
     version: String, created: String)
 
   /**
@@ -126,16 +128,16 @@ class SchemaDAO(val db: Database) extends DAO {
 
   /**
    * Gets every schema belongig to a specific vendor.
-   * @param vendor for which we wish to retrieve the schemas
+   * @param vendor schemas' vendor
    * @return a status code and json containing the list of all schemas
-   * belonging to this vendor pair
+   * of this vendor pair
    */
-  def getFromVendor(vendor: String): (StatusCode, String) = {
+  def getFromVendor(vendor: String): (StatusCode, String) =
     db withDynSession {
-      val l: List[ReturnedSchemaVendor] =
+      val l: List[ResSchemaVendor] =
         schemas.filter(_.vendor === vendor).
           map(s => (s.schema, s.name, s.format, s.version, s.created)).list.
-          map(s => ReturnedSchemaVendor(parse(s._1), s._2, s._3, s._4,
+          map(s => ResSchemaVendor(parse(s._1), s._2, s._3, s._4,
             s._5.toString("MM/dd/yyyy HH:mm:ss")))
 
       if (l.length > 0) {
@@ -144,7 +146,27 @@ class SchemaDAO(val db: Database) extends DAO {
         (NotFound, result(404, "There are no schemas for this vendor"))
       }
     }
-  }
+
+  /**
+   * Get metadata about every schemas belonging to a specific vendor.
+   * @param vendor schemas' vendor
+   * @return a status code and json containing metadata about every schema
+   * of this vendor pair
+   */
+  def getFromVendorOnlyKeys(vendor: String): (StatusCode, String) =
+    db withDynSession {
+      val l: List[ResSchemaKeys] =
+        schemas.filter(_.vendor === vendor).
+        map(s => s.vendor, s.name, s.format, s.version, s.created).list.
+        map(s => ResSchemaKeys(s._1, s._2, s._3, s._4,
+          s._5.toString("MM/dd/yyyy HH:mm:ss")))
+
+      if (l.length > 0) {
+        (OK, writePretty(l))
+      } else {
+        (NotFound, result(404, "There are no schemas for this vendor"))
+      }
+    }
 
   /**
    * Gets every schemas for this specific vendor, name combination.
@@ -153,12 +175,12 @@ class SchemaDAO(val db: Database) extends DAO {
    * @return a status code and json containing the list of all schemas
    * satifsfying the query pair
    */
-  def getFromName(vendor: String, name: String): (StatusCode, String) = {
+  def getFromName(vendor: String, name: String): (StatusCode, String) =
     db withDynSession {
-      val l: List[ReturnedSchemaName] =
+      val l: List[ResSchemaName] =
         schemas.filter(s => s.vendor === vendor && s.name === name).
           map(s => (s.schema, s.format, s.version, s.created)).list.
-          map(s => ReturnedSchemaName(parse(s._1), s._2, s._3,
+          map(s => ResSchemaName(parse(s._1), s._2, s._3,
             s._4.toString("MM/dd/yyyy HH:mm:ss")))
 
       if (l.length > 0) {
@@ -168,7 +190,32 @@ class SchemaDAO(val db: Database) extends DAO {
           "There are no schemas for this vendor, name combination"))
       }
     }
-  }
+
+  /**
+   * Gets metadata about every schemas for this specific venodr, name
+   * combination.
+   * @param vendor schemas' vendor
+   * @param name schemas' name
+   * @return a status code and json containing metadata about the schemas
+   * satifsfying the query pair
+   */
+  def getFromNameOnlyKeys(vendor: String, name: String): (StatusCode, String) =
+    db withDynSession {
+      val l: List[ResSchemaKeys] =
+        schemas.filter(s =>
+          s.vendor === vendor &&
+          s.name === name).
+        map(s => (s.vendor, s.name, s.format, s.version, s.created)).list.
+        map(s => ResSchemaName(s._1, s._2, s._3, s._4,
+          s._5.toString("MM/dd/yyyy HH:mm:ss")))
+
+      if (l.length > 0) {
+        (OK, writePretty(l))
+      } else {
+        (NotFound, result(404,
+          "There are no schemas for this vendor, name combination"))
+      }
+    }
 
   /**
    * Retrieves every version of a schema.
@@ -179,15 +226,15 @@ class SchemaDAO(val db: Database) extends DAO {
    * specific schema pair
    */
   def getFromFormat(vendor: String, name: String, format: String):
-    (StatusCode, String) = {
+    (StatusCode, String) =
       db withDynSession {
-        val l: List[ReturnedSchemaFormat] =
+        val l: List[ResSchemaFormat] =
           schemas.filter(s =>
             s.vendor === vendor &&
             s.name === name &&
             s.format === format).
           map(s => (s.schema, s.version, s.created)).list.
-          map(s => ReturnedSchemaFormat(parse(s._1), s._2,
+          map(s => ResSchemaFormat(parse(s._1), s._2,
             s._3.toString("MM/dd/yyyy HH:mm:ss")))
 
         if (l.length > 0) {
@@ -197,10 +244,36 @@ class SchemaDAO(val db: Database) extends DAO {
             "There are no schemas for this vendor, name, format combination"))
         }
       }
-    }
 
   /**
-   * Get a single schema specifying all its characteristics
+   * Gets metadata about every version of a schema.
+   * @param vendor schemas' vendor
+   * @param name schemas' name
+   * @param format schemas' format
+   * @return a status code and json containing metadata about every version of a
+   * specific schema pair
+   */
+  def getFromFormatOnlyKeys(vendor: String, name: String, format: String):
+    (StatusCode, String) =
+      db withDynSession {
+        val l: List[ResSchema] = schemas.filter(s =>
+            s.vendor === vendor &&
+            s.name === name &&
+            s.format === format).
+          map(s => (s.vendor, s.name, s.format, s.version, s.created)).list
+          map(s => ResSchemaKeys(s._1, s._2, s._3, s._4,
+            s._5.toString("MM/dd/yyyy HH:mm:ss")))
+
+        if (l.length > 0) {
+          (OK, writePretty(l))
+        } else {
+          (NotFound, result(404,
+            "There are no schemas for this vendor, name, format, combination"))
+        }
+      }
+
+  /**
+   * Gets a single schema specifying all its characteristics.
    * @param vendor the schema's vendor
    * @param name the schema's name
    * @param format the schema's format
@@ -208,15 +281,15 @@ class SchemaDAO(val db: Database) extends DAO {
    * @return a status code and json containing the schema pair
    */
   def get(vendor: String, name: String, format: String, version: String):
-    (StatusCode, String) = {
+    (StatusCode, String) =
       db withDynSession {
-        val l: List[ReturnedSchema] = schemas.filter(s =>
+        val l: List[ResSchema] = schemas.filter(s =>
             s.vendor === vendor &&
             s.name === name &&
             s.format === format &&
             s.version === version).
           map(s => (s.schema, s.created)).list.
-          map(s => ReturnedSchema(parse(s._1),
+          map(s => ResSchema(parse(s._1),
             s._2.toString("MM/dd/yyyy HH:mm:ss")))
 
         if (l.length == 1) {
@@ -225,7 +298,33 @@ class SchemaDAO(val db: Database) extends DAO {
           (NotFound, result(404, "There are no schemas available here"))
         }
       }
-    }
+
+  /**
+   * Gets only metadata about the schema: its vendor, name, format and version.
+   * @param vendor the schema's vendor
+   * @param name the schema's name
+   * @param format the schea's format
+   * @param version the schema's version
+   * @return a status code and json containing the metadata pair
+   */
+  def getOnlyKeys(vendor: String, name: String, format: String,
+    version: String): (StatusCode, String) =
+      db withDynSession {
+        val l = schemas.filter(s =>
+            s.vendor === vendor &&
+            s.name === name &&
+            s.format === format &&
+            s.version === version).
+          map(s => (s.vendor, s.name, s.format, s.version, s.created)).list.
+          map(s => ResSchemaKeys(s._1, s._2, s._3, s._4,
+            s._5.toString("MM/dd/yyyy HH:mm:ss")))
+
+        if (l.length == 1) {
+          (OK, writePretty(l(0)))
+        } else {
+          (NotFound, result(404, "There are no schemas available here"))
+        }
+      }
 
   /**
    * Gets a single schema without the metadata associated
@@ -279,7 +378,7 @@ class SchemaDAO(val db: Database) extends DAO {
    * @param json the json to be validated
    * @return a status code and json response pair
    */
-  def validate(json: String): (StatusCode, String) = {
+  def validate(json: String): (StatusCode, String) =
     parseOpt(json) match {
       case Some(jvalue) => {
         val jsonNode = asJsonNode(jvalue)
@@ -294,5 +393,4 @@ class SchemaDAO(val db: Database) extends DAO {
       }
       case None => (BadRequest, result(400, "The json provided is not valid"))
     }
-  }
 }
