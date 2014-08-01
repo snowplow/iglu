@@ -37,9 +37,16 @@ class CatalogServiceSpec extends Specification
   val readKey = "6eadba20-9b9f-4648-9c23-770272f8d627"
   val otherKey = "83e7c051-cd68-4e44-8b36-09182fa158d5"
 
-  val vendorUrl = "/com.snowplowanalytics.snowplow"
-  val nameUrl = "/com.snowplowanalytics.snowplow/ad_click"
-  val formatUrl = "/com.snowplowanalytics.snowplow/ad_click/jsonschema"
+  val vendor = "com.snowplowanalytics.snowplow"
+  val name = "ad_click"
+  val format = "jsonschema"
+
+  val vendorUrl = s"/${vendor}"
+  val vendorMetaUrl = s"/${vendor}?filter=metadata"
+  val nameUrl = s"/${vendor}/${name}"
+  val nameMetaUrl = s"/${vendor}/${name}?filter=metadata"
+  val formatUrl = s"/${vendor}/${name}/${format}"
+  val formatMetaUrl = s"/${vendor}/${name}/${format}?filter=metadata"
   val otherVendorUrl = "/com.benfradet.project"
   val otherNameUrl = "/com.benfradet.project/ad_click"
   val otherFormatUrl = "/com.benfradet.project/ad_click/jsonschema"
@@ -59,6 +66,14 @@ class CatalogServiceSpec extends Specification
               contain("\"name\" : \"ad_click\"") and
               contain("\"name\" : \"ad_click2\"")
           }
+        }
+
+        "return metadata about every schemas for this vendor" in {
+          Get(vendorMetaUrl) ~> addHeader("api-key", readKey) ~> routes ~>
+            check {
+              status === OK
+              responseAs[String] must contain(vendor)
+            }
         }
 
         "return a 404 for a vendor which has no schemas" in {
@@ -89,6 +104,13 @@ class CatalogServiceSpec extends Specification
           }
         }
 
+        "return metadata about every schemas having this vendor, name" in {
+          Get(nameMetaUrl) ~> addHeader("api-key", readKey) ~> routes ~> check {
+            status === OK
+            responseAs[String] must contain(vendor) and contain(name)
+          }
+        }
+
         "return a 404 for a vendor/name combination which has no schemas" in {
           Get(otherNameUrl) ~> addHeader("api-key", otherKey) ~> routes ~>
             check {
@@ -115,6 +137,16 @@ class CatalogServiceSpec extends Specification
               contain("\"version\" : \"1-0-0\"") and
               contain("\"version\" : \"1-0-1\"")
           }
+        }
+
+        """return metadata about every schemas having this vendor, name, format
+        combination""" in {
+          Get(formatMetaUrl) ~> addHeader("api-key", readKey) ~> routes ~>
+            check {
+              status === OK
+              responseAs[String] must contain(vendor) and contain(name) and
+                contain(format)
+            }
         }
 
         """return a 404 for a vendor/name/format combination which has

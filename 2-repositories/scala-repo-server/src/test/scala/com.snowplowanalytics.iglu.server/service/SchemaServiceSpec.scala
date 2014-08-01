@@ -63,6 +63,8 @@ class SchemaServiceSpec extends Specification
 
   val url = "/" + vendor + "/ad_click/" + format + "/" + version
   val faultyUrl = "/" +  vendor + "/ad_click/jsonchema/" + version
+  val metaUrl = "/" + vendor + "/ad_click/" + format + "/" + version +
+    "?filter=metadata"
   val postUrl1 = "/" + vendor + "/unit_test1/" + format + "/" + version
   val postUrl2 = "/" + vendor + "/unit_test2/" + format + "/" + version +
     "?json=" + validSchemaUri
@@ -85,6 +87,14 @@ class SchemaServiceSpec extends Specification
         Get(url) ~> addHeader("api-key", readKey) ~> routes ~> check {
           status === OK
           responseAs[String] must contain("\"name\" : \"ad_click\"")
+        }
+      }
+
+      "return proper metadata for well-formed GET requests" in {
+        Get(metaUrl) ~> addHeader("api-key", readKey) ~> routes ~> check {
+          status === OK
+          responseAs[String] must contain(vendor) and contain("ad_click") and
+            contain(format) and contain(version)
         }
       }
 
