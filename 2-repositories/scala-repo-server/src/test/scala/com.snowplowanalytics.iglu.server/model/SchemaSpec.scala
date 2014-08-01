@@ -360,7 +360,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where vendor = '${faultyVendor}';"""").first === 0
+            where vendor = '${faultyVendor}';""").first === 0
         }
       }
     }
