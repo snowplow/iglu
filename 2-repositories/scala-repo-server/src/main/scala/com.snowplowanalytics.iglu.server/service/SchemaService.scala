@@ -78,17 +78,22 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
     pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
     "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) => {
       auth { authTuple =>
-        if (v startsWith authTuple._1) {
-          pathEnd {
+        respondWithMediaType(`application/json`) {
+          if (v startsWith authTuple._1) {
             get {
-              respondWithMediaType(`application/json`) {
-                complete {
-                  (schema ? GetSchema(v, n, f, vs)).mapTo[(StatusCode, String)]
+              anyParam('filter.?) { filter =>
+                filter match {
+                  case Some("metadata") => complete {
+                    (schema ? GetMetadata(v, n, f, vs)).
+                      mapTo[(StatusCode, String)]
+                  }
+                  case _ => complete {
+                    (schema ? GetSchema(v, n, f, vs)).
+                      mapTo[(StatusCode, String)]
+                  }
                 }
               }
-            }
-          } ~
-          respondWithMediaType(`application/json`) {
+            } ~
             validateJson { json =>
               post {
                 if (authTuple._2 == "write") {
@@ -102,9 +107,9 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
                 }
               }
             }
+          } else {
+            complete(Unauthorized, "You do not have sufficient privileges")
           }
-        } else {
-          complete(Unauthorized, "You do not have sufficient privileges")
         }
       }
     }}

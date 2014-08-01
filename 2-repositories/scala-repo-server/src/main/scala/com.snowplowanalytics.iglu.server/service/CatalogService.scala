@@ -67,23 +67,42 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
             get {
               pathPrefix("[a-zA-Z0-9_-]+".r) { n => {
                 pathPrefix("[a-z]+".r) { f => {
-                  pathEnd {
-                    complete {
-                      (schema ? GetSchemasFromFormat(v, n, f)).
-                        mapTo[(StatusCode, String)]
+                  anyParam('filter.?) { filter =>
+                    filter match {
+                      case Some("metadata") => complete {
+                        (schema ? GetMetadataFromFormat(v, n, f)).
+                          mapTo[(StatusCode, String)]
+                      }
+                      case _ => complete {
+                        (schema ? GetSchemasFromFormat(v, n, f)).
+                          mapTo[(StatusCode, String)]
+                      }
                     }
                   }
                 }} ~
-                pathEnd {
-                  complete {
-                    (schema ? GetSchemasFromName(v, n)).
-                      mapTo[(StatusCode, String)]
+                anyParam('filter.?) { filter =>
+                  filter match {
+                    case Some("metadata") => complete {
+                      (schema ? GetMetadataFromName(v, n)).
+                        mapTo[(StatusCode, String)]
+                    }
+                    case _ => complete {
+                      (schema ? GetSchemasFromName(v, n)).
+                        mapTo[(StatusCode, String)]
+                    }
                   }
                 }
               }} ~
-              pathEnd {
-                complete {
-                  (schema ? GetSchemasFromVendor(v)).mapTo[(StatusCode, String)]
+              anyParam('filter.?) { filter =>
+                filter match {
+                  case Some("metadata") => complete {
+                    (schema ? GetMetadataFromVendor(v)).
+                      mapTo[(StatusCode, String)]
+                  }
+                  case _ => complete {
+                    (schema ? GetSchemasFromVendor(v)).
+                      mapTo[(StatusCode, String)]
+                  }
                 }
               }
             }
