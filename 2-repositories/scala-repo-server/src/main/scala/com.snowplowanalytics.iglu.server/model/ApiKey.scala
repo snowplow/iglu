@@ -50,13 +50,13 @@ class ApiKeyDAO(val db: Database) extends DAO {
    * @param uid api key uuid serving as primary key
    * @param owner of the api key
    * @param permission api key permission in (read, write, super)
-   * @param created date at which point the api key was created
+   * @param createdAt date at which point the api key was created
    */
   case class ApiKey(
     uid: UUID,
     owner: String,
     permission: String,
-    created: LocalDateTime
+    createdAt: LocalDateTime
   )
 
   /**
@@ -67,10 +67,11 @@ class ApiKeyDAO(val db: Database) extends DAO {
     def owner = column[String]("vendor", O.DBType("varchar(200)"), O.NotNull)
     def permission = column[String]("permission",
       O.DBType("varchar(20)"), O.NotNull, O.Default[String]("read"))
-    def created = column[LocalDateTime]("created", O.DBType("timestamp"),
+    def createdAt = column[LocalDateTime]("createdAt", O.DBType("timestamp"),
       O.NotNull)
 
-    def * = (uid, owner, permission, created) <> (ApiKey.tupled, ApiKey.unapply)
+    def * = (uid, owner, permission, createdAt) <>
+      (ApiKey.tupled, ApiKey.unapply)
   }
 
   //Object used to access the table
