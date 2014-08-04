@@ -28,7 +28,14 @@ import spray.routing.HttpService
  */
 trait Api extends HttpService with CoreActors with Core {
 
-  lazy val routes = new ApiKeyGenService(apiKey).route ~
-    new SchemaService(schema, apiKey).route ~
-    new CatalogService(schema, apiKey).route
+  lazy val routes =
+    pathPrefix("api") {
+      pathPrefix("auth") {
+        new ApiKeyGenService(apiKey).route
+      } ~
+      pathPrefix("schemas") {
+        new SchemaService(schema, apiKey).route ~
+        new CatalogService(schema, apiKey).route
+      }
+    }
 }

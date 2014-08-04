@@ -58,7 +58,7 @@ class ApiKeyGenService(apiKey: ActorRef)
    * Route handled by the api key generation service.
    */
   val route = rejectEmptyResponse {
-    path("apikeygen") {
+    path("keygen") {
       respondWithMediaType(`application/json`) {
         auth { authTuple =>
           if(authTuple._2 == "super") {
