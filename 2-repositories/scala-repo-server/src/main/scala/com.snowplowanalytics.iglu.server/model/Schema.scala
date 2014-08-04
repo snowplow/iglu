@@ -88,7 +88,7 @@ class SchemaDAO(val db: Database) extends DAO {
    */
   class Schemas(tag: Tag) extends Table[Schema](tag, "schemas") {
     def schemaId = column[Int](
-      "schemaid", O.AutoInc, O.PrimaryKey, O.DBType("serial"))
+      "schemaId", O.AutoInc, O.PrimaryKey, O.DBType("serial"))
     def vendor = column[String]("vendor", O.DBType("varchar(200)"), O.NotNull)
     def name = column[String]("name", O.DBType("varchar(50)"), O.NotNull)
     def format = column[String]("format", O.DBType("varchar(50)"), O.NotNull)
