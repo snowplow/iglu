@@ -54,9 +54,10 @@ class ApiKeyGenServiceSpec extends Specification
   var readKey = ""
   var writeKey = ""
 
-  val deleteUrl = "/apikeygen?key="
-  val ownerUrl = "/apikeygen?owner=com.test.dont.take.this"
-  val conflictingOwnerUrl = "/apikeygen?owner=com.test.dont"
+  val start = "/api/auth/"
+  val deleteUrl = start + "keygen?key="
+  val ownerUrl = start + "keygen?owner=com.test.dont.take.this"
+  val conflictingOwnerUrl = start + "keygen?owner=com.test.dont"
 
   sequential
 

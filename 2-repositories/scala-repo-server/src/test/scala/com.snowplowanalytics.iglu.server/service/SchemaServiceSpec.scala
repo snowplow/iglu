@@ -61,20 +61,21 @@ class SchemaServiceSpec extends Specification
   val format = "jsonschema"
   val version = "1-0-0"
 
-  val url = "/" + vendor + "/ad_click/" + format + "/" + version
-  val faultyUrl = "/" +  vendor + "/ad_click/jsonchema/" + version
-  val metaUrl = "/" + vendor + "/ad_click/" + format + "/" + version +
+  val start = "/api/schemas/"
+  val url = start + vendor + "/ad_click/" + format + "/" + version
+  val faultyUrl = start +  vendor + "/ad_click/jsonchema/" + version
+  val metaUrl = start + vendor + "/ad_click/" + format + "/" + version +
     "?filter=metadata"
-  val postUrl1 = "/" + vendor + "/unit_test1/" + format + "/" + version
-  val postUrl2 = "/" + vendor + "/unit_test2/" + format + "/" + version +
+  val postUrl1 = start + vendor + "/unit_test1/" + format + "/" + version
+  val postUrl2 = start + vendor + "/unit_test2/" + format + "/" + version +
     "?json=" + validSchemaUri
-  val postUrl3 = "/" + vendor + "/unit_test3/" + format + "/" + version
-  val postUrl4 = "/" + vendor + "/unit_test4/" + format + "/" + version +
+  val postUrl3 = start + vendor + "/unit_test3/" + format + "/" + version
+  val postUrl4 = start + vendor + "/unit_test4/" + format + "/" + version +
     "?json=" + validSchemaUri
   val postUrl6 = url + "?json=" + validSchemaUri
-  val postUrl7 = "/" + vendor + "/unit_test7/" + format + "/" + version +
+  val postUrl7 = start + vendor + "/unit_test7/" + format + "/" + version +
     "?json=" + invalidSchemaUri
-  val postUrl8 = "/" + vendor + "/unit_test8/" + format + "/" + version +
+  val postUrl8 = start + vendor + "/unit_test8/" + format + "/" + version +
     "?json=" + notJson
 
   sequential

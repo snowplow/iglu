@@ -41,15 +41,17 @@ class CatalogServiceSpec extends Specification
   val name = "ad_click"
   val format = "jsonschema"
 
-  val vendorUrl = s"/${vendor}"
-  val vendorMetaUrl = s"/${vendor}?filter=metadata"
-  val nameUrl = s"/${vendor}/${name}"
-  val nameMetaUrl = s"/${vendor}/${name}?filter=metadata"
-  val formatUrl = s"/${vendor}/${name}/${format}"
-  val formatMetaUrl = s"/${vendor}/${name}/${format}?filter=metadata"
-  val otherVendorUrl = "/com.benfradet.project"
-  val otherNameUrl = "/com.benfradet.project/ad_click"
-  val otherFormatUrl = "/com.benfradet.project/ad_click/jsonschema"
+  val start = "/api/schemas/"
+
+  val vendorUrl = start + s"${vendor}"
+  val vendorMetaUrl = start + s"${vendor}?filter=metadata"
+  val nameUrl = start + s"${vendor}/${name}"
+  val nameMetaUrl = start + s"${vendor}/${name}?filter=metadata"
+  val formatUrl = start + s"${vendor}/${name}/${format}"
+  val formatMetaUrl = start + s"${vendor}/${name}/${format}?filter=metadata"
+  val otherVendorUrl = start + "com.benfradet.project"
+  val otherNameUrl = start + "com.benfradet.project/ad_click"
+  val otherFormatUrl = start + "com.benfradet.project/ad_click/jsonschema"
 
   sequential
   
