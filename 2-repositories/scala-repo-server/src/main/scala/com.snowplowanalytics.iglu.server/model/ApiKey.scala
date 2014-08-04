@@ -67,7 +67,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
     def owner = column[String]("vendor", O.DBType("varchar(200)"), O.NotNull)
     def permission = column[String]("permission",
       O.DBType("varchar(20)"), O.NotNull, O.Default[String]("read"))
-    def createdAt = column[LocalDateTime]("createdAt", O.DBType("timestamp"),
+    def createdAt = column[LocalDateTime]("createdat", O.DBType("timestamp"),
       O.NotNull)
 
     def * = (uid, owner, permission, createdAt) <>

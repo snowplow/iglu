@@ -88,14 +88,14 @@ class SchemaDAO(val db: Database) extends DAO {
    */
   class Schemas(tag: Tag) extends Table[Schema](tag, "schemas") {
     def schemaId = column[Int](
-      "schemaId", O.AutoInc, O.PrimaryKey, O.DBType("serial"))
+      "schemaid", O.AutoInc, O.PrimaryKey, O.DBType("serial"))
     def vendor = column[String]("vendor", O.DBType("varchar(200)"), O.NotNull)
     def name = column[String]("name", O.DBType("varchar(50)"), O.NotNull)
     def format = column[String]("format", O.DBType("varchar(50)"), O.NotNull)
     def version = column[String]("version", O.DBType("varchar(50)"), O.NotNull)
     def schema = column[String]("schema", O.DBType("text"), O.NotNull)
     //def schema = column[JValue]("schema", O.DBType("json"), O.NotNull)
-    def createdAt = column[LocalDateTime]("createdAt", O.DBType("timestamp"),
+    def createdAt = column[LocalDateTime]("createdat", O.DBType("timestamp"),
       O.NotNull)
 
     def * = (schemaId, vendor, name, format, version, schema, createdAt) <>
