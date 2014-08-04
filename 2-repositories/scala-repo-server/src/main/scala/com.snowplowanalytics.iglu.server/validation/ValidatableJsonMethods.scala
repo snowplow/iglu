@@ -68,14 +68,16 @@ object ValidatableJsonMethods {
    *         ProcessingMessages
    */
   def validateAgainstSchema(instance: JsonNode, schema: JsonNode):
-  Option[JsonNode] = {
+  ValidatedNel[JsonNode] = {
 
     val report = JsonSchemaValidator.validateUnchecked(schema, instance)
     val msgs = report.iterator.toList
     msgs match {
-      case x :: xs if !report.isSuccess => None
-      case Nil     if  report.isSuccess => Some(instance)
-      case _                            => None
+      case x :: xs if !report.isSuccess =>
+        NonEmptyList[ProcessingMessage](x, xs: _*).fail
+      case Nil if report.isSuccess => instance.success
+      case _ => throw new RuntimeException(s"""validation report success
+        ${report.isSuccess} conflicts with message count ${msgs.length}""")
     }
   }
 

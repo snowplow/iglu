@@ -47,6 +47,10 @@ import com.github.fge.jsonschema.core.report.{
 // Scala
 import scala.collection.JavaConversions._
 
+// Scalaz
+import scalaz._
+import Scalaz._
+
 // Slick
 import Database.dynamicSession
 
@@ -381,9 +385,10 @@ class SchemaDAO(val db: Database) extends DAO {
           "com.snowplowanalytics.self-desc", "schema", "jsonschema", "1-0-0")))
 
         validateAgainstSchema(jsonNode, schemaNode) match {
-          case Some(j) => (OK, json)
-          case _ => (BadRequest, result(400,
-            "The json provided is not a valid self-describing json"))
+          case scalaz.Success(j) => (OK, json)
+          case Failure(l) => (BadRequest, result(400,
+            "The json provided is not a valid self-describing json " +
+            l.map(_.toString).toString))
         }
       }
       case None => (BadRequest, result(400, "The json provided is not valid"))
