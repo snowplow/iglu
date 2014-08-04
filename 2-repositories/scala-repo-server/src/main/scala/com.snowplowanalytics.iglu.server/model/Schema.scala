@@ -106,15 +106,9 @@ class SchemaDAO(val db: Database) extends DAO {
   val schemas = TableQuery[Schemas]
 
   //Case classes for json formatting
-  case class ResSchema(schema: JValue, createdAt: String)
-  case class ResSchemaFormat(schema: JValue, version: String,
-    createdAt: String)
-  case class ResSchemaName(schema: JValue, format: String,
-    version: String, createdAt: String)
-  case class ResSchemaVendor(schema: JValue, name: String, format: String,
-    version: String, createdAt: String)
+  case class ResSchema(schema: JValue, location: String, createdAt: String)
   case class ResMetadata(vendor: String, name: String, format: String,
-    version: String, createdAt: String)
+    version: String, location: String, createdAt: String)
 
   /**
    * Creates the schemas table.
@@ -126,6 +120,7 @@ class SchemaDAO(val db: Database) extends DAO {
    */
   def dropTable = db withDynSession { schemas.ddl.drop }
 
+
   /**
    * Gets every schema belongig to a specific vendor.
    * @param vendor schemas' vendor
@@ -134,11 +129,11 @@ class SchemaDAO(val db: Database) extends DAO {
    */
   def getFromVendor(vendor: String): (StatusCode, String) =
     db withDynSession {
-      val l: List[ResSchemaVendor] =
-        schemas.filter(_.vendor === vendor).
-          map(s => (s.schema, s.name, s.format, s.version, s.createdAt)).list.
-          map(s => ResSchemaVendor(parse(s._1), s._2, s._3, s._4,
-            s._5.toString("MM/dd/yyyy HH:mm:ss")))
+      val l: List[ResSchema] =
+        schemas.filter(_.vendor === vendor).list.
+          map(s => ResSchema(parse(s.schema),
+            buildLoc(s.vendor, s.name, s.format, s.version),
+            s.createdAt.toString("MM/dd/yyyy HH:mm:ss")))
 
       if (l.length > 0) {
         (OK, writePretty(l))
@@ -156,10 +151,10 @@ class SchemaDAO(val db: Database) extends DAO {
   def getMetadataFromVendor(vendor: String): (StatusCode, String) =
     db withDynSession {
       val l: List[ResMetadata] =
-        schemas.filter(_.vendor === vendor).
-        map(s => (s.vendor, s.name, s.format, s.version, s.createdAt)).list.
-        map(s => ResMetadata(s._1, s._2, s._3, s._4,
-          s._5.toString("MM/dd/yyyy HH:mm:ss")))
+        schemas.filter(_.vendor === vendor).list.
+        map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
+          buildLoc(s.vendor, s.name, s.format, s.version),
+          s.createdAt.toString("MM/dd/yyyy HH:mm:ss")))
 
       if (l.length > 0) {
         (OK, writePretty(l))
@@ -177,11 +172,11 @@ class SchemaDAO(val db: Database) extends DAO {
    */
   def getFromName(vendor: String, name: String): (StatusCode, String) =
     db withDynSession {
-      val l: List[ResSchemaName] =
-        schemas.filter(s => s.vendor === vendor && s.name === name).
-          map(s => (s.schema, s.format, s.version, s.createdAt)).list.
-          map(s => ResSchemaName(parse(s._1), s._2, s._3,
-            s._4.toString("MM/dd/yyyy HH:mm:ss")))
+      val l: List[ResSchema] =
+        schemas.filter(s => s.vendor === vendor && s.name === name).list.
+          map(s => ResSchema(parse(s.schema),
+            buildLoc(s.vendor, s.name, s.format, s.version),
+            s.createdAt.toString("MM/dd/yyyy HH:mm:ss")))
 
       if (l.length > 0) {
         (OK, writePretty(l))
@@ -204,10 +199,10 @@ class SchemaDAO(val db: Database) extends DAO {
       val l: List[ResMetadata] =
         schemas.filter(s =>
           s.vendor === vendor &&
-          s.name === name).
-        map(s => (s.vendor, s.name, s.format, s.version, s.createdAt)).list.
-        map(s => ResMetadata(s._1, s._2, s._3, s._4,
-          s._5.toString("MM/dd/yyyy HH:mm:ss")))
+          s.name === name).list.
+        map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
+          buildLoc(s.vendor, s.name, s.format, s.version),
+          s.createdAt.toString("MM/dd/yyyy HH:mm:ss")))
 
       if (l.length > 0) {
         (OK, writePretty(l))
@@ -228,14 +223,14 @@ class SchemaDAO(val db: Database) extends DAO {
   def getFromFormat(vendor: String, name: String, format: String):
     (StatusCode, String) =
       db withDynSession {
-        val l: List[ResSchemaFormat] =
+        val l: List[ResSchema] =
           schemas.filter(s =>
             s.vendor === vendor &&
             s.name === name &&
-            s.format === format).
-          map(s => (s.schema, s.version, s.createdAt)).list.
-          map(s => ResSchemaFormat(parse(s._1), s._2,
-            s._3.toString("MM/dd/yyyy HH:mm:ss")))
+            s.format === format).list.
+          map(s => ResSchema(parse(s.schema),
+            buildLoc(s.vendor, s.name, s.format, s.version),
+            s.createdAt.toString("MM/dd/yyyy HH:mm:ss")))
 
         if (l.length > 0) {
           (OK, writePretty(l))
@@ -259,10 +254,10 @@ class SchemaDAO(val db: Database) extends DAO {
         val l: List[ResMetadata] = schemas.filter(s =>
             s.vendor === vendor &&
             s.name === name &&
-            s.format === format).
-          map(s => (s.vendor, s.name, s.format, s.version, s.createdAt)).list.
-          map(s => ResMetadata(s._1, s._2, s._3, s._4,
-            s._5.toString("MM/dd/yyyy HH:mm:ss")))
+            s.format === format).list.
+          map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
+            buildLoc(s.vendor, s.name, s.format, s.version),
+            s.createdAt.toString("MM/dd/yyyy HH:mm:ss")))
 
         if (l.length > 0) {
           (OK, writePretty(l))
@@ -287,10 +282,10 @@ class SchemaDAO(val db: Database) extends DAO {
             s.vendor === vendor &&
             s.name === name &&
             s.format === format &&
-            s.version === version).
-          map(s => (s.schema, s.createdAt)).list.
-          map(s => ResSchema(parse(s._1),
-            s._2.toString("MM/dd/yyyy HH:mm:ss")))
+            s.version === version).list.
+          map(s => ResSchema(parse(s.schema),
+            buildLoc(s.vendor, s.name, s.format, s.version),
+            s.createdAt.toString("MM/dd/yyyy HH:mm:ss")))
 
         if (l.length == 1) {
           (OK, writePretty(l(0)))
@@ -314,10 +309,10 @@ class SchemaDAO(val db: Database) extends DAO {
             s.vendor === vendor &&
             s.name === name &&
             s.format === format &&
-            s.version === version).
-          map(s => (s.vendor, s.name, s.format, s.version, s.createdAt)).list.
-          map(s => ResMetadata(s._1, s._2, s._3, s._4,
-            s._5.toString("MM/dd/yyyy HH:mm:ss")))
+            s.version === version).list.
+          map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
+            buildLoc(s.vendor, s.name, s.format, s.version),
+            s.createdAt.toString("MM/dd/yyyy HH:mm:ss")))
 
         if (l.length == 1) {
           (OK, writePretty(l(0)))
@@ -393,4 +388,16 @@ class SchemaDAO(val db: Database) extends DAO {
       }
       case None => (BadRequest, result(400, "The json provided is not valid"))
     }
+
+  /**
+   * Helper method to build the location of the schema from its metadata.
+   * @param vendor of the schema
+   * @param name of the schema
+   * @param format of the schema
+   * @param version of the schema
+   * @return the location of the schema
+   */
+  private def buildLoc(vendor: String, name: String, format: String,
+    version: String): String =
+      List("", "api", "schemas", vendor, name, format, version) mkString("/")
 }
