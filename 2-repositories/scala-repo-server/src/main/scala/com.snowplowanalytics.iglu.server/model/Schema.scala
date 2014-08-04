@@ -70,7 +70,7 @@ class SchemaDAO(val db: Database) extends DAO {
    * @param format the schema's format
    * @param version the schema's version
    * @param schema the json forming the schema
-   * @param created data at which point the schema was created
+   * @param createdAt data at which point the schema was created
    */
   case class Schema(
     schemaId: Int,
@@ -95,7 +95,7 @@ class SchemaDAO(val db: Database) extends DAO {
     def version = column[String]("version", O.DBType("varchar(50)"), O.NotNull)
     def schema = column[String]("schema", O.DBType("text"), O.NotNull)
     //def schema = column[JValue]("schema", O.DBType("json"), O.NotNull)
-    def createdAt = column[LocalDateTime]("created", O.DBType("timestamp"),
+    def createdAt = column[LocalDateTime]("createdAt", O.DBType("timestamp"),
       O.NotNull)
 
     def * = (schemaId, vendor, name, format, version, schema, createdAt) <>
