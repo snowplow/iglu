@@ -17,6 +17,7 @@ package model
 
 // Json4s
 import org.json4s.DefaultFormats
+import org.json4s.JValue
 import org.json4s.jackson.Serialization.writePretty
 
 /**
@@ -32,11 +33,26 @@ trait DAO {
   case class Result(status: Int, message: String)
 
   /**
-   * Formats a (status and message to proper json.
+   * Case class defined for json formatting.
+   */
+  case class ResultReport(status: Int, message: String, report: JValue)
+
+  /**
+   * Formats a (status and message) pair to proper json.
    * @param status the response's status
    * @param message the response's message
    * @return a well-formatted json
    */
   def result(status: Int, message: String): String =
     writePretty(Result(status, message))
+
+  /**
+   * Formats a (status, message, report) tuple to proper json.
+   * @param status the response's status
+   * @param message the response's message
+   * @param report the reponse's validation failure report
+   * @return a well-formatted json
+   */
+  def result(status: Int, message: String, report: JValue): String =
+    writePretty(ResultReport(status, message, report))
 }

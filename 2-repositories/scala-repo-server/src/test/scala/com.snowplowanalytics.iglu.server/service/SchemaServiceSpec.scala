@@ -270,20 +270,24 @@ class SchemaServiceSpec extends Specification
       }
 
       """return a 400 if the supplied json is not self-describing with query
-      param""" in {
+      param and contain a validation failure report""" in {
         Post(postUrl7) ~> addHeader("api-key", writeKey) ~> sealRoute(routes) ~>
           check {
             status === BadRequest
-            responseAs[String] must contain("The json provided is not a valid")
+            responseAs[String] must
+              contain("The json provided is not a valid") and
+              contain("report")
           }
       }
 
       """"return a 400 if the supplied json is not self-describing with form
-      data""" in {
+      data and contain a validation failure report""" in {
         Post(postUrl3, FormData(Seq("json" -> invalidSchema))) ~>
           addHeader("api-key", writeKey) ~> sealRoute(routes) ~> check {
             status === BadRequest
-            responseAs[String] must contain("The json provided is not a valid")
+            responseAs[String] must
+              contain("The json provided is not a valid") and
+              contain("report")
           }
       }
 

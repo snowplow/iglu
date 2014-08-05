@@ -386,9 +386,10 @@ class SchemaDAO(val db: Database) extends DAO {
 
         validateAgainstSchema(jsonNode, schemaNode) match {
           case scalaz.Success(j) => (OK, json)
-          case Failure(l) => (BadRequest, result(400,
-            "The json provided is not a valid self-describing json " +
-            l.map(_.toString).toString))
+          case Failure(l) => (BadRequest,
+            result(400,
+              "The json provided is not a valid self-describing json",
+              fromJsonNode(l.head.asJson)))
         }
       }
       case None => (BadRequest, result(400, "The json provided is not valid"))
