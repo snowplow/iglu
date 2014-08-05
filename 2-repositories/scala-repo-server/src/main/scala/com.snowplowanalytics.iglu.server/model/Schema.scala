@@ -147,7 +147,7 @@ class SchemaDAO(val db: Database) extends DAO {
     }
 
   /**
-   * Get metadata about every schemas belonging to a specific vendor.
+   * Gets metadata about every schemas belonging to a specific vendor.
    * @param vendor schemas' vendor
    * @return a status code and json containing metadata about every schema
    * of this vendor pair

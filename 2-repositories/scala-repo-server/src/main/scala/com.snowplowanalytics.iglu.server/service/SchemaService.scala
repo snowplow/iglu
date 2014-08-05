@@ -34,12 +34,17 @@ import spray.http.StatusCodes._
 import spray.http.MediaTypes._
 import spray.routing._
 
+// Swagger
+import com.wordnik.swagger.annotations._
+
 /**
  * Service to interact with schemas.
  * @constructor create a new schema service with a schema and apiKey actors
  * @param schema a reference to a ``SchemaActor``
  * @param apiKey a reference to a ``ApiKeyActor``
  */
+@Api(value ="/schemas",
+  description = "Operations dealing with individual schema")
 class SchemaService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
@@ -70,6 +75,102 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
           }
       }
     }
+
+  /**
+   * Get route
+   */
+  @ApiOperation(value = """Find a schema based on its (vendor, name, format,
+    version)""", notes = "Returns a schema", httpMethod = "GET",
+    response = classOf[String])
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
+      required = true, dataType = "string", paramType = "path"),
+    new ApiImplicitParam(name = "name", value = "Schema's name",
+      required = true, dataType = "string", paramType = "path"),
+    new ApiImplicitParam(name = "format", value = "Schema's format",
+      required = true, dataType = "string", paramType = "path"),
+    new ApiImplicitParam(name = "version", value = "Schema's version",
+      required = true, dataType = "string", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 404, message = "There are no schemas available here")
+  ))
+  def readRoute = rejectEmptyResponse {
+    pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+    "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
+      auth { authTuple =>
+        respondWithMediaType(`application/json`) {
+          if (v startsWith authTuple._1) {
+            get {
+              anyParam('filter.?) { filter =>
+                filter match {
+                  case Some("metadata") => complete {
+                    (schema ? GetMetadata(v, n, f, vs)).
+                      mapTo[(StatusCode, String)]
+                  }
+                  case _ => complete {
+                    (schema ? GetSchema(v, n, f, vs)).
+                      mapTo[(StatusCode, String)]
+                  }
+                }
+              }
+            }
+          } else {
+            complete(Unauthorized, "You do not have sufficient privileges")
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Post route
+   */
+  @ApiOperation(value = "Add a new schema to the repository",
+    httpMethod = "POST", consumes = "application/json")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
+      required = true, dataType = "string", paramType = "path"),
+    new ApiImplicitParam(name = "name", value = "Schema's name",
+      required = true, dataType = "string", paramType = "path"),
+    new ApiImplicitParam(name = "format", value = "Schema's format",
+      required = true, dataType = "string", paramType = "path"),
+    new ApiImplicitParam(name = "version", value = "Schema's version",
+      required = true, dataType = "string", paramType = "path"),
+    new ApiImplicitParam(name = "json", value = "Json schema to add",
+      required = true, dataType = "string", paramType = "path")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 401, message = "This schema already exists"),
+    new ApiResponse(code = 500, message = "Something went wrong"),
+    new ApiResponse(code = 200, message = "Schema added successfully")
+  ))
+  def addRoute = rejectEmptyResponse {
+    pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+    "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
+      auth { authTuple =>
+        respondWithMediaType(`application/json`) {
+          if (v startsWith authTuple._1) {
+            validateJson { json =>
+              post {
+                if (authTuple._2 == "write") {
+                  complete {
+                    (schema ? AddSchema(v, n, f, vs, json)).
+                      mapTo[(StatusCode, String)]
+                  }
+                } else {
+                  complete(Unauthorized,
+                    "You do not have sufficient privileges")
+                }
+              }
+            }
+          } else {
+            complete(Unauthorized, "You do not have sufficient privileges")
+          }
+        }
+      }
+    }
+  }
 
   /**
    * Route handled by the schema service.
