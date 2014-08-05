@@ -45,6 +45,7 @@ object ScalaRepoServerBuild extends Build {
         //Libraries.slickpgJson,
         Libraries.sprayCan,
         Libraries.sprayRouting,
+        Libraries.swagger,
         // Scala (test only)
         Libraries.akkaTestKit,
         Libraries.specs2,

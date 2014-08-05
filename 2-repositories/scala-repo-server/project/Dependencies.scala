@@ -27,13 +27,14 @@ object Dependencies {
     val jodaTime = "2.3"
     val json4s = "3.2.11-SNAPSHOT"
     // remove once json4s 3.2.11 is out
-    //val jsonDatabind = "2.3.3"
+    // val jsonDatabind = "2.3.3"
     val jsonValidator = "2.2.5"
     val postgres = "9.1-901-1.jdbc4"
     val slf4j = "1.6.4"
     val slick = "2.0.2"
     val slickpg = "0.6.0-R1"
     val spray = "1.3.1"
+    val swagger = "0.4.3"
 
     // Scala (test only)
     val specs2    = "2.3.13"
@@ -57,6 +58,7 @@ object Dependencies {
     val slf4j         = "org.slf4j"            %  "slf4j-nop"             % V.slf4j
     val sprayCan      = "io.spray"             %  "spray-can"             % V.spray
     val sprayRouting  = "io.spray"             %  "spray-routing"         % V.spray
+    val swagger       = "com.gettyimages"      %% "spray-swagger"         % V.swagger
 
     // Scala (test only)
     val akkaTestKit   = "com.typesafe.akka"  %% "akka-testkit"  % V.akka   % "test"
