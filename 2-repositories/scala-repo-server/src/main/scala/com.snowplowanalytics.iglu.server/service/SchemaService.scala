@@ -43,10 +43,29 @@ import com.wordnik.swagger.annotations._
  * @param schema a reference to a ``SchemaActor``
  * @param apiKey a reference to a ``ApiKeyActor``
  */
-@Api(value ="/schemas",
+@Api(value ="/api/schemas",
   description = "Operations dealing with individual schema")
 class SchemaService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
+
+  /**
+   * Schema service's route
+   */
+  val routes =
+    rejectEmptyResponse {
+      pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+      "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
+        auth { authPair =>
+          respondWithMediaType(`application/json`) {
+            if (v startsWith authPair._1) {
+              readRoute(v, n, f, vs) ~ addRoute(v, n, f, vs, authPair)
+            } else {
+              complete(Unauthorized, "You do not have sufficient privileges")
+            }
+          }
+        }
+      }
+    }
 
   /**
    * Creates a ``TokenAuthenticator`` to extract the api-key http header and
@@ -90,38 +109,29 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
     new ApiImplicitParam(name = "format", value = "Schema's format",
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "version", value = "Schema's version",
-      required = true, dataType = "string", paramType = "path")
+      required = true, dataType = "string", paramType = "path"),
+    new ApiImplicitParam(name = "filter", value = "Metadata filter",
+      required = false, dataType = "string", paramType = "query",
+      allowableValues = "[metadata]")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 404, message = "There are no schemas available here")
   ))
-  def readRoute = rejectEmptyResponse {
-    pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-    "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
-      auth { authTuple =>
-        respondWithMediaType(`application/json`) {
-          if (v startsWith authTuple._1) {
-            get {
-              anyParam('filter.?) { filter =>
-                filter match {
-                  case Some("metadata") => complete {
-                    (schema ? GetMetadata(v, n, f, vs)).
-                      mapTo[(StatusCode, String)]
-                  }
-                  case _ => complete {
-                    (schema ? GetSchema(v, n, f, vs)).
-                      mapTo[(StatusCode, String)]
-                  }
-                }
-              }
-            }
-          } else {
-            complete(Unauthorized, "You do not have sufficient privileges")
+  def readRoute(v: String, n: String, f: String, vs: String) =
+    get {
+      anyParam('filter.?) { filter =>
+        filter match {
+          case Some("metadata") => complete {
+            (schema ? GetMetadata(v, n, f, vs)).
+              mapTo[(StatusCode, String)]
+          }
+          case _ => complete {
+            (schema ? GetSchema(v, n, f, vs)).
+              mapTo[(StatusCode, String)]
           }
         }
       }
     }
-  }
 
   /**
    * Post route
@@ -145,32 +155,21 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
     new ApiResponse(code = 500, message = "Something went wrong"),
     new ApiResponse(code = 200, message = "Schema added successfully")
   ))
-  def addRoute = rejectEmptyResponse {
-    pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-    "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
-      auth { authTuple =>
-        respondWithMediaType(`application/json`) {
-          if (v startsWith authTuple._1) {
-            validateJson { json =>
-              post {
-                if (authTuple._2 == "write") {
-                  complete {
-                    (schema ? AddSchema(v, n, f, vs, json)).
-                      mapTo[(StatusCode, String)]
-                  }
-                } else {
-                  complete(Unauthorized,
-                    "You do not have sufficient privileges")
-                }
-              }
-            }
-          } else {
-            complete(Unauthorized, "You do not have sufficient privileges")
+  def addRoute(v: String, n: String, f: String, vs: String,
+    authPair: (String, String)) =
+    validateJson { json =>
+      post {
+        if (authPair._2 == "write") {
+          complete {
+            (schema ? AddSchema(v, n, f, vs, json)).
+              mapTo[(StatusCode, String)]
           }
+        } else {
+          complete(Unauthorized,
+            "You do not have sufficient privileges")
         }
       }
     }
-  }
 
   /**
    * Route handled by the schema service.
@@ -178,9 +177,9 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   val route = rejectEmptyResponse {
     pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
     "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) => {
-      auth { authTuple =>
+      auth { authPair =>
         respondWithMediaType(`application/json`) {
-          if (v startsWith authTuple._1) {
+          if (v startsWith authPair._1) {
             get {
               anyParam('filter.?) { filter =>
                 filter match {
@@ -197,7 +196,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
             } ~
             validateJson { json =>
               post {
-                if (authTuple._2 == "write") {
+                if (authPair._2 == "write") {
                   complete {
                     (schema ? AddSchema(v, n, f, vs, json)).
                       mapTo[(StatusCode, String)]
