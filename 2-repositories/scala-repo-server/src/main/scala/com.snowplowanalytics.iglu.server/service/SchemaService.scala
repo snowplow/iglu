@@ -55,8 +55,8 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
     rejectEmptyResponse {
       pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
       "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
-        auth { authPair =>
-          respondWithMediaType(`application/json`) {
+        respondWithMediaType(`application/json`) {
+          auth { authPair =>
             if (v startsWith authPair._1) {
               readRoute(v, n, f, vs) ~ addRoute(v, n, f, vs, authPair)
             } else {
