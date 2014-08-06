@@ -150,7 +150,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
             case n => (OK, uid.toString)
           }
       } else {
-        (Unauthorized, "This vendor is conflicting with an existing one")
+        (Unauthorized, "This owner is conflicting with an existing one")
       }
     }
   }
@@ -207,7 +207,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
       apiKeys.filter(_.owner === owner).delete match {
         case 0 => (NotFound, result(404, "Owner not found"))
         case 1 => (OK, result(200, "Api key deleted for " + owner))
-        case n => (OK, result(200, n + " api keys deleted for " + owner))
+        case n => (OK, result(200, "Api keys deleted for " + owner))
       }
     }
 }

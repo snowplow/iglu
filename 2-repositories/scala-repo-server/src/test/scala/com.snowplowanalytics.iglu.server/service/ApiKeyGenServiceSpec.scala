@@ -82,7 +82,7 @@ class ApiKeyGenServiceSpec extends Specification
           }
       }
       
-      """return a proper json with the keys if the vendor is not colliding with
+      """return a proper json with the keys if the owner is not colliding with
         anyone""" in {
           Post(ownerUrl) ~> addHeader("api-key", superKey) ~>
             sealRoute(routes) ~> check {
@@ -97,12 +97,12 @@ class ApiKeyGenServiceSpec extends Specification
             }
         }
 
-      "return a 401 if a new vendor is conflicting with an existing one" in {
+      "return a 401 if a new owner is conflicting with an existing one" in {
         Post(conflictingOwnerUrl) ~> addHeader("api-key", superKey) ~>
           sealRoute(routes) ~> check {
             status === Unauthorized
             responseAs[String] must
-              contain("This vendor is conflicting with an existing one")
+              contain("This owner is conflicting with an existing one")
           }
       }
     }

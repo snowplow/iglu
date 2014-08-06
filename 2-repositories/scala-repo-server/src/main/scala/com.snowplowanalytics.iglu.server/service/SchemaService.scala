@@ -43,7 +43,7 @@ import com.wordnik.swagger.annotations._
  * @param schema a reference to a ``SchemaActor``
  * @param apiKey a reference to a ``ApiKeyActor``
  */
-@Api(value ="/api/schemas",
+@Api(value = "/api/schemas",
   description = "Operations dealing with individual schema")
 class SchemaService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
@@ -151,9 +151,9 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
       required = true, dataType = "string", paramType = "path")
   ))
   @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "Schema added successfully"),
     new ApiResponse(code = 401, message = "This schema already exists"),
-    new ApiResponse(code = 500, message = "Something went wrong"),
-    new ApiResponse(code = 200, message = "Schema added successfully")
+    new ApiResponse(code = 500, message = "Something went wrong")
   ))
   def addRoute(v: String, n: String, f: String, vs: String,
     authPair: (String, String)) =
