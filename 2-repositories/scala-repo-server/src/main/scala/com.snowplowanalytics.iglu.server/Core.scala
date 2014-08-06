@@ -32,10 +32,6 @@ import spray.can.Http
 import slick.driver.JdbcDriver.backend.Database.dynamicSession
 import slick.jdbc.meta.MTable
 
-trait Core {
-  protected implicit def system: ActorSystem
-}
-
 /**
  * This trait implements ``Core`` and starts the ``ActorSystem``
  * and starts a new ``RoutedHttpService`` with the routes defined in the
@@ -71,6 +67,10 @@ trait BootedCore extends Core with Api {
 
   // Register the termination handler for when the JVM shuts down
   sys.addShutdownHook(system.shutdown())
+}
+
+trait Core {
+  protected implicit def system: ActorSystem
 }
 
 /**

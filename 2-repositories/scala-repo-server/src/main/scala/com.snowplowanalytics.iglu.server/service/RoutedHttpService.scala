@@ -19,6 +19,7 @@ package service
 import akka.actor.{ Actor, ActorLogging }
 
 // Scala
+import scala.reflect.runtime.universe._
 import scala.util.control.NonFatal
 
 // Spray
@@ -26,6 +27,10 @@ import spray.http.StatusCodes._
 import spray.http.{ HttpEntity, StatusCode }
 import spray.routing._
 import spray.util.LoggingContext
+
+// Swagger
+import com.gettyimages.spray.swagger._
+import com.wordnik.swagger.model.ApiInfo
 
 /**
  * HttpService used to run the different routes coming from the
@@ -46,6 +51,18 @@ with ActorLogging {
 
   def receive = runRoute(route)(handler, RejectionHandler.Default, context,
     RoutingSettings.default, LoggingContext.fromActorRefFactory)
+
+  val swaggerService = new SwaggerHttpService {
+    override def apiTypes = Seq(typeOf[SchemaService], typeOf[CatalogService],
+      typeOf[ApiKeyGenService])
+    override def apiVersion = "0.2"
+    override def baseUrl = "/"
+    override def docsPath = "api-docs"
+    override def actorRefFactory = context
+    override def apiInfo = Some(new ApiInfo("Iglu", "Json schema repository",
+      "TOS url", "contact@snowplowanalytics.com", "Apache 2.0",
+      "https://github.com/snowplow/iglu/blob/master/LICENSE-2.0.txt"))
+  }
 }
 
 case class ErrorResponseException(responseStatus: StatusCode,
