@@ -36,14 +36,14 @@ trait Api extends HttpService with CoreActors with Core {
       pathPrefix("schemas") {
         new SchemaService(schema, apiKey).routes ~
         new CatalogService(schema, apiKey).routes
-      } ~
-      get {
-        pathPrefix("") {
-          pathEndOrSingleSlash {
-            getFromResource("swagger-ui/index.html")
-          }
-        } ~
-        getFromResourceDirectory("swagger-ui")
       }
+    } ~
+    get {
+      pathPrefix("") {
+        pathEndOrSingleSlash {
+          getFromResource("swagger-ui/index.html")
+        }
+      } ~
+      getFromResourceDirectory("swagger-ui")
     }
 }
