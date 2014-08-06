@@ -93,20 +93,20 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where vendor = '${owner}';""").first === 2
+            where owner = '${owner}';""").first === 2
         }
       }
 
       "not add api keys if the owner is conflicting with an existing one" in {
         val (status, res) = apiKey.addReadWrite(faultyOwner)
         status === Unauthorized
-        res must contain("This vendor is conflicting with an existing one")
+        res must contain("This owner is conflicting with an existing one")
 
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where vendor = '${faultyOwner}';""").first === 0
+            where owner = '${faultyOwner}';""").first === 0
         }
       }
     }
@@ -198,7 +198,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where vendor = '${owner}';""").first === 0
+            where owner = '${owner}';""").first === 0
         }
       }
 
@@ -211,7 +211,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where vendor = '${owner}';""").first === 0
+            where owner = '${owner}';""").first === 0
         }
       }
     }

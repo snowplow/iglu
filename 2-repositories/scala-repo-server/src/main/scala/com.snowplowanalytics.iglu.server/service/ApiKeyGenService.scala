@@ -49,14 +49,16 @@ class ApiKeyGenService(apiKey: ActorRef)
   /**
    * Api key generation service's route
    */
-  val routes =
+  lazy val routes =
     rejectEmptyResponse {
       path("keygen") {
         respondWithMediaType(`application/json`) {
           auth { authPair =>
             if (authPair._2 == "super") {
-              addRoute ~
-              deleteKeysRoute ~
+              anyParam('owner) { owner =>
+                addRoute(owner) ~
+                deleteKeysRoute(owner)
+              } ~
               deleteKeyRoute
             } else {
               complete(Unauthorized, "You do not have sufficient privileges")
@@ -94,12 +96,10 @@ class ApiKeyGenService(apiKey: ActorRef)
       message = "This owner is conflicting with an existing one"),
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
-  val addRoute =
-    anyParams('owner) { owner =>
-      post {
-        complete {
-          (apiKey ? AddBothKey(owner)).mapTo[(StatusCode, String)]
-        }
+  def addRoute(owner: String) =
+    post {
+      complete {
+        (apiKey ? AddBothKey(owner)).mapTo[(StatusCode, String)]
       }
     }
 
@@ -116,12 +116,10 @@ class ApiKeyGenService(apiKey: ActorRef)
     new ApiResponse(code = 200, message = "Api key delete for the owner"),
     new ApiResponse(code = 404, message = "Owner not found")
   ))
-  val deleteKeysRoute =
-    anyParams('owner) { owner =>
-      delete {
-        complete {
-          (apiKey ? DeleteKeys(owner)).mapTo[(StatusCode, String)]
-        }
+  def deleteKeysRoute(owner: String) =
+    delete {
+      complete {
+        (apiKey ? DeleteKeys(owner)).mapTo[(StatusCode, String)]
       }
     }
 
@@ -140,8 +138,8 @@ class ApiKeyGenService(apiKey: ActorRef)
     new ApiResponse(code = 404, message = "Api key not found"),
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
-  val deleteKeyRoute =
-    anyParams('key) { key =>
+  def deleteKeyRoute =
+    anyParam('key) { key =>
       delete {
         complete {
           (apiKey ? DeleteKey(key)).mapTo[(StatusCode, String)]

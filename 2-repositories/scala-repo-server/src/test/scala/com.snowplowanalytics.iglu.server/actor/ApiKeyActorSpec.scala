@@ -84,7 +84,7 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
         val future = key ? AddBothKey(faultyOwner)
         val Success((status: StatusCode, result: String)) = future.value.get
         status must be(Unauthorized)
-        result must contain("This vendor is conflicting with an existing one")
+        result must contain("This owner is conflicting with an existing one")
       }
     }
 

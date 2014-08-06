@@ -24,7 +24,7 @@ object BuildSettings {
     description             := "Scala server for Iglu",
     scalaVersion            := "2.10.1",
     scalacOptions           := Seq("-deprecation", "-encoding", "utf8",
-                               "-unchecked", "-feature"),
+                               "-unchecked", "-feature", "-Xcheckinit"),
     scalacOptions in Test   := Seq("-Yrangepos"),
     maxErrors               := 5,
     // http://www.scala-sbt.org/0.13.0/docs/Detailed-Topics/Forking.html

@@ -64,7 +64,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
    */
   class ApiKeys(tag: Tag) extends Table[ApiKey](tag, "apikeys") {
     def uid = column[UUID]("uid", O.PrimaryKey, O.DBType("uuid"))
-    def owner = column[String]("vendor", O.DBType("varchar(200)"), O.NotNull)
+    def owner = column[String]("owner", O.DBType("varchar(200)"), O.NotNull)
     def permission = column[String]("permission",
       O.DBType("varchar(20)"), O.NotNull, O.Default[String]("read"))
     def createdAt = column[LocalDateTime]("createdat", O.DBType("timestamp"),

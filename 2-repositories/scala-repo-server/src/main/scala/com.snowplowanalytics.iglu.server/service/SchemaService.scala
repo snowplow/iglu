@@ -51,7 +51,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   /**
    * Schema service's route
    */
-  val routes =
+  lazy val routes =
     rejectEmptyResponse {
       pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
       "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>

@@ -51,15 +51,15 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
   /**
    * Catalog service's route
    */
-  val routes =
+  lazy val routes =
     rejectEmptyResponse {
       respondWithMediaType(`application/json`) {
         get {
-          auth { authPair =>
-            pathPrefix("[a-z.]+".r) { v =>
+          pathPrefix("[a-z.]+".r) { v =>
+            auth { authPair =>
               if (v startsWith authPair._1) {
-                pathPrefix("a-zA-Z0-9_-]+".r) { n =>
-                  pathPrefix("a-z]+".r) { f =>
+                pathPrefix("[a-zA-Z0-9_-]+".r) { n =>
+                  pathPrefix("[a-z]+".r) { f =>
                     readFormatRoute(v, n, f)
                   } ~
                   readNameRoute(v, n)
