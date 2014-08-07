@@ -47,6 +47,19 @@ class ApiKeyGenService(apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
   /**
+   * Creates a ``TokenAuthenticator`` to extract the api-key http header and
+   * validates it against the database.
+   */
+  val authenticator = TokenAuthenticator[(String, String)]("api_key") {
+    key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
+  }
+
+  /**
+   * Directive to authenticate a user using the authenticator.
+   */
+  def auth: Directive1[(String, String)] = authenticate(authenticator)
+
+  /**
    * Api key generation service's route
    */
   lazy val routes =
@@ -133,17 +146,4 @@ class ApiKeyGenService(apiKey: ActorRef)
         }
       }
     }
-
-  /**
-   * Creates a ``TokenAuthenticator`` to extract the api-key http header and
-   * validates it against the database.
-   */
-  val authenticator = TokenAuthenticator[(String, String)]("api_key") {
-    key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
-  }
-
-  /**
-   * Directive to authenticate a user using the authenticator.
-   */
-  def auth: Directive1[(String, String)] = authenticate(authenticator)
 }

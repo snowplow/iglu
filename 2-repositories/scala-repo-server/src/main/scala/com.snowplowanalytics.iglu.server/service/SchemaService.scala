@@ -49,6 +49,34 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
   /**
+   * Creates a ``TokenAuthenticator`` to extract the api-key http header and
+   * validates it against the database.
+   */
+  val authenticator = TokenAuthenticator[(String, String)]("api_key") {
+    key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
+  }
+
+  /**
+   * Directive to authenticate a user using the authenticator.
+   */
+  def auth: Directive1[(String, String)] = authenticate(authenticator)
+
+  /**
+   * Directive to validate the json provided (either by query param or form
+   * data) is self-describing.
+   */
+  def validateJson: Directive1[String] =
+    anyParam('json) flatMap { json =>
+      onSuccess((schema ? Validate(json)).mapTo[(StatusCode, String)]) flatMap {
+        ext =>
+          ext match {
+            case (OK, j) => provide(j)
+            case res => complete(res)
+          }
+      }
+    }
+
+  /**
    * Schema service's route
    */
   lazy val routes =
@@ -84,7 +112,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "filter", value = "Metadata filter",
       required = false, dataType = "string", paramType = "query",
-      allowableValues = "[metadata]")
+      allowableValues = "metadata")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 404, message = "There are no schemas available here")
@@ -140,34 +168,6 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
           complete(Unauthorized,
             "You do not have sufficient privileges")
         }
-      }
-    }
-
-  /**
-   * Creates a ``TokenAuthenticator`` to extract the api-key http header and
-   * validates it against the database.
-   */
-  val authenticator = TokenAuthenticator[(String, String)]("api_key") {
-    key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
-  }
-
-  /**
-   * Directive to authenticate a user using the authenticator.
-   */
-  def auth: Directive1[(String, String)] = authenticate(authenticator)
-
-  /**
-   * Directive to validate the json provided (either by query param or form
-   * data) is self-describing.
-   */
-  def validateJson: Directive1[String] =
-    anyParam('json) flatMap { json =>
-      onSuccess((schema ? Validate(json)).mapTo[(StatusCode, String)]) flatMap {
-        ext =>
-          ext match {
-            case (OK, j) => provide(j)
-            case res => complete(res)
-          }
       }
     }
 }

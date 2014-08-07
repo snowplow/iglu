@@ -49,6 +49,19 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
   /**
+   * Creates a ``TokenAuthenticator`` to extract the api-key http header and
+   * validates it against the database.
+   */
+  val authenticator = TokenAuthenticator[(String, String)]("api_key") {
+    key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
+  }
+
+  /**
+   * Directive to authenticate a user using the authenticator.
+   */
+  def auth: Directive1[(String, String)] = authenticate(authenticator)
+
+  /**
    * Catalog service's route
    */
   lazy val routes =
@@ -85,7 +98,7 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "filter", value = "Metadata filter",
       required = false, dataType = "string", paramType = "query",
-      allowableValues = "[metadata]")
+      allowableValues = "metadata")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 404,
@@ -116,7 +129,7 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "filter", value = "Metadata filter",
       required = false, dataType = "string", paramType = "query",
-      allowableValues = "[metadata]")
+      allowableValues = "metadata")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 404,
@@ -149,7 +162,7 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "filter", value = "Metadata filter",
       required = false, dataType = "string", paramType = "query",
-      allowableValues = "[metadata]")
+      allowableValues = "metadata")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 404, message =
@@ -167,17 +180,4 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
         }
       }
     }
-
-  /**
-   * Creates a ``TokenAuthenticator`` to extract the api-key http header and
-   * validates it against the database.
-   */
-  val authenticator = TokenAuthenticator[(String, String)]("api_key") {
-    key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
-  }
-
-  /**
-   * Directive to authenticate a user using the authenticator.
-   */
-  def auth: Directive1[(String, String)] = authenticate(authenticator)
 }
