@@ -138,7 +138,7 @@ class ApiKeyGenService(apiKey: ActorRef)
    * Creates a ``TokenAuthenticator`` to extract the api-key http header and
    * validates it against the database.
    */
-  val authenticator = TokenAuthenticator[(String, String)]("api-key") {
+  val authenticator = TokenAuthenticator[(String, String)]("api_key") {
     key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
   }
 

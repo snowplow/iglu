@@ -62,7 +62,7 @@ class CatalogServiceSpec extends Specification
       "for vendor based url" should {
 
         "return the catalog of available schemas for this vendor" in {
-          Get(vendorUrl) ~> addHeader("api-key", readKey) ~> routes ~> check {
+          Get(vendorUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must
               contain("\"name\" : \"ad_click\"") and
@@ -71,7 +71,7 @@ class CatalogServiceSpec extends Specification
         }
 
         "return metadata about every schemas for this vendor" in {
-          Get(vendorMetaUrl) ~> addHeader("api-key", readKey) ~> routes ~>
+          Get(vendorMetaUrl) ~> addHeader("api_key", readKey) ~> routes ~>
             check {
               status === OK
               responseAs[String] must contain(vendor)
@@ -79,7 +79,7 @@ class CatalogServiceSpec extends Specification
         }
 
         "return a 404 for a vendor which has no schemas" in {
-          Get(otherVendorUrl) ~> addHeader("api-key", otherKey) ~> routes ~>
+          Get(otherVendorUrl) ~> addHeader("api_key", otherKey) ~> routes ~>
             check {
               status === NotFound
               responseAs[String] must
@@ -88,7 +88,7 @@ class CatalogServiceSpec extends Specification
         }
 
         "return a 401 if the owner is not a prefix of the vendor" in {
-          Get(formatUrl) ~> addHeader("api-key", otherKey) ~> routes ~> check {
+          Get(formatUrl) ~> addHeader("api_key", otherKey) ~> routes ~> check {
             status === Unauthorized
             responseAs[String] must contain("You do not have sufficient privil")
           }
@@ -98,7 +98,7 @@ class CatalogServiceSpec extends Specification
       "for name based url" should {
 
         "return the catalog of available schemas for this name" in {
-          Get(nameUrl) ~> addHeader("api-key", readKey) ~> routes ~> check {
+          Get(nameUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must
               contain("\"version\" : \"1-0-0\"") and
@@ -107,14 +107,14 @@ class CatalogServiceSpec extends Specification
         }
 
         "return metadata about every schemas having this vendor, name" in {
-          Get(nameMetaUrl) ~> addHeader("api-key", readKey) ~> routes ~> check {
+          Get(nameMetaUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must contain(vendor) and contain(name)
           }
         }
 
         "return a 404 for a vendor/name combination which has no schemas" in {
-          Get(otherNameUrl) ~> addHeader("api-key", otherKey) ~> routes ~>
+          Get(otherNameUrl) ~> addHeader("api_key", otherKey) ~> routes ~>
             check {
               status === NotFound
               responseAs[String] must
@@ -123,7 +123,7 @@ class CatalogServiceSpec extends Specification
         }
 
         "return a 401 if the owner is not a prefix of the vendor" in {
-          Get(nameUrl) ~> addHeader("api-key", otherKey) ~> routes ~> check {
+          Get(nameUrl) ~> addHeader("api_key", otherKey) ~> routes ~> check {
             status === Unauthorized
             responseAs[String] must contain("You do not have sufficient privil")
           }
@@ -133,7 +133,7 @@ class CatalogServiceSpec extends Specification
       "for format based url" should {
 
         "return the catalog of available schemas for this format" in {
-          Get(formatUrl) ~> addHeader("api-key", readKey) ~> routes ~> check {
+          Get(formatUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must
               contain("\"version\" : \"1-0-0\"") and
@@ -143,7 +143,7 @@ class CatalogServiceSpec extends Specification
 
         """return metadata about every schemas having this vendor, name, format
         combination""" in {
-          Get(formatMetaUrl) ~> addHeader("api-key", readKey) ~> routes ~>
+          Get(formatMetaUrl) ~> addHeader("api_key", readKey) ~> routes ~>
             check {
               status === OK
               responseAs[String] must contain(vendor) and contain(name) and
@@ -153,7 +153,7 @@ class CatalogServiceSpec extends Specification
 
         """return a 404 for a vendor/name/format combination which has
           no schemas""" in {
-            Get(otherFormatUrl) ~> addHeader("api-key", otherKey) ~> routes ~>
+            Get(otherFormatUrl) ~> addHeader("api_key", otherKey) ~> routes ~>
               check {
                 status === NotFound
                 responseAs[String] must
@@ -162,7 +162,7 @@ class CatalogServiceSpec extends Specification
           }
 
         "return a 401 if the owner is not a prefix of the vendor" in {
-          Get(vendorUrl) ~> addHeader("api-key", otherKey) ~> routes ~> check {
+          Get(vendorUrl) ~> addHeader("api_key", otherKey) ~> routes ~> check {
             status === Unauthorized
             responseAs[String] must contain("You do not have sufficient privil")
           }

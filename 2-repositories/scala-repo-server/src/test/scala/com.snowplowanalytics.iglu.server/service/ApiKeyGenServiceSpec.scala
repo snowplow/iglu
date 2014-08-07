@@ -66,7 +66,7 @@ class ApiKeyGenServiceSpec extends Specification
     "for POST requests" should {
 
       "return a 401 if the key provided is not super" in {
-        Post(ownerUrl) ~> addHeader("api-key", notSuperKey) ~>
+        Post(ownerUrl) ~> addHeader("api_key", notSuperKey) ~>
           sealRoute(routes) ~> check {
             status === Unauthorized
             responseAs[String] must contain("You do not have sufficient privil")
@@ -74,7 +74,7 @@ class ApiKeyGenServiceSpec extends Specification
       }
 
       "return a 401 if the key provided is not an uuid" in {
-        Post(ownerUrl) ~> addHeader("api-key", notUuidKey) ~>
+        Post(ownerUrl) ~> addHeader("api_key", notUuidKey) ~>
           sealRoute(routes) ~> check {
             status === Unauthorized
             responseAs[String] must
@@ -84,7 +84,7 @@ class ApiKeyGenServiceSpec extends Specification
       
       """return a proper json with the keys if the owner is not colliding with
         anyone""" in {
-          Post(ownerUrl) ~> addHeader("api-key", superKey) ~>
+          Post(ownerUrl) ~> addHeader("api_key", superKey) ~>
             sealRoute(routes) ~> check {
               status === OK
               val response = responseAs[String]
@@ -98,7 +98,7 @@ class ApiKeyGenServiceSpec extends Specification
         }
 
       "return a 401 if a new owner is conflicting with an existing one" in {
-        Post(conflictingOwnerUrl) ~> addHeader("api-key", superKey) ~>
+        Post(conflictingOwnerUrl) ~> addHeader("api_key", superKey) ~>
           sealRoute(routes) ~> check {
             status === Unauthorized
             responseAs[String] must
@@ -110,7 +110,7 @@ class ApiKeyGenServiceSpec extends Specification
     "for DELETE requests with key param" should {
 
       "return a 401 if the key provided is not super" in {
-        Delete(deleteUrl + readKey) ~> addHeader("api-key", notSuperKey) ~>
+        Delete(deleteUrl + readKey) ~> addHeader("api_key", notSuperKey) ~>
           sealRoute(routes) ~> check {
             status === Unauthorized
             responseAs[String] must contain("You do not have sufficient privil")
@@ -119,14 +119,14 @@ class ApiKeyGenServiceSpec extends Specification
 
       "return a 404 if the key is not found" in {
         Delete(deleteUrl + UUID.randomUUID().toString) ~>
-          addHeader("api-key", superKey) ~> sealRoute(routes) ~> check {
+          addHeader("api_key", superKey) ~> sealRoute(routes) ~> check {
             status === NotFound
             responseAs[String] must contain("Api key not found")
           }
       }
 
       "return a 200 if the key is found and sufficient privileges" in {
-        Delete(deleteUrl + readKey) ~> addHeader("api-key", superKey) ~>
+        Delete(deleteUrl + readKey) ~> addHeader("api_key", superKey) ~>
           sealRoute(routes) ~> check {
             status === OK
             responseAs[String] must contain("Api key successfully deleted")
@@ -137,7 +137,7 @@ class ApiKeyGenServiceSpec extends Specification
     "for DELETE requests with owner param" should {
 
       "return a 401 if the key provided is not super" in {
-        Delete(ownerUrl) ~> addHeader("api-key", notSuperKey) ~>
+        Delete(ownerUrl) ~> addHeader("api_key", notSuperKey) ~>
           sealRoute(routes) ~> check {
             status === Unauthorized
             responseAs[String] must contain("You do not have sufficient privil")
@@ -145,7 +145,7 @@ class ApiKeyGenServiceSpec extends Specification
       }
 
       "return a 200 if there are keys associated with this owner" in {
-        Delete(ownerUrl) ~> addHeader("api-key", superKey) ~>
+        Delete(ownerUrl) ~> addHeader("api_key", superKey) ~>
           sealRoute(routes) ~> check {
             status === OK
             responseAs[String] must contain("Api key deleted for ")
@@ -153,7 +153,7 @@ class ApiKeyGenServiceSpec extends Specification
       }
 
       "return a 404 if there are no keys associated with this owner" in {
-        Delete(ownerUrl) ~> addHeader("api-key", superKey) ~>
+        Delete(ownerUrl) ~> addHeader("api_key", superKey) ~>
           sealRoute(routes) ~> check {
             status === NotFound
             responseAs[String] must contain("Owner not found")
