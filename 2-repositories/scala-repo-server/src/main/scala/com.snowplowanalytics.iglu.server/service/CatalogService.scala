@@ -75,19 +75,6 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
     }
 
   /**
-   * Creates a ``TokenAuthenticator`` to extract the api-key http header and
-   * validates it against the database.
-   */
-  val authenticator = TokenAuthenticator[(String, String)]("api-key") {
-    key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
-  }
-
-  /**
-   * Directive to authenticate a user using the authenticator.
-   */
-  def auth: Directive1[(String, String)] = authenticate(authenticator)
-
-  /**
    * Catalog route to retrieve every schema belonging to a vendor.
    */
   @ApiOperation(value = "Retrieve every schema belonging to a vendor",
@@ -182,60 +169,15 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
     }
 
   /**
-   * Route handled by the catalog service.
+   * Creates a ``TokenAuthenticator`` to extract the api-key http header and
+   * validates it against the database.
    */
-  val route = rejectEmptyResponse {
-    pathPrefix("[a-z.]+".r) { v => {
-      auth { authPair =>
-        if (v startsWith authPair._1) {
-          respondWithMediaType(`application/json`) {
-            get {
-              pathPrefix("[a-zA-Z0-9_-]+".r) { n => {
-                pathPrefix("[a-z]+".r) { f => {
-                  anyParam('filter.?) { filter =>
-                    filter match {
-                      case Some("metadata") => complete {
-                        (schema ? GetMetadataFromFormat(v, n, f)).
-                          mapTo[(StatusCode, String)]
-                      }
-                      case _ => complete {
-                        (schema ? GetSchemasFromFormat(v, n, f)).
-                          mapTo[(StatusCode, String)]
-                      }
-                    }
-                  }
-                }} ~
-                anyParam('filter.?) { filter =>
-                  filter match {
-                    case Some("metadata") => complete {
-                      (schema ? GetMetadataFromName(v, n)).
-                        mapTo[(StatusCode, String)]
-                    }
-                    case _ => complete {
-                      (schema ? GetSchemasFromName(v, n)).
-                        mapTo[(StatusCode, String)]
-                    }
-                  }
-                }
-              }} ~
-              anyParam('filter.?) { filter =>
-                filter match {
-                  case Some("metadata") => complete {
-                    (schema ? GetMetadataFromVendor(v)).
-                      mapTo[(StatusCode, String)]
-                  }
-                  case _ => complete {
-                    (schema ? GetSchemasFromVendor(v)).
-                      mapTo[(StatusCode, String)]
-                  }
-                }
-              }
-            }
-          }
-        } else {
-          complete(Unauthorized, "You do not have sufficient privileges")
-        }
-      }
-    }}
+  val authenticator = TokenAuthenticator[(String, String)]("api-key") {
+    key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
   }
+
+  /**
+   * Directive to authenticate a user using the authenticator.
+   */
+  def auth: Directive1[(String, String)] = authenticate(authenticator)
 }

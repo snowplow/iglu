@@ -69,19 +69,6 @@ class ApiKeyGenService(apiKey: ActorRef)
     }
 
   /**
-   * Creates a ``TokenAuthenticator`` to extract the api-key http header and
-   * validates it against the database.
-   */
-  val authenticator = TokenAuthenticator[(String, String)]("api-key") {
-    key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
-  }
-
-  /**
-   * Directive to authenticate a user using the authenticator.
-   */
-  def auth: Directive1[(String, String)] = authenticate(authenticator)
-
-  /**
    * Route to generate a pair of read and read and write api keys.
    */
   @ApiOperation(value = "Generate a pair of read and read write api keys",
@@ -148,39 +135,15 @@ class ApiKeyGenService(apiKey: ActorRef)
     }
 
   /**
-   * Route handled by the api key generation service.
+   * Creates a ``TokenAuthenticator`` to extract the api-key http header and
+   * validates it against the database.
    */
-  val route = rejectEmptyResponse {
-    path("keygen") {
-      respondWithMediaType(`application/json`) {
-        auth { authPair =>
-          if(authPair._2 == "super") {
-            anyParams('owner)(owner =>
-              validate(owner matches "[a-z.]+", "Invalid owner") {
-                post {
-                  complete {
-                    (apiKey ? AddBothKey(owner)).mapTo[(StatusCode, String)]
-                  }
-                } ~
-                delete {
-                  complete {
-                    (apiKey ? DeleteKeys(owner)).mapTo[(StatusCode, String)]
-                  }
-                }
-              }
-            ) ~
-            anyParams('key)(key =>
-              delete {
-                complete {
-                  (apiKey ? DeleteKey(key)).mapTo[(StatusCode, String)]
-                }
-              }
-            )
-          } else {
-            complete(Unauthorized, "You do not have sufficient privileges")
-          }
-        }
-      }
-    }
+  val authenticator = TokenAuthenticator[(String, String)]("api-key") {
+    key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
   }
+
+  /**
+   * Directive to authenticate a user using the authenticator.
+   */
+  def auth: Directive1[(String, String)] = authenticate(authenticator)
 }

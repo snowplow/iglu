@@ -49,8 +49,9 @@ with ActorLogging {
     }
   }
 
-  def receive = runRoute(route)(handler, RejectionHandler.Default, context,
-    RoutingSettings.default, LoggingContext.fromActorRefFactory)
+  def receive = runRoute(route ~ swaggerService.routes)(handler,
+    RejectionHandler.Default, context, RoutingSettings.default,
+    LoggingContext.fromActorRefFactory)
 
   val swaggerService = new SwaggerHttpService {
     override def apiTypes = Seq(typeOf[SchemaService], typeOf[CatalogService],
