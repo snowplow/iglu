@@ -1158,17 +1158,25 @@
   cursor: pointer;
 }
 .swagger-section #header {
-  background-color: #89bf04;
+  background-color: #6599ff;
   padding: 14px;
 }
-.swagger-section #header a#logo {
-  font-size: 1.5em;
-  font-weight: bold;
-  text-decoration: none;
-  background: transparent url(../images/logo_small.png) no-repeat left center;
-  padding: 20px 0 20px 40px;
-  color: white;
+.swagger-section #header a#iglulogo {
+    font-size: 1.5em;
+    font-weight: bold;
+    text-decoration: none;
+    background: transparent no-repeat left center;
+    padding: 20px 20px 20px 20px;
+    color: white;
 }
+//.swagger-section #header a#logo {
+//  font-size: 1.5em;
+//  font-weight: bold;
+//  text-decoration: none;
+//  background: transparent url(../images/logo_small.png) no-repeat left center;
+//  padding: 20px 0 20px 40px;
+//  color: white;
+//}
 .swagger-section #header form#api_selector {
   display: block;
   clear: none;
@@ -1178,36 +1186,36 @@
   display: block;
   clear: none;
   float: left;
-  margin: 0 10px 0 0;
 }
 .swagger-section #header form#api_selector .input input#input_apiKey {
   width: 200px;
 }
-.swagger-section #header form#api_selector .input input#input_baseUrl {
-  width: 400px;
-}
+//.swagger-section #header form#api_selector .input input#input_baseUrl {
+//  width: 400px;
+//}
 .swagger-section #header form#api_selector .input a#explore {
+  margin: -20px 20px 20px 20px;
   display: block;
   text-decoration: none;
   font-weight: bold;
   padding: 6px 8px;
-  font-size: 0.9em;
+  font-size: 1em;
   color: white;
-  background-color: #547f00;
-  -moz-border-radius: 4px;
-  -webkit-border-radius: 4px;
-  -o-border-radius: 4px;
-  -ms-border-radius: 4px;
-  -khtml-border-radius: 4px;
-  border-radius: 4px;
+  background-color: #3366CC;
+  -moz-border-radius: 8px;
+  -webkit-border-radius: 8px;
+  -o-border-radius: 8px;
+  -ms-border-radius: 8px;
+  -khtml-border-radius: 8px;
+  border-radius: 8px;
 }
 .swagger-section #header form#api_selector .input a#explore:hover {
-  background-color: #547f00;
+  background-color: #3366CC;
 }
 .swagger-section #header form#api_selector .input input {
   font-size: 0.9em;
   padding: 3px;
-  margin: 0;
+  margin: 0px 5px 5px 5px;
 }
 .swagger-section #content_message {
   margin: 10px 15px;
