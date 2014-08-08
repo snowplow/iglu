@@ -116,7 +116,7 @@ class SchemaServiceSpec extends Specification
           }
       }
 
-      "return a 401 if the api key provided is not an uuid" in {
+      "return a 401 if the API key provided is not an uuid" in {
         Get(url) ~> addHeader("api_key", notUuidKey) ~> sealRoute(routes) ~>
           check {
             status === Unauthorized
@@ -133,7 +133,7 @@ class SchemaServiceSpec extends Specification
         }
       }
 
-      """return a 401 if the owner of the api key is not a prefix of the
+      """return a 401 if the owner of the API key is not a prefix of the
         schema's vendor""" in {
           Get(url) ~> addHeader("api_key", wrongVendorKey) ~>
             sealRoute(routes) ~> check {
@@ -194,7 +194,7 @@ class SchemaServiceSpec extends Specification
           }
       }
 
-      """return 401 if the api key doesn't have sufficient permissions with
+      """return 401 if the API key doesn't have sufficient permissions with
         query param""" in {
           Post(postUrl4) ~> addHeader("api_key", readKey) ~>
             sealRoute(routes) ~> check {
@@ -204,7 +204,7 @@ class SchemaServiceSpec extends Specification
             }
       }
 
-      """return a 401 if the api key doesn't have sufficient permissions
+      """return a 401 if the API key doesn't have sufficient permissions
         with form data""" in {
           Post(postUrl3, FormData(Seq("json" -> validSchema))) ~>
             addHeader("api_key", readKey) ~> sealRoute(routes) ~> check {
@@ -231,7 +231,7 @@ class SchemaServiceSpec extends Specification
         }
       }
 
-      "return a 401 if the api key is not an uuid with form data" in {
+      "return a 401 if the API key is not an uuid with form data" in {
         Post(postUrl3, FormData(Seq("json" -> validSchema))) ~>
           addHeader("api_key", notUuidKey) ~> sealRoute(routes) ~> check {
             status === Unauthorized
@@ -240,7 +240,7 @@ class SchemaServiceSpec extends Specification
         }
       }
 
-      "return a 401 if the api key is not an uuid with query param" in {
+      "return a 401 if the API key is not an uuid with query param" in {
         Post(postUrl4) ~> addHeader("api_key", notUuidKey) ~>
           sealRoute(routes) ~> check {
             status === Unauthorized
@@ -249,7 +249,7 @@ class SchemaServiceSpec extends Specification
         }
       }
 
-      """return a 401 if the owner of the api key is not a prefix of the
+      """return a 401 if the owner of the API key is not a prefix of the
         schema's vendor with query param""" in {
           Post(postUrl6) ~> addHeader("api_key", wrongVendorKey) ~>
             sealRoute(routes) ~> check {
@@ -259,7 +259,7 @@ class SchemaServiceSpec extends Specification
           }
       }
 
-      """return a 401 if the owner of the api key is not a prefix of the
+      """return a 401 if the owner of the API key is not a prefix of the
         schema's vendor with form data""" in {
           Post(postUrl3, FormData(Seq("json" -> validSchema))) ~>
             addHeader("api_key", wrongVendorKey) ~> sealRoute(routes) ~> check {

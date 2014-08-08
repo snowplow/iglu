@@ -49,7 +49,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
   /**
-   * Creates a ``TokenAuthenticator`` to extract the api-key http header and
+   * Creates a ``TokenAuthenticator`` to extract the api_key http header and
    * validates it against the database.
    */
   val authenticator = TokenAuthenticator[(String, String)]("api_key") {

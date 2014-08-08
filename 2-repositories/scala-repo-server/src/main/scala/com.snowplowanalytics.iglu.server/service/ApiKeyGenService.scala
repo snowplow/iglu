@@ -37,17 +37,18 @@ import spray.routing._
 import com.wordnik.swagger.annotations._
 
 /**
- * Service to interact with api keys.
- * @constructor create a new api key generation service with an apiKey actor
+ * Service to interact with API keys.
+ * @constructor create a new API key generation service with an apiKey actor
  * @param apiKey a reference to a ``ApiKeyActor``
  */
 @Api(value = "/api/auth/keygen",
-  description = "Operations dealing with api key generation and deletion")
+  description = """Operations dealing with API key generation and deletion,
+  requires a super API key""")
 class ApiKeyGenService(apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
   /**
-   * Creates a ``TokenAuthenticator`` to extract the api-key http header and
+   * Creates a ``TokenAuthenticator`` to extract the api_key http header and
    * validates it against the database.
    */
   val authenticator = TokenAuthenticator[(String, String)]("api_key") {
@@ -60,7 +61,7 @@ class ApiKeyGenService(apiKey: ActorRef)
   def auth: Directive1[(String, String)] = authenticate(authenticator)
 
   /**
-   * Api key generation service's route
+   * API key generation service's route
    */
   lazy val routes =
     rejectEmptyResponse {
@@ -82,18 +83,22 @@ class ApiKeyGenService(apiKey: ActorRef)
     }
 
   /**
-   * Route to generate a pair of read and read and write api keys.
+   * Route to generate a pair of read and read and write API keys.
    */
-  @ApiOperation(value = "Generate a pair of read and read write api keys",
-    notes = "Returns a pair of api keys", httpMethod = "POST",
-    consumes = "application/json")
+  @ApiOperation(value = "Generates a pair of read and read/write API keys",
+    notes = "Returns a pair of API keys", httpMethod = "POST")
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "owner", value = "Future owner of the api keys",
+    new ApiImplicitParam(name = "owner", value = "Future owner of the API keys",
       required = true, dataType = "string", paramType = "query")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 401,
       message = "This owner is conflicting with an existing one"),
+    new ApiResponse(code = 401,
+      message = "You do not have sufficient privileges"),
+    new ApiResponse(code = 401,
+      message = """The resource requires authentication, which was not supplied
+      with the request"""),
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
   def addRoute(owner: String) =
@@ -104,16 +109,16 @@ class ApiKeyGenService(apiKey: ActorRef)
     }
 
   /**
-   * Route to delete every api key belonging to an owner.
+   * Route to delete every API key belonging to an owner.
    */
-  @ApiOperation(value = "Delete every api key belonging to an owner",
+  @ApiOperation(value = "Delete every API key belonging to an owner",
     httpMethod = "DELETE")
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "owner", value = "Api keys' owner",
+    new ApiImplicitParam(name = "owner", value = "API keys' owner",
       required = true, dataType = "string", paramType = "query")
   ))
   @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Api key delete for the owner"),
+    new ApiResponse(code = 200, message = "API key delete for the owner"),
     new ApiResponse(code = 404, message = "Owner not found")
   ))
   def deleteKeysRoute(owner: String) =
@@ -124,18 +129,18 @@ class ApiKeyGenService(apiKey: ActorRef)
     }
 
   /**
-   * Route to delete a single api key.
+   * Route to delete a single API key.
    */
-  @ApiOperation(value = "Delete a single api key", httpMethod = "DELETE")
+  @ApiOperation(value = "Delete a single API key", httpMethod = "DELETE")
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "key", value = "Api key to be deleted",
+    new ApiImplicitParam(name = "key", value = "API key to be deleted",
       required = true, dataType = "string", paramType = "query")
   ))
   @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Api key successfully deleted"),
+    new ApiResponse(code = 200, message = "API key successfully deleted"),
     new ApiResponse(code = 401,
-      message = "The api key provided is not and UUID"),
-    new ApiResponse(code = 404, message = "Api key not found"),
+      message = "The API key provided is not and UUID"),
+    new ApiResponse(code = 404, message = "API key not found"),
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
   def deleteKeyRoute =

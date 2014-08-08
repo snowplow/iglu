@@ -121,7 +121,7 @@ class ApiKeyGenServiceSpec extends Specification
         Delete(deleteUrl + UUID.randomUUID().toString) ~>
           addHeader("api_key", superKey) ~> sealRoute(routes) ~> check {
             status === NotFound
-            responseAs[String] must contain("Api key not found")
+            responseAs[String] must contain("API key not found")
           }
       }
 
@@ -129,7 +129,7 @@ class ApiKeyGenServiceSpec extends Specification
         Delete(deleteUrl + readKey) ~> addHeader("api_key", superKey) ~>
           sealRoute(routes) ~> check {
             status === OK
-            responseAs[String] must contain("Api key successfully deleted")
+            responseAs[String] must contain("API key successfully deleted")
           }
       }
     }
@@ -148,7 +148,7 @@ class ApiKeyGenServiceSpec extends Specification
         Delete(ownerUrl) ~> addHeader("api_key", superKey) ~>
           sealRoute(routes) ~> check {
             status === OK
-            responseAs[String] must contain("Api key deleted for ")
+            responseAs[String] must contain("API key deleted for ")
           }
       }
 

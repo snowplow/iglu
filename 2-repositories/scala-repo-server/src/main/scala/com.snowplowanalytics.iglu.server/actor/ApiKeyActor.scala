@@ -56,7 +56,7 @@ object ApiKeyActor {
 }
 
 /**
- * ApiKey actor interfacing between the services and the api key model.
+ * ApiKey actor interfacing between the services and the API key model.
  */
 class ApiKeyActor extends Actor {
 
