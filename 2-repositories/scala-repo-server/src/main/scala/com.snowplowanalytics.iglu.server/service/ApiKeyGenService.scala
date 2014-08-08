@@ -97,8 +97,9 @@ class ApiKeyGenService(apiKey: ActorRef)
     new ApiResponse(code = 401,
       message = "You do not have sufficient privileges"),
     new ApiResponse(code = 401,
-      message = """The resource requires authentication, which was not supplied
-      with the request"""),
+      message = "The supplied authentication is invalid"),
+    new ApiResponse(code = 401, message = """The resource requires
+      authentication, which was not supplied with the request"""),
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
   def addRoute(owner: String) =
@@ -111,14 +112,20 @@ class ApiKeyGenService(apiKey: ActorRef)
   /**
    * Route to delete every API key belonging to an owner.
    */
-  @ApiOperation(value = "Delete every API key belonging to an owner",
+  @ApiOperation(value = "Deletes every API key belonging to an owner",
     httpMethod = "DELETE")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "owner", value = "API keys' owner",
       required = true, dataType = "string", paramType = "query")
   ))
   @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "API key delete for the owner"),
+    new ApiResponse(code = 200, message = "API key deleted for the owner"),
+    new ApiResponse(code = 401,
+      message = "You do not have sufficient privileges"),
+    new ApiResponse(code = 401,
+      message = "The supplied authentication is invalid"),
+    new ApiResponse(code = 401, message = """The resource requires
+      authentication, which was not supplied with the request"""),
     new ApiResponse(code = 404, message = "Owner not found")
   ))
   def deleteKeysRoute(owner: String) =
@@ -131,13 +138,19 @@ class ApiKeyGenService(apiKey: ActorRef)
   /**
    * Route to delete a single API key.
    */
-  @ApiOperation(value = "Delete a single API key", httpMethod = "DELETE")
+  @ApiOperation(value = "Deletes a single API key", httpMethod = "DELETE")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "key", value = "API key to be deleted",
       required = true, dataType = "string", paramType = "query")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "API key successfully deleted"),
+    new ApiResponse(code = 401,
+      message = "You do not have sufficient privileges"),
+    new ApiResponse(code = 401,
+      message = "The supplied authentication is invalid"),
+    new ApiResponse(code = 401, message = """The resource requires
+      authentication, which was not supplied with the request"""),
     new ApiResponse(code = 401,
       message = "The API key provided is not and UUID"),
     new ApiResponse(code = 404, message = "API key not found"),

@@ -61,8 +61,10 @@ with ActorLogging {
     override def docsPath = "api-docs"
     override def actorRefFactory = context
     override def apiInfo = Some(new ApiInfo("Iglu schema repository",
-      """Please request an API key from the administrators of this Iglu
-      repository if you do not own one""",
+      """This is the API documentation for Iglu schema repository, a
+      machine-readable schema repository built by Snowplow Analytics. Fill in
+      your API key at the top of the page if you own one otherwise, please
+      request an API key from the administrators of this Iglu repository""",
       "TOS url", "contact@snowplowanalytics.com", "Apache 2.0",
       "https://github.com/snowplow/iglu/blob/master/LICENSE-2.0.txt"))
   }

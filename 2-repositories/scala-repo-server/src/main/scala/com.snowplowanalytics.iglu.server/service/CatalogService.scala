@@ -43,8 +43,7 @@ import com.wordnik.swagger.annotations._
  * @param schema a reference to a ``SchemaActor``
  * @param apiKey a reference to a ``ApiKeyActor``
  */
-@Api(value = "/api/schemas",
-  description = "Operations for retrieving multiple schemas")
+@Api(value = "/api/schemas")
 class CatalogService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
@@ -90,7 +89,7 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
   /**
    * Catalog route to retrieve every schema belonging to a vendor.
    */
-  @ApiOperation(value = "Retrieve every schema belonging to a vendor",
+  @ApiOperation(value = "Retrieves every schema belonging to a vendor",
     notes = "Returns a collection of schemas", httpMethod = "GET",
     response = classOf[String])
   @ApiImplicitParams(Array(
@@ -101,6 +100,10 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
       allowableValues = "metadata")
   ))
   @ApiResponses(Array(
+    new ApiResponse(code = 401,
+      message = "The supplied authentication is invalid"),
+    new ApiResponse(code = 401, message = """The resource requires
+      authentication, which was not supplied with the request"""),
     new ApiResponse(code = 404,
       message = "There are no schemas for this vendor")
   ))
@@ -119,7 +122,7 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
   /**
    * Catalog route to retrieve every version of every format of a schema.
    */
-  @ApiOperation(value = "Retrieve every version of every format of a schema",
+  @ApiOperation(value = "Retrieves every version of every format of a schema",
     notes = "Returns a collection of schemas", httpMethod = "GET",
     response = classOf[String])
   @ApiImplicitParams(Array(
@@ -132,6 +135,10 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
       allowableValues = "metadata")
   ))
   @ApiResponses(Array(
+    new ApiResponse(code = 401,
+      message = "The supplied authentication is invalid"),
+    new ApiResponse(code = 401, message = """The resource requires
+      authentication, which was not supplied with the request"""),
     new ApiResponse(code = 404,
       message = "There are no schemas for this vendor, name combination")
   ))
@@ -150,7 +157,7 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
   /**
    * Catalog route to retrieve every version of a particular format of a schema.
    */
-  @ApiOperation(value = """Retrieve every version of a particular format of a
+  @ApiOperation(value = """Retrieves every version of a particular format of a
     schema""", notes = "Returns a collection of schemas", httpMethod = "GET",
     response = classOf[String])
   @ApiImplicitParams(Array(
@@ -165,6 +172,10 @@ class CatalogService(schema: ActorRef, apiKey: ActorRef)
       allowableValues = "metadata")
   ))
   @ApiResponses(Array(
+    new ApiResponse(code = 401,
+      message = "The supplied authentication is invalid"),
+    new ApiResponse(code = 401, message = """The resource requires
+      authentication, which was not supplied with the request"""),
     new ApiResponse(code = 404, message =
       "There are no schemas for this vendor, name, format combination")
   ))

@@ -44,7 +44,7 @@ import com.wordnik.swagger.annotations._
  * @param apiKey a reference to a ``ApiKeyActor``
  */
 @Api(value = "/api/schemas",
-  description = "Operations dealing with individual schema")
+  description = "Operations dealing with individual and multiple schemas")
 class SchemaService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
@@ -98,8 +98,8 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   /**
    * Get route
    */
-  @ApiOperation(value = """Find a schema based on its (vendor, name, format,
-    version)""", notes = "Returns a schema", httpMethod = "GET",
+  @ApiOperation(value = """Retrieves a schema based on its (vendor, name,
+    format, version)""", notes = "Returns a schema", httpMethod = "GET",
     response = classOf[String])
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
@@ -115,6 +115,10 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
       allowableValues = "metadata")
   ))
   @ApiResponses(Array(
+    new ApiResponse(code = 401,
+      message = "The supplied authentication is invalid"),
+    new ApiResponse(code = 401, message = """The resource requires
+      authentication, which was not supplied with the request"""),
     new ApiResponse(code = 404, message = "There are no schemas available here")
   ))
   def readRoute(v: String, n: String, f: String, vs: String) =
@@ -136,7 +140,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   /**
    * Post route
    */
-  @ApiOperation(value = "Add a new schema to the repository",
+  @ApiOperation(value = "Adds a new schema to the repository",
     httpMethod = "POST", consumes = "application/json")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
@@ -147,12 +151,18 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "version", value = "Schema's version",
       required = true, dataType = "string", paramType = "path"),
-    new ApiImplicitParam(name = "json", value = "Json schema to add",
+    new ApiImplicitParam(name = "json", value = "Schema to be added",
       required = true, dataType = "string", paramType = "path")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "Schema added successfully"),
     new ApiResponse(code = 401, message = "This schema already exists"),
+    new ApiResponse(code = 401,
+      message = "You do not have sufficient privileges"),
+    new ApiResponse(code = 401,
+      message = "The supplied authentication is invalid"),
+    new ApiResponse(code = 401, message = """The resource requires
+      authentication, which was not supplied with the request"""),
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
   def addRoute(v: String, n: String, f: String, vs: String,
