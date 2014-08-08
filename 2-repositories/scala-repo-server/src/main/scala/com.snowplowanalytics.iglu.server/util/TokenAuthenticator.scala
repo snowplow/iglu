@@ -36,14 +36,16 @@ object TokenAuthenticator {
   object TokenExtraction {
     def fromHeader(headerName: String): TokenExtractor = {
       context: RequestContext =>
-        context.request.headers.find(_.name == headerName).map(_.value)
+        context.request.headers.
+          find(_.name.toLowerCase == headerName).
+          map(_.value)
     }
   }
 
   /**
    * Under the hood class performing the authentication.
    * @param extractor extracting the token from the request
-   * @param authenticator takes an api key and validates it through the dao
+   * @param authenticator takes an API key and validates it through the dao
    */
   class TokenAuthenticator[T](extractor: TokenExtractor,
     authenticator: (String => Future[Option[T]]))
@@ -60,7 +62,7 @@ object TokenAuthenticator {
      */
     def apply(context: RequestContext): Future[Authentication[T]] =
       extractor(context) match {
-        //if there is no api-key header provided
+        //if there is no api_key header provided
         case None => Future(
           Left(AuthenticationFailedRejection(CredentialsMissing, List())))
         case Some(token) =>
@@ -76,7 +78,7 @@ object TokenAuthenticator {
 
   /**
    * Entry point to perform the authentication.
-   * @param headerName containing the api key token to be extracted
+   * @param headerName containing the API key token to be extracted
    * @param authenticator function taking a string and returning something if
    * the authentication succeeds or nothing if the authentication fails
    */
