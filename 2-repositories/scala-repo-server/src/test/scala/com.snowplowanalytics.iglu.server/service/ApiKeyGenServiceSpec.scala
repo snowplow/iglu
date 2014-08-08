@@ -97,6 +97,15 @@ class ApiKeyGenServiceSpec extends Specification
             }
         }
 
+      "return a 401 if the new owner already exists" in {
+        Post(ownerUrl) ~> addHeader("api_key", superKey) ~>
+          sealRoute(routes) ~> check {
+            status === Unauthorized
+            responseAs[String] must
+              contain("This owner is conflicting with an existing one")
+          }
+      }
+
       "return a 401 if a new owner is conflicting with an existing one" in {
         Post(conflictingOwnerUrl) ~> addHeader("api_key", superKey) ~>
           sealRoute(routes) ~> check {

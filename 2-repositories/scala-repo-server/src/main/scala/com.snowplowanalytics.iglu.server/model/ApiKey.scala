@@ -110,63 +110,45 @@ class ApiKeyDAO(val db: Database) extends DAO {
   }
 
   /**
-   * Validates that when adding a key it is not conflicting with an existing
-   * one. In particular, checks that there is not API key with the same (owner,
-   * permission) pair and that there is no owner already in the database with
-   * the same prefix.
-   * @param owner owner of the new API key being validated
-   * @param permission permission of the new API key being validated
-   * @return a boolean indicating whether or not we allow this new API key
+   * Validates that a new owner is not conflicting with an existing one
+   * (same prefix).
+   * @param owner owner of the new API keys being validated
+   * @return a boolean indicating whether or not we allow this new API key owner
    */
-  private def validate(owner: String, permission: String): Boolean = {
+  private def validate(owner: String): Boolean =
     db withDynSession {
-      val l: List[(String, String)] =
-        apiKeys.map(a => (a.owner, a.permission)).list
-      val owners = l.filter(a => (a._1 == owner && a._2 != permission))
-      val startWithOwners = l.filter(o =>
-          ((o._1.startsWith(owner) || owner.startsWith(o._1)) && o._1 != owner))
-
-      if (startWithOwners.length > 0 || owners.length > 1) {
-        false
-      } else {
-        true
-      }
+      apiKeys.map(_.owner).list.
+        filter(o => o.startsWith(owner) || owner.startsWith(o) || o == owner).
+        length == 0
     }
-  }
 
   /**
-   * Adds a new API key after validating it.
+   * Adds a new API key.
    * @param owner owner of the new API key
    * @param permission permission of the new API key
    * @return a status code and a json response pair
    */
-  private def add(owner: String, permission: String): (StatusCode, String) = {
+  private def add(owner: String, permission: String): (StatusCode, String) =
     db withDynSession {
-      if(validate(owner, permission)) {
-        val uid = UUID.randomUUID()
-        apiKeys.insert(
-          ApiKey(uid, owner, permission, new LocalDateTime())) match {
-            case 0 => (InternalServerError, "Something went wrong")
-            case n => (OK, uid.toString)
-          }
-      } else {
-        (Unauthorized, "This owner is conflicting with an existing one")
-      }
+      val uid = UUID.randomUUID()
+      apiKeys.insert(
+        ApiKey(uid, owner, permission, new LocalDateTime())) match {
+          case 0 => (InternalServerError, "Something went wrong")
+          case n => (OK, uid.toString)
+        }
     }
-  }
 
   /**
-   * Adds both read and write API keys for an owner.
+   * Adds both read and write API keys for an owner after validating it.
    * @param owner owner of the new pair of keys
    * @returns a status code and a json containing the pair of API keys.
    */
-  def addReadWrite(owner: String): (StatusCode, String) = {
+  def addReadWrite(owner: String): (StatusCode, String) =
     db withDynSession {
-      val (statusRead, keyRead) = add(owner, "read")
-      if (statusRead == Unauthorized) {
-        (statusRead, result(401, keyRead))
-      } else {
+      if (validate(owner)) {
+        val (statusRead, keyRead) = add(owner, "read")
         val (statusWrite, keyWrite) = add(owner, "write")
+
         if(statusRead == InternalServerError ||
           statusWrite == InternalServerError) {
             delete(keyRead)
@@ -175,9 +157,10 @@ class ApiKeyDAO(val db: Database) extends DAO {
           } else {
             (OK, writePretty(Map("read" -> keyRead, "write" -> keyWrite)))
           }
+      } else {
+        (Unauthorized, "This owner is conflicting with an existing one")
       }
     }
-  }
 
   /**
    * Deletes an API key from its uuid.
