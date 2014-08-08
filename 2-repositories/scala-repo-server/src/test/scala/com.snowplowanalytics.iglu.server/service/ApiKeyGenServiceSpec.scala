@@ -88,6 +88,7 @@ class ApiKeyGenServiceSpec extends Specification
               status === OK
               val response = responseAs[String]
               response must contain("read") and contain("write")
+              Post
               val map = parse(response).extract[Map[String, String]]
               readKey = map getOrElse("read", "")
               writeKey = map getOrElse("write", "")
@@ -95,6 +96,15 @@ class ApiKeyGenServiceSpec extends Specification
               writeKey must beMatching(uidRegex)
             }
         }
+
+      "return a 401 if the new owner already exists" in {
+        Post(ownerUrl) ~> addHeader("api-key", superKey) ~>
+          sealRoute(routes) ~> check {
+            status === Unauthorized
+            responseAs[String] must
+              contain("This vendor is conflicting with an existing one")
+          }
+      }
 
       "return a 401 if a new vendor is conflicting with an existing one" in {
         Post(conflictingOwnerUrl) ~> addHeader("api-key", superKey) ~>
