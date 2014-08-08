@@ -224,7 +224,7 @@
   color: #aaaaaa;
 }
 .swagger-section .swagger-ui-wrap a {
-  color: #547f00;
+  color: #6599ff;
 }
 .swagger-section .swagger-ui-wrap a img {
   border: none;
@@ -1165,18 +1165,15 @@
     font-size: 1.5em;
     font-weight: bold;
     text-decoration: none;
-    background: transparent no-repeat left center;
     padding: 20px 20px 20px 20px;
     color: white;
 }
-//.swagger-section #header a#logo {
-//  font-size: 1.5em;
-//  font-weight: bold;
-//  text-decoration: none;
-//  background: transparent url(../images/logo_small.png) no-repeat left center;
-//  padding: 20px 0 20px 40px;
-//  color: white;
-//}
+.swagger-section #header a#logo {
+  font-size: 0.9em;
+  text-decoration: none;
+  padding: 20px 20px 20px 0;
+  color: white;
+}
 .swagger-section #header form#api_selector {
   display: block;
   clear: none;
@@ -1186,6 +1183,7 @@
   display: block;
   clear: none;
   float: left;
+  margin: 0 10px 0 0;
 }
 .swagger-section #header form#api_selector .input input#input_apiKey {
   width: 200px;
@@ -1194,7 +1192,6 @@
 //  width: 400px;
 //}
 .swagger-section #header form#api_selector .input a#explore {
-  margin: -20px 20px 20px 20px;
   display: block;
   text-decoration: none;
   font-weight: bold;
@@ -1215,7 +1212,7 @@
 .swagger-section #header form#api_selector .input input {
   font-size: 0.9em;
   padding: 3px;
-  margin: 0px 5px 5px 5px;
+  margin: 0;
 }
 .swagger-section #content_message {
   margin: 10px 15px;
