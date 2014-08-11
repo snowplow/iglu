@@ -76,14 +76,14 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
         val map = parse(result).extract[Map[String, String]]
         readKey = map getOrElse("read", "")
         writeKey = map getOrElse("write", "")
-        status must be(OK)
+        status === OK
         result must contain("read") and contain("write")
       }
 
       "return a 401 if the owner is conflicting" in {
         val future = key ? AddBothKey(faultyOwner)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status must be(Unauthorized)
+        status === Unauthorized
         result must contain("This owner is conflicting with an existing one")
       }
     }
@@ -116,21 +116,21 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
       "return a 200 if the key exists" in {
         val future = key ? DeleteKey(readKey)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status must be(OK)
+        status === OK
         result must contain("API key successfully deleted")
       }
 
       "return a 404 if the key doesnt exist" in {
         val future = key ? DeleteKey(readKey)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status must be(NotFound)
+        status === NotFound
         result must contain("API key not found")
       }
 
       "return a 401 if the key is not an uuid" in {
         val future = key ? DeleteKey(notUuidKey)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status must be(Unauthorized)
+        status === Unauthorized
         result must contain("The API key provided is not an UUID")
       }
     }
@@ -140,14 +140,14 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
       "return a 200 if there are keys associated with this owner" in {
         val future = key ? DeleteKeys(owner)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status must be(OK)
+        status === OK
         result must contain("API key deleted for " + owner)
       }
 
       "return a 404 if there are no API keys associated with this owner" in {
         val future = key ? DeleteKeys(owner)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status must be(NotFound)
+        status === NotFound
         result must contain("Owner not found")
       }
     }

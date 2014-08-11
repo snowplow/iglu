@@ -91,7 +91,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "not add a schema if it already exists" in {
         val (status, res) = schema.add(vendor, name, format, version, schemaDef)
-        status must be(Unauthorized)
+        status === Unauthorized
         res must contain("This schema already exists")
 
         database withDynSession {
