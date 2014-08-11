@@ -86,7 +86,7 @@ class ApiKeyGenServiceSpec extends Specification
         anyone""" in {
           Post(ownerUrl) ~> addHeader("api_key", superKey) ~>
             sealRoute(routes) ~> check {
-              status === OK
+              status === Created
               val response = responseAs[String]
               response must contain("read") and contain("write")
               val map = parse(response).extract[Map[String, String]]

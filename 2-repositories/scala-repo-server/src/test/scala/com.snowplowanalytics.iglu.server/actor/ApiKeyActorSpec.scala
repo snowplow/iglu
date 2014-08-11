@@ -76,7 +76,7 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
         val map = parse(result).extract[Map[String, String]]
         readKey = map getOrElse("read", "")
         writeKey = map getOrElse("write", "")
-        status === OK
+        status === Created
         result must contain("read") and contain("write")
       }
 

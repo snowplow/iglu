@@ -155,7 +155,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
             delete(keyWrite)
             (InternalServerError, result(500, "Something went wrong"))
           } else {
-            (OK, writePretty(Map("read" -> keyRead, "write" -> keyWrite)))
+            (Created, writePretty(Map("read" -> keyRead, "write" -> keyWrite)))
           }
       } else {
         (Unauthorized, "This owner is conflicting with an existing one")

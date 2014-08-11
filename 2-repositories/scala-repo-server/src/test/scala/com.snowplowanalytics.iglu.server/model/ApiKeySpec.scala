@@ -78,7 +78,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
         readKey = map getOrElse("read", "")
         writeKey = map getOrElse("write", "")
 
-        status === OK
+        status === Created
         res must contain("read") and contain("write")
 
         database withDynSession {
