@@ -136,7 +136,7 @@ class SchemaServiceSpec extends Specification
           Get(multiFormat) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
-            responseAs[String] must contain(version)
+            responseAs[String] must contain(format) and contain(format2)
           }
         }
 
@@ -167,7 +167,7 @@ class SchemaServiceSpec extends Specification
           Get(metaMultiFormat) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
-            responseAs[String] must contain(format)
+            responseAs[String] must contain(format) and contain(format2)
           }
         }
 
@@ -329,8 +329,7 @@ class SchemaServiceSpec extends Specification
           Get(multiFormatUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
-            //only jsonschema for now
-            responseAs[String] must contain(format)
+            responseAs[String] must contain(format) and contain(format2)
           }
         }
 
@@ -348,8 +347,7 @@ class SchemaServiceSpec extends Specification
           Get(metaMultiFormatUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
-            //only jsonschema for now
-            responseAs[String] must contain(format)
+            responseAs[String] must contain(format) and contain(format2)
           }
         }
 
@@ -416,7 +414,7 @@ class SchemaServiceSpec extends Specification
           sealRoute(routes) ~> check {
             status === BadRequest
             responseAs[String] must
-              contain("Request is missing reuired form field 'json'")
+              contain("Request is missing required form field 'json'")
           }
       }
 

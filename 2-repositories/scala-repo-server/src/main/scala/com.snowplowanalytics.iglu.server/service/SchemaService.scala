@@ -87,7 +87,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
           auth { authPair =>
             if (v startsWith authPair._1) {
               post {
-                path("[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+                pathPrefix("[a-zA-Z0-9_-]+".r / "[a-z]+".r /
                   "[0-9]+-[0-9]+-[0-9]+".r) { (n, f, vs) =>
                     addRoute(v, n, f, vs, authPair)
                   }
