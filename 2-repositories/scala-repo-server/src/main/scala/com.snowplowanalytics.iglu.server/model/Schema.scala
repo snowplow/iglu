@@ -366,7 +366,8 @@ class SchemaDAO(val db: Database) extends DAO {
               new LocalDateTime())) match {
                 case 0 => (InternalServerError,
                   result(500, "Something went wrong"))
-                case n => (OK, result(200, "Schema added successfully"))
+                case n => (Created, result(201, "Schema added successfully",
+                  buildLoc(vendor, name, format, version)))
               }
         }
       }

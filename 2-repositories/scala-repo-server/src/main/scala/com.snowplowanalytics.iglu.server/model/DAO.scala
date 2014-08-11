@@ -28,12 +28,19 @@ trait DAO {
   implicit val formats = DefaultFormats
 
   /**
-   * Case class defined for json formatting.
+   * Case class defined for json formatting. Handles usual responses.
    */
   case class Result(status: Int, message: String)
 
   /**
-   * Case class defined for json formatting.
+   * Case class defined for json formatting. Handles json responses when a
+   * schemas is created.
+   */
+  case class ResultAdded(status: Int, message: String, location: String)
+
+  /**
+   * Case class defined for json formatting. Handles json responses when a
+   * schema failed validation.
    */
   case class ResultReport(status: Int, message: String, report: JValue)
 
@@ -45,6 +52,16 @@ trait DAO {
    */
   def result(status: Int, message: String): String =
     writePretty(Result(status, message))
+
+  /**
+   * Formats a (status, message, location) tuple to proper json.
+   * @param status the reponse's status
+   * @param message the response's message
+   * @param location the newly added schema's location
+   * @return a well-formatted json
+   */
+  def result(status: Int, message: String, location: String): String=
+    writePretty(ResultAdded(status, message, location))
 
   /**
    * Formats a (status, message, report) tuple to proper json.

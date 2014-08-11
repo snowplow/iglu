@@ -70,12 +70,12 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
 
     "for AddSchema" should {
 
-      "return a 200 if the schema doesnt already exist" in {
+      "return a 201 if the schema doesnt already exist" in {
         val future = schema ? AddSchema(vendor, name, format, version,
           schemaDef)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status ==== OK
-        result must contain("Schema added successfully")
+        status === Created
+        result must contain("Schema added successfully") and contain(vendor)
       }
 
       "return a 401 if the schema already exists" in {
@@ -92,7 +92,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
       "return a 200 if the schema exists" in {
         val future = schema ? GetSchema(vendor, name, format, version)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status ==== OK
+        status === OK
         result must contain(innerSchema)
       }
 

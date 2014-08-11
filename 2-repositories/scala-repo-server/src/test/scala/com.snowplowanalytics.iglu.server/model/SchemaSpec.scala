@@ -75,8 +75,8 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "add a schema properly" in {
         val (status, res) = schema.add(vendor, name, format, version, schemaDef)
-        status === OK
-        res must contain("Schema added successfully")
+        status === Created
+        res must contain("Schema added successfully") and contain(vendor)
 
         database withDynSession {
           Q.queryNA[Int](

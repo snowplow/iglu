@@ -156,8 +156,9 @@ class SchemaServiceSpec extends Specification
       "return success if the json is passed as form data" in {
         Post(postUrl1, FormData(Seq("json" -> validSchema))) ~>
           addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
-            status === OK
-            responseAs[String] must contain("Schema added successfully")
+            status === Created
+            responseAs[String] must contain("Schema added successfully") and
+              contain(vendor)
           }
       }
 
@@ -165,8 +166,9 @@ class SchemaServiceSpec extends Specification
       "return success if the json is passed as query parameter" in {
         Post(postUrl2) ~> addHeader("api_key", writeKey) ~>
           sealRoute(routes) ~> check {
-            status === OK
-            responseAs[String] must contain("Schema added successfully")
+            status === Created
+            responseAs[String] must contain("Schema added successfully") and
+              contain(vendor)
           }
       }
 
