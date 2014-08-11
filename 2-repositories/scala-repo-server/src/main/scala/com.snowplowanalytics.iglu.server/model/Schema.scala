@@ -297,6 +297,15 @@ class SchemaDAO(val db: Database) extends DAO {
   def get(vendor: String, names: List[String], schemaFormats: List[String],
     versions: List[String]): (StatusCode, String) =
       db withDynSession {
+        println(names); println(schemaFormats); println(versions);
+        val fore = 
+          (for {
+            s <- schemas if s.vendor === vendor &&
+              (s.name inSet names) &&
+              (s.format inSet schemaFormats) &&
+              (s.version inSet versions)
+          } yield s)
+        println(fore)
         val l: List[ResSchema] =
           (for {
             s <- schemas if s.vendor === vendor &&

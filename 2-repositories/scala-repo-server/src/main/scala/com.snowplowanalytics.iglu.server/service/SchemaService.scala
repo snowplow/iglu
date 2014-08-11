@@ -96,7 +96,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
                 pathPrefix("[a-zA-Z0-9_-]+".r.repeat(separator = ",")) { n =>
                   pathPrefix("[a-z]+".r.repeat(separator = ",")) { f =>
                     pathPrefix(
-                      "[0-9]+-[0-9]+-[0-9}+".r.repeat(separator = ",")) { vs =>
+                      "[0-9]+-[0-9]+-[0-9]+".r.repeat(separator = ",")) { vs =>
                         readRoute(v, n, f, vs)
                       } ~
                     readFormatRoute(v, n, f)

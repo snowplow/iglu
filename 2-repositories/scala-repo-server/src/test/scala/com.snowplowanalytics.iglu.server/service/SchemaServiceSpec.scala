@@ -44,7 +44,7 @@ class SchemaServiceSpec extends Specification
     """{
       "self": {
         "vendor": "com.snowplowanalytics.snowplow",
-        "name": "ad_click",
+        "name": "${name}",
         "format": "jsonschema",
         "version": "1-0-0"
       }
@@ -58,14 +58,45 @@ class SchemaServiceSpec extends Specification
     replaceAll("\"", "%22")
 
   val vendor = "com.snowplowanalytics.snowplow"
+  val name = "ad_click"
+  val name2 = "ad_click2"
   val format = "jsonschema"
+  val format2 = "jsontable"
   val version = "1-0-0"
+  val version2 = "1-0-1"
 
   val start = "/api/schemas/"
-  val url = s"${start}${vendor}/ad_click/${format}/${version}"
-  val faultyUrl = s"${start}${vendor}/ad_click/jsonchema/${version}"
-  val metaUrl = s"${start}${vendor}/ad_click/${format}/${version}" +
-    "?filter=metadata"
+
+  //get urls
+  val url = s"${start}${vendor}/${name}/${format}/${version}"
+  val faultyUrl = s"${start}${vendor}/${name}/jsonchema/${version}"
+  val multiVersionUrl = s"${url},${version2}"
+  val metaUrl = s"${url}?filter=metadata"
+  val metaMultiVersionUrl = s"${multiVersionUrl}?filter=metadata"
+
+  val multiFormat = s"${start}${vendor}/${name}/${format},${format2}/${version}"
+  val metaMultiFormat = s"${multiFormat}?filter=metadata"
+  var multiName = s"${start}${vendor}/${name},${name2}/${format}/${version}"
+  val metaMultiName = s"${multiName}?filter=metadata"
+
+  val vendorUrl = s"${start}${vendor}"
+  val metaVendorUrl = s"${vendorUrl}?filter=metadata"
+
+  val nameUrl = s"${start}${vendor}/${name}"
+  val multiNameUrl = s"${nameUrl},${name2}"
+  val metaNameUrl = s"${nameUrl}?filter=metadata"
+  val metaMultiNameUrl = s"${multiNameUrl}?filter=metadata"
+
+  val formatUrl = s"${start}${vendor}/${name}/${format}"
+  val multiFormatUrl = s"${formatUrl},${format2}"
+  val metaFormatUrl = s"${formatUrl}?filter=metadata"
+  val metaMultiFormatUrl = s"${multiFormatUrl}?filter=metadata"
+
+  val otherVendorUrl = s"${start}com.benfradet.project"
+  val otherNameUrl = s"${start}com.benfradet.project/${name}"
+  val otherFormatUrl = s"${start}com.benfradet.project/${name}/jsonschema"
+
+  //post urls
   val postUrl1 = s"${start}${vendor}/unit_test1/${format}/${version}"
   val postUrl2 = s"${start}${vendor}/unit_test2/${format}/${version}" +
     s"?json=${validSchemaUri}"
@@ -84,68 +115,260 @@ class SchemaServiceSpec extends Specification
 
     "for GET requests" should {
 
-      "return a proper json for well-formed GET requests" in {
-        Get(url) ~> addHeader("api_key", readKey) ~> routes ~> check {
-          status === OK
-          responseAs[String] must contain("\"name\" : \"ad_click\"")
-        }
-      }
+      "for version based url" should {
 
-      "return proper metadata for well-formed GET requests" in {
-        Get(metaUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
-          status === OK
-          responseAs[String] must contain(vendor) and contain("ad_click") and
-            contain(format) and contain(version)
-        }
-      }
-
-      "return a 404 for GET requests for which the schema is not in the db" in {
-        Get(faultyUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
-          status === NotFound
-          responseAs[String] must
-            contain("There are no schemas available here")
-        }
-      }
-
-      "return a 401 if no api_key is found in the db" in {
-        Get(url) ~> addHeader("api_key", faultyKey) ~> sealRoute(routes) ~>
-          check {
-            status === Unauthorized
-            responseAs[String] must
-              contain("The supplied authentication is invalid")
+        "return a proper json for well-formed single GET requests" in {
+          Get(url) ~> addHeader("api_key", readKey) ~> routes ~> check {
+            status === OK
+            responseAs[String] must contain(name)
           }
-      }
-
-      "return a 401 if the API key provided is not an uuid" in {
-        Get(url) ~> addHeader("api_key", notUuidKey) ~> sealRoute(routes) ~>
-          check {
-            status === Unauthorized
-            responseAs[String] must
-              contain("The supplied authentication is invalid")
-          }
-      }
-
-      "return a 401 if no api_key is provided" in {
-        Get(url) ~> sealRoute(routes) ~> check {
-          status === Unauthorized
-          responseAs[String] must
-            contain("The resource requires authentication")
         }
-      }
 
-      """return a 401 if the owner of the API key is not a prefix of the
-        schema's vendor""" in {
-          Get(url) ~> addHeader("api_key", wrongVendorKey) ~>
-            sealRoute(routes) ~> check {
+        "return a proper json for a multi GET requests" in {
+          Get(multiVersionUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(version) and contain(version2)
+          }
+        }
+
+        "return a proper json for multi format url" in {
+          Get(multiFormat) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(version)
+          }
+        }
+
+        "return a proper json for multi name url" in {
+          Get(multiName) ~> addHeader("api_key", readKey) ~> routes ~> check {
+            status === OK
+            responseAs[String] must contain(name) and contain(name2)
+          }
+        }
+
+        "return proper metadata for well-formed single GET requests" in {
+          Get(metaUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
+            status === OK
+            responseAs[String] must contain(vendor) and contain(name) and
+              contain(format) and contain(version)
+          }
+        }
+
+        "return proper metadata for a multi GET request" in {
+          Get(metaMultiVersionUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(version) and contain(version2)
+          }
+        }
+
+        "return proper metadata for multi format url" in {
+          Get(metaMultiFormat) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(format)
+          }
+        }
+
+        "return proper metadata for multi name url" in {
+          Get(metaMultiName) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(name) and contain(name2)
+          }
+        }
+
+        "return a 404 for GET requests for which the schema is not in the db" in
+        {
+          Get(faultyUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
+            status === NotFound
+            responseAs[String] must
+              contain("There are no schemas available here")
+          }
+        }
+
+        "return a 401 if no api_key is found in the db" in {
+          Get(url) ~> addHeader("api_key", faultyKey) ~> sealRoute(routes) ~>
+            check {
               status === Unauthorized
               responseAs[String] must
-                contain("You do not have sufficient privileges")
+                contain("The supplied authentication is invalid")
             }
+        }
+
+        "return a 401 if the API key provided is not an uuid" in {
+          Get(url) ~> addHeader("api_key", notUuidKey) ~> sealRoute(routes) ~>
+            check {
+              status === Unauthorized
+              responseAs[String] must
+                contain("The supplied authentication is invalid")
+            }
+        }
+
+        "return a 401 if no api_key is provided" in {
+          Get(url) ~> sealRoute(routes) ~> check {
+            status === Unauthorized
+            responseAs[String] must
+              contain("The resource requires authentication")
+          }
+        }
+
+        """return a 401 if the owner of the API key is not a prefix of the
+          schema's vendor""" in {
+            Get(url) ~> addHeader("api_key", wrongVendorKey) ~>
+              sealRoute(routes) ~> check {
+                status === Unauthorized
+                responseAs[String] must
+                  contain("You do not have sufficient privileges")
+              }
+        }
+
+        "leave GET requests to other paths unhandled" in {
+          Get("/test") ~> routes ~> check {
+            handled must beFalse
+          }
+        }
       }
 
-      "leave GET requests to other paths unhandled" in {
-        Get("/test") ~> routes ~> check {
-          handled must beFalse
+      "for vendor based url" should {
+
+        "return the catalog of available schemas for this vendor" in {
+          Get(vendorUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
+            status === OK
+            responseAs[String] must contain(name) and contain(name2)
+          }
+        }
+
+        "return metadata about every schemas for this vendor" in {
+          Get(metaVendorUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(vendor)
+          }
+        }
+
+        "return a 404 for a vendor which has no schemas" in {
+          Get(otherVendorUrl) ~> addHeader("api_key", wrongVendorKey) ~>
+          routes ~> check {
+            status === NotFound
+            responseAs[String] must
+            contain("There are no schemas for this vendor")
+          }
+        }
+
+        "return a 401 if the owner is not a prefix of the vendor" in {
+          Get(formatUrl) ~> addHeader("api_key", wrongVendorKey) ~> routes ~>
+          check {
+            status === Unauthorized
+            responseAs[String] must contain("You do not have sufficient privil")
+          }
+        }
+      }
+
+      "for name based url" should {
+
+        "return the catalog of available schemas for this name" in {
+          Get(nameUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
+            status === OK
+            responseAs[String] must contain(version) and contain(version2)
+          }
+        }
+
+        "return the catalog of available schemas for those names" in {
+          Get(multiNameUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(name) and contain(name2)
+          }
+        }
+
+        "return metadata about every schema having this vendor, name" in {
+          Get(metaNameUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
+            status === OK
+            responseAs[String] must contain(vendor) and contain(name)
+          }
+        }
+
+        "return metadata about every schema having those names" in {
+          Get(metaMultiNameUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(name) and contain(name2)
+          }
+        }
+
+        "return a 404 for a vendor/name combination which has no schemas" in {
+          Get(otherNameUrl) ~> addHeader("api_key", wrongVendorKey) ~> routes ~>
+          check {
+            status === NotFound
+            responseAs[String] must
+            contain("There are no schemas for this vendor, name combinatio")
+          }
+        }
+
+        "return a 401 if the owner is not a prefix of the vendor" in {
+          Get(nameUrl) ~> addHeader("api_key", wrongVendorKey) ~> routes ~>
+          check {
+            status === Unauthorized
+            responseAs[String] must contain("You do not have sufficient privil")
+          }
+        }
+      }
+
+      "for format based url" should {
+
+        "return the catalog of available schemas for this format" in {
+          Get(formatUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
+            status === OK
+            responseAs[String] must contain(version) and contain(version2)
+          }
+        }
+
+        "return the catalog available schemas for those formats" in {
+          Get(multiFormatUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            //only jsonschema for now
+            responseAs[String] must contain(format)
+          }
+        }
+
+        """return metadata about every schema having this vendor, name, format
+        combination""" in {
+          Get(metaFormatUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(vendor) and contain(name) and
+            contain(format)
+          }
+        }
+
+        "return metadata about every schema those formats" in {
+          Get(metaMultiFormatUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            //only jsonschema for now
+            responseAs[String] must contain(format)
+          }
+        }
+
+        """return a 404 for a vendor/name/format combination which has
+        no schemas""" in {
+          Get(otherFormatUrl) ~> addHeader("api_key", wrongVendorKey) ~>
+          routes ~> check {
+            status === NotFound
+            responseAs[String] must
+            contain("There are no schemas for this vendor, name, format ")
+          }
+        }
+
+        "return a 401 if the owner is not a prefix of the vendor" in {
+          Get(vendorUrl) ~> addHeader("api_key", wrongVendorKey) ~> routes ~>
+          check {
+            status === Unauthorized
+            responseAs[String] must contain("You do not have sufficient privil")
+          }
         }
       }
     }
@@ -188,11 +411,12 @@ class SchemaServiceSpec extends Specification
           }
       }
 
-      "return a 405 if no form or query param is specified" in {
+      "return a 400 if no form or query param is specified" in {
         Post(postUrl3) ~> addHeader("api_key", writeKey) ~>
           sealRoute(routes) ~> check {
-            status === MethodNotAllowed
-            responseAs[String] must contain("HTTP method not allowed")
+            status === BadRequest
+            responseAs[String] must
+              contain("Request is missing reuired form field 'json'")
           }
       }
 
