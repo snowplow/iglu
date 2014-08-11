@@ -123,7 +123,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "name", value = "Schema's name",
       required = true, dataType = "string", paramType = "path"),
-    new ApiImplicitParam(name = "format", value = "Schema's format",
+    new ApiImplicitParam(name = "schemaFormat", value = "Schema's format",
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "version", value = "Schema's version",
       required = true, dataType = "string", paramType = "path"),
