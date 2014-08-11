@@ -40,37 +40,39 @@ object SchemaActor {
    * Message to send in order to retrieve a schema based on its
    * (vendor, name, format, version) tuple.
    */
-  case class GetSchema(vendor: String, name: String, format: String,
-    version: String)
+  case class GetSchema(vendor: String, names: List[String],
+    formats: List[String], versions: List[String])
 
   /**
    * Message to send in order to retrieve metadata about a schema based on its
    * (vendor, name, format, version) tuple.
    */
-  case class GetMetadata(vendor: String, name: String, format: String,
-    version: String)
+  case class GetMetadata(vendor: String, names: List[String],
+    formats: List[String], versions: List[String])
 
   /**
    * Message to send in order to get every version of a schema.
    */
-  case class GetSchemasFromFormat(vendor: String, name: String, format: String)
+  case class GetSchemasFromFormat(vendor: String, names: List[String],
+    formats: List[String])
 
   /**
    * Message to send in order to get metadata about every version of a schema.
    */
-  case class GetMetadataFromFormat(vendor: String, name: String, format: String)
+  case class GetMetadataFromFormat(vendor: String, names: List[String],
+    formats: List[String])
 
   /**
    * Message to send in order to retrieve every format, version combination of
    * a schema.
    */
-  case class GetSchemasFromName(vendor: String, name: String)
+  case class GetSchemasFromName(vendor: String, names: List[String])
 
   /**
    * Message to send in order to retrieve metadata about every format, version
    * combination of a schema.
    */
-  case class GetMetadataFromName(vendor: String, name: String)
+  case class GetMetadataFromName(vendor: String, names: List[String])
 
   /**
    * Message to send in order to retrieve every schema belonging to a vendor.

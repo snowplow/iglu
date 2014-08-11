@@ -24,22 +24,23 @@ import util.TokenAuthenticator
 import akka.actor.ActorRef
 import akka.pattern.ask
 
-// Scala
+//Scala
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 
 // Spray
-import spray.http.StatusCode
 import spray.http.StatusCodes._
+import spray.http.StatusCode
 import spray.http.MediaTypes._
 import spray.routing._
+import spray.routing.PathMatcher.Lift
 
 // Swagger
 import com.wordnik.swagger.annotations._
 
 /**
  * Service to interact with schemas.
- * @constructor create a new schema service with a schema and apiKey actors
+ * @constructor creates a new schema service with a schema and apiKey actors
  * @param schema a reference to a ``SchemaActor``
  * @param apiKey a reference to a ``ApiKeyActor``
  */
@@ -81,12 +82,29 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
    */
   lazy val routes =
     rejectEmptyResponse {
-      pathPrefix("[a-z.]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-      "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
-        respondWithMediaType(`application/json`) {
+      respondWithMediaType(`application/json`) {
+        pathPrefix("[a-z.]+".r) { v =>
           auth { authPair =>
             if (v startsWith authPair._1) {
-              readRoute(v, n, f, vs) ~ addRoute(v, n, f, vs, authPair)
+              post {
+                path("[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+                  "[0-9]+-[0-9]+-[0-9]+".r) { (n, f, vs) =>
+                    addRoute(v, n, f, vs, authPair)
+                  }
+              } ~
+              get {
+                pathPrefix("[a-zA-Z0-9_-]+".r.repeat(separator = ",")) { n =>
+                  pathPrefix("[a-z]+".r.repeat(separator = ",")) { f =>
+                    pathPrefix(
+                      "[0-9]+-[0-9]+-[0-9}+".r.repeat(separator = ",")) { vs =>
+                        readRoute(v, n, f, vs)
+                      } ~
+                    readFormatRoute(v, n, f)
+                  } ~
+                  readNameRoute(v, n)
+                } ~
+                readVendorRoute(v)
+              }
             } else {
               complete(Unauthorized, "You do not have sufficient privileges")
             }
@@ -96,52 +114,10 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
     }
 
   /**
-   * Get route
-   */
-  @ApiOperation(value = """Retrieves a schema based on its (vendor, name,
-    format, version)""", notes = "Returns a schema", httpMethod = "GET",
-    response = classOf[String])
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
-      required = true, dataType = "string", paramType = "path"),
-    new ApiImplicitParam(name = "name", value = "Schema's name",
-      required = true, dataType = "string", paramType = "path"),
-    new ApiImplicitParam(name = "format", value = "Schema's format",
-      required = true, dataType = "string", paramType = "path"),
-    new ApiImplicitParam(name = "version", value = "Schema's version",
-      required = true, dataType = "string", paramType = "path"),
-    new ApiImplicitParam(name = "filter", value = "Metadata filter",
-      required = false, dataType = "string", paramType = "query",
-      allowableValues = "metadata")
-  ))
-  @ApiResponses(Array(
-    new ApiResponse(code = 401,
-      message = "The supplied authentication is invalid"),
-    new ApiResponse(code = 401, message = """The resource requires
-      authentication, which was not supplied with the request"""),
-    new ApiResponse(code = 404, message = "There are no schemas available here")
-  ))
-  def readRoute(v: String, n: String, f: String, vs: String) =
-    get {
-      anyParam('filter.?) { filter =>
-        filter match {
-          case Some("metadata") => complete {
-            (schema ? GetMetadata(v, n, f, vs)).
-              mapTo[(StatusCode, String)]
-          }
-          case _ => complete {
-            (schema ? GetSchema(v, n, f, vs)).
-              mapTo[(StatusCode, String)]
-          }
-        }
-      }
-    }
-
-  /**
    * Post route
    */
   @ApiOperation(value = "Adds a new schema to the repository",
-    httpMethod = "POST", consumes = "application/json")
+    httpMethod = "POST")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
       required = true, dataType = "string", paramType = "path"),
@@ -152,8 +128,8 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
     new ApiImplicitParam(name = "version", value = "Schema's version",
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "json", value = "Schema to be added",
-      required = true, dataType = "string", paramType = "path")
-  ))
+      required = true, dataType = "string", paramType = "query")
+    ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "Schema added successfully"),
     new ApiResponse(code = 401, message = "This schema already exists"),
@@ -167,16 +143,169 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   ))
   def addRoute(v: String, n: String, f: String, vs: String,
     authPair: (String, String)) =
-    validateJson { json =>
-      post {
+      validateJson { json =>
         if (authPair._2 == "write") {
           complete {
             (schema ? AddSchema(v, n, f, vs, json)).
               mapTo[(StatusCode, String)]
           }
         } else {
-          complete(Unauthorized,
-            "You do not have sufficient privileges")
+          complete(Unauthorized, "You do not have sufficient privileges")
+        }
+      }
+
+  /**
+   * Route to retrieve single schemas.
+   */
+  @ApiOperation(value = """Retrieves a schema based on its (vendor, name,
+    format, version)""", notes = "Returns a schema", httpMethod = "GET",
+  response = classOf[String])
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
+      required = true, dataType = "string", paramType = "path"),
+    new ApiImplicitParam(name = "names",
+      value = "Comma-separated list of schema names",
+      required = true, dataType = "string", paramType = "path",
+      allowMultiple = true),
+    new ApiImplicitParam(name = "formats",
+      value = "Comma-separated list of schema formats",
+      required = true, dataType = "string", paramType = "path",
+      allowMultiple = true),
+    new ApiImplicitParam(name = "versions",
+      value = "Comma-separated list of schema versions",
+      required = true, dataType = "string", paramType = "path",
+      allowMultiple = true),
+    new ApiImplicitParam(name = "filter", value = "Metadata filter",
+      required = false, dataType = "string", paramType = "query",
+      allowableValues = "metadata")
+    ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 401,
+      message = "The supplied authentication is invalid"),
+    new ApiResponse(code = 401, message = """The resource requires
+      authentication, which was not supplied with the request"""),
+    new ApiResponse(code = 404, message = "There are no schemas available here")
+  ))
+  def readRoute(v: String, n: List[String], f: List[String], vs: List[String]) =
+    anyParam('filter.?) { filter =>
+      filter match {
+        case Some("metadata") => complete {
+          (schema ? GetMetadata(v, n, f, vs)).mapTo[(StatusCode, String)]
+        }
+        case _ => complete {
+          (schema ? GetSchema(v, n, f, vs)).mapTo[(StatusCode, String)]
+        }
+      }
+    }
+
+  /**
+   * Route to retrieve every version of a particular format of a schema.
+   */
+  @ApiOperation(value = """Retrieves every version of a particular format of a
+    schema""", notes = "Returns a collection of schemas", httpMethod = "GET",
+    response = classOf[String])
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "vendor", value = "Schemas' vendor",
+      required = true, dataType = "string", paramType = "path"),
+    new ApiImplicitParam(name = "names",
+      value = "Comma-separated list of schema names",
+      required = true, dataType = "string", paramType = "path",
+      allowMultiple = true),
+    new ApiImplicitParam(name = "formats",
+      value = "Comma-separated list of schema formats",
+      required = true, dataType = "string", paramType = "path",
+      allowMultiple = true),
+    new ApiImplicitParam(name = "filter", value = "Metadata filter",
+      required = false, dataType = "string", paramType = "query",
+      allowableValues = "metadata")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 401,
+      message = "The supplied authentication is invalid"),
+    new ApiResponse(code = 401, message = """The resource requires
+      authentication, which was not supplied with the request"""),
+    new ApiResponse(code = 404, message =
+      "There are no schemas for this vendor, name, format combination")
+  ))
+  def readFormatRoute(v: String, n: List[String], f: List[String]) =
+    anyParam('filter.?) { filter =>
+      filter match {
+        case Some("metadata") => complete {
+          (schema ? GetMetadataFromFormat(v, n, f)).
+            mapTo[(StatusCode, String)]
+        }
+        case _ => complete {
+          (schema ? GetSchemasFromFormat(v, n, f)).mapTo[(StatusCode, String)]
+        }
+      }
+    }
+
+  /**
+   * Route to retrieve every version of every format of a schema.
+   */
+  @ApiOperation(value = "Retrieves every version of every format of a schema",
+    notes = "Returns a collection of schemas", httpMethod = "GET",
+    response = classOf[String])
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "vendor", value = "Schemas' vendor",
+      required = true, dataType = "string", paramType = "path"),
+    new ApiImplicitParam(name = "names",
+      value = "Comma-separated list of schema names",
+      required = true, dataType = "string", paramType = "path",
+      allowMultiple = true),
+    new ApiImplicitParam(name = "filter", value = "Metadata filter",
+      required = false, dataType = "string", paramType = "query",
+      allowableValues = "metadata")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 401,
+      message = "The supplied authentication is invalid"),
+    new ApiResponse(code = 401, message = """The resource requires
+      authentication, which was not supplied with the request"""),
+    new ApiResponse(code = 404,
+      message = "There are no schemas for this vendor, name combination")
+  ))
+  def readNameRoute(v: String, n: List[String]) =
+    anyParam('filter.?) { filter =>
+      filter match {
+        case Some("metadata") => complete {
+          (schema ? GetMetadataFromName(v, n)).mapTo[(StatusCode, String)]
+        }
+        case _ => complete {
+          (schema ? GetSchemasFromName(v, n)).mapTo[(StatusCode, String)]
+        }
+      }
+    }
+
+  /**
+   * Route to retrieve every schema belonging to a vendor.
+   */
+  @ApiOperation(value = "Retrieves every schema belonging to a vendor",
+    notes = "Returns a collection of schemas", httpMethod = "GET",
+    response = classOf[String])
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "vendor", value = "Schemas' vendor",
+      required = true, dataType = "string", paramType = "path"),
+    new ApiImplicitParam(name = "filter", value = "Metadata filter",
+      required = false, dataType = "string", paramType = "query",
+      allowableValues = "metadata")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 401,
+      message = "The supplied authentication is invalid"),
+    new ApiResponse(code = 401, message = """The resource requires
+      authentication, which was not supplied with the request"""),
+    new ApiResponse(code = 404,
+      message = "There are no schemas for this vendor")
+  ))
+  def readVendorRoute(v: String) =
+    anyParam('filter.?) { filter =>
+      filter match {
+        case Some("metadata") => complete {
+          (schema ? GetMetadataFromVendor(v)).mapTo[(StatusCode, String)]
+        }
+        case _ => complete {
+          (schema ? GetSchemasFromVendor(v)).mapTo[(StatusCode, String)]
         }
       }
     }

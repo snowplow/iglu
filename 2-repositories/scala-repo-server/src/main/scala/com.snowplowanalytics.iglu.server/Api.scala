@@ -15,7 +15,7 @@
 package com.snowplowanalytics.iglu.server
 
 // This project
-import service.{ ApiKeyGenService, SchemaService, CatalogService }
+import service.{ ApiKeyGenService, SchemaService }
 
 // Scala
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -34,8 +34,7 @@ trait Api extends HttpService with CoreActors with Core {
         new ApiKeyGenService(apiKey).routes
       } ~
       pathPrefix("schemas") {
-        new SchemaService(schema, apiKey).routes ~
-        new CatalogService(schema, apiKey).routes
+        new SchemaService(schema, apiKey).routes
       }
     } ~
     get {
