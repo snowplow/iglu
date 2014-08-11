@@ -62,21 +62,21 @@ class SchemaServiceSpec extends Specification
   val version = "1-0-0"
 
   val start = "/api/schemas/"
-  val url = start + vendor + "/ad_click/" + format + "/" + version
-  val faultyUrl = start +  vendor + "/ad_click/jsonchema/" + version
-  val metaUrl = start + vendor + "/ad_click/" + format + "/" + version +
+  val url = s"${start}${vendor}/ad_click/${format}/${version}"
+  val faultyUrl = s"${start}${vendor}/ad_click/jsonchema/${version}"
+  val metaUrl = s"${start}${vendor}/ad_click/${format}/${version}" +
     "?filter=metadata"
-  val postUrl1 = start + vendor + "/unit_test1/" + format + "/" + version
-  val postUrl2 = start + vendor + "/unit_test2/" + format + "/" + version +
-    "?json=" + validSchemaUri
-  val postUrl3 = start + vendor + "/unit_test3/" + format + "/" + version
-  val postUrl4 = start + vendor + "/unit_test4/" + format + "/" + version +
-    "?json=" + validSchemaUri
-  val postUrl6 = url + "?json=" + validSchemaUri
-  val postUrl7 = start + vendor + "/unit_test7/" + format + "/" + version +
-    "?json=" + invalidSchemaUri
-  val postUrl8 = start + vendor + "/unit_test8/" + format + "/" + version +
-    "?json=" + notJson
+  val postUrl1 = s"${start}${vendor}/unit_test1/${format}/${version}"
+  val postUrl2 = s"${start}${vendor}/unit_test2/${format}/${version}" +
+    s"?json=${validSchemaUri}"
+  val postUrl3 = s"${start}${vendor}/unit_test3/${format}/${version}"
+  val postUrl4 = s"${start}${vendor}/unit_test4/${format}/${version}" +
+    s"?json=${validSchemaUri}"
+  val postUrl6 = s"${url}?json=${validSchemaUri}"
+  val postUrl7 = s"${start}${vendor}/unit_test7/${format}/${version}" +
+    s"?json=${invalidSchemaUri}"
+  val postUrl8 = s"${start}${vendor}/unit_test8/${format}/${version}" +
+    s"?json=${notJson}"
 
   sequential
 
