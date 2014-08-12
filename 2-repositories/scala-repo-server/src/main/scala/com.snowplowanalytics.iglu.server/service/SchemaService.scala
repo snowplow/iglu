@@ -60,7 +60,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   /**
    * Directive to authenticate a user using the authenticator.
    */
-  def auth(vendors: List[String]): Directive1[(String, String)] =
+  def authVendors(vendors: List[String]): Directive1[(String, String)] =
     authenticate(authenticator) flatMap { authPair =>
       if (vendors.forall(_ startsWith authPair._1)) {
         provide(authPair)
@@ -69,6 +69,11 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
       }
     }
 
+  /**
+   * Directive to authenticate a user without checking if the owner is a prefix
+   * of the vendor.
+   */
+  def auth: Directive1[(String, String)] = authenticate(authenticator)
 
   /**
    * Directive to validate the json provided (either by query param or form
@@ -92,7 +97,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
     rejectEmptyResponse {
       respondWithMediaType(`application/json`) {
         pathPrefix("[a-z.-]+".r) { v =>
-          auth(List(v)) { authPair =>
+          authVendors(List(v)) { authPair =>
             post {
               path("[a-zA-Z0-9_-]+".r / "[a-z]+".r /
                 "[0-9]+-[0-9]+-[0-9]+".r) { (n, f, vs) =>
@@ -101,11 +106,26 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
             }
           }
         } ~
+        pathPrefix("validate") {
+          auth { authPair =>
+            validateRoute
+          }
+          //pathPrefix("[a-z.-]+".r) { v =>
+          //  authVendors(List(v)) { authPair =>
+          //    get {
+          //      path("[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+          //        "[0-9]+-[0-9]+-[0-9]+".r) { (n, f, vs) =>
+          //          validateRoute(v, n, f, vs)
+          //        }
+          //    }
+          //  }
+          //}
+        } ~
         path(("[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
           "[0-9]+-[0-9]+-[0-9]+".r).repeat(separator = ",")) { list =>
             pathEnd {
               val transposed = list.map(_.toList).transpose
-              auth(transposed(0)) { authPair =>
+              authVendors(transposed(0)) { authPair =>
                 get {
                   readRoute(transposed(0), transposed(1), transposed(2),
                     transposed(3))
@@ -114,7 +134,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
             }
         } ~
         pathPrefix("[a-z.-]+".r.repeat(separator = ",")) { v =>
-          auth(v) { authPair =>
+          authVendors(v) { authPair =>
             get {
               pathPrefix("[a-zA-Z0-9_-]+".r.repeat(separator = ",")) { n =>
                 pathPrefix("[a-z]+".r.repeat(separator = ",")) { f =>
@@ -181,6 +201,13 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
           complete(Unauthorized, "You do not have sufficient privileges")
         }
       }
+
+  def validateRoute =
+    anyParam('json) { json =>
+      complete {
+        (schema ? Validate(json, false)).mapTo[(StatusCode, String)]
+      }
+    }
 
   /**
    * Route to retrieve single schemas.

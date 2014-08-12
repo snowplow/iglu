@@ -402,7 +402,7 @@ class SchemaDAO(val db: Database) extends DAO {
    * @param json the json to be validated
    * @return a status code and json response pair
    */
-  def validate(json: String): (StatusCode, String) =
+  def validate(json: String, provideJson: Boolean = true): (StatusCode, String) =
     parseOpt(json) match {
       case Some(jvalue) => {
         val jsonNode = asJsonNode(jvalue)
@@ -410,7 +410,13 @@ class SchemaDAO(val db: Database) extends DAO {
           "com.snowplowanalytics.self-desc", "schema", "jsonschema", "1-0-0")))
 
         validateAgainstSchema(jsonNode, schemaNode) match {
-          case scalaz.Success(j) => (OK, json)
+          case scalaz.Success(j) =>
+            if (provideJson) {
+              (OK, json)
+            } else {
+              (OK,
+                result(200, "The schema provided is a self-describing schema"))
+            }
           case Failure(l) => (BadRequest,
             result(400,
               "The json provided is not a valid self-describing json",
