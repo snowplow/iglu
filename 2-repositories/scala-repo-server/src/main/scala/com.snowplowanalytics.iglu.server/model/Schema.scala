@@ -127,15 +127,16 @@ class SchemaDAO(val db: Database) extends DAO {
 
   /**
    * Gets every schema belongig to a specific vendor.
-   * @param vendor schemas' vendor
+   * @param vendors schemas' vendors
    * @return a status code and json pair containing the list of all schemas
    * of this vendor
    */
-  def getFromVendor(vendor: String): (StatusCode, String) =
+  def getFromVendor(vendors: List[String]): (StatusCode, String) =
     db withDynSession {
       val l: List[ResSchema] =
-        schemas
-          .filter(_.vendor === vendor)
+        (for {
+          s <- schemas if s.vendor inSet vendors
+        } yield s)
           .list
           .map(s => ResSchema(parse(s.schema),
             buildLoc(s.vendor, s.name, s.format, s.version),
@@ -150,15 +151,16 @@ class SchemaDAO(val db: Database) extends DAO {
 
   /**
    * Gets metadata about every schemas belonging to a specific vendor.
-   * @param vendor schemas' vendor
+   * @param vendors schemas' vendors
    * @return a status code and json pair containing metadata about every schema
    * of this vendor
    */
-  def getMetadataFromVendor(vendor: String): (StatusCode, String) =
+  def getMetadataFromVendor(vendors: List[String]): (StatusCode, String) =
     db withDynSession {
       val l: List[ResMetadata] =
-        schemas
-          .filter(_.vendor === vendor)
+        (for {
+          s <- schemas if s.vendor inSet vendors
+        } yield s)
           .list
           .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
             buildLoc(s.vendor, s.name, s.format, s.version),
@@ -173,16 +175,16 @@ class SchemaDAO(val db: Database) extends DAO {
 
   /**
    * Gets every schemas for this vendor, names combination.
-   * @param vendor schemas' vendor
-   * @param names schemas' name
+   * @param vendors schemas' vendors
+   * @param names schemas' names
    * @return a status code and json pair containing the list of all schemas
    * satifsfying the query
    */
-  def getFromName(vendor: String, names: List[String]): (StatusCode, String) =
+  def getFromName(vendors: List[String], names: List[String]): (StatusCode, String) =
     db withDynSession {
       val l: List[ResSchema] =
         (for {
-          s <- schemas if s.vendor === vendor &&
+          s <- schemas if (s.vendor inSet vendors) &&
             (s.name inSet names)
         } yield s)
         .list
@@ -200,17 +202,17 @@ class SchemaDAO(val db: Database) extends DAO {
 
   /**
    * Gets metadata about every schemas for this vendor, names combination.
-   * @param vendor schemas' vendor
-   * @param names schemas' name
+   * @param vendors schemas' vendors
+   * @param names schemas' names
    * @return a status code and json pair containing metadata about the schemas
    * satifsfying the query
    */
-  def getMetadataFromName(vendor: String, names: List[String]):
+  def getMetadataFromName(vendors: List[String], names: List[String]):
     (StatusCode, String) =
       db withDynSession {
         val l: List[ResMetadata] =
           (for {
-            s <- schemas if s.vendor === vendor &&
+            s <- schemas if (s.vendor inSet vendors) &&
               (s.name inSet names)
           } yield s)
             .list
@@ -228,18 +230,18 @@ class SchemaDAO(val db: Database) extends DAO {
 
   /**
    * Retrieves every version of a schema.
-   * @param vendor schemas' vendor
-   * @param names schenas' name
-   * @param schemaFormats schemas' format
+   * @param vendors schemas' vendors
+   * @param names schenas' names
+   * @param schemaFormats schemas' formats
    * @return a status code and json pair containing the list of every version of
    * a schema
    */
-  def getFromFormat(vendor: String, names: List[String],
+  def getFromFormat(vendors: List[String], names: List[String],
     schemaFormats: List[String]): (StatusCode, String) =
       db withDynSession {
         val l: List[ResSchema] =
           (for {
-            s <- schemas if s.vendor === vendor &&
+            s <- schemas if (s.vendor inSet vendors) &&
               (s.name inSet names) &&
               (s.format inSet schemaFormats)
           } yield s)
@@ -258,18 +260,18 @@ class SchemaDAO(val db: Database) extends DAO {
 
   /**
    * Gets metadata about every version of a schema.
-   * @param vendor schemas' vendor
-   * @param names schemas' name
-   * @param schemaFormats schemas' format
+   * @param vendors schemas' vendors
+   * @param names schemas' names
+   * @param schemaFormats schemas' formats
    * @return a status code and json pair containing metadata about every version
    * of a schema
    */
-  def getMetadataFromFormat(vendor: String, names: List[String],
+  def getMetadataFromFormat(vendors: List[String], names: List[String],
     schemaFormats: List[String]): (StatusCode, String) =
       db withDynSession {
         val l: List[ResMetadata] =
           (for {
-            s <- schemas if s.vendor === vendor &&
+            s <- schemas if (s.vendor inSet vendors) &&
               (s.name inSet names) &&
               (s.format inSet schemaFormats)
           } yield s)
@@ -288,18 +290,18 @@ class SchemaDAO(val db: Database) extends DAO {
 
   /**
    * Gets a single schema specifying all its characteristics.
-   * @param vendor the schema's vendor
-   * @param names the schema's name
-   * @param schemaFormats the schema's format
-   * @param versions the schema's version
+   * @param vendors the schema's vendors
+   * @param names the schema's names
+   * @param schemaFormats the schema's formats
+   * @param versions the schema's versions
    * @return a status code and json pair containing the schema
    */
-  def get(vendor: String, names: List[String], schemaFormats: List[String],
+  def get(vendors: List[String], names: List[String], schemaFormats: List[String],
     versions: List[String]): (StatusCode, String) =
       db withDynSession {
         val l: List[ResSchema] =
           (for {
-            s <- schemas if s.vendor === vendor &&
+            s <- schemas if (s.vendor inSet vendors) &&
               (s.name inSet names) &&
               (s.format inSet schemaFormats) &&
               (s.version inSet versions)
@@ -318,18 +320,18 @@ class SchemaDAO(val db: Database) extends DAO {
 
   /**
    * Gets only metadata about the schema: its vendor, name, format and version.
-   * @param vendor the schema's vendor
-   * @param names the schema's name
-   * @param schemaFormats the schea's format
-   * @param versions the schema's version
+   * @param vendors the schema's vendors
+   * @param names the schema's names
+   * @param schemaFormats the schea's formats
+   * @param versions the schema's versions
    * @return a status code and json pair containing the metadata
    */
-  def getMetadata(vendor: String, names: List[String],
+  def getMetadata(vendors: List[String], names: List[String],
     schemaFormats: List[String], versions: List[String]): (StatusCode, String) =
       db withDynSession {
         val l: List[ResMetadata] =
           (for {
-            s <- schemas if s.vendor === vendor &&
+            s <- schemas if (s.vendor inSet vendors) &&
               (s.name inSet names) &&
               (s.format inSet schemaFormats) &&
               (s.version inSet versions)
@@ -379,7 +381,7 @@ class SchemaDAO(val db: Database) extends DAO {
   def add(vendor: String, name: String, format: String, version: String,
     schema: String): (StatusCode, String) =
       db withDynSession {
-        get(vendor, List(name), List(format), List(version)) match {
+        get(List(vendor), List(name), List(format), List(version)) match {
           case (OK, j) => (Unauthorized,
             result(401, "This schema already exists"))
           case c => schemas.insert(

@@ -40,50 +40,50 @@ object SchemaActor {
    * Message to send in order to retrieve a schema based on its
    * (vendor, name, format, version) tuple.
    */
-  case class GetSchema(vendor: String, names: List[String],
+  case class GetSchema(vendors: List[String], names: List[String],
     formats: List[String], versions: List[String])
 
   /**
    * Message to send in order to retrieve metadata about a schema based on its
    * (vendor, name, format, version) tuple.
    */
-  case class GetMetadata(vendor: String, names: List[String],
+  case class GetMetadata(vendors: List[String], names: List[String],
     formats: List[String], versions: List[String])
 
   /**
    * Message to send in order to get every version of a schema.
    */
-  case class GetSchemasFromFormat(vendor: String, names: List[String],
+  case class GetSchemasFromFormat(vendors: List[String], names: List[String],
     formats: List[String])
 
   /**
    * Message to send in order to get metadata about every version of a schema.
    */
-  case class GetMetadataFromFormat(vendor: String, names: List[String],
+  case class GetMetadataFromFormat(vendors: List[String], names: List[String],
     formats: List[String])
 
   /**
    * Message to send in order to retrieve every format, version combination of
    * a schema.
    */
-  case class GetSchemasFromName(vendor: String, names: List[String])
+  case class GetSchemasFromName(vendors: List[String], names: List[String])
 
   /**
    * Message to send in order to retrieve metadata about every format, version
    * combination of a schema.
    */
-  case class GetMetadataFromName(vendor: String, names: List[String])
+  case class GetMetadataFromName(vendors: List[String], names: List[String])
 
   /**
    * Message to send in order to retrieve every schema belonging to a vendor.
    */
-  case class GetSchemasFromVendor(vendor: String)
+  case class GetSchemasFromVendor(vendors: List[String])
 
   /**
    * Message to send in order to retrieve metadata about every schema belonging
    * to a vendor.
    */
-  case class GetMetadataFromVendor(vendor: String)
+  case class GetMetadataFromVendor(vendors: List[String])
 
   /**
    * Message to send in order to validate that a schema is self-describing.
