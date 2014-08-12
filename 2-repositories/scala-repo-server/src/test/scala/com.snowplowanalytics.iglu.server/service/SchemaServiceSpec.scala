@@ -41,6 +41,7 @@ class SchemaServiceSpec extends Specification
   val notUuidKey = "83e7c051-cd68-4e44-8b36-09182f8d5"
 
   val vendor = "com.snowplowanalytics.snowplow"
+  val vendor2 = "com.snowplowanalytics.self-desc"
   val name = "ad_click"
   val name2 = "ad_click2"
   val format = "jsonschema"
@@ -74,13 +75,17 @@ class SchemaServiceSpec extends Specification
   val metaUrl = s"${url}?filter=metadata"
   val metaMultiVersionUrl = s"${multiVersionUrl}?filter=metadata"
 
+  val multiVendor = s"${start}${vendor},${vendor2}/${name}/${format}/${version}"
+  val metaMultiVendor = s"${multiVendor}?filter=metadata"
   val multiFormat = s"${start}${vendor}/${name}/${format},${format2}/${version}"
   val metaMultiFormat = s"${multiFormat}?filter=metadata"
   var multiName = s"${start}${vendor}/${name},${name2}/${format}/${version}"
   val metaMultiName = s"${multiName}?filter=metadata"
 
   val vendorUrl = s"${start}${vendor}"
+  val multiVendorUrl = s"${vendorUrl},${vendor2}"
   val metaVendorUrl = s"${vendorUrl}?filter=metadata"
+  val metaMultiVendorUrl = s"${multiVendorUrl}?filter=metadata"
 
   val nameUrl = s"${start}${vendor}/${name}"
   val multiNameUrl = s"${nameUrl},${name2}"
@@ -147,6 +152,13 @@ class SchemaServiceSpec extends Specification
           }
         }
 
+        "return a proper json for multi vendor url" in {
+          Get(multiVendor) ~> addHeader("api_key", readKey) ~> routes ~> check {
+            status === OK
+            responseAs[String] must contain(vendor) and contain(vendor2)
+          }
+        }
+
         "return proper metadata for well-formed single GET requests" in {
           Get(metaUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
             status === OK
@@ -176,6 +188,14 @@ class SchemaServiceSpec extends Specification
           check {
             status === OK
             responseAs[String] must contain(name) and contain(name2)
+          }
+        }
+
+        "return proper metadata for multi vendor url" in {
+          Get(metaMultiVendor) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(vendor) and contain(vendor2)
           }
         }
 
@@ -240,11 +260,27 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return metadata about every schemas for this vendor" in {
+        "return the catalog of available schemas for those vendors" in {
+          Get(multiVendorUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(vendor) and contain(vendor2)
+          }
+        }
+
+        "return metadata about every schema for this vendor" in {
           Get(metaVendorUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
             responseAs[String] must contain(vendor)
+          }
+        }
+
+        "return metadata about every schema for those vendors" in {
+          Get(metaMultiVendorUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(vendor) and contain(vendor2)
           }
         }
 

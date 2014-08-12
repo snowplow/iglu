@@ -91,7 +91,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   lazy val routes =
     rejectEmptyResponse {
       respondWithMediaType(`application/json`) {
-        pathPrefix("[a-z.]+".r) { v =>
+        pathPrefix("[a-z.-]+".r) { v =>
           auth(List(v)) { authPair =>
             post {
               pathPrefix("[a-zA-Z0-9_-]+".r / "[a-z]+".r /
@@ -101,7 +101,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
             }
           }
         } ~
-        pathPrefix("[a-z.]+".r.repeat(separator = ",")) { v =>
+        pathPrefix("[a-z.-]+".r.repeat(separator = ",")) { v =>
           auth(v) { authPair =>
             get {
               pathPrefix("[a-zA-Z0-9_-]+".r.repeat(separator = ",")) { n =>
