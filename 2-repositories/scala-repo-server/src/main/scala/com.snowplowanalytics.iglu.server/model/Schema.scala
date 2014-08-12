@@ -110,9 +110,10 @@ class SchemaDAO(val db: Database) extends DAO {
   val schemas = TableQuery[Schemas]
 
   //Case classes for json formatting
-  case class ResSchema(schema: JValue, location: String, createdAt: String)
+  case class Metadata(location: String, createdAt: String)
+  case class ResSchema(schema: JValue, metadata: Metadata)
   case class ResMetadata(vendor: String, name: String, format: String,
-    version: String, location: String, createdAt: String)
+    version: String, metadata: Metadata)
 
   /**
    * Creates the schemas table.
@@ -139,8 +140,8 @@ class SchemaDAO(val db: Database) extends DAO {
         } yield s)
           .list
           .map(s => ResSchema(parse(s.schema),
-            buildLoc(s.vendor, s.name, s.format, s.version),
-            s.createdAt.toString("MM/dd/yyyy HH:mm:ss")))
+            Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+            s.createdAt.toString("MM/dd/yyyy HH:mm:ss"))))
 
       if (l.length > 0) {
         (OK, writePretty(l))
@@ -163,8 +164,8 @@ class SchemaDAO(val db: Database) extends DAO {
         } yield s)
           .list
           .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
-            buildLoc(s.vendor, s.name, s.format, s.version),
-            s.createdAt.toString("MM/dd/yyyy HH:mm:ss")))
+            Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+            s.createdAt.toString("MM/dd/yyyy HH:mm:ss"))))
 
       if (l.length > 0) {
         (OK, writePretty(l))
@@ -189,8 +190,8 @@ class SchemaDAO(val db: Database) extends DAO {
         } yield s)
         .list
         .map(s => ResSchema(parse(s.schema),
-          buildLoc(s.vendor, s.name, s.format, s.version),
-          s.createdAt.toString("MM/dd/yyyy HH:mm:ss")))
+          Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+          s.createdAt.toString("MM/dd/yyyy HH:mm:ss"))))
 
       if (l.length > 0) {
         (OK, writePretty(l))
@@ -217,8 +218,8 @@ class SchemaDAO(val db: Database) extends DAO {
           } yield s)
             .list
             .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
-              buildLoc(s.vendor, s.name, s.format, s.version),
-              s.createdAt.toString("MM/dd/yyyy HH:mm:ss")))
+              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+              s.createdAt.toString("MM/dd/yyyy HH:mm:ss"))))
 
         if (l.length > 0) {
           (OK, writePretty(l))
@@ -247,8 +248,8 @@ class SchemaDAO(val db: Database) extends DAO {
           } yield s)
             .list
             .map(s => ResSchema(parse(s.schema),
-              buildLoc(s.vendor, s.name, s.format, s.version),
-              s.createdAt.toString("MM/dd/yyyy HH:mm:ss")))
+              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+              s.createdAt.toString("MM/dd/yyyy HH:mm:ss"))))
 
         if (l.length > 0) {
           (OK, writePretty(l))
@@ -277,8 +278,8 @@ class SchemaDAO(val db: Database) extends DAO {
           } yield s)
             .list
             .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
-              buildLoc(s.vendor, s.name, s.format, s.version),
-              s.createdAt.toString("MM/dd/yyyy HH:mm:ss")))
+              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+              s.createdAt.toString("MM/dd/yyyy HH:mm:ss"))))
 
         if (l.length > 0) {
           (OK, writePretty(l))
@@ -308,8 +309,8 @@ class SchemaDAO(val db: Database) extends DAO {
           } yield s)
             .list
             .map(s => ResSchema(parse(s.schema),
-              buildLoc(s.vendor, s.name, s.format, s.version),
-              s.createdAt.toString("MM/dd/yyyy HH:mm:ss")))
+              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+              s.createdAt.toString("MM/dd/yyyy HH:mm:ss"))))
 
         if (l.length > 0) {
           (OK, writePretty(l))
@@ -338,8 +339,8 @@ class SchemaDAO(val db: Database) extends DAO {
           } yield s)
             .list
             .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
-              buildLoc(s.vendor, s.name, s.format, s.version),
-              s.createdAt.toString("MM/dd/yyyy HH:mm:ss")))
+              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+              s.createdAt.toString("MM/dd/yyyy HH:mm:ss"))))
 
         if (l.length > 0) {
           (OK, writePretty(l))
