@@ -40,13 +40,21 @@ class SchemaServiceSpec extends Specification
   val wrongVendorKey = "83e7c051-cd68-4e44-8b36-09182fa158d5"
   val notUuidKey = "83e7c051-cd68-4e44-8b36-09182f8d5"
 
+  val vendor = "com.snowplowanalytics.snowplow"
+  val name = "ad_click"
+  val name2 = "ad_click2"
+  val format = "jsonschema"
+  val format2 = "jsontable"
+  val version = "1-0-0"
+  val version2 = "1-0-1"
+
   val validSchema = 
-    """{
+    s"""{
       "self": {
-        "vendor": "com.snowplowanalytics.snowplow",
+        "vendor": "${vendor}",
         "name": "${name}",
-        "format": "jsonschema",
-        "version": "1-0-0"
+        "format": "${format}",
+        "version": "${version}"
       }
     }"""
   val invalidSchema = """{ "some": "invalid schema" }"""
@@ -56,14 +64,6 @@ class SchemaServiceSpec extends Specification
     replaceAll("\"", "%22").replaceAll("\n", "%0A")
   val invalidSchemaUri = invalidSchema.replaceAll(" ", "%20").
     replaceAll("\"", "%22")
-
-  val vendor = "com.snowplowanalytics.snowplow"
-  val name = "ad_click"
-  val name2 = "ad_click2"
-  val format = "jsonschema"
-  val format2 = "jsontable"
-  val version = "1-0-0"
-  val version2 = "1-0-1"
 
   val start = "/api/schemas/"
 
