@@ -124,14 +124,14 @@ class SchemaServiceSpec extends Specification
 
       "for comma-separated full paths urls" should {
 
-        "return a proper json" in {
+        s"return a proper json (${multiUrl})" in {
           Get(multiUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must contain(name) and contain(name2)
           }
         }
 
-        "return proper metadata" in {
+        s"return proper metadata (${metaMultiUrl})" in {
           Get(metaMultiUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
@@ -142,14 +142,16 @@ class SchemaServiceSpec extends Specification
 
       "for version based urls" should {
 
-        "return a proper json for well-formed single GET requests" in {
+        "return a proper json for well-formed single GET requests" +
+        s"(${url})" in {
           Get(url) ~> addHeader("api_key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must contain(name)
           }
         }
 
-        "return a proper json for a multi version urls" in {
+        "return a proper json for a multi version urls" +
+        s"(${multiVersionUrl})" in {
           Get(multiVersionUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
@@ -157,7 +159,7 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return a proper json for multi format urls" in {
+        s"return a proper json for multi format urls (${multiFormat})" in {
           Get(multiFormat) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
@@ -165,21 +167,22 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return a proper json for multi name urls" in {
+        s"return a proper json for multi name urls (${multiName})" in {
           Get(multiName) ~> addHeader("api_key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must contain(name) and contain(name2)
           }
         }
 
-        "return a proper json for multi vendor urls" in {
+        s"return a proper json for multi vendor urls (${multiVendor})" in {
           Get(multiVendor) ~> addHeader("api_key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must contain(vendor) and contain(vendor2)
           }
         }
 
-        "return proper metadata for well-formed single GET requests" in {
+        "return proper metadata for well-formed single GET requests" +
+        s"(${metaUrl})" in {
           Get(metaUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must contain(vendor) and contain(name) and
@@ -187,7 +190,8 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return proper metadata for a multi version urls" in {
+        "return proper metadata for a multi version urls" +
+        s"(${metaMultiVersionUrl})" in {
           Get(metaMultiVersionUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
@@ -195,7 +199,8 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return proper metadata for multi format urls" in {
+        "return proper metadata for multi format urls" +
+        s"(${metaMultiFormat})" in {
           Get(metaMultiFormat) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
@@ -203,7 +208,7 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return proper metadata for multi name urls" in {
+        s"return proper metadata for multi name urls (${metaMultiName})" in {
           Get(metaMultiName) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
@@ -211,7 +216,8 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return proper metadata for multi vendor urls" in {
+        "return proper metadata for multi vendor urls" +
+        s"(${metaMultiVendor})" in {
           Get(metaMultiVendor) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
@@ -273,14 +279,16 @@ class SchemaServiceSpec extends Specification
 
       "for vendor based urls" should {
 
-        "return the catalog of available schemas for this vendor" in {
+        "return the catalog of available schemas for this vendor" +
+        s"(${vendorUrl})" in {
           Get(vendorUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must contain(name) and contain(name2)
           }
         }
 
-        "return the catalog of available schemas for those vendors" in {
+        "return the catalog of available schemas for those vendors" +
+        s"(${multiVendorUrl})" in {
           Get(multiVendorUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
@@ -288,7 +296,8 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return metadata about every schema for this vendor" in {
+        "return metadata about every schema for this vendor" +
+        s"(${metaVendorUrl})" in {
           Get(metaVendorUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
@@ -296,7 +305,8 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return metadata about every schema for those vendors" in {
+        "return metadata about every schema for those vendors" +
+        s"(${metaMultiVendorUrl})" in {
           Get(metaMultiVendorUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
@@ -324,14 +334,16 @@ class SchemaServiceSpec extends Specification
 
       "for name based urls" should {
 
-        "return the catalog of available schemas for this name" in {
+        "return the catalog of available schemas for this name" +
+        s"(${nameUrl})" in {
           Get(nameUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must contain(version) and contain(version2)
           }
         }
 
-        "return the catalog of available schemas for those names" in {
+        "return the catalog of available schemas for those names" +
+        s"(${multiNameUrl})" in {
           Get(multiNameUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
@@ -339,14 +351,16 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return metadata about every schema having this vendor, name" in {
+        "return metadata about every schema having this vendor, name" +
+        s"(${metaNameUrl})" in {
           Get(metaNameUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must contain(vendor) and contain(name)
           }
         }
 
-        "return metadata about every schema having those names" in {
+        "return metadata about every schema having those names" +
+        s"${metaMultiNameUrl}" in {
           Get(metaMultiNameUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
@@ -374,14 +388,16 @@ class SchemaServiceSpec extends Specification
 
       "for format based urls" should {
 
-        "return the catalog of available schemas for this format" in {
+        "return the catalog of available schemas for this format" +
+        s"(${formatUrl})" in {
           Get(formatUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must contain(version) and contain(version2)
           }
         }
 
-        "return the catalog available schemas for those formats" in {
+        "return the catalog available schemas for those formats" +
+        s"(${multiFormatUrl})" in {
           Get(multiFormatUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
@@ -389,8 +405,8 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        """return metadata about every schema having this vendor, name, format
-        combination""" in {
+        "return metadata about every schema having this vendor, name, format" +
+        s"combination (${metaFormatUrl})" in {
           Get(metaFormatUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
@@ -399,7 +415,8 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return metadata about every schema those formats" in {
+        "return metadata about every schema those formats" +
+        s"(${metaMultiFormatUrl})" in {
           Get(metaMultiFormatUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
