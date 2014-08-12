@@ -94,27 +94,47 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
         pathPrefix("[a-z.-]+".r) { v =>
           auth(List(v)) { authPair =>
             post {
-              pathPrefix("[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+              path("[a-zA-Z0-9_-]+".r / "[a-z]+".r /
                 "[0-9]+-[0-9]+-[0-9]+".r) { (n, f, vs) =>
                   addRoute(v, n, f, vs, authPair)
                 }
             }
           }
         } ~
+        path(("[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+          "[0-9]+-[0-9]+-[0-9]+".r).repeat(separator = ",")) { list =>
+            pathEnd {
+              val transposed = list.map(_.toList).transpose
+              auth(transposed(0)) { authPair =>
+                get {
+                  readRoute(transposed(0), transposed(1), transposed(2),
+                    transposed(3))
+                }
+              }
+            }
+        } ~
         pathPrefix("[a-z.-]+".r.repeat(separator = ",")) { v =>
           auth(v) { authPair =>
             get {
               pathPrefix("[a-zA-Z0-9_-]+".r.repeat(separator = ",")) { n =>
                 pathPrefix("[a-z]+".r.repeat(separator = ",")) { f =>
-                  pathPrefix(
+                  path(
                     "[0-9]+-[0-9]+-[0-9]+".r.repeat(separator = ",")) { vs =>
-                      readRoute(v, n, f, vs)
-                    } ~
-                  readFormatRoute(v, n, f)
+                      pathEnd {
+                        readRoute(v, n, f, vs)
+                      }
+                  } ~
+                  pathEnd {
+                    readFormatRoute(v, n, f)
+                  }
                 } ~
-                readNameRoute(v, n)
+                pathEnd {
+                  readNameRoute(v, n)
+                }
               } ~
-              readVendorRoute(v)
+              pathEnd {
+                readVendorRoute(v)
+              }
             }
           }
         }
