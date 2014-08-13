@@ -142,6 +142,16 @@ class ValidationService(schema: ActorRef, apiKey: ActorRef)
       new ApiImplicitParam(name = "version", value = "Schema's version",
         required = true, dataType = "string", paramType = "path")
     ))
+    @ApiResponses(Array(
+      new ApiResponse(code = 200,
+        message = "The instance is valid against the schema"),
+      new ApiResponse(code = 400,
+        message = "The instance provided is not valid against the schema"),
+      new ApiResponse(code = 400,
+        message = "The instance provided is not valid"),
+      new ApiResponse(code = 404,
+        message = "The schema to validate against was not found")
+    ))
     def validateRoute(v: String, n: String, f: String, vs: String) =
       parameter('json) { json =>
         complete {

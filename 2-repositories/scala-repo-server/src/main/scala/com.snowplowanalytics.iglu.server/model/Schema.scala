@@ -421,7 +421,8 @@ class SchemaDAO(val db: Database) extends DAO {
 
              validateAgainstSchema(jsonNode, schemaNode) match {
                case scalaz.Success(j) =>
-                 (OK, result(200, "The instance is valid against the schema"))
+                 (OK, result(200,
+                   "The instance provided is valid against the schema"))
                case Failure(l) => (BadRequest, result(400,
                  "The instance provided is not valid against the schema",
                  fromJsonNode(l.head.asJson)))

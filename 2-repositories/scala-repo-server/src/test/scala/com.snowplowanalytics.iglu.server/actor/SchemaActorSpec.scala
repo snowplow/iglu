@@ -58,7 +58,8 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
   val formats = List("jsonschema")
   val version = "1-0-0"
   val versions = List("1-0-0")
-  val schemaDef = """{ "some" : "json" }"""
+
+  val invalidSchema = """{ "some" : "json" }"""
   val innerSchema = """"some" : "json""""
   val validSchema = 
   """{
@@ -70,6 +71,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
     }
   }"""
   val notJson = "not json"
+  val validInstance = """{ "targetUrl": "somestr" }"""
 
   sequential
 
@@ -79,7 +81,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
 
       "return a 201 if the schema doesnt already exist" in {
         val future = schema ? AddSchema(vendor, name, format, version,
-          schemaDef)
+          invalidSchema)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === Created
         result must contain("Schema added successfully") and contain(vendor)
@@ -87,7 +89,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
 
       "return a 401 if the schema already exists" in {
         val future = schema ? AddSchema(vendor, name, format, version,
-          schemaDef)
+          invalidSchema)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === Unauthorized
         result must contain("This schema already exists")
@@ -234,6 +236,43 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
       }
     }
 
+    "for Validate" should {
+      val vendor = "com.snowplowanalytics.snowplow"
+      val name = "ad_click"
+
+      "return a 200 if the instance is valid against the schema" in {
+        val future = schema ? Validate(vendor, name, format, version,
+          validInstance)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === OK
+        result must contain("The instance provided is valid against the schema")
+      }
+
+      "return a 400 if the instance is not valid against the schema" in {
+        val future = schema ? Validate(vendor, name, format, version,
+          invalidSchema)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === BadRequest
+        result must
+          contain("The instance provided is not valid against the schema")
+      }
+
+      "return a 400 if the instance provided is not valid" in {
+        val future = schema ? Validate(vendor, name, format, version, notJson)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === BadRequest
+        result must contain("The instance provided is not valid")
+      }
+
+      "return a 404 if the schema to validate against was not found" in {
+        val future = schema ? Validate("com.unittest", name, format, version,
+          validInstance)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === NotFound
+        result must contain("The schema to validate against was not found")
+      }
+    }
+
     "for ValidateSchema" should {
 
       """return a 200 if the schema provided is self-describing and gives back
@@ -253,7 +292,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
       }
 
       "return a 400 if the schema provided is not self-describing" in {
-        val future = schema ? ValidateSchema(schemaDef, format)
+        val future = schema ? ValidateSchema(invalidSchema, format)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === BadRequest
         result must

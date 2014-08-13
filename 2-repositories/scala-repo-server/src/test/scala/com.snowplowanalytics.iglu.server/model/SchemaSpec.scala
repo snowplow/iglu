@@ -35,20 +35,21 @@ class SchemaSpec extends Specification with SetupAndDestroy {
   val schema = new SchemaDAO(database)
 
   val tableName = "schemas"
-  val vendor = "com.unittest"
-  val vendors = List("com.unittest")
-  val faultyVendor = "com.test"
-  val faultyVendors = List("com.test")
-  val name = "unit_test"
-  val names = List("unit_test")
-  val faultyName = "unit_test2"
-  val faultyNames = List("unit_test2")
+  val vendor = "com.snowplowanalytics.snowplow"
+  val vendors = List("com.snowplowanalytics.snowplow")
+  val faultyVendor = "com.snowplow"
+  val faultyVendors = List("com.snowplow")
+  val name = "ad_click"
+  val names = List("ad_click")
+  val faultyName = "ad_click2"
+  val faultyNames = List("ad_click2")
   val format = "jsonschema"
   val notSupportedFormat = "notSupportedFormat"
   val formats = List("jsonschema")
   val version = "1-0-0"
   val versions = List("1-0-0")
-  val schemaDef = """{ "some" : "json" }"""
+
+  val invalidSchema = """{ "some" : "json" }"""
   val innerSchema = """"some" : "json""""
   val validSchema = 
   """{
@@ -60,6 +61,8 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     }
   }"""
   val notJson = "not json"
+
+  val validInstance = """{ "targetUrl": "somestr" }"""
 
   sequential
 
@@ -81,7 +84,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for add" should {
 
       "add a schema properly" in {
-        val (status, res) = schema.add(vendor, name, format, version, schemaDef)
+        val (status, res) = schema.add(vendor, name, format, version, invalidSchema)
         status === Created
         res must contain("Schema added successfully") and contain(vendor)
 
@@ -97,7 +100,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "not add a schema if it already exists" in {
-        val (status, res) = schema.add(vendor, name, format, version, schemaDef)
+        val (status, res) = schema.add(vendor, name, format, version, invalidSchema)
         status === Unauthorized
         res must contain("This schema already exists")
 
@@ -374,13 +377,93 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
     }
 
+    "for validate" should {
+
+      "return a 200 if the instance is valid against the schema" in {
+
+        val name = "ad_click2"
+        schema.add(vendor, name, format, version,
+          """{
+            "$schema": "http://com.snowplowanalytics/schema/jsonschema/1-0-0",
+            "description": "Schema for an ad click event",
+            "self": {
+              "vendor": "com.snowplowanalytics.snowplow",
+              "name": "ad_click",
+              "format": "jsonschema",
+              "version": "1-0-0"
+            },
+            "type": "object",
+            "properties": {
+              "clickId": {
+                "type": "string"
+              },
+              "impressionId": {
+                "type": "string"
+              },
+              "zoneId": {
+                "type": "string"
+              },
+              "bannerId": {
+                "type": "string"
+              },
+              "campaignId": {
+                "type": "string"
+              },
+              "advertiserId": {
+                "type": "string"
+              },
+              "targetUrl": {
+                "type": "string",
+                "minLength": 1
+              },
+              "costModel": {
+                "enum": ["cpa", "cpc", "cpm"]
+              },
+              "cost": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": ["targetUrl"],
+            "additionalProperties": false
+            }
+          }""")
+        val (status, res) =
+          schema.validate(vendor, name, format, version, validInstance)
+        status === OK
+        res must contain("The instance provided is valid against the schema")
+      }
+
+      "return a 400 if the instance is not valid against the schema" in {
+        val (status, res) =
+          schema.validate(vendor, "ad_click2", format, version, invalidSchema)
+        status === BadRequest
+        res must
+          contain("The instance provided is not valid against the schema") and
+          contain("report")
+      }
+
+      "return a 400 if the instance provided is not valid" in {
+        val (status, res) = schema.validate(vendor, name, format, version,
+          notJson)
+        status === BadRequest
+        res must contain("The instance provided is not valid")
+      }
+
+      "return a 404 if the schema is not found" in {
+        val (status, res) = schema.validate(faultyVendor, name, format, version,
+          validInstance)
+        status === NotFound
+        res must contain("The schema to validate against was not found")
+      }
+    }
+
     "for validateSchema" should {
 
       "return the schema if it is self-describing" in {
 
-        schema.add("com.snowplowanalytics.self-desc", "schema", "jsonschema",
-          "1-0-0", """
-          {
+        schema.add("com.snowplowanalytics.self-desc", "schema", format, version,
+          """{
             "$schema": "http://json-schema.org/draft-04/schema#",
             "description": "Meta-schema for self-describing JSON schema",
             "self": {
@@ -445,7 +528,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "return a 400 if the schema is not self-describing" in {
-        val (status, res) = schema.validateSchema(schemaDef, format)
+        val (status, res) = schema.validateSchema(invalidSchema, format)
         status === BadRequest
         res must contain("The schema provided is not a valid self-describing")
       }

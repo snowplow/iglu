@@ -36,8 +36,11 @@ class ValidationServiceSpec extends Specification
 
   val key = "6eadba20-9b9f-4648-9c23-770272f8d627"
 
+  val vendor = "com.snowplowanalytics.snowplow"
+  val name = "ad_click"
   val format = "jsonschema"
   val invalidFormat = "jsontable"
+  val version = "1-0-0"
 
   val validSchema =
     s"""{
@@ -51,9 +54,13 @@ class ValidationServiceSpec extends Specification
   val invalidSchema = """{ "some": "invalid schema" }"""
   val notJson = "notjson"
 
+  val validInstance = """{ "targetUrl": "somestr" }"""
+
   val validSchemaUri = validSchema.replaceAll(" ", "%20").
     replaceAll("\"", "%22").replaceAll("\n", "%0A")
   val invalidSchemaUri = invalidSchema.replaceAll(" ", "%20").
+    replaceAll("\"", "%22").replaceAll("\n", "%0A")
+  val validInstanceUri = validInstance.replaceAll(" ", "%20").
     replaceAll("\"", "%22").replaceAll("\n", "%0A")
 
   val start = "/api/schemas/validate/"
@@ -62,6 +69,15 @@ class ValidationServiceSpec extends Specification
   val invalidUrl = s"${start}${format}?json=${invalidSchemaUri}"
   val notSchemaUrl = s"${start}${format}?json=${notJson}"
   val invalidFormatUrl = s"${start}${invalidFormat}?json=${validSchemaUri}"
+
+  val validInstanceUrl = s"${start}${vendor}/${name}/${format}/${version}" +
+    s"?json=${validInstanceUri}"
+  val invalidInstanceUrl = s"${start}${vendor}/${name}/${format}/${version}" +
+    s"?json=${invalidSchemaUri}"
+  val notInstanceUrl = s"${start}${vendor}/${name}/${format}/${version}" +
+    s"?json=${notJson}"
+  val notFoundInstanceUrl = s"${start}${vendor}/${name}/${format}/1-0-100" +
+    s"?json=${validInstanceUri}"
 
   sequential
 
@@ -94,11 +110,46 @@ class ValidationServiceSpec extends Specification
       }
 
       "return a 400 if the format provided is not supported" in {
-        Get(invalidFormatUrl) ~> addHeader("api_key", key) ~> routes ~>
-        check {
+        Get(invalidFormatUrl) ~> addHeader("api_key", key) ~> routes ~> check {
           status === BadRequest
           responseAs[String] must
             contain("The schema format provided is not supported")
+        }
+      }
+    }
+
+    "for instance validation" should {
+
+      "return a 200 if the instance is valid against the schema" in {
+        Get(validInstanceUrl) ~> addHeader("api_key", key) ~> routes ~> check {
+          status === OK
+          responseAs[String] must
+            contain("The instance provided is valid against the schema")
+        }
+      }
+
+      "return a 400 if the instance is not valid against the schema" in {
+        Get(invalidInstanceUrl) ~> addHeader("api_key", key) ~> routes ~>
+        check {
+          status === BadRequest
+          responseAs[String] must
+            contain("The instance provided is not valid against the schema")
+        }
+      }
+
+      "return a 400 if the instance provided is not valid" in {
+        Get(notInstanceUrl) ~> addHeader("api_key", key) ~> routes ~> check {
+          status === BadRequest
+          responseAs[String] must contain("The instance provided is not valid")
+        }
+      }
+
+      "return a 404 if the schema to validate against was not found" in {
+        Get(notFoundInstanceUrl) ~> addHeader("api_key", key) ~> routes ~>
+        check {
+          status === NotFound
+          responseAs[String] must
+            contain("The schema to validate against was not found")
         }
       }
     }
