@@ -400,30 +400,41 @@ class SchemaDAO(val db: Database) extends DAO {
    * Validates that the json schema provided is a well-formatted json and
    * is self-describing.
    * @param json the json to be validated
-   * @return a status code and json response pair
+   * @param format the schema format to validate against
+   * @param provideJson if we return the json or not
+   * @return a status code and json/validation message pair
    */
-  def validate(json: String, provideJson: Boolean = true): (StatusCode, String) =
+  def validate(json: String, format: String, provideJson: Boolean = true):
+  (StatusCode, String) =
     parseOpt(json) match {
       case Some(jvalue) => {
         val jsonNode = asJsonNode(jvalue)
-        val schemaNode = asJsonNode(parse(getNoMetadata(
-          "com.snowplowanalytics.self-desc", "schema", "jsonschema", "1-0-0")))
+        val schemaNode = format match {
+          case "jsonschema" =>
+            asJsonNode(parse(getNoMetadata("com.snowplowanalytics.self-desc",
+              "schema", "jsonschema", "1-0-0")))
+          case _ => null
+        }
 
-        validateAgainstSchema(jsonNode, schemaNode) match {
-          case scalaz.Success(j) =>
-            if (provideJson) {
-              (OK, json)
-            } else {
-              (OK,
-                result(200, "The schema provided is a self-describing schema"))
-            }
-          case Failure(l) => (BadRequest,
-            result(400,
-              "The json provided is not a valid self-describing json",
-              fromJsonNode(l.head.asJson)))
+        if (schemaNode != null) {
+          validateAgainstSchema(jsonNode, schemaNode) match {
+            case scalaz.Success(j) =>
+              if (provideJson) {
+                (OK, json)
+              } else {
+                (OK, result(200,
+                  "The schema provided is a valid self-describing schema"))
+              }
+            case Failure(l) => (BadRequest,
+              result(400,
+                "The schema provided is not a valid self-describing schema",
+                fromJsonNode(l.head.asJson)))
+          }
+        } else {
+          (BadRequest, result(400, "The schema format provided is invalid"))
         }
       }
-      case None => (BadRequest, result(400, "The json provided is not valid"))
+      case None => (BadRequest, result(400, "The schema provided is not valid"))
     }
 
   /**

@@ -70,19 +70,13 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
     }
 
   /**
-   * Directive to authenticate a user without checking if the owner is a prefix
-   * of the vendor.
-   */
-  def auth: Directive1[(String, String)] = authenticate(authenticator)
-
-  /**
    * Directive to validate the json provided (either by query param or form
    * data) is self-describing.
    */
-  def validateJson: Directive1[String] =
+  def validateJson(format: String): Directive1[String] =
     anyParam('json) flatMap { json =>
-      onSuccess((schema ? Validate(json)).mapTo[(StatusCode, String)]) flatMap {
-        ext =>
+      onSuccess((schema ?
+        Validate(json, format)).mapTo[(StatusCode, String)]) flatMap { ext =>
           ext match {
             case (OK, j) => provide(j)
             case res => complete(res)
@@ -96,7 +90,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   lazy val routes =
     rejectEmptyResponse {
       respondWithMediaType(`application/json`) {
-        pathPrefix("[a-z.-]+".r) { v =>
+        pathPrefix("[a-z]+\\.[a-z.-]+".r) { v =>
           authVendors(List(v)) { authPair =>
             post {
               path("[a-zA-Z0-9_-]+".r / "[a-z]+".r /
@@ -106,22 +100,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
             }
           }
         } ~
-        pathPrefix("validate") {
-          auth { authPair =>
-            validateRoute
-          }
-          //pathPrefix("[a-z.-]+".r) { v =>
-          //  authVendors(List(v)) { authPair =>
-          //    get {
-          //      path("[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-          //        "[0-9]+-[0-9]+-[0-9]+".r) { (n, f, vs) =>
-          //          validateRoute(v, n, f, vs)
-          //        }
-          //    }
-          //  }
-          //}
-        } ~
-        path(("[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+        path(("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
           "[0-9]+-[0-9]+-[0-9]+".r).repeat(separator = ",")) { list =>
             pathEnd {
               val transposed = list.map(_.toList).transpose
@@ -133,7 +112,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
               }
             }
         } ~
-        pathPrefix("[a-z.-]+".r.repeat(separator = ",")) { v =>
+        pathPrefix("[a-z]+\\.[a-z.-]+".r.repeat(separator = ",")) { v =>
           authVendors(v) { authPair =>
             get {
               pathPrefix("[a-zA-Z0-9_-]+".r.repeat(separator = ",")) { n =>
@@ -177,9 +156,14 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "json", value = "Schema to be added",
       required = true, dataType = "string", paramType = "query")
-    ))
+  ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "Schema added successfully"),
+    new ApiResponse(code = 400,
+      message = "The schema provided is not a valid self-describing schema"),
+    new ApiResponse(code = 400, message = "The schema provided is not valid"),
+    new ApiResponse(code = 400,
+      message = "The schema format provided is invalid"),
     new ApiResponse(code = 401, message = "This schema already exists"),
     new ApiResponse(code = 401,
       message = "You do not have sufficient privileges"),
@@ -191,7 +175,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   ))
   def addRoute(v: String, n: String, f: String, vs: String,
     authPair: (String, String)) =
-      validateJson { json =>
+      validateJson(f) { json =>
         if (authPair._2 == "write") {
           complete {
             (schema ? AddSchema(v, n, f, vs, json)).
@@ -201,13 +185,6 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
           complete(Unauthorized, "You do not have sufficient privileges")
         }
       }
-
-  def validateRoute =
-    anyParam('json) { json =>
-      complete {
-        (schema ? Validate(json, false)).mapTo[(StatusCode, String)]
-      }
-    }
 
   /**
    * Route to retrieve single schemas.

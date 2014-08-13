@@ -572,7 +572,7 @@ class SchemaServiceSpec extends Specification
           check {
             status === BadRequest
             responseAs[String] must
-              contain("The json provided is not a valid") and
+              contain("The schema provided is not a valid self-describing") and
               contain("report")
           }
       }
@@ -583,7 +583,7 @@ class SchemaServiceSpec extends Specification
           addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
             status === BadRequest
             responseAs[String] must
-              contain("The json provided is not a valid") and
+              contain("The schema provided is not a valid self-describing") and
               contain("report")
           }
       }
@@ -592,7 +592,7 @@ class SchemaServiceSpec extends Specification
         Post(postUrl8) ~> addHeader("api_key", writeKey) ~> sealRoute(routes) ~>
           check {
             status === BadRequest
-            responseAs[String] must contain("The json provided is not valid")
+            responseAs[String] must contain("The schema provided is not valid")
           }
       }
 
@@ -600,7 +600,7 @@ class SchemaServiceSpec extends Specification
         Post(postUrl3, FormData(Seq("json" -> notJson))) ~>
           addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
             status === BadRequest
-            responseAs[String] must contain("The json provided is not valid")
+            responseAs[String] must contain("The schema provided is not valid")
           }
       }
     }

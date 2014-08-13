@@ -431,21 +431,21 @@ class SchemaSpec extends Specification with SetupAndDestroy {
           }
           """)
 
-        val (status, res) = schema.validate(validSchema)
+        val (status, res) = schema.validate(validSchema, "jsonschema")
         status === OK
         res must contain(validSchema)
       }
 
       "return bad request if the json is not self-describing" in {
-        val (status, res) = schema.validate(schemaDef)
+        val (status, res) = schema.validate(schemaDef, "jsonschema")
         status === BadRequest
-        res must contain("The json provided is not a valid self-describing")
+        res must contain("The schema provided is not a valid self-describing")
       }
 
       "return bad request if the string provided is not a json" in {
-        val (status, res) = schema.validate(notJson)
+        val (status, res) = schema.validate(notJson, "jsonschema")
         status === BadRequest
-        res must contain("The json provided is not valid")
+        res must contain("The schema provided is not valid")
       }
     }
 
