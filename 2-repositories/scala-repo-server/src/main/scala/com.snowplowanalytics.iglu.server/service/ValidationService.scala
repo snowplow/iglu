@@ -44,8 +44,8 @@ import com.wordnik.swagger.annotations._
  * @param schema a reference to a ``SchemaActor``
  * @param apiKey a reference to a ``ApiKeyActor``
  */
-@Api(value = "/api/schemas/validate",
-  description = "Operations dealing with individual and multiple schemas")
+@Api(value = "/api/schemas/validate", position = 1,
+  description = "Operations dealing with schema validation")
 class ValidationService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 

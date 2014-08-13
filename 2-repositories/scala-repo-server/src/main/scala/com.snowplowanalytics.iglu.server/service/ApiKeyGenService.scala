@@ -41,7 +41,7 @@ import com.wordnik.swagger.annotations._
  * @constructor create a new API key generation service with an apiKey actor
  * @param apiKey a reference to a ``ApiKeyActor``
  */
-@Api(value = "/api/auth/keygen",
+@Api(value = "/api/auth/keygen", position = 2,
   description = """Operations dealing with API key generation and deletion,
   requires a super API key""")
 class ApiKeyGenService(apiKey: ActorRef)

@@ -44,7 +44,7 @@ import com.wordnik.swagger.annotations._
  * @param schema a reference to a ``SchemaActor``
  * @param apiKey a reference to a ``ApiKeyActor``
  */
-@Api(value = "/api/schemas",
+@Api(value = "/api/schemas", position = 0,
   description = "Operations dealing with individual and multiple schemas")
 class SchemaService(schema: ActorRef, apiKey: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
@@ -144,7 +144,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
    * Post route
    */
   @ApiOperation(value = "Adds a new schema to the repository",
-    httpMethod = "POST")
+    httpMethod = "POST", position = 0)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
       required = true, dataType = "string", paramType = "path"),
@@ -191,7 +191,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
    */
   @ApiOperation(value = """Retrieves a schema based on its (vendor, name,
     format, version)""", notes = "Returns a schema", httpMethod = "GET",
-  response = classOf[String])
+  response = classOf[String], position = 1)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor",
       value = "Comma-separated list of schema vendors",
@@ -237,7 +237,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
    */
   @ApiOperation(value = """Retrieves every version of a particular format of a
     schema""", notes = "Returns a collection of schemas", httpMethod = "GET",
-    response = classOf[String])
+    response = classOf[String], position = 2)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor",
       value = "Comma-separated list of schema vendors",
@@ -280,7 +280,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
    */
   @ApiOperation(value = "Retrieves every version of every format of a schema",
     notes = "Returns a collection of schemas", httpMethod = "GET",
-    response = classOf[String])
+    response = classOf[String], position = 3)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor",
       value = "Comma-separated list of schema vendors",
@@ -318,7 +318,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
    */
   @ApiOperation(value = "Retrieves every schema belonging to a vendor",
     notes = "Returns a collection of schemas", httpMethod = "GET",
-    response = classOf[String])
+    response = classOf[String], position = 4)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor",
       value = "Comma-separated list of schema vendors",

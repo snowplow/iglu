@@ -54,7 +54,8 @@ with ActorLogging {
     LoggingContext.fromActorRefFactory)
 
   val swaggerService = new SwaggerHttpService {
-    override def apiTypes = Seq(typeOf[SchemaService], typeOf[ApiKeyGenService])
+    override def apiTypes = Seq(typeOf[SchemaService], typeOf[ApiKeyGenService],
+      typeOf[ValidationService])
     override def apiVersion = "0.2"
     override def baseUrl = "/"
     override def docsPath = "api-docs"
@@ -63,7 +64,7 @@ with ActorLogging {
       """This is the API documentation for the Iglu schema repository, a
       machine-readable schema repository built by Snowplow Analytics. Fill in
       your API key at the top of the page if you own one. Otherwise, please,
-      request an API key from the administrators of this Iglu repository""",
+      request an API key from the administrators of this Iglu repository.""",
       "TOS url", "contact@snowplowanalytics.com", "Apache 2.0",
       "https://github.com/snowplow/iglu/blob/master/LICENSE-2.0.txt"))
   }
