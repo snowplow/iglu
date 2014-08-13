@@ -44,6 +44,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
   val faultyName = "unit_test2"
   val faultyNames = List("unit_test2")
   val format = "jsonschema"
+  val notSupportedFormat = "notSupportedFormat"
   val formats = List("jsonschema")
   val version = "1-0-0"
   val versions = List("1-0-0")
@@ -130,7 +131,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      "return not found if the schema is not in the db" in {
+      "return a 404 if the schema is not in the db" in {
         val (status, res) = schema.get(vendors, faultyNames, formats, versions)
         status === NotFound
         res must contain("There are no schemas available here")
@@ -167,7 +168,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      "return not found if the schema is not in the db" in {
+      "return a 404 if the schema is not in the db" in {
         val (status, res) =
           schema.getMetadata(vendors, faultyNames, formats, versions)
         status === NotFound
@@ -202,7 +203,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      "return not found if there are no schemas matching the query" in {
+      "return a 404 if there are no schemas matching the query" in {
         val (status, res) = schema.getFromFormat(vendors, faultyNames, formats)
         status === NotFound
         res must contain("There are no schemas for this vendor, name, format")
@@ -236,7 +237,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      "return not found if there are no schemas matching the query" in {
+      "return a 404 if there are no schemas matching the query" in {
         val (status, res) =
           schema.getMetadataFromFormat(vendors, faultyNames, formats)
         status === NotFound
@@ -269,7 +270,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      "return not found if there are no schemas matching the query" in {
+      "return a 404 if there are no schemas matching the query" in {
         val (status, res) = schema.getFromName(vendors, faultyNames)
         status === NotFound
         res must contain("There are no schemas for this vendor, name")
@@ -300,7 +301,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      "return not found if there are no schemas matching the query" in {
+      "return a 404 if there are no schemas matching the query" in {
         val (status, res) = schema.getMetadataFromName(vendors, faultyNames)
         status === NotFound
         res must contain("There are no schemas for this vendor, name")
@@ -330,7 +331,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      "return not found if there are no schemas matching the query" in {
+      "return a 404 if there are no schemas matching the query" in {
         val (status, res) = schema.getFromVendor(faultyVendors)
         status === NotFound
         res must contain("There are no schemas for this vendor")
@@ -359,7 +360,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      "return not found if there are no schemas matching the query" in {
+      "return a 404 if there are no schemas matching the query" in {
         val (status, res) = schema.getMetadataFromVendor(faultyVendors)
         status === NotFound
         res must contain("There are no schemas for this vendor")
@@ -375,7 +376,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
     "for validate" should {
 
-      "return a json if it is self-describing" in {
+      "return the schema if it is self-describing" in {
 
         schema.add("com.snowplowanalytics.self-desc", "schema", "jsonschema",
           "1-0-0", """
@@ -431,21 +432,34 @@ class SchemaSpec extends Specification with SetupAndDestroy {
           }
           """)
 
-        val (status, res) = schema.validate(validSchema, "jsonschema")
+        val (status, res) = schema.validate(validSchema, format)
         status === OK
         res must contain(validSchema)
       }
 
-      "return bad request if the json is not self-describing" in {
-        val (status, res) = schema.validate(schemaDef, "jsonschema")
+      "return a 200 if the schema provided is self-describing" in {
+        val (status, res) = schema.validate(validSchema, format, false)
+        status === OK
+        res must
+          contain("The schema provided is a valid self-describing schema")
+      }
+
+      "return a 400 if the schema is not self-describing" in {
+        val (status, res) = schema.validate(schemaDef, format)
         status === BadRequest
         res must contain("The schema provided is not a valid self-describing")
       }
 
-      "return bad request if the string provided is not a json" in {
-        val (status, res) = schema.validate(notJson, "jsonschema")
+      "return a 400 if the string provided is not valid" in {
+        val (status, res) = schema.validate(notJson, format)
         status === BadRequest
         res must contain("The schema provided is not valid")
+      }
+
+      "return a 400 if the schema format provided is not supported" in {
+        val (status, res) = schema.validate(validSchema, notSupportedFormat)
+        status === BadRequest
+        res must contain("The schema format provided is not supported")
       }
     }
 

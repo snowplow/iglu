@@ -49,7 +49,7 @@ class SchemaServiceSpec extends Specification
   val version = "1-0-0"
   val version2 = "1-0-1"
 
-  val validSchema = 
+  val validSchema =
     s"""{
       "self": {
         "vendor": "${vendor}",

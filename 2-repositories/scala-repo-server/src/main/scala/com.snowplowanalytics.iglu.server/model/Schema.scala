@@ -431,7 +431,8 @@ class SchemaDAO(val db: Database) extends DAO {
                 fromJsonNode(l.head.asJson)))
           }
         } else {
-          (BadRequest, result(400, "The schema format provided is invalid"))
+          (BadRequest,
+            result(400, "The schema format provided is not supported"))
         }
       }
       case None => (BadRequest, result(400, "The schema provided is not valid"))
