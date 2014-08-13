@@ -88,7 +88,14 @@ object SchemaActor {
   /**
    * Message to send in order to validate that a schema is self-describing.
    */
-  case class Validate(json: String, format: String, provideJson: Boolean = true)
+  case class ValidateSchema(json: String, format: String,
+    provideJson: Boolean = true)
+
+  /**
+   * Message to send in order to validate an instance against a schema.
+   */
+  case class Validate(vendor: String, name: String, format: String,
+    version: String, instance: String)
 }
 
 /**
@@ -142,7 +149,11 @@ class SchemaActor extends Actor {
     // message's sender
     case GetMetadataFromVendor(v) => sender ! schema.getMetadataFromVendor(v)
 
+    //Sends the result of the DAO's validateSchema method back to the message's
+    //sender
+    case ValidateSchema(j, f, p) => sender ! schema.validateSchema(j, f, p)
+
     //Sends the result of the DAO's validate method back to the message's sender
-    case Validate(j, f, p) => sender ! schema.validate(j, f, p)
+    case Validate(v, n, f, vs, i) => sender ! schema.validate(v, n, f, vs, i)
   }
 }

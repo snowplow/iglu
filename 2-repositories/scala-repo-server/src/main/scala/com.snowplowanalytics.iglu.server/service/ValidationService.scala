@@ -58,6 +58,18 @@ class ValidationService(schema: ActorRef, apiKey: ActorRef)
   }
 
   /**
+   * Directive to authenticate a user using the authenticator.
+   */
+  def authVendors(vendors: List[String]): Directive1[(String, String)] =
+    authenticate(authenticator) flatMap { authPair =>
+      if (vendors.forall(_ startsWith authPair._1)) {
+        provide(authPair)
+      } else {
+        complete(Unauthorized, "You do not have sufficient privileges")
+      }
+    }
+
+  /**
    * Directive to authenticate a user without checking if the owner is a prefix
    * of the vendor.
    */
@@ -69,24 +81,20 @@ class ValidationService(schema: ActorRef, apiKey: ActorRef)
   lazy val routes =
     rejectEmptyResponse {
       respondWithMediaType(`application/json`) {
-        path("[a-z]+".r) { format =>
-          get {
-            pathEnd {
-              auth { authPair =>
-                validateRoute(format)
-              }
+        get {
+          path("[a-z]+".r) { format =>
+            auth { authPair =>
+              validateSchemaRoute(format)
+            }
+          } ~
+          pathPrefix("[a-z]+\\.[a-z.-]+".r) { v =>
+            authVendors(List(v)) { authPair =>
+              path("[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+                "[0-9]+-[0-9]+-[0-9]+".r) { (n, f, vs) =>
+                  validateRoute(v, n, f, vs)
+                }
             }
           }
-          //pathPrefix("[a-z.-]+".r) { v =>
-          //  authVendors(List(v)) { authPair =>
-          //    get {
-          //      path("[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-          //        "[0-9]+-[0-9]+-[0-9]+".r) { (n, f, vs) =>
-          //          validateRoute(v, n, f, vs)
-          //        }
-          //    }
-          //  }
-          //}
         }
       }
     }
@@ -111,10 +119,33 @@ class ValidationService(schema: ActorRef, apiKey: ActorRef)
       new ApiResponse(code = 400,
         message = "The schema format provided is invalid")
     ))
-    def validateRoute(format: String) =
+    def validateSchemaRoute(format: String) =
       parameter('json) { json =>
         complete {
-          (schema ? Validate(json, format, false)).mapTo[(StatusCode, String)]
+          (schema ?
+            ValidateSchema(json, format, false)).mapTo[(StatusCode, String)]
+        }
+      }
+
+    /**
+     * Route for validating an instance against its schema.
+     */
+    @ApiOperation(value = "Validates an instance against its schema",
+      httpMethod = "GET")
+    @ApiImplicitParams(Array(
+      new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
+        required = true, dataType = "string", paramType = "path"),
+      new ApiImplicitParam(name = "name", value = "Schema's name",
+        required = true, dataType = "string", paramType = "path"),
+      new ApiImplicitParam(name = "schemaFormat", value = "Schema's format",
+        required = true, dataType = "string", paramType = "path"),
+      new ApiImplicitParam(name = "version", value = "Schema's version",
+        required = true, dataType = "string", paramType = "path")
+    ))
+    def validateRoute(v: String, n: String, f: String, vs: String) =
+      parameter('json) { json =>
+        complete {
+          (schema ? Validate(v, n, f, vs, json)).mapTo[(StatusCode, String)]
         }
       }
 }

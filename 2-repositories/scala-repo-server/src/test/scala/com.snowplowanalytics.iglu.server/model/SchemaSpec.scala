@@ -374,7 +374,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
     }
 
-    "for validate" should {
+    "for validateSchema" should {
 
       "return the schema if it is self-describing" in {
 
@@ -432,32 +432,33 @@ class SchemaSpec extends Specification with SetupAndDestroy {
           }
           """)
 
-        val (status, res) = schema.validate(validSchema, format)
+        val (status, res) = schema.validateSchema(validSchema, format)
         status === OK
         res must contain(validSchema)
       }
 
       "return a 200 if the schema provided is self-describing" in {
-        val (status, res) = schema.validate(validSchema, format, false)
+        val (status, res) = schema.validateSchema(validSchema, format, false)
         status === OK
         res must
           contain("The schema provided is a valid self-describing schema")
       }
 
       "return a 400 if the schema is not self-describing" in {
-        val (status, res) = schema.validate(schemaDef, format)
+        val (status, res) = schema.validateSchema(schemaDef, format)
         status === BadRequest
         res must contain("The schema provided is not a valid self-describing")
       }
 
       "return a 400 if the string provided is not valid" in {
-        val (status, res) = schema.validate(notJson, format)
+        val (status, res) = schema.validateSchema(notJson, format)
         status === BadRequest
         res must contain("The schema provided is not valid")
       }
 
       "return a 400 if the schema format provided is not supported" in {
-        val (status, res) = schema.validate(validSchema, notSupportedFormat)
+        val (status, res) =
+          schema.validateSchema(validSchema, notSupportedFormat)
         status === BadRequest
         res must contain("The schema format provided is not supported")
       }

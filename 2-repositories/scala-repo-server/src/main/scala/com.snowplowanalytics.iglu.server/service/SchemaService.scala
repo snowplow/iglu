@@ -76,11 +76,12 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   def validateJson(format: String): Directive1[String] =
     anyParam('json) flatMap { json =>
       onSuccess((schema ?
-        Validate(json, format)).mapTo[(StatusCode, String)]) flatMap { ext =>
-          ext match {
-            case (OK, j) => provide(j)
-            case res => complete(res)
-          }
+        ValidateSchema(json, format)).
+          mapTo[(StatusCode, String)]) flatMap { ext =>
+            ext match {
+              case (OK, j) => provide(j)
+              case res => complete(res)
+            }
       }
     }
 
@@ -100,28 +101,22 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
             }
           }
         } ~
-        path(("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-          "[0-9]+-[0-9]+-[0-9]+".r).repeat(separator = ",")) { list =>
-            pathEnd {
+        get {
+          path(("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+            "[0-9]+-[0-9]+-[0-9]+".r).repeat(separator = ",")) { list =>
               val transposed = list.map(_.toList).transpose
               authVendors(transposed(0)) { authPair =>
-                get {
-                  readRoute(transposed(0), transposed(1), transposed(2),
-                    transposed(3))
-                }
+                readRoute(transposed(0), transposed(1), transposed(2),
+                  transposed(3))
               }
-            }
-        } ~
-        pathPrefix("[a-z]+\\.[a-z.-]+".r.repeat(separator = ",")) { v =>
-          authVendors(v) { authPair =>
-            get {
+          } ~
+          pathPrefix("[a-z]+\\.[a-z.-]+".r.repeat(separator = ",")) { v =>
+            authVendors(v) { authPair =>
               pathPrefix("[a-zA-Z0-9_-]+".r.repeat(separator = ",")) { n =>
                 pathPrefix("[a-z]+".r.repeat(separator = ",")) { f =>
                   path(
                     "[0-9]+-[0-9]+-[0-9]+".r.repeat(separator = ",")) { vs =>
-                      pathEnd {
-                        readRoute(v, n, f, vs)
-                      }
+                      readRoute(v, n, f, vs)
                   } ~
                   pathEnd {
                     readFormatRoute(v, n, f)
