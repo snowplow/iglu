@@ -84,7 +84,8 @@ class SchemaDAO(val db: Database) extends DAO {
     version: String,
     schema: String,
     //schema: JValue,
-    createdAt: LocalDateTime
+    createdAt: LocalDateTime,
+    isPublic: Boolean
   )
 
   /**
@@ -101,16 +102,17 @@ class SchemaDAO(val db: Database) extends DAO {
     //def schema = column[JValue]("schema", O.DBType("json"), O.NotNull)
     def createdAt = column[LocalDateTime]("createdat", O.DBType("timestamp"),
       O.NotNull)
+    def isPublic = column[Boolean]("ispublic", O.DBType("boolean"), O.NotNull)
 
-    def * = (schemaId, vendor, name, format, version, schema, createdAt) <>
-      (Schema.tupled, Schema.unapply)
+    def * = (schemaId, vendor, name, format, version, schema, createdAt,
+      isPublic) <> (Schema.tupled, Schema.unapply)
   }
 
   //Object used to access the table
   val schemas = TableQuery[Schemas]
 
   //Case classes for json formatting
-  case class Metadata(location: String, createdAt: String)
+  case class Metadata(location: String, createdAt: String, isPublic: Boolean)
   case class ResSchema(schema: JValue, metadata: Metadata)
   case class ResMetadata(vendor: String, name: String, format: String,
     version: String, metadata: Metadata)
@@ -129,48 +131,64 @@ class SchemaDAO(val db: Database) extends DAO {
   /**
    * Gets every schema belongig to a specific vendor.
    * @param vendors schemas' vendors
+   * @param owner the owner of the API key the request was made with
    * @return a status code and json pair containing the list of all schemas
    * of this vendor
    */
-  def getFromVendor(vendors: List[String]): (StatusCode, String) =
+  def getFromVendor(vendors: List[String], owner: String):
+  (StatusCode, String) =
     db withDynSession {
-      val l: List[ResSchema] =
-        (for {
-          s <- schemas if s.vendor inSet vendors
-        } yield s)
-          .list
-          .map(s => ResSchema(parse(s.schema),
-            Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-            s.createdAt.toString("MM/dd/yyyy HH:mm:ss"))))
+      val preliminaryList = (for {
+        s <- schemas if s.vendor inSet vendors
+      } yield s).list
 
-      if (l.length > 0) {
-        (OK, writePretty(l))
-      } else {
+      if (preliminaryList.length == 0) {
         (NotFound, result(404, "There are no schemas for this vendor"))
+      } else {
+        val l: List[ResSchema] =
+          preliminaryList
+            .filter(s => (s.vendor startsWith owner) || s.isPublic)
+            .map(s => ResSchema(parse(s.schema),
+              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+              s.createdAt.toString("MM/dd/yyyy HH:mm:ss"), s.isPublic)))
+
+        if (l.length > 0) {
+          (OK, writePretty(l))
+        } else {
+          (Unauthorized, result(401, "You do not have sufficient privileges"))
+        }
       }
     }
 
   /**
    * Gets metadata about every schemas belonging to a specific vendor.
    * @param vendors schemas' vendors
+   * @param owner the owner of the API key the request was made with
    * @return a status code and json pair containing metadata about every schema
    * of this vendor
    */
-  def getMetadataFromVendor(vendors: List[String]): (StatusCode, String) =
+  def getMetadataFromVendor(vendors: List[String], owner: String):
+  (StatusCode, String) =
     db withDynSession {
-      val l: List[ResMetadata] =
-        (for {
-          s <- schemas if s.vendor inSet vendors
-        } yield s)
-          .list
-          .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
-            Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-            s.createdAt.toString("MM/dd/yyyy HH:mm:ss"))))
+      val preliminaryList = (for {
+        s <- schemas if s.vendor inSet vendors
+      } yield s).list
 
-      if (l.length > 0) {
-        (OK, writePretty(l))
-      } else {
+      if(preliminaryList.length == 0) {
         (NotFound, result(404, "There are no schemas for this vendor"))
+      } else {
+        val l: List[ResMetadata] =
+          preliminaryList
+            .filter(s => (s.vendor startsWith owner) || s.isPublic)
+            .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
+              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+              s.createdAt.toString("MM/dd/yyyy HH:mm:ss"), s.isPublic)))
+
+        if (l.length > 0) {
+          (OK, writePretty(l))
+        } else {
+          (Unauthorized, result(401, "You do not have sufficient privileges"))
+        }
       }
     }
 
@@ -178,26 +196,34 @@ class SchemaDAO(val db: Database) extends DAO {
    * Gets every schemas for this vendor, names combination.
    * @param vendors schemas' vendors
    * @param names schemas' names
+   * @param owner the owner of the API key the request was made with
    * @return a status code and json pair containing the list of all schemas
    * satifsfying the query
    */
-  def getFromName(vendors: List[String], names: List[String]): (StatusCode, String) =
+  def getFromName(vendors: List[String], names: List[String], owner: String):
+  (StatusCode, String) =
     db withDynSession {
-      val l: List[ResSchema] =
-        (for {
-          s <- schemas if (s.vendor inSet vendors) &&
-            (s.name inSet names)
-        } yield s)
-        .list
-        .map(s => ResSchema(parse(s.schema),
-          Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-          s.createdAt.toString("MM/dd/yyyy HH:mm:ss"))))
+      val preliminaryList = (for {
+        s <- schemas if (s.vendor inSet vendors) &&
+          (s.name inSet names)
+      } yield s).list
 
-      if (l.length > 0) {
-        (OK, writePretty(l))
-      } else {
+      if (preliminaryList.length == 0) {
         (NotFound, result(404,
           "There are no schemas for this vendor, name combination"))
+      } else {
+        val l: List[ResSchema] =
+          preliminaryList
+            .filter(s => (s.vendor startsWith owner) || s.isPublic)
+            .map(s => ResSchema(parse(s.schema),
+              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+              s.createdAt.toString("MM/dd/yyyy HH:mm:ss"), s.isPublic)))
+
+        if (l.length > 0) {
+          (OK, writePretty(l))
+        } else {
+          (Unauthorized, result(401, "You do not have sufficient privileges"))
+        }
       }
     }
 
@@ -205,27 +231,34 @@ class SchemaDAO(val db: Database) extends DAO {
    * Gets metadata about every schemas for this vendor, names combination.
    * @param vendors schemas' vendors
    * @param names schemas' names
+   * @param owner the owner of the API key the request was made with
    * @return a status code and json pair containing metadata about the schemas
    * satifsfying the query
    */
-  def getMetadataFromName(vendors: List[String], names: List[String]):
-    (StatusCode, String) =
+  def getMetadataFromName(vendors: List[String], names: List[String],
+    owner: String): (StatusCode, String) =
       db withDynSession {
-        val l: List[ResMetadata] =
-          (for {
-            s <- schemas if (s.vendor inSet vendors) &&
-              (s.name inSet names)
-          } yield s)
-            .list
-            .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
-              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-              s.createdAt.toString("MM/dd/yyyy HH:mm:ss"))))
+        val preliminaryList = (for {
+          s <- schemas if (s.vendor inSet vendors) &&
+            (s.name inSet names)
+        } yield s).list
 
-        if (l.length > 0) {
-          (OK, writePretty(l))
-        } else {
+        if (preliminaryList.length == 0) {
           (NotFound, result(404,
             "There are no schemas for this vendor, name combination"))
+        } else {
+          val l: List[ResMetadata] =
+            preliminaryList
+              .filter(s => (s.vendor startsWith owner) || s.isPublic)
+              .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
+                Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                s.createdAt.toString("MM/dd/yyyy HH:mm:ss"), s.isPublic)))
+
+          if (l.length > 0) {
+            (OK, writePretty(l))
+          } else {
+            (Unauthorized, result(401, "You do not have sufficient privileges"))
+          }
         }
       }
 
@@ -234,28 +267,35 @@ class SchemaDAO(val db: Database) extends DAO {
    * @param vendors schemas' vendors
    * @param names schenas' names
    * @param schemaFormats schemas' formats
+   * @param owner the owner of the API key the request was made with
    * @return a status code and json pair containing the list of every version of
    * a schema
    */
   def getFromFormat(vendors: List[String], names: List[String],
-    schemaFormats: List[String]): (StatusCode, String) =
+    schemaFormats: List[String], owner: String): (StatusCode, String) =
       db withDynSession {
-        val l: List[ResSchema] =
-          (for {
-            s <- schemas if (s.vendor inSet vendors) &&
-              (s.name inSet names) &&
-              (s.format inSet schemaFormats)
-          } yield s)
-            .list
-            .map(s => ResSchema(parse(s.schema),
-              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-              s.createdAt.toString("MM/dd/yyyy HH:mm:ss"))))
+        val preliminaryList = (for {
+          s <- schemas if (s.vendor inSet vendors) &&
+            (s.name inSet names) &&
+            (s.format inSet schemaFormats)
+        } yield s).list
 
-        if (l.length > 0) {
-          (OK, writePretty(l))
-        } else {
+        if (preliminaryList.length == 0) {
           (NotFound, result(404,
             "There are no schemas for this vendor, name, format combination"))
+        } else {
+          val l: List[ResSchema] =
+            preliminaryList
+              .filter(s => (s.vendor startsWith owner) || s.isPublic)
+              .map(s => ResSchema(parse(s.schema),
+                Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                s.createdAt.toString("MM/dd/yyyy HH:mm:ss"), s.isPublic)))
+
+          if (l.length > 0) {
+            (OK, writePretty(l))
+          } else {
+            (Unauthorized, result(401, "You do not have sufficient privileges"))
+          }
         }
       }
 
@@ -264,28 +304,35 @@ class SchemaDAO(val db: Database) extends DAO {
    * @param vendors schemas' vendors
    * @param names schemas' names
    * @param schemaFormats schemas' formats
+   * @param owner the owner of the API key the request was made with
    * @return a status code and json pair containing metadata about every version
    * of a schema
    */
   def getMetadataFromFormat(vendors: List[String], names: List[String],
-    schemaFormats: List[String]): (StatusCode, String) =
+    schemaFormats: List[String], owner: String): (StatusCode, String) =
       db withDynSession {
-        val l: List[ResMetadata] =
-          (for {
-            s <- schemas if (s.vendor inSet vendors) &&
-              (s.name inSet names) &&
-              (s.format inSet schemaFormats)
-          } yield s)
-            .list
-            .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
-              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-              s.createdAt.toString("MM/dd/yyyy HH:mm:ss"))))
+        val preliminaryList = (for {
+          s <- schemas if (s.vendor inSet vendors) &&
+            (s.name inSet names) &&
+            (s.format inSet schemaFormats)
+        } yield s).list
 
-        if (l.length > 0) {
-          (OK, writePretty(l))
-        } else {
+        if (preliminaryList.length == 0) {
           (NotFound, result(404,
-            "There are no schemas for this vendor, name, format, combination"))
+            "There are no schemas for this vendor, name, format combination"))
+        } else {
+          val l: List[ResMetadata] =
+            preliminaryList
+              .filter(s => (s.vendor startsWith owner) || s.isPublic)
+              .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
+                Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                s.createdAt.toString("MM/dd/yyyy HH:mm:ss"), s.isPublic)))
+
+          if (l.length > 0) {
+            (OK, writePretty(l))
+          } else {
+            (Unauthorized, result(401, "You do not have sufficient privileges"))
+          }
         }
       }
 
@@ -295,29 +342,37 @@ class SchemaDAO(val db: Database) extends DAO {
    * @param names the schema's names
    * @param schemaFormats the schema's formats
    * @param versions the schema's versions
+   * @param owner the owner of the API key the request was made with
    * @return a status code and json pair containing the schema
    */
-  def get(vendors: List[String], names: List[String], schemaFormats: List[String],
-    versions: List[String]): (StatusCode, String) =
-      db withDynSession {
+  def get(vendors: List[String], names: List[String],
+    schemaFormats: List[String], versions: List[String], owner: String):
+  (StatusCode, String) =
+    db withDynSession {
+      val preliminaryList = (for {
+        s <- schemas if (s.vendor inSet vendors) &&
+          (s.name inSet names) &&
+          (s.format inSet schemaFormats) &&
+          (s.version inSet versions)
+      } yield s).list
+
+      if (preliminaryList.length == 0) {
+        (NotFound, result(404, "There are no schemas available here"))
+      } else {
         val l: List[ResSchema] =
-          (for {
-            s <- schemas if (s.vendor inSet vendors) &&
-              (s.name inSet names) &&
-              (s.format inSet schemaFormats) &&
-              (s.version inSet versions)
-          } yield s)
-            .list
+          preliminaryList
+            .filter(s => (s.vendor startsWith owner) || s.isPublic)
             .map(s => ResSchema(parse(s.schema),
               Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-              s.createdAt.toString("MM/dd/yyyy HH:mm:ss"))))
+              s.createdAt.toString("MM/dd/yyyy HH:mm:ss"), s.isPublic)))
 
         if (l.length > 0) {
           (OK, writePretty(l))
         } else {
-          (NotFound, result(404, "There are no schemas available here"))
+          (Unauthorized, result(401, "You do not have sufficient privileges"))
         }
       }
+    }
 
   /**
    * Gets only metadata about the schema: its vendor, name, format and version.
@@ -325,29 +380,37 @@ class SchemaDAO(val db: Database) extends DAO {
    * @param names the schema's names
    * @param schemaFormats the schea's formats
    * @param versions the schema's versions
+   * @param owner the owner of the API key the request was made with
    * @return a status code and json pair containing the metadata
    */
   def getMetadata(vendors: List[String], names: List[String],
-    schemaFormats: List[String], versions: List[String]): (StatusCode, String) =
-      db withDynSession {
+    schemaFormats: List[String], versions: List[String], owner: String):
+  (StatusCode, String) =
+    db withDynSession {
+      val preliminaryList = (for {
+        s <- schemas if (s.vendor inSet vendors) &&
+          (s.name inSet names) &&
+          (s.format inSet schemaFormats) &&
+          (s.version inSet versions)
+      } yield s).list
+
+      if (preliminaryList.length == 0) {
+        (NotFound, result(404, "There are no schemas available here"))
+      } else {
         val l: List[ResMetadata] =
-          (for {
-            s <- schemas if (s.vendor inSet vendors) &&
-              (s.name inSet names) &&
-              (s.format inSet schemaFormats) &&
-              (s.version inSet versions)
-          } yield s)
-            .list
+          preliminaryList
+            .filter(s => (s.vendor startsWith owner) || s.isPublic)
             .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
               Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-              s.createdAt.toString("MM/dd/yyyy HH:mm:ss"))))
+              s.createdAt.toString("MM/dd/yyyy HH:mm:ss"), s.isPublic)))
 
         if (l.length > 0) {
           (OK, writePretty(l))
         } else {
-          (NotFound, result(404, "There are no schemas available here"))
+          (Unauthorized, result(401, "You do not have sufficient privileges"))
         }
       }
+    }
 
   /**
    * Gets a single schema without the metadata associated
@@ -381,23 +444,32 @@ class SchemaDAO(val db: Database) extends DAO {
    * @param format the schema's format
    * @param version the schema's version
    * @param schema the schema itself
+   * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
+   * @param isPublic whether or not the schema is publicly available
    * @return a status code json response pair
    */
   def add(vendor: String, name: String, format: String, version: String,
-    schema: String): (StatusCode, String) =
-      db withDynSession {
-        get(List(vendor), List(name), List(format), List(version)) match {
-          case (OK, j) => (Unauthorized,
-            result(401, "This schema already exists"))
-          case _ => schemas.insert(
-            Schema(0, vendor, name, format, version, schema,
-              new LocalDateTime())) match {
-                case 0 => (InternalServerError,
-                  result(500, "Something went wrong"))
-                case n => (Created, result(201, "Schema added successfully",
-                  buildLoc(vendor, name, format, version)))
-              }
+    schema: String, owner: String, permission: String,
+    isPublic: Boolean = false): (StatusCode, String) =
+      if (permission == "write" && (vendor startsWith owner)) {
+        db withDynSession {
+          get(List(vendor), List(name), List(format), List(version), owner)
+          match {
+            case (OK, j) => (Unauthorized,
+              result(401, "This schema already exists"))
+            case _ => schemas.insert(
+              Schema(0, vendor, name, format, version, schema,
+                new LocalDateTime(), isPublic)) match {
+                  case 0 => (InternalServerError,
+                    result(500, "Something went wrong"))
+                  case n => (Created, result(201, "Schema added successfully",
+                    buildLoc(vendor, name, format, version)))
+                }
+          }
         }
+      } else {
+        (Unauthorized, result(401, "You do not have sufficient privileges"))
       }
 
    /**

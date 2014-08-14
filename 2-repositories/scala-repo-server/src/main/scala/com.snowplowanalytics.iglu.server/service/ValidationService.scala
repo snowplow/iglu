@@ -58,20 +58,7 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
   }
 
   /**
-   * Directive to authenticate a user using the authenticator.
-   */
-  def authVendors(vendors: List[String]): Directive1[(String, String)] =
-    authenticate(authenticator) flatMap { authPair =>
-      if (vendors.forall(_ startsWith authPair._1)) {
-        provide(authPair)
-      } else {
-        complete(Unauthorized, "You do not have sufficient privileges")
-      }
-    }
-
-  /**
-   * Directive to authenticate a user without checking if the owner is a prefix
-   * of the vendor.
+   * Directive to authenticate a user.
    */
   def auth: Directive1[(String, String)] = authenticate(authenticator)
 
@@ -82,18 +69,14 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     rejectEmptyResponse {
       respondWithMediaType(`application/json`) {
         get {
-          path("[a-z]+".r) { format =>
-            auth { authPair =>
+          auth { authPair =>
+            path("[a-z]+".r) { format =>
               validateSchemaRoute(format)
-            }
-          } ~
-          pathPrefix("[a-z]+\\.[a-z.-]+".r) { v =>
-            authVendors(List(v)) { authPair =>
-              path("[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-                "[0-9]+-[0-9]+-[0-9]+".r) { (n, f, vs) =>
-                  validateRoute(v, n, f, vs)
-                }
-            }
+            } ~
+            path("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+              "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
+                validateRoute(v, n, f, vs)
+              }
           }
         }
       }

@@ -324,7 +324,7 @@ class SchemaServiceSpec extends Specification
         }
 
         "return a 401 if the owner is not a prefix of the vendor" in {
-          Get(formatUrl) ~> addHeader("api_key", wrongVendorKey) ~> routes ~>
+          Get(vendorUrl) ~> addHeader("api_key", wrongVendorKey) ~> routes ~>
           check {
             status === Unauthorized
             responseAs[String] must contain("You do not have sufficient privil")
@@ -373,7 +373,7 @@ class SchemaServiceSpec extends Specification
           check {
             status === NotFound
             responseAs[String] must
-            contain("There are no schemas for this vendor, name combinatio")
+              contain("There are no schemas for this vendor, name combination")
           }
         }
 
@@ -435,7 +435,7 @@ class SchemaServiceSpec extends Specification
         }
 
         "return a 401 if the owner is not a prefix of the vendor" in {
-          Get(vendorUrl) ~> addHeader("api_key", wrongVendorKey) ~> routes ~>
+          Get(formatUrl) ~> addHeader("api_key", wrongVendorKey) ~> routes ~>
           check {
             status === Unauthorized
             responseAs[String] must contain("You do not have sufficient privil")
