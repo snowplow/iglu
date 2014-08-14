@@ -32,6 +32,11 @@ object SchemaActor {
    * Message to send in order to add a schema based on its
    * (vendor, name, format, version) tuple, validates that the schemas
    * does not already exist.
+   * @param vendor schema's vendor
+   * @param name schema's name
+   * @param format schema's format
+   * @param version schema's version
+   * @param schema schema to be added
    */
   case class AddSchema(vendor: String, name: String, format: String,
     version: String, schema: String)
@@ -39,6 +44,10 @@ object SchemaActor {
   /**
    * Message to send in order to retrieve a schema based on its
    * (vendor, name, format, version) tuple.
+   * @param vendors list of schemas' vendors
+   * @param names list of schemas' names
+   * @param formats list of schemas' formats
+   * @param versions list of schemas' versions
    */
   case class GetSchema(vendors: List[String], names: List[String],
     formats: List[String], versions: List[String])
@@ -46,18 +55,28 @@ object SchemaActor {
   /**
    * Message to send in order to retrieve metadata about a schema based on its
    * (vendor, name, format, version) tuple.
+   * @param vendors list of schemas' vendors
+   * @param names list of schemas' names
+   * @param formats list of schemas' formats
+   * @param versions list of schemas' versions
    */
   case class GetMetadata(vendors: List[String], names: List[String],
     formats: List[String], versions: List[String])
 
   /**
    * Message to send in order to get every version of a schema.
+   * @param vendors list of schemas' vendors
+   * @param names list of schemas' names
+   * @param formats list of schemas' formats
    */
   case class GetSchemasFromFormat(vendors: List[String], names: List[String],
     formats: List[String])
 
   /**
    * Message to send in order to get metadata about every version of a schema.
+   * @param vendors list of schemas' vendors
+   * @param names list of schemas' names
+   * @param formats list of schemas' formats
    */
   case class GetMetadataFromFormat(vendors: List[String], names: List[String],
     formats: List[String])
@@ -65,34 +84,49 @@ object SchemaActor {
   /**
    * Message to send in order to retrieve every format, version combination of
    * a schema.
+   * @param vendors list of schemas' vendors
+   * @param names list of schemas' names
    */
   case class GetSchemasFromName(vendors: List[String], names: List[String])
 
   /**
    * Message to send in order to retrieve metadata about every format, version
    * combination of a schema.
+   * @param vendors list of schemas' vendors
+   * @param names list of schemas' names
    */
   case class GetMetadataFromName(vendors: List[String], names: List[String])
 
   /**
    * Message to send in order to retrieve every schema belonging to a vendor.
+   * @param vendors list of schemas' vendors
    */
   case class GetSchemasFromVendor(vendors: List[String])
 
   /**
    * Message to send in order to retrieve metadata about every schema belonging
    * to a vendor.
+   * @param vendors list of schemas' vendors
    */
   case class GetMetadataFromVendor(vendors: List[String])
 
   /**
    * Message to send in order to validate that a schema is self-describing.
+   * @param schema schema to be validated
+   * @param format schema's format
+   * @param provideSchema returns the schema if true or a validation message
+   * otherwise
    */
   case class ValidateSchema(schema: String, format: String,
     provideSchema: Boolean = true)
 
   /**
    * Message to send in order to validate an instance against a schema.
+   * @param vendor schema's vendor
+   * @param name schema's name
+   * @param format schema's format
+   * @param version schema's version
+   * @param instance instance to be validated
    */
   case class Validate(vendor: String, name: String, format: String,
     version: String, instance: String)

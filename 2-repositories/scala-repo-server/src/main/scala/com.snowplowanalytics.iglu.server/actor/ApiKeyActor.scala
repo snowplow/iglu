@@ -34,23 +34,27 @@ object ApiKeyActor {
   /**
    * Message to send in order to retrieve a (owner, permission) pair if the
    * key exists.
+   * @param uid identifier for the API key to be retrieved
    */
   case class GetKey(uid: String)
 
   /**
    * Message to send in order to add a (write, read) pair of keys for the
    * specified owner if it is not conflicting with an existing one.
+   * @param owner future owner of the API keys to be generated
    */
   case class AddBothKey(owner: String)
 
   /**
    * Message to send in order to delete a key specifying its uuid.
+   * @param uid identifier of the API key to be deleted
    */
   case class DeleteKey(uid: String)
 
   /**
    * Message to send in order to delete every keys belonging to the specified
    * owner.
+   * @param owner owner of the API keys to be deleted
    */
   case class DeleteKeys(owner: String)
 }
