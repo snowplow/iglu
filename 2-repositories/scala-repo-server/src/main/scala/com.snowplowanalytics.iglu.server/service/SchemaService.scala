@@ -41,12 +41,12 @@ import com.wordnik.swagger.annotations._
 /**
  * Service to interact with schemas.
  * @constructor creates a new schema service with a schema and apiKey actors
- * @param schema a reference to a ``SchemaActor``
- * @param apiKey a reference to a ``ApiKeyActor``
+ * @param schemaActor a reference to a ``SchemaActor``
+ * @param apiKeyActor a reference to a ``ApiKeyActor``
  */
 @Api(value = "/api/schemas", position = 0,
   description = "Operations dealing with individual and multiple schemas")
-class SchemaService(schema: ActorRef, apiKey: ActorRef)
+class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
   /**
@@ -54,7 +54,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
    * validates it against the database.
    */
   val authenticator = TokenAuthenticator[(String, String)]("api_key") {
-    key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
+    key => (apiKeyActor ? GetKey(key)).mapTo[Option[(String, String)]]
   }
 
   /**
@@ -70,13 +70,13 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
     }
 
   /**
-   * Directive to validate the json provided (either by query param or form
+   * Directive to validate the schema provided (either by query param or form
    * data) is self-describing.
    */
-  def validateJson(format: String): Directive1[String] =
-    anyParam('json) flatMap { json =>
-      onSuccess((schema ?
-        ValidateSchema(json, format)).
+  def validateSchema(format: String): Directive1[String] =
+    anyParam('schema) flatMap { schema =>
+      onSuccess((schemaActor ?
+        ValidateSchema(schema, format)).
           mapTo[(StatusCode, String)]) flatMap { ext =>
             ext match {
               case (OK, j) => provide(j)
@@ -149,7 +149,7 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "version", value = "Schema's version",
       required = true, dataType = "string", paramType = "path"),
-    new ApiImplicitParam(name = "json", value = "Schema to be added",
+    new ApiImplicitParam(name = "schema", value = "Schema to be added",
       required = true, dataType = "string", paramType = "query")
   ))
   @ApiResponses(Array(
@@ -170,10 +170,10 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
   ))
   def addRoute(v: String, n: String, f: String, vs: String,
     authPair: (String, String)) =
-      validateJson(f) { json =>
+      validateSchema(f) { schema =>
         if (authPair._2 == "write") {
           complete {
-            (schema ? AddSchema(v, n, f, vs, json)).
+            (schemaActor ? AddSchema(v, n, f, vs, schema)).
               mapTo[(StatusCode, String)]
           }
         } else {
@@ -219,10 +219,10 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
       anyParam('filter.?) { filter =>
         filter match {
           case Some("metadata") => complete {
-            (schema ? GetMetadata(v, n, f, vs)).mapTo[(StatusCode, String)]
+            (schemaActor ? GetMetadata(v, n, f, vs)).mapTo[(StatusCode, String)]
           }
           case _ => complete {
-            (schema ? GetSchema(v, n, f, vs)).mapTo[(StatusCode, String)]
+            (schemaActor ? GetSchema(v, n, f, vs)).mapTo[(StatusCode, String)]
           }
         }
       }
@@ -261,11 +261,12 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
     anyParam('filter.?) { filter =>
       filter match {
         case Some("metadata") => complete {
-          (schema ? GetMetadataFromFormat(v, n, f)).
+          (schemaActor ? GetMetadataFromFormat(v, n, f)).
             mapTo[(StatusCode, String)]
         }
         case _ => complete {
-          (schema ? GetSchemasFromFormat(v, n, f)).mapTo[(StatusCode, String)]
+          (schemaActor ?
+            GetSchemasFromFormat(v, n, f)).mapTo[(StatusCode, String)]
         }
       }
     }
@@ -300,10 +301,10 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
     anyParam('filter.?) { filter =>
       filter match {
         case Some("metadata") => complete {
-          (schema ? GetMetadataFromName(v, n)).mapTo[(StatusCode, String)]
+          (schemaActor ? GetMetadataFromName(v, n)).mapTo[(StatusCode, String)]
         }
         case _ => complete {
-          (schema ? GetSchemasFromName(v, n)).mapTo[(StatusCode, String)]
+          (schemaActor ? GetSchemasFromName(v, n)).mapTo[(StatusCode, String)]
         }
       }
     }
@@ -334,10 +335,10 @@ class SchemaService(schema: ActorRef, apiKey: ActorRef)
     anyParam('filter.?) { filter =>
       filter match {
         case Some("metadata") => complete {
-          (schema ? GetMetadataFromVendor(v)).mapTo[(StatusCode, String)]
+          (schemaActor ? GetMetadataFromVendor(v)).mapTo[(StatusCode, String)]
         }
         case _ => complete {
-          (schema ? GetSchemasFromVendor(v)).mapTo[(StatusCode, String)]
+          (schemaActor ? GetSchemasFromVendor(v)).mapTo[(StatusCode, String)]
         }
       }
     }

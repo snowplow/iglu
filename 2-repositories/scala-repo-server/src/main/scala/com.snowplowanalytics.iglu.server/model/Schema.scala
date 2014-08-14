@@ -73,7 +73,7 @@ class SchemaDAO(val db: Database) extends DAO {
    * @param name the schema's name
    * @param format the schema's format
    * @param version the schema's version
-   * @param schema the json forming the schema
+   * @param schema the schema
    * @param createdAt data at which point the schema was created
    */
   case class Schema(
@@ -434,45 +434,45 @@ class SchemaDAO(val db: Database) extends DAO {
        }
 
   /**
-   * Validates that the json schema provided is a well-formatted json and
-   * is self-describing.
-   * @param json the json to be validated
+   * Validates that the schema provided is self-describing.
+   * @param schema the schema to be validated
    * @param format the schema format to validate against
-   * @param provideJson if we return the json or not
-   * @return a status code and json/validation message pair
+   * @param provideSchema if we return the schema or not
+   * @return a status code and schema/validation message pair
    */
-  def validateSchema(json: String, format: String, provideJson: Boolean = true):
-  (StatusCode, String) =
-    format match {
-      case "jsonschema" => {
-        parseOpt(json) match {
-          case Some(jvalue) => {
-            val jsonNode = asJsonNode(jvalue)
-            val schemaNode =
-              asJsonNode(parse(getNoMetadata("com.snowplowanalytics.self-desc",
-                "schema", "jsonschema", "1-0-0")))
+  def validateSchema(schema: String, format: String,
+    provideSchema: Boolean = true): (StatusCode, String) =
+      format match {
+        case "jsonschema" => {
+          parseOpt(schema) match {
+            case Some(jvalue) => {
+              val jsonNode = asJsonNode(jvalue)
+              val schemaNode =
+                asJsonNode(parse(getNoMetadata(
+                  "com.snowplowanalytics.self-desc", "schema", "jsonschema",
+                  "1-0-0")))
 
-            validateAgainstSchema(jsonNode, schemaNode) match {
-              case scalaz.Success(j) =>
-                if (provideJson) {
-                  (OK, json)
-                } else {
-                  (OK, result(200,
-                    "The schema provided is a valid self-describing schema"))
-                }
-              case Failure(l) => (BadRequest,
-                result(400,
-                  "The schema provided is not a valid self-describing schema",
-                  fromJsonNode(l.head.asJson)))
+              validateAgainstSchema(jsonNode, schemaNode) match {
+                case scalaz.Success(j) =>
+                  if (provideSchema) {
+                    (OK, schema)
+                  } else {
+                    (OK, result(200,
+                      "The schema provided is a valid self-describing schema"))
+                  }
+                case Failure(l) => (BadRequest,
+                  result(400,
+                    "The schema provided is not a valid self-describing schema",
+                    fromJsonNode(l.head.asJson)))
+              }
             }
+            case None =>
+              (BadRequest, result(400, "The schema provided is not valid"))
           }
-          case None =>
-            (BadRequest, result(400, "The schema provided is not valid"))
         }
+        case _ => (BadRequest,
+          result(400, "The schema format provided is not supported"))
       }
-      case _ => (BadRequest,
-        result(400, "The schema format provided is not supported"))
-    }
 
   /**
    * Helper method to build the location of the schema from its metadata.

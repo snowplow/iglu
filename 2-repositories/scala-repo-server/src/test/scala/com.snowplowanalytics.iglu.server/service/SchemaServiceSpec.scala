@@ -101,20 +101,20 @@ class SchemaServiceSpec extends Specification
 
   val otherVendorUrl = s"${start}com.benfradet.project"
   val otherNameUrl = s"${start}com.benfradet.project/${name}"
-  val otherFormatUrl = s"${start}com.benfradet.project/${name}/jsonschema"
+  val otherFormatUrl = s"${start}com.benfradet.project/${name}/${format}"
 
   //post urls
   val postUrl1 = s"${start}${vendor}/unit_test1/${format}/${version}"
   val postUrl2 = s"${start}${vendor}/unit_test2/${format}/${version}" +
-    s"?json=${validSchemaUri}"
+    s"?schema=${validSchemaUri}"
   val postUrl3 = s"${start}${vendor}/unit_test3/${format}/${version}"
   val postUrl4 = s"${start}${vendor}/unit_test4/${format}/${version}" +
-    s"?json=${validSchemaUri}"
-  val postUrl6 = s"${url}?json=${validSchemaUri}"
+    s"?schema=${validSchemaUri}"
+  val postUrl6 = s"${url}?schema=${validSchemaUri}"
   val postUrl7 = s"${start}${vendor}/unit_test7/${format}/${version}" +
-    s"?json=${invalidSchemaUri}"
+    s"?schema=${invalidSchemaUri}"
   val postUrl8 = s"${start}${vendor}/unit_test8/${format}/${version}" +
-    s"?json=${notJson}"
+    s"?schema=${notJson}"
 
   sequential
 
@@ -447,8 +447,8 @@ class SchemaServiceSpec extends Specification
     "for POST requests" should {
 
       //should be removed from db before running tests for now
-      "return success if the json is passed as form data" in {
-        Post(postUrl1, FormData(Seq("json" -> validSchema))) ~>
+      "return success if the schema is passed as form data" in {
+        Post(postUrl1, FormData(Seq("schema" -> validSchema))) ~>
           addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
             status === Created
             responseAs[String] must contain("Schema added successfully") and
@@ -457,7 +457,7 @@ class SchemaServiceSpec extends Specification
       }
 
       //should be removed from db before running tests for now
-      "return success if the json is passed as query parameter" in {
+      "return success if the schema is passed as query parameter" in {
         Post(postUrl2) ~> addHeader("api_key", writeKey) ~>
           sealRoute(routes) ~> check {
             status === Created
@@ -475,7 +475,7 @@ class SchemaServiceSpec extends Specification
       }
 
       "return a 401 if the schema already exists with query param" in {
-        Post(url, FormData(Seq("json" -> validSchema))) ~>
+        Post(url, FormData(Seq("schema" -> validSchema))) ~>
           addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
             status === Unauthorized
             responseAs[String] must contain("This schema already exists")
@@ -487,7 +487,7 @@ class SchemaServiceSpec extends Specification
           sealRoute(routes) ~> check {
             status === BadRequest
             responseAs[String] must
-              contain("Request is missing required form field 'json'")
+              contain("Request is missing required form field 'schema'")
           }
       }
 
@@ -503,7 +503,7 @@ class SchemaServiceSpec extends Specification
 
       """return a 401 if the API key doesn't have sufficient permissions
         with form data""" in {
-          Post(postUrl3, FormData(Seq("json" -> validSchema))) ~>
+          Post(postUrl3, FormData(Seq("schema" -> validSchema))) ~>
             addHeader("api_key", readKey) ~> sealRoute(routes) ~> check {
               status === Unauthorized
               responseAs[String] must
@@ -520,7 +520,7 @@ class SchemaServiceSpec extends Specification
       }
 
       "return a 401 if no api_key is specified with form data" in {
-        Post(postUrl3, FormData(Seq("json" -> validSchema))) ~>
+        Post(postUrl3, FormData(Seq("schema" -> validSchema))) ~>
           sealRoute(routes) ~> check {
             status === Unauthorized
             responseAs[String] must
@@ -529,7 +529,7 @@ class SchemaServiceSpec extends Specification
       }
 
       "return a 401 if the API key is not an uuid with form data" in {
-        Post(postUrl3, FormData(Seq("json" -> validSchema))) ~>
+        Post(postUrl3, FormData(Seq("schema" -> validSchema))) ~>
           addHeader("api_key", notUuidKey) ~> sealRoute(routes) ~> check {
             status === Unauthorized
             responseAs[String] must
@@ -558,7 +558,7 @@ class SchemaServiceSpec extends Specification
 
       """return a 401 if the owner of the API key is not a prefix of the
         schema's vendor with form data""" in {
-          Post(postUrl3, FormData(Seq("json" -> validSchema))) ~>
+          Post(postUrl3, FormData(Seq("schema" -> validSchema))) ~>
             addHeader("api_key", wrongVendorKey) ~> sealRoute(routes) ~> check {
               status === Unauthorized
               responseAs[String] must
@@ -566,7 +566,7 @@ class SchemaServiceSpec extends Specification
           }
       }
 
-      """return a 400 if the supplied json is not self-describing with query
+      """return a 400 if the supplied schema is not self-describing with query
       param and contain a validation failure report""" in {
         Post(postUrl7) ~> addHeader("api_key", writeKey) ~> sealRoute(routes) ~>
           check {
@@ -577,9 +577,9 @@ class SchemaServiceSpec extends Specification
           }
       }
 
-      """"return a 400 if the supplied json is not self-describing with form
+      """"return a 400 if the supplied schema is not self-describing with form
       data and contain a validation failure report""" in {
-        Post(postUrl3, FormData(Seq("json" -> invalidSchema))) ~>
+        Post(postUrl3, FormData(Seq("schema" -> invalidSchema))) ~>
           addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
             status === BadRequest
             responseAs[String] must
@@ -588,7 +588,8 @@ class SchemaServiceSpec extends Specification
           }
       }
 
-      "return a 400 if the supplied string is not a json with query param" in {
+      "return a 400 if the supplied string is not a schema with query param" in
+      {
         Post(postUrl8) ~> addHeader("api_key", writeKey) ~> sealRoute(routes) ~>
           check {
             status === BadRequest
@@ -596,8 +597,8 @@ class SchemaServiceSpec extends Specification
           }
       }
 
-      "return a 400 if the supplied string is not a json with form data" in {
-        Post(postUrl3, FormData(Seq("json" -> notJson))) ~>
+      "return a 400 if the supplied string is not a schema with form data" in {
+        Post(postUrl3, FormData(Seq("schema" -> notJson))) ~>
           addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
             status === BadRequest
             responseAs[String] must contain("The schema provided is not valid")

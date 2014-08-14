@@ -65,19 +65,19 @@ class ValidationServiceSpec extends Specification
 
   val start = "/api/schemas/validate/"
 
-  val validUrl = s"${start}${format}?json=${validSchemaUri}"
-  val invalidUrl = s"${start}${format}?json=${invalidSchemaUri}"
-  val notSchemaUrl = s"${start}${format}?json=${notJson}"
-  val invalidFormatUrl = s"${start}${invalidFormat}?json=${validSchemaUri}"
+  val validUrl = s"${start}${format}?schema=${validSchemaUri}"
+  val invalidUrl = s"${start}${format}?schema=${invalidSchemaUri}"
+  val notSchemaUrl = s"${start}${format}?schema=${notJson}"
+  val invalidFormatUrl = s"${start}${invalidFormat}?schema=${validSchemaUri}"
 
   val validInstanceUrl = s"${start}${vendor}/${name}/${format}/${version}" +
-    s"?json=${validInstanceUri}"
+    s"?instance=${validInstanceUri}"
   val invalidInstanceUrl = s"${start}${vendor}/${name}/${format}/${version}" +
-    s"?json=${invalidSchemaUri}"
+    s"?instance=${invalidSchemaUri}"
   val notInstanceUrl = s"${start}${vendor}/${name}/${format}/${version}" +
-    s"?json=${notJson}"
+    s"?instance=${notJson}"
   val notFoundInstanceUrl = s"${start}${vendor}/${name}/${format}/1-0-100" +
-    s"?json=${validInstanceUri}"
+    s"?instance=${validInstanceUri}"
 
   sequential
 

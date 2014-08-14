@@ -41,12 +41,12 @@ import com.wordnik.swagger.annotations._
 /**
  * Service to validate schemas.
  * @constructor creates a new validation service with a schema and apiKey actors
- * @param schema a reference to a ``SchemaActor``
- * @param apiKey a reference to a ``ApiKeyActor``
+ * @param schemaActor a reference to a ``SchemaActor``
+ * @param apiKeyActor a reference to a ``ApiKeyActor``
  */
 @Api(value = "/api/schemas/validate", position = 1,
   description = "Operations dealing with schema validation")
-class ValidationService(schema: ActorRef, apiKey: ActorRef)
+class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
   /**
@@ -54,7 +54,7 @@ class ValidationService(schema: ActorRef, apiKey: ActorRef)
    * validates it against the database.
    */
   val authenticator = TokenAuthenticator[(String, String)]("api_key") {
-    key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
+    key => (apiKeyActor ? GetKey(key)).mapTo[Option[(String, String)]]
   }
 
   /**
@@ -107,7 +107,7 @@ class ValidationService(schema: ActorRef, apiKey: ActorRef)
     @ApiImplicitParams(Array(
       new ApiImplicitParam(name = "schemaFormat", value = "Schema's format",
         required = true, dataType = "string", paramType = "path"),
-      new ApiImplicitParam(name = "json", value = "Schema to be validated",
+      new ApiImplicitParam(name = "schema", value = "Schema to be validated",
         required = true, dataType = "string", paramType = "query")
     ))
     @ApiResponses(Array(
@@ -120,10 +120,10 @@ class ValidationService(schema: ActorRef, apiKey: ActorRef)
         message = "The schema format provided is invalid")
     ))
     def validateSchemaRoute(format: String) =
-      parameter('json) { json =>
+      parameter('schema) { schema =>
         complete {
-          (schema ?
-            ValidateSchema(json, format, false)).mapTo[(StatusCode, String)]
+          (schemaActor ?
+            ValidateSchema(schema, format, false)).mapTo[(StatusCode, String)]
         }
       }
 
@@ -153,9 +153,10 @@ class ValidationService(schema: ActorRef, apiKey: ActorRef)
         message = "The schema to validate against was not found")
     ))
     def validateRoute(v: String, n: String, f: String, vs: String) =
-      parameter('json) { json =>
+      parameter('instance) { instance =>
         complete {
-          (schema ? Validate(v, n, f, vs, json)).mapTo[(StatusCode, String)]
+          (schemaActor ?
+            Validate(v, n, f, vs, instance)).mapTo[(StatusCode, String)]
         }
       }
 }

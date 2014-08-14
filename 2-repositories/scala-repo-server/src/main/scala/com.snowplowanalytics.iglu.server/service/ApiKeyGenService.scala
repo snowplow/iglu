@@ -39,12 +39,12 @@ import com.wordnik.swagger.annotations._
 /**
  * Service to interact with API keys.
  * @constructor create a new API key generation service with an apiKey actor
- * @param apiKey a reference to a ``ApiKeyActor``
+ * @param apiKeyActor a reference to a ``ApiKeyActor``
  */
 @Api(value = "/api/auth/keygen", position = 2,
   description = """Operations dealing with API key generation and deletion,
   requires a super API key""")
-class ApiKeyGenService(apiKey: ActorRef)
+class ApiKeyGenService(apiKeyActor: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
   /**
@@ -52,7 +52,7 @@ class ApiKeyGenService(apiKey: ActorRef)
    * validates it against the database.
    */
   val authenticator = TokenAuthenticator[(String, String)]("api_key") {
-    key => (apiKey ? GetKey(key)).mapTo[Option[(String, String)]]
+    key => (apiKeyActor ? GetKey(key)).mapTo[Option[(String, String)]]
   }
 
   /**
@@ -105,7 +105,7 @@ class ApiKeyGenService(apiKey: ActorRef)
   def addRoute(owner: String) =
     post {
       complete {
-        (apiKey ? AddBothKey(owner)).mapTo[(StatusCode, String)]
+        (apiKeyActor ? AddBothKey(owner)).mapTo[(StatusCode, String)]
       }
     }
 
@@ -131,7 +131,7 @@ class ApiKeyGenService(apiKey: ActorRef)
   def deleteKeysRoute(owner: String) =
     delete {
       complete {
-        (apiKey ? DeleteKeys(owner)).mapTo[(StatusCode, String)]
+        (apiKeyActor ? DeleteKeys(owner)).mapTo[(StatusCode, String)]
       }
     }
 
@@ -160,7 +160,7 @@ class ApiKeyGenService(apiKey: ActorRef)
     anyParam('key) { key =>
       delete {
         complete {
-          (apiKey ? DeleteKey(key)).mapTo[(StatusCode, String)]
+          (apiKeyActor ? DeleteKey(key)).mapTo[(StatusCode, String)]
         }
       }
     }
