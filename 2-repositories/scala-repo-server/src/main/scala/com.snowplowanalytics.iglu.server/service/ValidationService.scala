@@ -103,7 +103,7 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
      * Route validating that the schema sent is self-describing.
      */
     @ApiOperation(value = "Validates that a schema is self-describing",
-      httpMethod = "GET")
+      notes = "Returns a validation message", httpMethod = "GET")
     @ApiImplicitParams(Array(
       new ApiImplicitParam(name = "schemaFormat", value = "Schema's format",
         required = true, dataType = "string", paramType = "path"),
@@ -131,7 +131,7 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
      * Route for validating an instance against its schema.
      */
     @ApiOperation(value = "Validates an instance against its schema",
-      httpMethod = "GET")
+      notes = "Returns a validation message", httpMethod = "GET")
     @ApiImplicitParams(Array(
       new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
         required = true, dataType = "string", paramType = "path"),
@@ -140,7 +140,10 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       new ApiImplicitParam(name = "schemaFormat", value = "Schema's format",
         required = true, dataType = "string", paramType = "path"),
       new ApiImplicitParam(name = "version", value = "Schema's version",
-        required = true, dataType = "string", paramType = "path")
+        required = true, dataType = "string", paramType = "path"),
+      new ApiImplicitParam(name = "instance",
+        value = "Instance to be validated", required = true,
+        dataType = "string", paramType = "query")
     ))
     @ApiResponses(Array(
       new ApiResponse(code = 200,

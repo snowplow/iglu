@@ -186,7 +186,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    */
   @ApiOperation(value = """Retrieves a schema based on its (vendor, name,
     format, version)""", notes = "Returns a schema", httpMethod = "GET",
-  response = classOf[String], position = 1)
+    position = 1)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor",
       value = "Comma-separated list of schema vendors",
@@ -232,7 +232,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    */
   @ApiOperation(value = """Retrieves every version of a particular format of a
     schema""", notes = "Returns a collection of schemas", httpMethod = "GET",
-    response = classOf[String], position = 2)
+    position = 2)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor",
       value = "Comma-separated list of schema vendors",
@@ -276,7 +276,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    */
   @ApiOperation(value = "Retrieves every version of every format of a schema",
     notes = "Returns a collection of schemas", httpMethod = "GET",
-    response = classOf[String], position = 3)
+    position = 3)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor",
       value = "Comma-separated list of schema vendors",
@@ -314,7 +314,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    */
   @ApiOperation(value = "Retrieves every schema belonging to a vendor",
     notes = "Returns a collection of schemas", httpMethod = "GET",
-    response = classOf[String], position = 4)
+    position = 4)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor",
       value = "Comma-separated list of schema vendors",
