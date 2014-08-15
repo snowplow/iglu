@@ -46,22 +46,27 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
   val schema = TestActorRef(new SchemaActor)
 
   val owner = "com.unittest"
+  val otherOwner = "com.benfradet"
   val permission = "write"
   val isPublic = false
 
   val vendor = "com.unittest"
-  val vendors = List("com.unittest")
+  val vendors = List(vendor)
+  val otherVendor = "com.benfradet"
+  val otherVendors = List(otherVendor)
   val faultyVendor = "com.test"
-  val faultyVendors = List("com.test")
+  val faultyVendors = List(faultyVendor)
   val name = "unit_test3"
-  val names= List("unit_test3")
+  val names = List(name)
   val faultyName = "unit_test4"
-  val faultyNames = List("unit_test4")
+  val faultyNames = List(faultyName)
+  val otherName = "unit_test5"
+  val otherNames = List(otherName)
   val format = "jsonschema"
   val notSupportedFormat = "notSupportedFormat"
-  val formats = List("jsonschema")
+  val formats = List(format)
   val version = "1-0-0"
-  val versions = List("1-0-0")
+  val versions = List(version)
 
   val invalidSchema = """{ "some" : "json" }"""
   val innerSchema = """"some" : "json""""
@@ -102,12 +107,31 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
 
     "for GetSchema" should {
 
-      "return a 200 if the schema exists" in {
+      "return a 200 if the schema exists and is private" in {
         val future =
           schema ? GetSchema(vendors, names, formats, versions, owner)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(innerSchema)
+      }
+
+      "return a 200 if the schema exists and is public" in {
+        schema ? AddSchema(otherVendor, otherName, format, version,
+          invalidSchema, otherOwner, permission, true)
+        val future = schema ?
+          GetSchema(otherVendors, otherNames, formats, versions, owner)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === OK
+        result must contain(innerSchema)
+      }
+
+      """return a 401 if the owner is not a prefix of the vendor and the schema
+      is private""" in {
+        val future = schema ?
+          GetSchema(vendors, names, formats, versions, otherOwner)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === Unauthorized
+        result must contain("You do not have sufficient privileges")
       }
 
       "return a 404 if the schema doesnt exist" in {
@@ -130,6 +154,24 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
           contain(version)
       }
 
+      "return a 200 if the schema exists and is public" in {
+        val future = schema ?
+          GetMetadata(otherVendors, otherNames, formats, versions, owner)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === OK
+        result must contain(otherVendor) and contain(otherName) and
+          contain(format) and contain(version)
+      }
+
+      """return a 401 if the owner is not a prefix of the vendor and the schema
+      is private""" in {
+        val future = schema ?
+          GetSchema(vendors, names, formats, versions, otherOwner)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === Unauthorized
+        result must contain("You do not have sufficient privileges")
+      }
+
       "return a 404 if the schema doesnt exist" in {
         val future =
           schema ? GetMetadata(vendors, faultyNames, formats, versions, owner)
@@ -147,6 +189,23 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(innerSchema)
+      }
+
+      "return a 200 if there are schemas available and they are public" in {
+        val future = schema ?
+          GetSchemasFromFormat(otherVendors, otherNames, formats, owner)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === OK
+        result must contain(innerSchema)
+      }
+
+      """return a 401 if the owner is not a prefix of the vendor and the schemas
+      are private""" in {
+        val future = schema ?
+          GetSchemasFromFormat(vendors, names, formats, otherOwner)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === Unauthorized
+        result must contain("You do not have sufficient privileges")
       }
 
       "return a 404 if there are no schemas available" in {
@@ -168,6 +227,24 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
         result must contain(vendor) and contain(name) and contain(format)
       }
 
+      "return a 200 if there are schemas available and they are public" in {
+        val future = schema ?
+          GetMetadataFromFormat(otherVendors, otherNames, formats, owner)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === OK
+        result must contain(otherVendor) and contain(otherName) and
+          contain(format)
+      }
+
+      """return a 401 if the owner is not a prefix of the vendor and the schemas
+      are private""" in {
+        val future = schema ?
+          GetMetadataFromFormat(vendors, names, formats, otherOwner)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === Unauthorized
+        result must contain("You do not have sufficient privileges")
+      }
+
       "return a 404 if there are no schemas available" in {
         val future =
           schema ? GetMetadataFromFormat(vendors, faultyNames, formats, owner)
@@ -184,6 +261,22 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(innerSchema)
+      }
+
+      "return a 200 if there are schemas available and they are public" in {
+        val future = schema ?
+          GetSchemasFromName(otherVendors, otherNames, owner)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === OK
+        result must contain(innerSchema)
+      }
+
+      """return a 401 if the owner is not a prefix of the vendor and the schemas
+      are private""" in {
+        val future = schema ? GetSchemasFromName(vendors, names, otherOwner)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === Unauthorized
+        result must contain("You do not have sufficient privileges")
       }
 
       "return a 404 if there are no schemas available" in {
@@ -203,6 +296,22 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
         result must contain(vendor) and contain(name)
       }
 
+      "return a 200 if there are schemas available and they are public" in {
+        val future = schema ?
+          GetMetadataFromName(otherVendors, otherNames, owner)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === OK
+        result must contain(otherVendor) and contain(otherName)
+      }
+
+      """return a 401 if the owner is not a prefix of the vendor and the schemas
+      are private""" in {
+        val future = schema ? GetMetadataFromName(vendors, names, otherOwner)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === Unauthorized
+        result must contain("You do not have sufficient privileges")
+      }
+
       "return a 404 if there are no schemas available" in {
         val future = schema ? GetMetadataFromName(vendors, faultyNames, owner)
         val Success((status: StatusCode, result: String)) = future.value.get
@@ -220,6 +329,21 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
         result must contain(innerSchema)
       }
 
+      "return a 200 if there are schemas available and they are public" in {
+        val future = schema ? GetSchemasFromVendor(otherVendors, owner)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === OK
+        result must contain(innerSchema)
+      }
+
+      """return a 401 if the owner is not a prefix of the vendor and the schemas
+      are private""" in {
+        val future = schema ? GetSchemasFromVendor(vendors,  otherOwner)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === Unauthorized
+        result must contain("You do not have sufficient privileges")
+      }
+
       "return a 404 if there are no schemas available" in {
         val future = schema ? GetSchemasFromVendor(faultyVendors, owner)
         val Success((status: StatusCode, result: String)) = future.value.get
@@ -235,6 +359,21 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(vendor)
+      }
+
+      "return a 200 if there are schemas available and they are public" in {
+        val future = schema ? GetMetadataFromVendor(otherVendors, owner)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === OK
+        result must contain(otherVendor)
+      }
+
+      """return a 401 if the owner is not a prefix of the vendor and the schemas
+      are private""" in {
+        val future = schema ? GetMetadataFromVendor(vendors, otherOwner)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === Unauthorized
+        result must contain("You do not have sufficient privileges")
       }
 
       "return a 404 if there are no schemas available" in {
