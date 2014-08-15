@@ -42,6 +42,8 @@ class SchemaServiceSpec extends Specification
 
   val vendor = "com.snowplowanalytics.snowplow"
   val vendor2 = "com.snowplowanalytics.self-desc"
+  val otherVendor = "com.benfradet.ben"
+  val otherVendor2 = "com.benfradet.snowplow"
   val name = "ad_click"
   val name2 = "ad_click2"
   val format = "jsonschema"
@@ -70,34 +72,61 @@ class SchemaServiceSpec extends Specification
 
   //get urls
   val url = s"${start}${vendor}/${name}/${format}/${version}"
+  val publicUrl = s"${start}${otherVendor}/${name}/${format}/${version}"
   val multiUrl = s"${url},${vendor}/${name2}/${format}/${version}"
+  val multiPublicUrl = s"${url},${otherVendor}/${name}/${format}/${version}"
   val faultyUrl = s"${start}${vendor}/${name}/jsonchema/${version}"
   val multiVersionUrl = s"${url},${version2}"
+  val multiVersionPublicUrl = s"${publicUrl},${version2}"
   val metaUrl = s"${url}?filter=metadata"
+  val metaPublicUrl = s"${publicUrl}?filter=metadata"
   val metaMultiUrl = s"${multiUrl}?filter=metadata"
+  val metaMultiPublicUrl = s"${multiPublicUrl}?filter=metadata"
   val metaMultiVersionUrl = s"${multiVersionUrl}?filter=metadata"
+  val metaMultiVersionPublicUrl = s"${multiVersionPublicUrl}?filter=metadata"
 
   val multiVendor = s"${start}${vendor},${vendor2}/${name}/${format}/${version}"
+  val multiVendorPublic =
+    s"${start}${otherVendor},${otherVendor2}/${name}/${format}/${version}"
   val metaMultiVendor = s"${multiVendor}?filter=metadata"
+  val metaMultiVendorPublic = s"${multiVendorPublic}?filter=metadata"
   val multiFormat = s"${start}${vendor}/${name}/${format},${format2}/${version}"
+  val multiFormatPublic =
+    s"${start}${otherVendor}/${name}/${format},${format2}/${version}"
   val metaMultiFormat = s"${multiFormat}?filter=metadata"
+  val metaMultiFormatPublic = s"${multiFormatPublic}?filter=metadata"
   var multiName = s"${start}${vendor}/${name},${name2}/${format}/${version}"
+  val multiNamePublic =
+    s"${start}${otherVendor}/${name},${name2}/${format}/${version}"
   val metaMultiName = s"${multiName}?filter=metadata"
+  val metaMultiNamePublic = s"${multiNamePublic}?filter=metadata"
 
   val vendorUrl = s"${start}${vendor}"
+  val vendorPublicUrl = s"${start}${otherVendor}"
   val multiVendorUrl = s"${vendorUrl},${vendor2}"
+  val multiVendorPublicUrl = s"${vendorPublicUrl},${otherVendor2}"
   val metaVendorUrl = s"${vendorUrl}?filter=metadata"
+  val metaVendorPublicUrl = s"${vendorPublicUrl}?filter=metadata"
   val metaMultiVendorUrl = s"${multiVendorUrl}?filter=metadata"
+  val metaMultiVendorPublicUrl = s"${multiVendorPublicUrl}?filter=metadata"
 
   val nameUrl = s"${start}${vendor}/${name}"
+  val namePublicUrl = s"${start}${otherVendor}/${name}"
   val multiNameUrl = s"${nameUrl},${name2}"
+  val multiNamePublicUrl = s"${namePublicUrl},${name2}"
   val metaNameUrl = s"${nameUrl}?filter=metadata"
+  val metaNamePublicUrl = s"${namePublicUrl}?filter=metadata"
   val metaMultiNameUrl = s"${multiNameUrl}?filter=metadata"
+  val metaMultiNamePublicUrl = s"${multiNamePublicUrl}?filter=metadata"
 
   val formatUrl = s"${start}${vendor}/${name}/${format}"
+  val formatPublicUrl = s"${start}${otherVendor}/${name}/${format}"
   val multiFormatUrl = s"${formatUrl},${format2}"
+  val multiFormatPublicUrl = s"${formatPublicUrl},${format2}"
   val metaFormatUrl = s"${formatUrl}?filter=metadata"
+  val metaFormatPublicUrl = s"${formatPublicUrl}?filter=metadata"
   val metaMultiFormatUrl = s"${multiFormatUrl}?filter=metadata"
+  val metaMultiFormatPublicUrl = s"${multiFormatPublicUrl}?filter=metadata"
 
   val otherVendorUrl = s"${start}com.benfradet.project"
   val otherNameUrl = s"${start}com.benfradet.project/${name}"
@@ -115,6 +144,10 @@ class SchemaServiceSpec extends Specification
     s"?schema=${invalidSchemaUri}"
   val postUrl8 = s"${start}${vendor}/unit_test8/${format}/${version}" +
     s"?schema=${notJson}"
+  val postUrl9 = s"${start}${vendor}/unit_test10/${format}/${version}" +
+    s"?isPublic=true"
+  val postUrl10 = s"${start}${vendor}/unit_test9/${format}/${version}" +
+    s"?schema=${validSchemaUri}&isPublic=true"
 
   sequential
 
@@ -131,11 +164,29 @@ class SchemaServiceSpec extends Specification
           }
         }
 
+        "return a proper json for a mix of private and public schemas" +
+        s"(${multiPublicUrl})" in {
+          Get(multiPublicUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(vendor) and contain(otherVendor)
+          }
+        }
+
         s"return proper metadata (${metaMultiUrl})" in {
           Get(metaMultiUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
             responseAs[String] must contain(name) and contain(name2)
+          }
+        }
+
+        "return proper metadata for a mix of private and public schemas" +
+        s"(${metaMultiPublicUrl})" in {
+          Get(metaMultiPublicUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(vendor) and contain(otherVendor)
           }
         }
       }
@@ -150,12 +201,29 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return a proper json for a multi version urls" +
+        s"return a proper json for a public schema (${publicUrl})" in {
+          Get(publicUrl) ~> addHeader("api_key", readKey) ~> routes ~> check {
+            status === OK
+            responseAs[String] must contain(otherVendor)
+          }
+        }
+
+        "return a proper json for multi version urls" +
         s"(${multiVersionUrl})" in {
           Get(multiVersionUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
             responseAs[String] must contain(version) and contain(version2)
+          }
+        }
+
+        "return a proper json for multi version urls with public schemas" +
+        s"(${multiVersionPublicUrl})" in {
+          Get(multiVersionPublicUrl) ~> addHeader("api_key", readKey) ~>
+          routes ~> check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and
+              contain(version) and contain(version2)
           }
         }
 
@@ -167,6 +235,16 @@ class SchemaServiceSpec extends Specification
           }
         }
 
+        "return a proper json for multi format urls with public schemas" +
+        s"(${multiFormatPublic})" in {
+          Get(multiFormatPublic) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and contain(format) and
+              contain(format2)
+          }
+        }
+
         s"return a proper json for multi name urls (${multiName})" in {
           Get(multiName) ~> addHeader("api_key", readKey) ~> routes ~> check {
             status === OK
@@ -174,10 +252,30 @@ class SchemaServiceSpec extends Specification
           }
         }
 
+        "return a proper json for multi name urls with public schemas" +
+        s"(${multiNamePublic})" in {
+          Get(multiNamePublic) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and contain(name) and
+              contain(name2)
+          }
+        }
+
         s"return a proper json for multi vendor urls (${multiVendor})" in {
           Get(multiVendor) ~> addHeader("api_key", readKey) ~> routes ~> check {
             status === OK
             responseAs[String] must contain(vendor) and contain(vendor2)
+          }
+        }
+
+        "return a proper json for multi vendor urls with public schemas" +
+        s"(${multiVendorPublic})" in {
+          Get(multiVendorPublic) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and
+              contain(otherVendor2)
           }
         }
 
@@ -190,12 +288,31 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return proper metadata for a multi version urls" +
+        s"return proper metadata for a public schema ${metaPublicUrl}" in {
+          Get(metaPublicUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and contain(name) and
+              contain(format) and contain(version)
+          }
+        }
+
+        "return proper metadata for multi version urls" +
         s"(${metaMultiVersionUrl})" in {
           Get(metaMultiVersionUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
             responseAs[String] must contain(version) and contain(version2)
+          }
+        }
+
+        "return proper metadata for multi version urls with public schemas" +
+        s"${metaMultiVersionPublicUrl}" in {
+          Get(metaMultiVersionPublicUrl) ~> addHeader("api_key", readKey) ~>
+          routes ~> check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and
+              contain(version) and contain(version2)
           }
         }
 
@@ -208,11 +325,31 @@ class SchemaServiceSpec extends Specification
           }
         }
 
+        "return proper metadata for multi format urls with public schemas" +
+        s"(${metaMultiFormatPublic})" in {
+          Get(metaMultiFormatPublic) ~> addHeader("api_key", readKey) ~>
+          routes ~> check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and contain(format) and
+              contain(format2)
+          }
+        }
+
         s"return proper metadata for multi name urls (${metaMultiName})" in {
           Get(metaMultiName) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
             responseAs[String] must contain(name) and contain(name2)
+          }
+        }
+
+        "return proper metadata for multi name urls with public schemas" +
+        s"(${metaMultiNamePublic})" in {
+          Get(metaMultiNamePublic) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and contain(name) and
+              contain(name2)
           }
         }
 
@@ -222,6 +359,16 @@ class SchemaServiceSpec extends Specification
           check {
             status === OK
             responseAs[String] must contain(vendor) and contain(vendor2)
+          }
+        }
+
+        "return proper metadata for multi vendor urls with public schemas" +
+        s"(${metaMultiVendorPublic})" in {
+          Get(metaMultiVendorPublic) ~> addHeader("api_key", readKey) ~>
+          routes ~> check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and
+              contain(otherVendor2)
           }
         }
 
@@ -287,12 +434,32 @@ class SchemaServiceSpec extends Specification
           }
         }
 
+        "return the catalog of available public schemas for another vendor" +
+        s"(${vendorPublicUrl})" in {
+          Get(vendorPublicUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and contain(name) and
+              contain(name2)
+          }
+        }
+
         "return the catalog of available schemas for those vendors" +
         s"(${multiVendorUrl})" in {
           Get(multiVendorUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
             responseAs[String] must contain(vendor) and contain(vendor2)
+          }
+        }
+
+        "return the catalog of available public schemas for other vendors" +
+        s"(${multiVendorPublicUrl})" in {
+          Get(multiVendorPublicUrl) ~> addHeader("api_key", readKey) ~>
+          routes ~> check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and
+              contain(otherVendor2)
           }
         }
 
@@ -305,12 +472,31 @@ class SchemaServiceSpec extends Specification
           }
         }
 
+        "return metadata about every public schema for another vendor" +
+        s"(${metaVendorPublicUrl})" in {
+          Get(metaVendorPublicUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(otherVendor)
+          }
+        }
+
         "return metadata about every schema for those vendors" +
         s"(${metaMultiVendorUrl})" in {
           Get(metaMultiVendorUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
             responseAs[String] must contain(vendor) and contain(vendor2)
+          }
+        }
+
+        "return metadata about every public schema for other vendors" +
+        s"(${metaMultiVendorPublicUrl})" in {
+          Get(metaMultiVendorPublicUrl) ~> addHeader("api_key", readKey) ~>
+          routes ~> check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and
+              contain(otherVendor2)
           }
         }
 
@@ -323,14 +509,13 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        //doesnt work because of name clashing between public/private schemas
-        //"return a 401 if the owner is not a prefix of the vendor" in {
-        //  Get(vendorUrl) ~> addHeader("api_key", wrongVendorKey) ~> routes ~>
-        //  check {
-        //    status === Unauthorized
-        //    responseAs[String] must contain("You do not have sufficient privil")
-        //  }
-        //}
+        "return a 401 if the owner is not a prefix of the vendor" in {
+          Get(vendorUrl) ~> addHeader("api_key", wrongVendorKey) ~> routes ~>
+          check {
+            status === Unauthorized
+            responseAs[String] must contain("You do not have sufficient privil")
+          }
+        }
       }
 
       "for name based urls" should {
@@ -343,12 +528,32 @@ class SchemaServiceSpec extends Specification
           }
         }
 
+        "return the catalog of available public schemas for this name" +
+        s"(${namePublicUrl})" in {
+          Get(namePublicUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and
+              contain(version) and contain(version2)
+          }
+        }
+
         "return the catalog of available schemas for those names" +
         s"(${multiNameUrl})" in {
           Get(multiNameUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
             responseAs[String] must contain(name) and contain(name2)
+          }
+        }
+
+        "return the catalog of available public schemas for those names" +
+        s"(${multiNamePublicUrl})" in {
+          Get(multiNamePublicUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and contain(name) and
+              contain(name2)
           }
         }
 
@@ -360,12 +565,31 @@ class SchemaServiceSpec extends Specification
           }
         }
 
+        "return metadata about every public schema having this vendor, name" +
+        s"(${metaNamePublicUrl})" in {
+          Get(metaNamePublicUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and contain(name)
+          }
+        }
+
         "return metadata about every schema having those names" +
-        s"${metaMultiNameUrl}" in {
+        s"(${metaMultiNameUrl})" in {
           Get(metaMultiNameUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
             responseAs[String] must contain(name) and contain(name2)
+          }
+        }
+
+        "return metadata about every public schema having those names" +
+        s"(${metaMultiNamePublicUrl})" in {
+          Get(metaMultiNamePublicUrl) ~> addHeader("api_key", readKey) ~>
+          routes ~> check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and contain(name) and
+              contain(name2)
           }
         }
 
@@ -397,12 +621,32 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return the catalog available schemas for those formats" +
+        "return the catalog of available public schemas for this format" +
+        s"(${formatPublicUrl})" in {
+          Get(formatPublicUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and
+              contain(version) and contain(version2)
+          }
+        }
+
+        "return the catalog of available schemas for those formats" +
         s"(${multiFormatUrl})" in {
           Get(multiFormatUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
             responseAs[String] must contain(format) and contain(format2)
+          }
+        }
+
+        "return the catalog of available public schemas for those formats" +
+        s"(${multiFormatPublicUrl})" in {
+          Get(multiFormatPublicUrl) ~> addHeader("api_key", readKey) ~>
+          routes ~> check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and contain(format) and
+              contain(format2)
           }
         }
 
@@ -412,16 +656,36 @@ class SchemaServiceSpec extends Specification
           check {
             status === OK
             responseAs[String] must contain(vendor) and contain(name) and
-            contain(format)
+              contain(format)
           }
         }
 
-        "return metadata about every schema those formats" +
+        "return metadata about every public schema having this other vendor," +
+        s" name, format (${metaFormatPublicUrl})" in {
+          Get(metaFormatPublicUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and contain(name) and
+              contain(format)
+          }
+        }
+
+        "return metadata about every schema having those formats" +
         s"(${metaMultiFormatUrl})" in {
           Get(metaMultiFormatUrl) ~> addHeader("api_key", readKey) ~> routes ~>
           check {
             status === OK
             responseAs[String] must contain(format) and contain(format2)
+          }
+        }
+
+        "return metadata about every public schema having those formats" +
+        s"(${metaMultiFormatPublicUrl})" in {
+          Get(metaMultiFormatPublicUrl) ~> addHeader("api_key", readKey) ~>
+          routes ~> check {
+            status === OK
+            responseAs[String] must contain(otherVendor) and contain(format) and
+              contain(format2)
           }
         }
 
@@ -459,12 +723,34 @@ class SchemaServiceSpec extends Specification
 
       //should be removed from db before running tests for now
       "return success if the schema is passed as query parameter" in {
-        Post(postUrl2) ~> addHeader("api_key", writeKey) ~>
-          sealRoute(routes) ~> check {
+        Post(postUrl2) ~> addHeader("api_key", writeKey) ~> sealRoute(routes) ~>
+        check {
             status === Created
             responseAs[String] must contain("Schema added successfully") and
               contain(vendor)
           }
+      }
+
+      //should be removed from db before running tests for now
+      """return success if the schema is passed as query as form data and is
+      public""" in {
+        Post(postUrl9, FormData(Seq("schema" -> validSchema))) ~>
+        addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
+          status === Created
+          responseAs[String] must contain("Schema added successfully") and
+            contain(vendor)
+        }
+      }
+
+      //should be removed from db before running tests for now
+      """return success if the schema is passed as query as query param and is
+      public""" in {
+        Post(postUrl10) ~> addHeader("api_key", writeKey) ~>
+        sealRoute(routes) ~> check {
+          status === Created
+          responseAs[String] must contain("Schema added successfully") and
+            contain(vendor)
+        }
       }
 
       "return a 401 if the schema already exists with form data" in {

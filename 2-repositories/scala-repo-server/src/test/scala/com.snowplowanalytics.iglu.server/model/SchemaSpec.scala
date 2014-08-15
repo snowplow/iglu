@@ -92,7 +92,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
     "for add" should {
 
-      "add a schema properly" in {
+      "add a private schema properly" in {
         val (status, res) = schema.add(vendor, name, format, version,
           invalidSchema, owner, permission, isPublic)
         status === Created
@@ -105,7 +105,26 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             where vendor = '${vendor}' and
               name = '${name}' and
               format = '${format}' and
-              version = '${version}';""").first === 1
+              version = '${version}' and
+              ispublic = false;""").first === 1
+        }
+      }
+
+      "add a public schema properly" in {
+        val (status, res) = schema.add(otherVendor, otherName, format, version,
+          invalidSchema, otherOwner, permission, !isPublic)
+        status === Created
+        res must contain("Schema added successfully") and contain(otherVendor)
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${otherVendor}' and
+              name = '${otherName}' and
+              format = '${format}' and
+              version = '${version}' and
+              ispublic = true;""").first === 1
         }
       }
 
@@ -147,8 +166,6 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "retrieve a schema properly if it is public" in {
-        schema.add(otherVendor, otherName, format, version, invalidSchema,
-          otherOwner, permission, true)
         val (status, res) =
           schema.get(otherVendors, otherNames, formats, versions, faultyOwner)
         status === OK
@@ -176,7 +193,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "return a 404 if the schema is not in the db" in {
         val (status, res) =
-          schema.get(vendors, faultyNames, formats, versions, owner)
+         schema.get(vendors, faultyNames, formats, versions, owner)
         status === NotFound
         res must contain("There are no schemas available here")
 
