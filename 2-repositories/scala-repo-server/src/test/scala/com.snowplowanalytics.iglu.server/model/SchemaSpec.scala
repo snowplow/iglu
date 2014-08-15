@@ -36,11 +36,14 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
   val tableName = "schemas"
   val owner = "com.snowplowanalytics"
+  val otherOwner = "com.unit"
   val faultyOwner = "com.benfradet"
   val permission = "write"
   val isPublic = false
   val vendor = "com.snowplowanalytics.snowplow"
   val vendors = List(vendor)
+  val otherVendor = "com.unittest"
+  val otherVendors = List(otherVendor)
   val faultyVendor = "com.snowplow"
   val faultyVendors = List(faultyVendor)
   val name = "ad_click"
@@ -144,10 +147,10 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "retrieve a schema properly if it is public" in {
-        schema.add(vendor, otherName, format, version, invalidSchema, owner,
-          permission, true)
+        schema.add(otherVendor, otherName, format, version, invalidSchema,
+          otherOwner, permission, true)
         val (status, res) =
-          schema.get(vendors, otherNames, formats, versions, faultyOwner)
+          schema.get(otherVendors, otherNames, formats, versions, faultyOwner)
         status === OK
         res must contain(innerSchema)
 
@@ -155,7 +158,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where vendor = '${vendor}' and
+            where vendor = '${otherVendor}' and
               name = '${otherName}' and
               format = '${format}' and
               version = '${version}' and
@@ -211,8 +214,8 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "retrieve metadata about a schema properly if it is public" in {
-        val (status, res) = schema.getMetadata(vendors, otherNames, formats,
-          versions, faultyOwner)
+        val (status, res) = schema.getMetadata(otherVendors, otherNames,
+          formats, versions, faultyOwner)
         status === OK
         res must contain(vendor) and contain(otherName) and contain(format) and
           contain(version)
@@ -221,7 +224,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where vendor = '${vendor}' and
+            where vendor = '${otherVendor}' and
               name = '${otherName}' and
               format = '${format}' and
               version = '${version}' and
@@ -275,7 +278,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are public" in {
         val (status, res) =
-          schema.getFromFormat(vendors, otherNames, formats, faultyOwner)
+          schema.getFromFormat(otherVendors, otherNames, formats, faultyOwner)
         status === OK
         res must contain(innerSchema)
 
@@ -283,7 +286,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where vendor = '${vendor}' and
+            where vendor = '${otherVendor}' and
               name = '${otherName}' and
               format = '${format}' and
               ispublic = true;""").first === 1
@@ -335,8 +338,8 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "retrieve schemas properly if they are public" in {
-        val (status, res) = schema.getMetadataFromFormat(vendors, otherNames,
-          formats, faultyOwner)
+        val (status, res) = schema.getMetadataFromFormat(otherVendors,
+          otherNames, formats, faultyOwner)
         status === OK
         res must contain(vendor) and contain(otherName) and contain(format)
 
@@ -344,12 +347,13 @@ class SchemaSpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where vendor = '${vendor}' and
+            where vendor = '${otherVendor}' and
               name = '${otherName}' and
               format = '${format}' and
               ispublic = true;""").first === 1
         }
       }
+
       """return a 401 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) =
@@ -394,7 +398,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are public" in {
         val (status, res) =
-          schema.getFromName(vendors, otherNames, faultyOwner)
+          schema.getFromName(otherVendors, otherNames, faultyOwner)
         status === OK
         res must contain(innerSchema)
 
@@ -402,7 +406,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where vendor = '${vendor}' and
+            where vendor = '${otherVendor}' and
               name = '${otherName}' and
               ispublic = true;""").first === 1
         }
@@ -450,15 +454,15 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are public" in {
         val (status, res) =
-          schema.getMetadataFromName(vendors, otherNames, faultyOwner)
+          schema.getMetadataFromName(otherVendors, otherNames, faultyOwner)
         status === OK
-        res must contain(vendor) and contain(otherName)
+        res must contain(otherVendor) and contain(otherName)
 
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where vendor = '${vendor}' and
+            where vendor = '${otherVendor}' and
               name = '${otherName}' and
               ispublic = true;""").first === 1
         }
@@ -505,7 +509,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "retrieve schemas properly if they are public" in {
-        val (status, res) = schema.getFromVendor(vendors, faultyOwner)
+        val (status, res) = schema.getFromVendor(otherVendors, faultyOwner)
         status === OK
         res must contain(innerSchema)
 
@@ -513,19 +517,18 @@ class SchemaSpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where vendor = '${vendor}' and
+            where vendor = '${otherVendor}' and
               ispublic = true;""").first === 1
         }
       }
 
-      //doesnt work because of name clash between public and private schemas
-      //"""return a 401 if the owner is not a prefix of the vendor and the schema
-      //is private""" in {
-      //  val (status, res) =
-      //    schema.getFromVendor(vendors, faultyOwner)
-      //  status === Unauthorized
-      //  res must contain("You do not have sufficient privileges")
-      //}
+      """return a 401 if the owner is not a prefix of the vendor and the schema
+      is private""" in {
+        val (status, res) =
+          schema.getFromVendor(vendors, faultyOwner)
+        status === Unauthorized
+        res must contain("You do not have sufficient privileges")
+      }
 
       "return a 404 if there are no schemas matching the query" in {
         val (status, res) = schema.getFromVendor(faultyVendors, owner)
@@ -558,27 +561,27 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "retrieve schemas properly if they are public" in {
-        val (status, res) = schema.getMetadataFromVendor(vendors, faultyOwner)
+        val (status, res) =
+          schema.getMetadataFromVendor(otherVendors, faultyOwner)
         status === OK
-        res must contain(vendor)
+        res must contain(otherVendor)
 
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where vendor = '${vendor}' and
+            where vendor = '${otherVendor}' and
               ispublic = true;""").first === 1
         }
       }
 
-      //doesnt work because of name clash between public and private schemas
-      //"""return a 401 if the owner is not a prefix of the vendor and the schema
-      //is private""" in {
-      //  val (status, res) =
-      //    schema.getMetadataFromVendor(vendors, faultyOwner)
-      //  status === Unauthorized
-      //  res must contain("You do not have sufficient privileges")
-      //}
+      """return a 401 if the owner is not a prefix of the vendor and the schema
+      is private""" in {
+        val (status, res) =
+          schema.getMetadataFromVendor(vendors, faultyOwner)
+        status === Unauthorized
+        res must contain("You do not have sufficient privileges")
+      }
 
       "return a 404 if there are no schemas matching the query" in {
         val (status, res) = schema.getMetadataFromVendor(faultyVendors, owner)
