@@ -74,18 +74,12 @@ class ApiKeyActor extends Actor {
    */
   def receive = {
 
-    // Send the result of the DAO's get method back to the message's sender
     case GetKey(uid) => sender ! apiKey.get(uid)
 
-    // Send the result of the DAO's addreadwrite method back to the message's
-    // sender
     case AddBothKey(owner) => sender ! apiKey.addReadWrite(owner)
 
-    // Send the result of the DAO's delete method back to the message's sender
     case DeleteKey(uid) => sender ! apiKey.delete(uid)
 
-    // Send the result of the DAO's deleteFromowner method back to the message's
-    // sender
     case DeleteKeys(owner) => sender ! apiKey.deleteFromOwner(owner)
   }
 }

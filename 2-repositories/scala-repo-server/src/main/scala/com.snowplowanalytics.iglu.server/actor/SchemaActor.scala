@@ -46,6 +46,16 @@ object SchemaActor {
     isPublic: Boolean = false)
 
   /**
+   * Message to send in order to retrieve every public schema's metadata.
+   */
+  case class GetPublicMetadata()
+
+  /**
+   * Message to send in order to retrieve every public schema.
+   */
+  case class GetPublicSchemas()
+
+  /**
    * Message to send in order to retrieve a schema based on its
    * (vendor, name, format, version) tuple.
    * @param vendors list of schemas' vendors
@@ -161,51 +171,36 @@ class SchemaActor extends Actor {
    */
   def receive = {
 
-    // Sends the result of the DAO's add method back to message's sender
     case AddSchema(v, n, f, vs, s, o, p, i) =>
       sender ! schema.add(v, n, f, vs, s, o, p, i)
 
-    // Sends the result of the DAO's get method back to the message's sender
+    case GetPublicSchemas => sender ! schema.getPublicSchemas
+
+    case GetPublicMetadata => sender ! schema.getPublicMetadata
+
     case GetSchema(v, n, f, vs, o) => sender ! schema.get(v, n, f, vs, o)
 
-    // Sends the result of the DAO's getMetadata method back to the message's
-    // sender
     case GetMetadata(v, n, f, vs, o) =>
       sender ! schema.getMetadata(v, n, f, vs, o)
 
-    // Sends the result of the DAO's getFromFormat method back to the
-    // message's sender
     case GetSchemasFromFormat(v, n, f, o) =>
       sender ! schema.getFromFormat(v, n, f, o)
 
-    // Sends the result of the DAO's getMetadataFromFormat back to the
-    // message's sender
     case GetMetadataFromFormat(v, n, f, o) =>
       sender ! schema.getMetadataFromFormat(v, n, f, o)
 
-    // Sends the result of the DAO's getFromName method back to the message's
-    // sender
     case GetSchemasFromName(v, n, o) => sender ! schema.getFromName(v, n, o)
 
-    // Sends the result of the DAO's getMetadataFromName method back to the
-    // message's sender
     case GetMetadataFromName(v, n, o) =>
       sender ! schema.getMetadataFromName(v, n, o)
 
-    // Sends the result of the DAO's getFromVendor method back to the message's
-    // sender
     case GetSchemasFromVendor(v, o) => sender ! schema.getFromVendor(v, o)
 
-    // Sends the result of the DAO's getMetadataFromVendr method back to the
-    // message's sender
     case GetMetadataFromVendor(v, o) =>
       sender ! schema.getMetadataFromVendor(v, o)
 
-    //Sends the result of the DAO's validateSchema method back to the message's
-    //sender
     case ValidateSchema(s, f, p) => sender ! schema.validateSchema(s, f, p)
 
-    //Sends the result of the DAO's validate method back to the message's sender
     case Validate(v, n, f, vs, i) => sender ! schema.validate(v, n, f, vs, i)
   }
 }

@@ -413,6 +413,48 @@ class SchemaDAO(val db: Database) extends DAO {
     }
 
   /**
+   * Gets every public schema.
+   * @return a status code and json pair containing the schemas
+   */
+  def getPublicSchemas: (StatusCode, String) =
+    db withDynSession {
+      val l: List[ResSchema] = (for {
+        s <- schemas if s.isPublic
+      } yield s)
+        .list
+        .map(s => ResSchema(parse(s.schema),
+          Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+          s.createdAt.toString("MM/dd/yyyy HH:mm:ss"), s.isPublic)))
+
+      if (l.length > 0) {
+        (OK, writePretty(l))
+      } else {
+        (NotFound, result(404, "There are no public schemas available"))
+      }
+    }
+
+  /**
+   * Gets metadata about every public schema.
+   * @return a status code and json pair containing the metadata
+   */
+  def getPublicMetadata: (StatusCode, String) =
+    db withDynSession {
+      val l: List[ResMetadata] = (for {
+        s <- schemas if s.isPublic
+      } yield s)
+        .list
+        .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
+          Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+          s.createdAt.toString("MM/dd/yyyy HH:mm:ss"), s.isPublic)))
+
+      if (l.length > 0) {
+        (OK, writePretty(l))
+      } else {
+        (NotFound, result(404, "There are no public schemas avilable"))
+      }
+    }
+
+  /**
    * Gets a single schema without the metadata associated
    * @param vendor the schema's vendor
    * @param name the schema's name

@@ -37,6 +37,7 @@ import spray.routing.PathMatcher.Lift
 
 // Swagger
 import com.wordnik.swagger.annotations._
+import javax.ws.rs.Path
 
 /**
  * Service to interact with schemas.
@@ -90,6 +91,11 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
               "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
                 addRoute(v, n, f, vs, authPair._1, authPair._2)
               }
+          } ~
+          get {
+            path("public") {
+              publicSchemasRoute
+            }
           } ~
           get {
             path(("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
@@ -172,11 +178,38 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       }
 
   /**
+   * Route to retrieve every public schemas
+   */
+  @Path(value = "/public")
+  @ApiOperation(value = "Retrieves every public schema",
+    notes = "Returns a collection of schemas", httpMethod = "GET", position = 1)
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "filter", value = "Metadata filter",
+      required = false, dataType = "string", paramType = "query",
+      allowableValues = "metadata")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 404,
+      message = "There are no public schemas available")
+  ))
+  def publicSchemasRoute =
+    anyParam('filter.?) { filter =>
+      filter match {
+        case Some("metadata") => complete {
+          (schemaActor ? GetPublicMetadata).mapTo[(StatusCode, String)]
+        }
+        case _ => complete {
+          (schemaActor ? GetPublicSchemas).mapTo[(StatusCode, String)]
+        }
+      }
+    }
+
+  /**
    * Route to retrieve single schemas.
    */
   @ApiOperation(value = """Retrieves a schema based on its (vendor, name,
     format, version)""", notes = "Returns a schema", httpMethod = "GET",
-    position = 1)
+    position = 2)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor",
       value = "Comma-separated list of schema vendors",
@@ -224,7 +257,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    */
   @ApiOperation(value = """Retrieves every version of a particular format of a
     schema""", notes = "Returns a collection of schemas", httpMethod = "GET",
-    position = 2)
+    position = 3)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor",
       value = "Comma-separated list of schema vendors",
@@ -269,7 +302,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    */
   @ApiOperation(value = "Retrieves every version of every format of a schema",
     notes = "Returns a collection of schemas", httpMethod = "GET",
-    position = 3)
+    position = 4)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor",
       value = "Comma-separated list of schema vendors",
@@ -309,7 +342,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    */
   @ApiOperation(value = "Retrieves every schema belonging to a vendor",
     notes = "Returns a collection of schemas", httpMethod = "GET",
-    position = 4)
+    position = 5)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor",
       value = "Comma-separated list of schema vendors",
