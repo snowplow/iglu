@@ -275,6 +275,39 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
     }
 
+    "for getPublicSchemas" should {
+
+      "retrieve every public schema available" in {
+        val (status, res) = schema.getPublicSchemas
+        status === OK
+        res must contain(innerSchema)
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where ispublic = true;""").first === 1
+        }
+      }
+    }
+
+    "for getPublicMetadata" should {
+      
+      "retrieve metadata about every public schema available" in {
+        val (status, res) = schema.getPublicMetadata
+        status === OK
+        res must contain(otherVendor) and contain(otherName) and
+          contain(format) and contain(version)
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where ispublic = true;""").first === 1
+        }
+      }
+    }
+
     "for getFromFormat" should {
 
       "retrieve schemas properly if they are public" in {

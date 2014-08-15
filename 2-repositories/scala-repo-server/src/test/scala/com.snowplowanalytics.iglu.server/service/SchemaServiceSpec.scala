@@ -71,6 +71,9 @@ class SchemaServiceSpec extends Specification
   val start = "/api/schemas/"
 
   //get urls
+  val publicSchemasUrl = s"${start}public"
+  val metaPublicSchemasUrl = s"${publicSchemasUrl}?filter=metadata"
+
   val url = s"${start}${vendor}/${name}/${format}/${version}"
   val publicUrl = s"${start}${otherVendor}/${name}/${format}/${version}"
   val multiUrl = s"${url},${vendor}/${name2}/${format}/${version}"
@@ -187,6 +190,25 @@ class SchemaServiceSpec extends Specification
           check {
             status === OK
             responseAs[String] must contain(vendor) and contain(otherVendor)
+          }
+        }
+      }
+
+      "for the /api/schemas/public endpoint" should {
+
+        "return a proper catalog of public schemas" in {
+          Get(publicSchemasUrl) ~> addHeader("api_key", readKey) ~> routes ~>
+          check {
+            status === OK
+            responseAs[String] must contain(otherVendor)
+          }
+        }
+
+        "return proper metadata for every public schema" in {
+          Get(metaPublicSchemasUrl) ~> addHeader("api_key", readKey) ~>
+          routes ~> check {
+            status === OK
+            responseAs[String] must contain(otherVendor)
           }
         }
       }

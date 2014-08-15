@@ -190,7 +190,12 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 404,
-      message = "There are no public schemas available")
+      message = "There are no public schemas available"),
+    new ApiResponse(code = 401,
+      message = "The supplied authentication is invalid"),
+    new ApiResponse(code = 401, message = """The resource requires
+      authentication, which was not supplied with the request"""),
+    new ApiResponse(code = 404, message = "There are no schemas available here")
   ))
   def publicSchemasRoute =
     anyParam('filter.?) { filter =>

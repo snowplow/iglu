@@ -46,14 +46,14 @@ object SchemaActor {
     isPublic: Boolean = false)
 
   /**
-   * Message to send in order to retrieve every public schema's metadata.
-   */
-  case class GetPublicMetadata()
-
-  /**
    * Message to send in order to retrieve every public schema.
    */
   case class GetPublicSchemas()
+
+  /**
+   * Message to send in order to retrieve every public schema's metadata.
+   */
+  case class GetPublicMetadata()
 
   /**
    * Message to send in order to retrieve a schema based on its

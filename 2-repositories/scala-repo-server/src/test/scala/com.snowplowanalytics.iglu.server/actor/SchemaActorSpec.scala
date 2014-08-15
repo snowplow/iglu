@@ -88,7 +88,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
 
     "for AddSchema" should {
 
-      "return a 201 if the schema doesnt already exist and is public" in {
+      "return a 201 if the schema doesnt already exist and is private" in {
         val future = schema ? AddSchema(vendor, name, format, version,
           invalidSchema, owner, permission, isPublic)
         val Success((status: StatusCode, result: String)) = future.value.get
@@ -96,7 +96,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
         result must contain("Schema added successfully") and contain(vendor)
       }
 
-      "return a 201 if the schema doesnt already exist and is private" in {
+      "return a 201 if the schema doesnt already exist and is public" in {
         val future = schema ? AddSchema(otherVendor, otherName, format, version,
           invalidSchema, otherOwner, permission, !isPublic)
         val Success((status: StatusCode, result: String)) = future.value.get
@@ -111,6 +111,26 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
         val Success((status: StatusCode, result: String)) = future.value.get
         status === Unauthorized
         result must contain("This schema already exists")
+      }
+    }
+
+    "for GetPublicSchemas" should {
+
+      "return a 200 if there are public schemas available" in {
+        val future = schema ? GetPublicSchemas
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === OK
+        result must contain(innerSchema)
+      }
+    }
+
+    "for GetPublicMetadata" should {
+
+      "return a 200 if there are public schemas available" in {
+        val future = schema ? GetPublicMetadata
+        val Success((status: StatusCode, result: String)) = future.value.get
+        result must contain(otherVendor) and contain(otherName) and
+          contain(format) and contain(version)
       }
     }
 
