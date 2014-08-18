@@ -86,17 +86,15 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       respondWithMediaType(`application/json`) {
         auth { authPair =>
           post {
-            path("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-              "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
-                addRoute(v, n, f, vs, authPair._1, authPair._2)
-              }
+            addRoute(authPair._1, authPair._2)
+          } ~
+          put {
+            updateRoute(authPair._1, authPair._2)
           } ~
           get {
             path("public") {
               publicSchemasRoute
-            }
-          } ~
-          get {
+            } ~
             path(("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
               "[0-9]+-[0-9]+-[0-9]+".r).repeat(separator = ",")) { list =>
                 val transposed = list.map(_.toList).transpose
@@ -149,12 +147,10 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       dataType = "boolean", paramType = "query")
   ))
   @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Schema added successfully"),
+    new ApiResponse(code = 201, message = "Schema successfully added"),
     new ApiResponse(code = 400,
       message = "The schema provided is not a valid self-describing schema"),
     new ApiResponse(code = 400, message = "The schema provided is not valid"),
-    new ApiResponse(code = 400,
-      message = "The schema format provided is invalid"),
     new ApiResponse(code = 401, message = "This schema already exists"),
     new ApiResponse(code = 401,
       message = "You do not have sufficient privileges"),
@@ -164,24 +160,75 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       authentication, which was not supplied with the request"""),
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
-  def addRoute(v: String, n: String, f: String, vs: String, owner: String,
-    permission: String) =
-      anyParam('isPublic.?) { isPublic =>
-        validateSchema(f) { schema =>
-          complete {
-            (schemaActor ? AddSchema(v, n, f, vs, schema, owner, permission,
-              isPublic == Some("true")))
-                .mapTo[(StatusCode, String)]
+  def addRoute(owner: String, permission: String) =
+      path("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+        "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
+          anyParam('isPublic.?) { isPublic =>
+            validateSchema(f) { schema =>
+              complete {
+                (schemaActor ? AddSchema(v, n, f, vs, schema, owner, permission,
+                  isPublic == Some("true")))
+                    .mapTo[(StatusCode, String)]
+              }
+            }
           }
         }
-      }
+
+  /**
+   * Put route
+   */
+  @ApiOperation(value = "Updates a schema in the repository",
+    httpMethod = "PUT", position = 1, consumes= "application/json")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
+      required = true, dataType = "string", paramType = "path"),
+    new ApiImplicitParam(name = "name", value = "Schema's name",
+      required = true, dataType = "string", paramType = "path"),
+    new ApiImplicitParam(name = "schemaFormat", value = "Schema's format",
+      required = true, dataType = "string", paramType = "path"),
+    new ApiImplicitParam(name = "version", value = "Schema's version",
+      required = true, dataType = "string", paramType = "path"),
+    new ApiImplicitParam(name = "body", value = "Schema to be updated",
+      required = true, dataType = "string", paramType = "body"),
+    new ApiImplicitParam(name = "isPublic",
+      value = "Do you want your schema to be publicly available? Assumed false",
+      required = false, defaultValue = "false", allowableValues = "true,false",
+      dataType = "boolean", paramType = "query")
+  ))
+  @ApiResponses(Array(
+    new ApiResponse(code = 200, message = "Schema successfully updated"),
+    new ApiResponse(code = 400,
+      message = "The schema provided is not a valid self-describing schema"),
+    new ApiResponse(code = 400, message = "The schema provided is not valid"),
+    new ApiResponse(code = 401, message = "This schema already exists"),
+    new ApiResponse(code = 401,
+      message = "You do not have sufficient privileges"),
+    new ApiResponse(code = 401,
+      message = "The supplied authentication is invalid"),
+    new ApiResponse(code = 401, message = """The resource requires
+      authentication, which was not supplied with the request"""),
+    new ApiResponse(code = 500, message = "Something went wrong")
+  ))
+  def updateRoute(owner: String, permission: String) =
+      path("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+        "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
+          anyParam('isPublic.?) { isPublic =>
+            validateSchema(f) { schema =>
+              complete {
+                (schemaActor ? UpdateSchema(v, n, f, vs, schema, owner,
+                  permission, isPublic == Some("true")))
+                    .mapTo[(StatusCode, String)]
+              }
+            }
+          }
+        }
 
   /**
    * Route to retrieve every public schemas
    */
   @Path(value = "/public")
   @ApiOperation(value = "Retrieves every public schema",
-    notes = "Returns a collection of schemas", httpMethod = "GET", position = 1)
+    notes = "Returns a collection of schemas", httpMethod = "GET", position = 2)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "filter", value = "Metadata filter",
       required = false, dataType = "string", paramType = "query",
@@ -213,7 +260,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    */
   @ApiOperation(value = """Retrieves a schema based on its (vendor, name,
     format, version)""", notes = "Returns a schema", httpMethod = "GET",
-    position = 2)
+    position = 3)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor",
       value = "Comma-separated list of schema vendors",
@@ -261,7 +308,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    */
   @ApiOperation(value = """Retrieves every version of a particular format of a
     schema""", notes = "Returns a collection of schemas", httpMethod = "GET",
-    position = 3)
+    position = 4)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor",
       value = "Comma-separated list of schema vendors",
@@ -306,7 +353,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    */
   @ApiOperation(value = "Retrieves every version of every format of a schema",
     notes = "Returns a collection of schemas", httpMethod = "GET",
-    position = 4)
+    position = 5)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor",
       value = "Comma-separated list of schema vendors",
@@ -346,7 +393,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    */
   @ApiOperation(value = "Retrieves every schema belonging to a vendor",
     notes = "Returns a collection of schemas", httpMethod = "GET",
-    position = 5)
+    position = 6)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor",
       value = "Comma-separated list of schema vendors",

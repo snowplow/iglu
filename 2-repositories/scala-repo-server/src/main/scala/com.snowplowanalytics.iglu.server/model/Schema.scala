@@ -505,7 +505,7 @@ class SchemaDAO(val db: Database) extends DAO {
                 new LocalDateTime(), isPublic)) match {
                   case 0 => (InternalServerError,
                     result(500, "Something went wrong"))
-                  case n => (Created, result(201, "Schema added successfully",
+                  case n => (Created, result(201, "Schema successfully added",
                     buildLoc(vendor, name, format, version)))
                 }
           }
@@ -513,6 +513,31 @@ class SchemaDAO(val db: Database) extends DAO {
       } else {
         (Unauthorized, result(401, "You do not have sufficient privileges"))
       }
+
+   def update(vendor: String, name: String, format: String, version: String,
+     schema: String, owner: String, permission: String,
+     isPublic: Boolean = false): (StatusCode, String) =
+       if (permission == "write" && (vendor startsWith owner)) {
+         db withDynSession {
+           get(List(vendor), List(name), List(format), List(version), owner)
+           match {
+             case (OK, j) => schemas
+               .filter(s => s.vendor === vendor &&
+                 s.name === name &&
+                 s.format === format &&
+                 s.version === version)
+               .map(_.schema)
+               .update(schema) match {
+                 case 1 => (OK, "Schema successfully updated")
+                 case _ => (InternalServerError, "Something went wrong")
+               }
+             case (NotFound, j) => (NotFound, "This schema doesn't exist")
+             case we => we
+           }
+         }
+       } else {
+         (Unauthorized, result(401, "You do not have sufficient privileges"))
+       }
 
    /**
     * Validates the the instance provided is valid against the specified schema.
