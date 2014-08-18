@@ -68,9 +68,8 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    * data) is self-describing.
    */
   def validateSchema(format: String): Directive1[String] =
-    anyParam('schema) flatMap { schema =>
-      onSuccess((schemaActor ?
-        ValidateSchema(schema, format))
+    anyParam('schema) | entity(as[String]) flatMap { schema =>
+      onSuccess((schemaActor ? ValidateSchema(schema, format))
           .mapTo[(StatusCode, String)]) flatMap { ext =>
             ext match {
               case (OK, j) => provide(j)
@@ -132,7 +131,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    * Post route
    */
   @ApiOperation(value = "Adds a new schema to the repository",
-    httpMethod = "POST", position = 0)
+    httpMethod = "POST", position = 0, consumes= "application/json")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
       required = true, dataType = "string", paramType = "path"),
@@ -142,10 +141,10 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "version", value = "Schema's version",
       required = true, dataType = "string", paramType = "path"),
-    new ApiImplicitParam(name = "schema", value = "Schema to be added",
-      required = true, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "body", value = "Schema to be added",
+      required = true, dataType = "string", paramType = "body"),
     new ApiImplicitParam(name = "isPublic",
-      value = "Do you want your schema to be publicly available? Assumed false", 
+      value = "Do you want your schema to be publicly available? Assumed false",
       required = false, defaultValue = "false", allowableValues = "true,false",
       dataType = "boolean", paramType = "query")
   ))
