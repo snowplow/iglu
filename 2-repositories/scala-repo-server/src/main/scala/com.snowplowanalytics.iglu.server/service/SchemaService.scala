@@ -189,11 +189,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     new ApiImplicitParam(name = "version", value = "Schema's version",
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "body", value = "Schema to be updated",
-      required = true, dataType = "string", paramType = "body"),
-    new ApiImplicitParam(name = "isPublic",
-      value = "Do you want your schema to be publicly available? Assumed false",
-      required = false, defaultValue = "false", allowableValues = "true,false",
-      dataType = "boolean", paramType = "query")
+      required = true, dataType = "string", paramType = "body")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "Schema successfully updated"),
@@ -212,13 +208,11 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
   def updateRoute(owner: String, permission: String) =
       path("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
         "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
-          anyParam('isPublic.?) { isPublic =>
-            validateSchema(f) { schema =>
-              complete {
-                (schemaActor ? UpdateSchema(v, n, f, vs, schema, owner,
-                  permission, isPublic == Some("true")))
-                    .mapTo[(StatusCode, String)]
-              }
+          validateSchema(f) { schema =>
+            complete {
+              (schemaActor ? UpdateSchema(v, n, f, vs, schema, owner,
+                permission))
+                  .mapTo[(StatusCode, String)]
             }
           }
         }

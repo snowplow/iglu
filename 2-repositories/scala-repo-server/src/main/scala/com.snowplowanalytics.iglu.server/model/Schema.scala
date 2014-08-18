@@ -515,8 +515,7 @@ class SchemaDAO(val db: Database) extends DAO {
       }
 
    def update(vendor: String, name: String, format: String, version: String,
-     schema: String, owner: String, permission: String,
-     isPublic: Boolean = false): (StatusCode, String) =
+     schema: String, owner: String, permission: String): (StatusCode, String) =
        if (permission == "write" && (vendor startsWith owner)) {
          db withDynSession {
            get(List(vendor), List(name), List(format), List(version), owner)
@@ -528,10 +527,13 @@ class SchemaDAO(val db: Database) extends DAO {
                  s.version === version)
                .map(_.schema)
                .update(schema) match {
-                 case 1 => (OK, "Schema successfully updated")
-                 case _ => (InternalServerError, "Something went wrong")
+                 case 1 => (OK, result(200, "Schema successfully updated",
+                   buildLoc(vendor, name, format, version)))
+                 case _ =>
+                   (InternalServerError, result(500, "Something went wrong"))
                }
-             case (NotFound, j) => (NotFound, "This schema doesn't exist")
+             case (NotFound, j) =>
+               (NotFound, result(404, "This schema doesn't exist"))
              case we => we
            }
          }

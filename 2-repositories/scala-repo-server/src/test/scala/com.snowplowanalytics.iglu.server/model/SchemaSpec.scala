@@ -59,7 +59,9 @@ class SchemaSpec extends Specification with SetupAndDestroy {
   val versions = List(version)
 
   val invalidSchema = """{ "some" : "json" }"""
+  val invalidSchema2 = """{ "some" : "json2" }"""
   val innerSchema = """"some" : "json""""
+  val innerSchema2 = """"some" : "json2""""
   val validSchema = 
   """{
     "self": {
@@ -96,7 +98,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         val (status, res) = schema.add(vendor, name, format, version,
           invalidSchema, owner, permission, isPublic)
         status === Created
-        res must contain("Schema added successfully") and contain(vendor)
+        res must contain("Schema successfully added") and contain(vendor)
 
         database withDynSession {
           Q.queryNA[Int](
@@ -114,7 +116,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         val (status, res) = schema.add(otherVendor, otherName, format, version,
           invalidSchema, otherOwner, permission, !isPublic)
         status === Created
-        res must contain("Schema added successfully") and contain(otherVendor)
+        res must contain("Schema successfully added") and contain(otherVendor)
 
         database withDynSession {
           Q.queryNA[Int](
@@ -142,6 +144,43 @@ class SchemaSpec extends Specification with SetupAndDestroy {
               name = '${name}' and
               format = '${format}' and
               version = '${version}';""").first === 1
+        }
+      }
+    }
+
+    "for update" should {
+
+      "update a schema properly" in {
+        val (status, res) = schema.update(vendor, name, format, version,
+          invalidSchema2, owner, permission)
+        status === OK
+        res must contain("Schema successfully updated") and contain(vendor)
+
+        database withDynSession {
+          Q.queryNA[String](
+            s"""select schema
+            from ${tableName}
+            where vendor = '${vendor}' and
+              name = '${name}' and
+              format = '${format}' and
+              version = '${version}';""").first === invalidSchema2
+        }
+      }
+
+      "not create a schema if it does not exist" in {
+        val (status, res) = schema.update(vendor, faultyName, format, version,
+          invalidSchema, owner, permission)
+        status === NotFound
+        res must contain("This schema doesn't exist")
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where vendor = '${vendor}' and
+              name = '${name}' and
+              format = '${format}' and
+              version = '${version}';""").first === 0
         }
       }
     }

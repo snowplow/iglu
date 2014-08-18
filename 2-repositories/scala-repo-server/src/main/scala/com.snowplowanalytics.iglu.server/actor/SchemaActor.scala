@@ -55,11 +55,9 @@ object SchemaActor {
    * @param schema schema to be updated
    * @param owner the owner of the API key the request was made with
    * @param permission API key' permission
-   * @param isPublic whether or not the schema is publicly available
    */
   case class UpdateSchema(vendor: String, name: String, format: String,
-    version: String, schema: String, owner: String, permission: String,
-    isPublic: Boolean = false)
+    version: String, schema: String, owner: String, permission: String)
 
   /**
    * Message to send in order to retrieve every public schema.
