@@ -25,6 +25,7 @@ import org.specs2.time.NoTimeConversions
 // Spray
 import spray.http._
 import StatusCodes._
+import MediaTypes._
 import spray.testkit.Specs2RouteTest
 
 class SchemaServiceSpec extends Specification
@@ -147,10 +148,12 @@ class SchemaServiceSpec extends Specification
     s"?schema=${invalidSchemaUri}"
   val postUrl8 = s"${start}${vendor}/unit_test8/${format}/${version}" +
     s"?schema=${notJson}"
-  val postUrl9 = s"${start}${vendor}/unit_test10/${format}/${version}" +
+  val postUrl9 = s"${start}${vendor}/unit_test9/${format}/${version}" +
     s"?isPublic=true"
-  val postUrl10 = s"${start}${vendor}/unit_test9/${format}/${version}" +
+  val postUrl10 = s"${start}${vendor}/unit_test10/${format}/${version}" +
     s"?schema=${validSchemaUri}&isPublic=true"
+  val postUrl11 = s"${start}${vendor}/unit_test11/${format}/${version}"
+  val postUrl12 = s"${start}${vendor}/unit_test12/${format}/${version}"
 
   sequential
 
@@ -754,8 +757,17 @@ class SchemaServiceSpec extends Specification
       }
 
       //should be removed from db before running tests for now
-      """return success if the schema is passed as query as form data and is
-      public""" in {
+      "return success if the schema is passed as request body" in {
+        Post(postUrl11, HttpEntity(`application/json`, validSchema)) ~>
+        addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
+          status === Created
+          responseAs[String] must contain("Schema added successfully") and
+            contain(vendor)
+        }
+      }
+
+      //should be removed from db before running tests for now
+      "return success if the schema is passed as form data and is public" in {
         Post(postUrl9, FormData(Seq("schema" -> validSchema))) ~>
         addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
           status === Created
@@ -765,10 +777,20 @@ class SchemaServiceSpec extends Specification
       }
 
       //should be removed from db before running tests for now
-      """return success if the schema is passed as query as query param and is
-      public""" in {
+      "return success if the schema is passed as query param and is public" in {
         Post(postUrl10) ~> addHeader("api_key", writeKey) ~>
         sealRoute(routes) ~> check {
+          status === Created
+          responseAs[String] must contain("Schema added successfully") and
+            contain(vendor)
+        }
+      }
+
+      //should be removed from db before running tests for now
+      """return success if the schemas is passed as request body and is
+      public""" in {
+        Post(postUrl12, HttpEntity(`application/json`, validSchema)) ~>
+        addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
           status === Created
           responseAs[String] must contain("Schema added successfully") and
             contain(vendor)
@@ -791,7 +813,16 @@ class SchemaServiceSpec extends Specification
           }
       }
 
-      "return a 400 if no form or query param is specified" in {
+      "return a 401 if the schema already exists with body request" in {
+        Post(postUrl12, HttpEntity(`application/json`, validSchema)) ~>
+        addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must contain("This schema already exists")
+        }
+      }
+
+      """return a 400 if no form data or query param or body request is
+      pecified""" in {
         Post(postUrl3) ~> addHeader("api_key", writeKey) ~>
           sealRoute(routes) ~> check {
             status === BadRequest
@@ -801,23 +832,33 @@ class SchemaServiceSpec extends Specification
       }
 
       """return 401 if the API key doesn't have sufficient permissions with
-        query param""" in {
-          Post(postUrl4) ~> addHeader("api_key", readKey) ~>
-            sealRoute(routes) ~> check {
-              status === Unauthorized
-              responseAs[String] must
-                contain("You do not have sufficient privileges")
-            }
+      query param""" in {
+        Post(postUrl4) ~> addHeader("api_key", readKey) ~>
+          sealRoute(routes) ~> check {
+            status === Unauthorized
+            responseAs[String] must
+              contain("You do not have sufficient privileges")
+          }
       }
 
       """return a 401 if the API key doesn't have sufficient permissions
-        with form data""" in {
-          Post(postUrl3, FormData(Seq("schema" -> validSchema))) ~>
-            addHeader("api_key", readKey) ~> sealRoute(routes) ~> check {
-              status === Unauthorized
-              responseAs[String] must
-                contain("You do not have sufficient privileges")
-          }
+      with form data""" in {
+        Post(postUrl3, FormData(Seq("schema" -> validSchema))) ~>
+          addHeader("api_key", readKey) ~> sealRoute(routes) ~> check {
+            status === Unauthorized
+            responseAs[String] must
+              contain("You do not have sufficient privileges")
+        }
+      }
+
+      """return a 401 if the API key doesn't have sufficient permissions with
+      body request""" in {
+        Post(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
+        addHeader("api_key", readKey) ~> sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("You do not have sufficient privileges")
+        }
       }
 
       "return a 401 if no api_key is specified with query param" in {
@@ -830,88 +871,136 @@ class SchemaServiceSpec extends Specification
 
       "return a 401 if no api_key is specified with form data" in {
         Post(postUrl3, FormData(Seq("schema" -> validSchema))) ~>
-          sealRoute(routes) ~> check {
-            status === Unauthorized
-            responseAs[String] must
-              contain("The resource requires authentication")
+        sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("The resource requires authentication")
         }
       }
 
-      "return a 401 if the API key is not an uuid with form data" in {
-        Post(postUrl3, FormData(Seq("schema" -> validSchema))) ~>
-          addHeader("api_key", notUuidKey) ~> sealRoute(routes) ~> check {
-            status === Unauthorized
-            responseAs[String] must
-              contain("The supplied authentication is invalid")
+      "return a 401 if no api_key is specified with body request" in {
+        Post(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
+        sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("The resource requires authentication")
         }
       }
 
       "return a 401 if the API key is not an uuid with query param" in {
         Post(postUrl4) ~> addHeader("api_key", notUuidKey) ~>
-          sealRoute(routes) ~> check {
-            status === Unauthorized
-            responseAs[String] must
-              contain("The supplied authentication is invalid")
+        sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("The supplied authentication is invalid")
+        }
+      }
+
+      "return a 401 if the API key is not an uuid with form data" in {
+        Post(postUrl3, FormData(Seq("schema" -> validSchema))) ~>
+        addHeader("api_key", notUuidKey) ~> sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("The supplied authentication is invalid")
+        }
+      }
+
+      "return a 401 if the API key is not an uuid with body request" in {
+        Post(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
+        addHeader("api_key", notUuidKey) ~> sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("The supplied authentication is invalid")
         }
       }
 
       """return a 401 if the owner of the API key is not a prefix of the
-        schema's vendor with query param""" in {
-          Post(postUrl6) ~> addHeader("api_key", wrongVendorKey) ~>
-            sealRoute(routes) ~> check {
-              status === Unauthorized
-              responseAs[String] must
-                contain("You do not have sufficient privileges")
-          }
+      schema's vendor with query param""" in {
+        Post(postUrl6) ~> addHeader("api_key", wrongVendorKey) ~>
+        sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("You do not have sufficient privileges")
+        }
       }
 
       """return a 401 if the owner of the API key is not a prefix of the
-        schema's vendor with form data""" in {
-          Post(postUrl3, FormData(Seq("schema" -> validSchema))) ~>
-            addHeader("api_key", wrongVendorKey) ~> sealRoute(routes) ~> check {
-              status === Unauthorized
-              responseAs[String] must
-                contain("You do not have sufficient privileges")
-          }
+      schema's vendor with form data""" in {
+        Post(postUrl3, FormData(Seq("schema" -> validSchema))) ~>
+        addHeader("api_key", wrongVendorKey) ~> sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("You do not have sufficient privileges")
+        }
+      }
+
+      """return a 401 if the owner of the API key is not a prefix of the
+      schema's vendor with body request""" in {
+        Post(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
+        addHeader("api_key", wrongVendorKey) ~> sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("You do not have sufficient privileges")
+        }
       }
 
       """return a 400 if the supplied schema is not self-describing with query
       param and contain a validation failure report""" in {
         Post(postUrl7) ~> addHeader("api_key", writeKey) ~> sealRoute(routes) ~>
-          check {
-            status === BadRequest
-            responseAs[String] must
-              contain("The schema provided is not a valid self-describing") and
-              contain("report")
-          }
+        check {
+          status === BadRequest
+          responseAs[String] must
+            contain("The schema provided is not a valid self-describing") and
+            contain("report")
+        }
       }
 
-      """"return a 400 if the supplied schema is not self-describing with form
+      """return a 400 if the supplied schema is not self-describing with form
       data and contain a validation failure report""" in {
         Post(postUrl3, FormData(Seq("schema" -> invalidSchema))) ~>
-          addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
-            status === BadRequest
-            responseAs[String] must
-              contain("The schema provided is not a valid self-describing") and
-              contain("report")
-          }
+        addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
+          status === BadRequest
+          responseAs[String] must
+            contain("The schema provided is not a valid self-describing") and
+            contain("report")
+        }
+      }
+
+      """return a 400 if the supplied schema is not self-describing with body
+      request and contain a validation failure report""" in {
+        Post(postUrl3, HttpEntity(`application/json`, invalidSchema)) ~>
+        addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
+          status === BadRequest
+          responseAs[String] must
+            contain("The schema provided is not a valid self-describing") and
+            contain("report")
+        }
       }
 
       "return a 400 if the supplied string is not a schema with query param" in
       {
         Post(postUrl8) ~> addHeader("api_key", writeKey) ~> sealRoute(routes) ~>
-          check {
-            status === BadRequest
-            responseAs[String] must contain("The schema provided is not valid")
-          }
+        check {
+          status === BadRequest
+          responseAs[String] must contain("The schema provided is not valid")
+        }
       }
 
       "return a 400 if the supplied string is not a schema with form data" in {
         Post(postUrl3, FormData(Seq("schema" -> notJson))) ~>
-          addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
-            status === BadRequest
-            responseAs[String] must contain("The schema provided is not valid")
-          }
+        addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
+          status === BadRequest
+          responseAs[String] must contain("The schema provided is not valid")
+        }
+      }
+
+      """return a 400 if the supplied string is not a schema with body
+      request""" in {
+        Post(postUrl3, HttpEntity(`application/json`, notJson)) ~>
+        addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
+          status === BadRequest
+          responseAs[String] must contain("The schema provided is not valid")
+        }
       }
     }
   }
