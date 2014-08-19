@@ -58,6 +58,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
   val faultyVendors = List(faultyVendor)
   val name = "unit_test3"
   val names = List(name)
+  val name2 = "unit_test6"
   val faultyName = "unit_test4"
   val faultyNames = List(faultyName)
   val otherName = "unit_test5"
@@ -111,6 +112,25 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
         val Success((status: StatusCode, result: String)) = future.value.get
         status === Unauthorized
         result must contain("This schema already exists")
+      }
+    }
+
+    "for UpdateSchema" should {
+
+      "return a 200 if the schema already exists" in {
+        val future = schema ? UpdateSchema(vendor, name, format, version,
+          invalidSchema, owner, permission, isPublic)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === OK
+        result must contain("Schema successfully updated") and contain(vendor)
+      }
+
+      "returna 201 if the schema doesnt already exist" in {
+        val future = schema ? UpdateSchema(vendor, name2, format, version,
+          invalidSchema, owner, permission, isPublic)
+        val Success((status: StatusCode, result: String)) = future.value.get
+        status === Created
+        result must contain("Schema successfully added") and contain(vendor)
       }
     }
 
