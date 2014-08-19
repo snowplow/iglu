@@ -741,7 +741,7 @@ class SchemaServiceSpec extends Specification
         Post(postUrl1, FormData(Seq("schema" -> validSchema))) ~>
           addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
             status === Created
-            responseAs[String] must contain("Schema added successfully") and
+            responseAs[String] must contain("Schema successfully added") and
               contain(vendor)
           }
       }
@@ -751,7 +751,7 @@ class SchemaServiceSpec extends Specification
         Post(postUrl2) ~> addHeader("api_key", writeKey) ~> sealRoute(routes) ~>
         check {
             status === Created
-            responseAs[String] must contain("Schema added successfully") and
+            responseAs[String] must contain("Schema successfully added") and
               contain(vendor)
           }
       }
@@ -761,7 +761,7 @@ class SchemaServiceSpec extends Specification
         Post(postUrl11, HttpEntity(`application/json`, validSchema)) ~>
         addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
           status === Created
-          responseAs[String] must contain("Schema added successfully") and
+          responseAs[String] must contain("Schema successfully added") and
             contain(vendor)
         }
       }
@@ -771,7 +771,7 @@ class SchemaServiceSpec extends Specification
         Post(postUrl9, FormData(Seq("schema" -> validSchema))) ~>
         addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
           status === Created
-          responseAs[String] must contain("Schema added successfully") and
+          responseAs[String] must contain("Schema successfully added") and
             contain(vendor)
         }
       }
@@ -781,7 +781,7 @@ class SchemaServiceSpec extends Specification
         Post(postUrl10) ~> addHeader("api_key", writeKey) ~>
         sealRoute(routes) ~> check {
           status === Created
-          responseAs[String] must contain("Schema added successfully") and
+          responseAs[String] must contain("Schema successfully added") and
             contain(vendor)
         }
       }
@@ -792,7 +792,7 @@ class SchemaServiceSpec extends Specification
         Post(postUrl12, HttpEntity(`application/json`, validSchema)) ~>
         addHeader("api_key", writeKey) ~> sealRoute(routes) ~> check {
           status === Created
-          responseAs[String] must contain("Schema added successfully") and
+          responseAs[String] must contain("Schema successfully added") and
             contain(vendor)
         }
       }
@@ -822,12 +822,12 @@ class SchemaServiceSpec extends Specification
       }
 
       """return a 400 if no form data or query param or body request is
-      pecified""" in {
+      specified""" in {
         Post(postUrl3) ~> addHeader("api_key", writeKey) ~>
           sealRoute(routes) ~> check {
             status === BadRequest
             responseAs[String] must
-              contain("Request is missing required form field 'schema'")
+              contain("The schema provided is not valid")
           }
       }
 

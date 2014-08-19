@@ -514,26 +514,49 @@ class SchemaDAO(val db: Database) extends DAO {
         (Unauthorized, result(401, "You do not have sufficient privileges"))
       }
 
+  /**
+   * Updates or creates a schema after validating it does not already exist.
+   * @param vendor the schema's vendor
+   * @param name the schema's name
+   * @param format the schema's format
+   * @param version the schema's version
+   * @param schema the schema itself
+   * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
+   * @param isPublic whether or not the schema is publicly available
+   * @return a status code json response pair
+   */
    def update(vendor: String, name: String, format: String, version: String,
-     schema: String, owner: String, permission: String): (StatusCode, String) =
+     schema: String, owner: String, permission: String,
+     isPublic: Boolean = false): (StatusCode, String) =
        if (permission == "write" && (vendor startsWith owner)) {
          db withDynSession {
            get(List(vendor), List(name), List(format), List(version), owner)
            match {
-             case (OK, j) => schemas
-               .filter(s => s.vendor === vendor &&
-                 s.name === name &&
-                 s.format === format &&
-                 s.version === version)
-               .map(_.schema)
-               .update(schema) match {
-                 case 1 => (OK, result(200, "Schema successfully updated",
-                   buildLoc(vendor, name, format, version)))
-                 case _ =>
-                   (InternalServerError, result(500, "Something went wrong"))
-               }
+             case (OK, j) =>
+               schemas
+                 .filter(s => s.vendor === vendor &&
+                   s.name === name &&
+                   s.format === format &&
+                   s.version === version)
+                 .map(s => (s.schema, s.isPublic))
+                 .update(schema, isPublic) match {
+                   case 1 => (OK, result(200, "Schema successfully updated",
+                     buildLoc(vendor, name, format, version)))
+                   case _ =>
+                     (InternalServerError, result(500, "Something went wrong"))
+                 }
              case (NotFound, j) =>
-               (NotFound, result(404, "This schema doesn't exist"))
+               schemas
+                 .insert(
+                   Schema(0, vendor, name, format, version, schema,
+                     new LocalDateTime(), isPublic)) match {
+                       case 0 => (InternalServerError,
+                         result(500, "Something went wrong"))
+                       case n => (Created,
+                         result(201, "Schema successfully added",
+                           buildLoc(vendor, name, format, version)))
+                     }
              case we => we
            }
          }

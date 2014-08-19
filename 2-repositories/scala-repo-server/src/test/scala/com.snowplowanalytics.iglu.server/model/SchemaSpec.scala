@@ -48,9 +48,10 @@ class SchemaSpec extends Specification with SetupAndDestroy {
   val faultyVendors = List(faultyVendor)
   val name = "ad_click"
   val names = List(name)
-  val otherName = "ad_click2"
-  val otherNames = List(otherName)
-  val faultyName = "ad_click3"
+  val name2 = "ad_click2"
+  val name2s = List(name2)
+  val name3 = "ad_click3"
+  val faultyName = "ad_click4"
   val faultyNames = List(faultyName)
   val format = "jsonschema"
   val notSupportedFormat = "notSupportedFormat"
@@ -113,7 +114,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "add a public schema properly" in {
-        val (status, res) = schema.add(otherVendor, otherName, format, version,
+        val (status, res) = schema.add(otherVendor, name2, format, version,
           invalidSchema, otherOwner, permission, !isPublic)
         status === Created
         res must contain("Schema successfully added") and contain(otherVendor)
@@ -123,7 +124,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             s"""select count(*)
             from ${tableName}
             where vendor = '${otherVendor}' and
-              name = '${otherName}' and
+              name = '${name2}' and
               format = '${format}' and
               version = '${version}' and
               ispublic = true;""").first === 1
@@ -167,20 +168,20 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      "not create a schema if it does not exist" in {
-        val (status, res) = schema.update(vendor, faultyName, format, version,
+      "create a schema if it does not exist" in {
+        val (status, res) = schema.update(vendor, name3, format, version,
           invalidSchema, owner, permission)
-        status === NotFound
-        res must contain("This schema doesn't exist")
+        status === Created
+        res must contain("Schema successfully added") and contain(vendor)
 
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
             where vendor = '${vendor}' and
-              name = '${name}' and
+              name = '${name3}' and
               format = '${format}' and
-              version = '${version}';""").first === 0
+              version = '${version}';""").first === 1
         }
       }
     }
@@ -190,7 +191,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       "retrieve a schema properly if it is private" in {
         val (status, res) = schema.get(vendors, names, formats, versions, owner)
         status === OK
-        res must contain(innerSchema)
+        res must contain(innerSchema2)
 
         database withDynSession {
           Q.queryNA[Int](
@@ -206,7 +207,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve a schema properly if it is public" in {
         val (status, res) =
-          schema.get(otherVendors, otherNames, formats, versions, faultyOwner)
+          schema.get(otherVendors, name2s, formats, versions, faultyOwner)
         status === OK
         res must contain(innerSchema)
 
@@ -215,7 +216,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             s"""select count(*)
             from ${tableName}
             where vendor = '${otherVendor}' and
-              name = '${otherName}' and
+              name = '${name2}' and
               format = '${format}' and
               version = '${version}' and
               ispublic = true;""").first === 1
@@ -270,10 +271,10 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "retrieve metadata about a schema properly if it is public" in {
-        val (status, res) = schema.getMetadata(otherVendors, otherNames,
+        val (status, res) = schema.getMetadata(otherVendors, name2s,
           formats, versions, faultyOwner)
         status === OK
-        res must contain(vendor) and contain(otherName) and contain(format) and
+        res must contain(vendor) and contain(name2) and contain(format) and
           contain(version)
 
         database withDynSession {
@@ -281,7 +282,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             s"""select count(*)
             from ${tableName}
             where vendor = '${otherVendor}' and
-              name = '${otherName}' and
+              name = '${name2}' and
               format = '${format}' and
               version = '${version}' and
               ispublic = true;""").first === 1
@@ -335,7 +336,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       "retrieve metadata about every public schema available" in {
         val (status, res) = schema.getPublicMetadata
         status === OK
-        res must contain(otherVendor) and contain(otherName) and
+        res must contain(otherVendor) and contain(name2) and
           contain(format) and contain(version)
 
         database withDynSession {
@@ -352,7 +353,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       "retrieve schemas properly if they are public" in {
         val (status, res) = schema.getFromFormat(vendors, names, formats, owner)
         status === OK
-        res must contain(innerSchema)
+        res must contain(innerSchema2)
 
         database withDynSession {
           Q.queryNA[Int](
@@ -367,7 +368,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are public" in {
         val (status, res) =
-          schema.getFromFormat(otherVendors, otherNames, formats, faultyOwner)
+          schema.getFromFormat(otherVendors, name2s, formats, faultyOwner)
         status === OK
         res must contain(innerSchema)
 
@@ -376,7 +377,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             s"""select count(*)
             from ${tableName}
             where vendor = '${otherVendor}' and
-              name = '${otherName}' and
+              name = '${name2}' and
               format = '${format}' and
               ispublic = true;""").first === 1
         }
@@ -428,16 +429,16 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are public" in {
         val (status, res) = schema.getMetadataFromFormat(otherVendors,
-          otherNames, formats, faultyOwner)
+          name2s, formats, faultyOwner)
         status === OK
-        res must contain(vendor) and contain(otherName) and contain(format)
+        res must contain(vendor) and contain(name2) and contain(format)
 
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
             where vendor = '${otherVendor}' and
-              name = '${otherName}' and
+              name = '${name2}' and
               format = '${format}' and
               ispublic = true;""").first === 1
         }
@@ -473,7 +474,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       "retrieve schemas properly if they are private" in {
         val (status, res) = schema.getFromName(vendors, names, owner)
         status === OK
-        res must contain(innerSchema)
+        res must contain(innerSchema2)
 
         database withDynSession {
           Q.queryNA[Int](
@@ -487,7 +488,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are public" in {
         val (status, res) =
-          schema.getFromName(otherVendors, otherNames, faultyOwner)
+          schema.getFromName(otherVendors, name2s, faultyOwner)
         status === OK
         res must contain(innerSchema)
 
@@ -496,7 +497,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             s"""select count(*)
             from ${tableName}
             where vendor = '${otherVendor}' and
-              name = '${otherName}' and
+              name = '${name2}' and
               ispublic = true;""").first === 1
         }
       }
@@ -543,16 +544,16 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are public" in {
         val (status, res) =
-          schema.getMetadataFromName(otherVendors, otherNames, faultyOwner)
+          schema.getMetadataFromName(otherVendors, name2s, faultyOwner)
         status === OK
-        res must contain(otherVendor) and contain(otherName)
+        res must contain(otherVendor) and contain(name2)
 
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
             where vendor = '${otherVendor}' and
-              name = '${otherName}' and
+              name = '${name2}' and
               ispublic = true;""").first === 1
         }
       }
@@ -593,7 +594,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             s"""select count(*)
             from ${tableName}
             where vendor = '${vendor}' and
-              ispublic = false;""").first === 1
+              ispublic = false;""").first === 2
         }
       }
 
@@ -645,7 +646,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             s"""select count(*)
             from ${tableName}
             where vendor = '${vendor}' and
-            ispublic = false;""").first === 1
+            ispublic = false;""").first === 2
         }
       }
 
@@ -690,7 +691,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "return a 200 if the instance is valid against the schema" in {
 
-        val name = "ad_click3"
+        val name = "ad_click5"
         schema.add(vendor, name, format, version,
           """{
             "$schema": "http://com.snowplowanalytics/schema/jsonschema/1-0-0",
@@ -745,7 +746,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "return a 400 if the instance is not valid against the schema" in {
         val (status, res) =
-          schema.validate(vendor, "ad_click3", format, version, invalidSchema)
+          schema.validate(vendor, "ad_click5", format, version, invalidSchema)
         status === BadRequest
         res must
           contain("The instance provided is not valid against the schema") and

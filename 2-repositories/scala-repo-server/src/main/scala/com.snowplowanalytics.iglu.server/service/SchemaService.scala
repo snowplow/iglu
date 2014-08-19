@@ -177,7 +177,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
   /**
    * Put route
    */
-  @ApiOperation(value = "Updates a schema in the repository",
+  @ApiOperation(value = "Updates or creates a schema in the repository",
     httpMethod = "PUT", position = 1, consumes= "application/json")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
@@ -189,14 +189,18 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     new ApiImplicitParam(name = "version", value = "Schema's version",
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "body", value = "Schema to be updated",
-      required = true, dataType = "string", paramType = "body")
+      required = true, dataType = "string", paramType = "body"),
+    new ApiImplicitParam(name = "isPublic",
+      value = "Do you want your schema to be publicly available? Assumed false",
+      required = false, defaultValue = "false", allowableValues = "true,false",
+      dataType = "boolean", paramType = "query")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "Schema successfully updated"),
+    new ApiResponse(code = 201, message = "Schema successfully added"),
     new ApiResponse(code = 400,
       message = "The schema provided is not a valid self-describing schema"),
     new ApiResponse(code = 400, message = "The schema provided is not valid"),
-    new ApiResponse(code = 401, message = "This schema already exists"),
     new ApiResponse(code = 401,
       message = "You do not have sufficient privileges"),
     new ApiResponse(code = 401,
@@ -208,11 +212,13 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
   def updateRoute(owner: String, permission: String) =
       path("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
         "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
-          validateSchema(f) { schema =>
-            complete {
-              (schemaActor ? UpdateSchema(v, n, f, vs, schema, owner,
-                permission))
-                  .mapTo[(StatusCode, String)]
+          anyParam('isPublic.?) { isPublic =>
+            validateSchema(f) { schema =>
+              complete {
+                (schemaActor ? UpdateSchema(v, n, f, vs, schema, owner,
+                  permission, isPublic == Some("true")))
+                    .mapTo[(StatusCode, String)]
+              }
             }
           }
         }
