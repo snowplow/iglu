@@ -38,7 +38,7 @@ object SchemaActor {
    * @param version schema's version
    * @param schema schema to be added
    * @param owner the owner of the API key the request was made with
-   * @param permission API key' permission
+   * @param permission API key's permission
    * @param isPublic whether or not the schema is publicly available
    */
   case class AddSchema(vendor: String, name: String, format: String,
@@ -54,7 +54,7 @@ object SchemaActor {
    * @param version schema's version
    * @param schema schema to be updated
    * @param owner the owner of the API key the request was made with
-   * @param permission API key' permission
+   * @param permission API key's permission
    * @param isPublic wheter or not the schema is publicly available
    */
   case class UpdateSchema(vendor: String, name: String, format: String,
@@ -63,13 +63,17 @@ object SchemaActor {
 
   /**
    * Message to send in order to retrieve every public schema.
+   * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
    */
-  case class GetPublicSchemas()
+  case class GetPublicSchemas(owner: String, permission: String)
 
   /**
    * Message to send in order to retrieve every public schema's metadata.
+   * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
    */
-  case class GetPublicMetadata()
+  case class GetPublicMetadata(owner: String, permission: String)
 
   /**
    * Message to send in order to retrieve a schema based on its
@@ -79,9 +83,11 @@ object SchemaActor {
    * @param formats list of schemas' formats
    * @param versions list of schemas' versions
    * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
    */
   case class GetSchema(vendors: List[String], names: List[String],
-    formats: List[String], versions: List[String], owner: String)
+    formats: List[String], versions: List[String], owner: String,
+    permission: String)
 
   /**
    * Message to send in order to retrieve metadata about a schema based on its
@@ -91,9 +97,11 @@ object SchemaActor {
    * @param formats list of schemas' formats
    * @param versions list of schemas' versions
    * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
    */
   case class GetMetadata(vendors: List[String], names: List[String],
-    formats: List[String], versions: List[String], owner: String)
+    formats: List[String], versions: List[String], owner: String,
+    permission: String)
 
   /**
    * Message to send in order to get every version of a schema.
@@ -101,9 +109,10 @@ object SchemaActor {
    * @param names list of schemas' names
    * @param formats list of schemas' formats
    * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
    */
   case class GetSchemasFromFormat(vendors: List[String], names: List[String],
-    formats: List[String], owner: String)
+    formats: List[String], owner: String, permission: String)
 
   /**
    * Message to send in order to get metadata about every version of a schema.
@@ -111,9 +120,10 @@ object SchemaActor {
    * @param names list of schemas' names
    * @param formats list of schemas' formats
    * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
    */
   case class GetMetadataFromFormat(vendors: List[String], names: List[String],
-    formats: List[String], owner: String)
+    formats: List[String], owner: String, permission: String)
 
   /**
    * Message to send in order to retrieve every format, version combination of
@@ -121,9 +131,10 @@ object SchemaActor {
    * @param vendors list of schemas' vendors
    * @param names list of schemas' names
    * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
    */
   case class GetSchemasFromName(vendors: List[String], names: List[String],
-    owner: String)
+    owner: String, permission: String)
 
   /**
    * Message to send in order to retrieve metadata about every format, version
@@ -131,24 +142,29 @@ object SchemaActor {
    * @param vendors list of schemas' vendors
    * @param names list of schemas' names
    * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
    */
   case class GetMetadataFromName(vendors: List[String], names: List[String],
-    owner: String)
+    owner: String, permission: String)
 
   /**
    * Message to send in order to retrieve every schema belonging to a vendor.
    * @param vendors list of schemas' vendors
    * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
    */
-  case class GetSchemasFromVendor(vendors: List[String], owner: String)
+  case class GetSchemasFromVendor(vendors: List[String], owner: String,
+    permission: String)
 
   /**
    * Message to send in order to retrieve metadata about every schema belonging
    * to a vendor.
    * @param vendors list of schemas' vendors
    * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
    */
-  case class GetMetadataFromVendor(vendors: List[String], owner: String)
+  case class GetMetadataFromVendor(vendors: List[String], owner: String,
+    permission: String)
 
   /**
    * Message to send in order to validate that a schema is self-describing.
@@ -193,30 +209,31 @@ class SchemaActor extends Actor {
     case UpdateSchema(v, n, f, vs, s, o, p, i) =>
       sender ! schema.update(v, n, f, vs, s, o, p, i)
 
-    case GetPublicSchemas => sender ! schema.getPublicSchemas
+    case GetPublicSchemas(o, p) => sender ! schema.getPublicSchemas(o, p)
 
-    case GetPublicMetadata => sender ! schema.getPublicMetadata
+    case GetPublicMetadata(o, p) => sender ! schema.getPublicMetadata(o, p)
 
-    case GetSchema(v, n, f, vs, o) => sender ! schema.get(v, n, f, vs, o)
+    case GetSchema(v, n, f, vs, o, p) => sender ! schema.get(v, n, f, vs, o, p)
 
-    case GetMetadata(v, n, f, vs, o) =>
-      sender ! schema.getMetadata(v, n, f, vs, o)
+    case GetMetadata(v, n, f, vs, o, p) =>
+      sender ! schema.getMetadata(v, n, f, vs, o, p)
 
-    case GetSchemasFromFormat(v, n, f, o) =>
-      sender ! schema.getFromFormat(v, n, f, o)
+    case GetSchemasFromFormat(v, n, f, o, p) =>
+      sender ! schema.getFromFormat(v, n, f, o, p)
 
-    case GetMetadataFromFormat(v, n, f, o) =>
-      sender ! schema.getMetadataFromFormat(v, n, f, o)
+    case GetMetadataFromFormat(v, n, f, o, p) =>
+      sender ! schema.getMetadataFromFormat(v, n, f, o, p)
 
-    case GetSchemasFromName(v, n, o) => sender ! schema.getFromName(v, n, o)
+    case GetSchemasFromName(v, n, o, p) =>
+      sender ! schema.getFromName(v, n, o, p)
 
-    case GetMetadataFromName(v, n, o) =>
-      sender ! schema.getMetadataFromName(v, n, o)
+    case GetMetadataFromName(v, n, o, p) =>
+      sender ! schema.getMetadataFromName(v, n, o, p)
 
-    case GetSchemasFromVendor(v, o) => sender ! schema.getFromVendor(v, o)
+    case GetSchemasFromVendor(v, o, p) => sender ! schema.getFromVendor(v, o, p)
 
-    case GetMetadataFromVendor(v, o) =>
-      sender ! schema.getMetadataFromVendor(v, o)
+    case GetMetadataFromVendor(v, o, p) =>
+      sender ! schema.getMetadataFromVendor(v, o, p)
 
     case ValidateSchema(s, f, p) => sender ! schema.validateSchema(s, f, p)
 

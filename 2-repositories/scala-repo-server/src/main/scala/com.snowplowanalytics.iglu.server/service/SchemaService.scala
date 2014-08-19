@@ -93,31 +93,31 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
           } ~
           get {
             path("public") {
-              publicSchemasRoute
+              publicSchemasRoute(authPair._1, authPair._2)
             } ~
             path(("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
               "[0-9]+-[0-9]+-[0-9]+".r).repeat(separator = ",")) { list =>
                 val transposed = list.map(_.toList).transpose
                 readRoute(transposed(0), transposed(1), transposed(2),
-                  transposed(3), authPair._1)
+                  transposed(3), authPair._1, authPair._2)
             } ~
             pathPrefix("[a-z]+\\.[a-z.-]+".r.repeat(separator = ",")) { v =>
               pathPrefix("[a-zA-Z0-9_-]+".r.repeat(separator = ",")) { n =>
                 pathPrefix("[a-z]+".r.repeat(separator = ",")) { f =>
                   path(
                     "[0-9]+-[0-9]+-[0-9]+".r.repeat(separator = ",")) { vs =>
-                      readRoute(v, n, f, vs, authPair._1)
+                      readRoute(v, n, f, vs, authPair._1, authPair._2)
                   } ~
                   pathEnd {
-                    readFormatRoute(v, n, f, authPair._1)
+                    readFormatRoute(v, n, f, authPair._1, authPair._2)
                   }
                 } ~
                 pathEnd {
-                  readNameRoute(v, n, authPair._1)
+                  readNameRoute(v, n, authPair._1, authPair._2)
                 }
               } ~
               pathEnd {
-                readVendorRoute(v, authPair._1)
+                readVendorRoute(v, authPair._1, authPair._2)
               }
             }
           }
@@ -129,7 +129,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    * Post route
    */
   @ApiOperation(value = "Adds a new schema to the repository",
-    httpMethod = "POST", position = 0, consumes= "application/json")
+    httpMethod = "POST", consumes= "application/json", position = 0)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
       required = true, dataType = "string", paramType = "path"),
@@ -178,7 +178,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    * Put route
    */
   @ApiOperation(value = "Updates or creates a schema in the repository",
-    httpMethod = "PUT", position = 1, consumes= "application/json")
+    httpMethod = "PUT", consumes = "application/json", position = 1)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
       required = true, dataType = "string", paramType = "path"),
@@ -243,14 +243,14 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       authentication, which was not supplied with the request"""),
     new ApiResponse(code = 404, message = "There are no schemas available here")
   ))
-  def publicSchemasRoute =
+  def publicSchemasRoute(o: String, p: String) =
     anyParam('filter.?) { filter =>
       filter match {
         case Some("metadata") => complete {
-          (schemaActor ? GetPublicMetadata).mapTo[(StatusCode, String)]
+          (schemaActor ? GetPublicMetadata(o, p)).mapTo[(StatusCode, String)]
         }
         case _ => complete {
-          (schemaActor ? GetPublicSchemas).mapTo[(StatusCode, String)]
+          (schemaActor ? GetPublicSchemas(o, p)).mapTo[(StatusCode, String)]
         }
       }
     }
@@ -262,7 +262,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     format, version)""", notes = "Returns a schema", httpMethod = "GET",
     position = 3)
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "vendor",
+    new ApiImplicitParam(name = "vendors",
       value = "Comma-separated list of schema vendors",
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "names",
@@ -289,15 +289,15 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     new ApiResponse(code = 404, message = "There are no schemas available here")
   ))
   def readRoute(v: List[String], n: List[String], f: List[String],
-    vs: List[String], o: String) =
+    vs: List[String], o: String, p: String) =
       anyParam('filter.?) { filter =>
         filter match {
           case Some("metadata") => complete {
-            (schemaActor ? GetMetadata(v, n, f, vs, o))
+            (schemaActor ? GetMetadata(v, n, f, vs, o, p))
               .mapTo[(StatusCode, String)]
           }
           case _ => complete {
-            (schemaActor ? GetSchema(v, n, f, vs, o))
+            (schemaActor ? GetSchema(v, n, f, vs, o, p))
               .mapTo[(StatusCode, String)]
           }
         }
@@ -310,7 +310,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     schema""", notes = "Returns a collection of schemas", httpMethod = "GET",
     position = 4)
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "vendor",
+    new ApiImplicitParam(name = "vendors",
       value = "Comma-separated list of schema vendors",
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "names",
@@ -334,15 +334,15 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       "There are no schemas for this vendor, name, format combination")
   ))
   def readFormatRoute(v: List[String], n: List[String], f: List[String],
-    o: String) =
+    o: String, p: String) =
       anyParam('filter.?) { filter =>
         filter match {
           case Some("metadata") => complete {
-            (schemaActor ? GetMetadataFromFormat(v, n, f, o))
+            (schemaActor ? GetMetadataFromFormat(v, n, f, o, p))
               .mapTo[(StatusCode, String)]
           }
           case _ => complete {
-            (schemaActor ? GetSchemasFromFormat(v, n, f, o))
+            (schemaActor ? GetSchemasFromFormat(v, n, f, o, p))
               .mapTo[(StatusCode, String)]
           }
         }
@@ -352,10 +352,9 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    * Route to retrieve every version of every format of a schema.
    */
   @ApiOperation(value = "Retrieves every version of every format of a schema",
-    notes = "Returns a collection of schemas", httpMethod = "GET",
-    position = 5)
+    notes = "Returns a collection of schemas", httpMethod = "GET", position = 5)
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "vendor",
+    new ApiImplicitParam(name = "vendors",
       value = "Comma-separated list of schema vendors",
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "names",
@@ -374,15 +373,15 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     new ApiResponse(code = 404,
       message = "There are no schemas for this vendor, name combination")
   ))
-  def readNameRoute(v: List[String], n: List[String], o: String) =
+  def readNameRoute(v: List[String], n: List[String], o: String, p: String) =
     anyParam('filter.?) { filter =>
       filter match {
         case Some("metadata") => complete {
-          (schemaActor ? GetMetadataFromName(v, n, o))
+          (schemaActor ? GetMetadataFromName(v, n, o, p))
             .mapTo[(StatusCode, String)]
         }
         case _ => complete {
-          (schemaActor ? GetSchemasFromName(v, n, o))
+          (schemaActor ? GetSchemasFromName(v, n, o, p))
             .mapTo[(StatusCode, String)]
         }
       }
@@ -392,10 +391,9 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    * Route to retrieve every schema belonging to a vendor.
    */
   @ApiOperation(value = "Retrieves every schema belonging to a vendor",
-    notes = "Returns a collection of schemas", httpMethod = "GET",
-    position = 6)
+    notes = "Returns a collection of schemas", httpMethod = "GET", position = 6)
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "vendor",
+    new ApiImplicitParam(name = "vendors",
       value = "Comma-separated list of schema vendors",
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "filter", value = "Metadata filter",
@@ -410,15 +408,16 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     new ApiResponse(code = 404,
       message = "There are no schemas for this vendor")
   ))
-  def readVendorRoute(v: List[String], o: String) =
+  def readVendorRoute(v: List[String], o: String, p: String) =
     anyParam('filter.?) { filter =>
       filter match {
         case Some("metadata") => complete {
-          (schemaActor ? GetMetadataFromVendor(v, o))
+          (schemaActor ? GetMetadataFromVendor(v, o, p))
             .mapTo[(StatusCode, String)]
         }
         case _ => complete {
-          (schemaActor ? GetSchemasFromVendor(v, o)).mapTo[(StatusCode, String)]
+          (schemaActor ? GetSchemasFromVendor(v, o, p))
+            .mapTo[(StatusCode, String)]
         }
       }
     }
