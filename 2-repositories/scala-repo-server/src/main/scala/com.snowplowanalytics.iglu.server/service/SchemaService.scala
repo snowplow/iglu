@@ -127,6 +127,8 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
 
   /**
    * Post route
+   * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
    */
   @ApiOperation(value = "Adds a new schema to the repository",
     httpMethod = "POST", consumes= "application/json", position = 0)
@@ -176,6 +178,8 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
 
   /**
    * Put route
+   * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
    */
   @ApiOperation(value = "Updates or creates a schema in the repository",
     httpMethod = "PUT", consumes = "application/json", position = 1)
@@ -225,6 +229,8 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
 
   /**
    * Route to retrieve every public schemas
+   * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
    */
   @Path(value = "/public")
   @ApiOperation(value = "Retrieves every public schema",
@@ -243,20 +249,28 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       authentication, which was not supplied with the request"""),
     new ApiResponse(code = 404, message = "There are no schemas available here")
   ))
-  def publicSchemasRoute(o: String, p: String) =
+  def publicSchemasRoute(owner: String, permission: String) =
     anyParam('filter.?) { filter =>
       filter match {
         case Some("metadata") => complete {
-          (schemaActor ? GetPublicMetadata(o, p)).mapTo[(StatusCode, String)]
+          (schemaActor ? GetPublicMetadata(owner, permission))
+            .mapTo[(StatusCode, String)]
         }
         case _ => complete {
-          (schemaActor ? GetPublicSchemas(o, p)).mapTo[(StatusCode, String)]
+          (schemaActor ? GetPublicSchemas(owner, permission))
+            .mapTo[(StatusCode, String)]
         }
       }
     }
 
   /**
    * Route to retrieve single schemas.
+   * @param v list of schema vendors
+   * @param n list of schema names
+   * @param f list of schema formats
+   * @param vs list of schema versions
+   * @param o the owner of the API key the request was made with
+   * @param p API key's permission
    */
   @ApiOperation(value = """Retrieves a schema based on its (vendor, name,
     format, version)""", notes = "Returns a schema", httpMethod = "GET",
@@ -305,6 +319,11 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
 
   /**
    * Route to retrieve every version of a particular format of a schema.
+   * @param v list of schema vendors
+   * @param n list of schema names
+   * @param f list of schema formats
+   * @param o the owner of the API key the request was made with
+   * @param p API key's permission
    */
   @ApiOperation(value = """Retrieves every version of a particular format of a
     schema""", notes = "Returns a collection of schemas", httpMethod = "GET",
@@ -350,6 +369,10 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
 
   /**
    * Route to retrieve every version of every format of a schema.
+   * @param v list of schema vendors
+   * @param n list of schema names
+   * @param o the owner of the API key the request was made with
+   * @param p API key's permission
    */
   @ApiOperation(value = "Retrieves every version of every format of a schema",
     notes = "Returns a collection of schemas", httpMethod = "GET", position = 5)
@@ -389,6 +412,9 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
 
   /**
    * Route to retrieve every schema belonging to a vendor.
+   * @param v list of schema vendors
+   * @param o the owner of the API key the request was made with
+   * @param p API key's permission
    */
   @ApiOperation(value = "Retrieves every schema belonging to a vendor",
     notes = "Returns a collection of schemas", httpMethod = "GET", position = 6)

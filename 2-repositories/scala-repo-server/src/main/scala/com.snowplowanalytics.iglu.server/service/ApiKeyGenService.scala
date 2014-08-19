@@ -84,6 +84,7 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
 
   /**
    * Route to generate a pair of read and read and write API keys.
+   * @param owner the future owner of the pair of API keys
    */
   @ApiOperation(value = "Generates a pair of read and read/write API keys",
     notes = "Returns a pair of API keys", httpMethod = "POST")
@@ -111,6 +112,7 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
 
   /**
    * Route to delete every API key belonging to an owner.
+   * @param owner the owner of the API keys to be deleted
    */
   @ApiOperation(value = "Deletes every API key belonging to an owner",
     httpMethod = "DELETE")

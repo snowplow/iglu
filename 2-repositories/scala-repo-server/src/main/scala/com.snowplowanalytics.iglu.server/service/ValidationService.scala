@@ -84,6 +84,7 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
 
     /**
      * Route validating that the schema sent is self-describing.
+     * @param format the schema format to validate against
      */
     @ApiOperation(value = "Validates that a schema is self-describing",
       notes = "Returns a validation message", httpMethod = "GET")
@@ -112,6 +113,10 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
 
     /**
      * Route for validating an instance against its schema.
+     * @param v schema's vendor
+     * @param n schema's name
+     * @param f schema's format
+     * @param vs schema's version
      */
     @ApiOperation(value = "Validates an instance against its schema",
       notes = "Returns a validation message", httpMethod = "GET")
