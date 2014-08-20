@@ -156,7 +156,9 @@ class SchemaDAO(val db: Database) extends DAO {
                 s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
                 getPermission(s.vendor, owner, permission, s.isPublic))))
 
-        if (l.length > 0) {
+        if (l.length == 1) {
+          (OK, writePretty(l(0)))
+        } else if (l.length > 1) {
           (OK, writePretty(l))
         } else {
           (Unauthorized, result(401, "You do not have sufficient privileges"))
@@ -190,7 +192,9 @@ class SchemaDAO(val db: Database) extends DAO {
                   s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
                   getPermission(s.vendor, owner, permission, s.isPublic))))
 
-          if (l.length > 0) {
+          if (l.length == 1) {
+            (OK, writePretty(l(0)))
+          } else if (l.length > 1) {
             (OK, writePretty(l))
           } else {
             (Unauthorized, result(401, "You do not have sufficient privileges"))
@@ -227,7 +231,9 @@ class SchemaDAO(val db: Database) extends DAO {
                   s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
                   getPermission(s.vendor, owner, permission, s.isPublic))))
 
-          if (l.length > 0) {
+          if (l.length == 1) {
+            (OK, writePretty(l(0)))
+          } else if (l.length > 1) {
             (OK, writePretty(l))
           } else {
             (Unauthorized, result(401, "You do not have sufficient privileges"))
@@ -264,7 +270,9 @@ class SchemaDAO(val db: Database) extends DAO {
                   s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
                   getPermission(s.vendor, owner, permission, s.isPublic))))
 
-          if (l.length > 0) {
+          if (l.length == 1) {
+            (OK, writePretty(l(0)))
+          } else if (l.length > 1) {
             (OK, writePretty(l))
           } else {
             (Unauthorized, result(401, "You do not have sufficient privileges"))
@@ -304,7 +312,9 @@ class SchemaDAO(val db: Database) extends DAO {
                 s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
                 getPermission(s.vendor, owner, permission, s.isPublic))))
 
-        if (l.length > 0) {
+        if (l.length == 1) {
+          (OK, writePretty(l(0)))
+        } else if (l.length > 1) {
           (OK, writePretty(l))
         } else {
           (Unauthorized, result(401, "You do not have sufficient privileges"))
@@ -344,7 +354,9 @@ class SchemaDAO(val db: Database) extends DAO {
                 s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
                 getPermission(s.vendor, owner, permission, s.isPublic))))
 
-        if (l.length > 0) {
+        if (l.length == 1) {
+          (OK, writePretty(l(0)))
+        } else if (l.length > 1) {
           (OK, writePretty(l))
         } else {
           (Unauthorized, result(401, "You do not have sufficient privileges"))
@@ -384,7 +396,9 @@ class SchemaDAO(val db: Database) extends DAO {
                   s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
                   getPermission(s.vendor, owner, permission, s.isPublic))))
 
-          if (l.length > 0) {
+          if (l.length == 1) {
+            (OK, writePretty(l(0)))
+          } else if (l.length > 1) {
             (OK, writePretty(l))
           } else {
             (Unauthorized, result(401, "You do not have sufficient privileges"))
@@ -424,7 +438,9 @@ class SchemaDAO(val db: Database) extends DAO {
                   s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
                   getPermission(s.vendor, owner, permission, s.isPublic))))
 
-          if (l.length > 0) {
+          if (l.length == 1) {
+            (OK, writePretty(l(0)))
+          } else if (l.length > 1) {
             (OK, writePretty(l))
           } else {
             (Unauthorized, result(401, "You do not have sufficient privileges"))
@@ -450,7 +466,9 @@ class SchemaDAO(val db: Database) extends DAO {
             s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
             getPermission(s.vendor, owner, permission, s.isPublic))))
 
-      if (l.length > 0) {
+      if (l.length == 1) {
+        (OK, writePretty(l(0)))
+      } else if (l.length > 1) {
         (OK, writePretty(l))
       } else {
         (NotFound, result(404, "There are no public schemas available"))
@@ -475,7 +493,9 @@ class SchemaDAO(val db: Database) extends DAO {
             s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
             getPermission(s.vendor, owner, permission, s.isPublic))))
 
-      if (l.length > 0) {
+      if (l.length == 1) {
+        (OK, writePretty(l(0)))
+      } else if (l.length > 1) {
         (OK, writePretty(l))
       } else {
         (NotFound, result(404, "There are no public schemas avilable"))
