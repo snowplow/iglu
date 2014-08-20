@@ -19,9 +19,9 @@ import Keys._
 object BuildSettings {
   //Basic settings for our app
   lazy val basicSettings = Seq[Setting[_]](
-    organization            := "Snowplow Analytics Ltd",
-    version                 := "0.2.0",
-    description             := "Scala server for Iglu",
+    organization            := "com.snowplowanalytics",
+    version                 := "0.1.0",
+    description             := "Scala schema server for Iglu",
     scalaVersion            := "2.10.1",
     scalacOptions           := Seq("-deprecation", "-encoding", "utf8",
                                "-unchecked", "-feature", "-Xcheckinit"),
