@@ -28,6 +28,7 @@ import org.joda.time.LocalDateTime
 
 // Json4s
 import org.json4s.JValue
+import org.json4s.Extraction
 import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.writePretty
 
@@ -115,10 +116,10 @@ class SchemaDAO(val db: Database) extends DAO {
   val schemas = TableQuery[Schemas]
 
   //Case classes for json formatting
-  case class Permission(read: String, write: String)
+  case class MetadataContainer(metadata: Metadata)
   case class Metadata(location: String, createdAt: String, updatedAt: String,
     permissions: Permission)
-  case class ResSchema(schema: JValue, metadata: Metadata)
+  case class Permission(read: String, write: String)
   case class ResMetadata(vendor: String, name: String, format: String,
     version: String, metadata: Metadata)
 
@@ -151,14 +152,16 @@ class SchemaDAO(val db: Database) extends DAO {
       if (preliminaryList.length == 0) {
         (NotFound, result(404, "There are no schemas for this vendor"))
       } else {
-        val l: List[ResSchema] =
+        val l: List[JValue] =
           preliminaryList
             .filter(s => (s.vendor startsWith owner) || s.isPublic)
-            .map(s => ResSchema(parse(s.schema),
-              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-                s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
-                s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
-                getPermission(s.vendor, owner, permission, s.isPublic))))
+            .map(s =>
+              parse(s.schema) merge Extraction.decompose(
+                MetadataContainer(
+                  Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                    s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                    s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                    getPermission(s.vendor, owner, permission, s.isPublic)))))
 
         if (l.length == 1) {
           (OK, writePretty(l(0)))
@@ -228,14 +231,16 @@ class SchemaDAO(val db: Database) extends DAO {
           (NotFound, result(404,
             "There are no schemas for this vendor, name combination"))
         } else {
-          val l: List[ResSchema] =
+          val l: List[JValue] =
             preliminaryList
               .filter(s => (s.vendor startsWith owner) || s.isPublic)
-              .map(s => ResSchema(parse(s.schema),
-                Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-                  s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
-                  s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
-                  getPermission(s.vendor, owner, permission, s.isPublic))))
+              .map(s =>
+                parse(s.schema) merge Extraction.decompose(
+                  MetadataContainer(
+                    Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                      s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                      s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                      getPermission(s.vendor, owner, permission, s.isPublic)))))
 
           if (l.length == 1) {
             (OK, writePretty(l(0)))
@@ -311,14 +316,16 @@ class SchemaDAO(val db: Database) extends DAO {
         (NotFound, result(404,
           "There are no schemas for this vendor, name, format combination"))
       } else {
-        val l: List[ResSchema] =
+        val l: List[JValue] =
           preliminaryList
             .filter(s => (s.vendor startsWith owner) || s.isPublic)
-            .map(s => ResSchema(parse(s.schema),
-              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-                s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
-                s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
-                getPermission(s.vendor, owner, permission, s.isPublic))))
+            .map(s =>
+              parse(s.schema) merge Extraction.decompose(
+                MetadataContainer(
+                  Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                    s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                    s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                    getPermission(s.vendor, owner, permission, s.isPublic)))))
 
         if (l.length == 1) {
           (OK, writePretty(l(0)))
@@ -397,14 +404,16 @@ class SchemaDAO(val db: Database) extends DAO {
         if (preliminaryList.length == 0) {
           (NotFound, result(404, "There are no schemas available here"))
         } else {
-          val l: List[ResSchema] =
+          val l: List[JValue] =
             preliminaryList
               .filter(s => (s.vendor startsWith owner) || s.isPublic)
-              .map(s => ResSchema(parse(s.schema),
-                Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-                  s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
-                  s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
-                  getPermission(s.vendor, owner, permission, s.isPublic))))
+              .map(s =>
+                parse(s.schema) merge Extraction.decompose(
+                  MetadataContainer(
+                    Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                      s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                      s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                      getPermission(s.vendor, owner, permission, s.isPublic)))))
 
           if (l.length == 1) {
             (OK, writePretty(l(0)))
@@ -468,15 +477,17 @@ class SchemaDAO(val db: Database) extends DAO {
   def getPublicSchemas(owner: String, permission: String):
   (StatusCode, String) =
     db withDynSession {
-      val l: List[ResSchema] = (for {
+      val l: List[JValue] = (for {
         s <- schemas if s.isPublic
       } yield s)
         .list
-        .map(s => ResSchema(parse(s.schema),
-          Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-            s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
-            s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
-            getPermission(s.vendor, owner, permission, s.isPublic))))
+        .map(s =>
+          parse(s.schema) merge Extraction.decompose(
+            MetadataContainer(
+              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                getPermission(s.vendor, owner, permission, s.isPublic)))))
 
       if (l.length == 1) {
         (OK, writePretty(l(0)))
