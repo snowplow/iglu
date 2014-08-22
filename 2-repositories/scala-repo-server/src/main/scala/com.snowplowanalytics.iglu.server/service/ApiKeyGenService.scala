@@ -69,11 +69,13 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
         respondWithMediaType(`application/json`) {
           auth { authPair =>
             if (authPair._2 == "super") {
-              anyParam('owner) { owner =>
-                addRoute(owner) ~
-                deleteKeysRoute(owner)
+              post {
+                addRoute
               } ~
-              deleteKeyRoute
+              delete {
+                deleteKeysRoute ~
+                deleteKeyRoute
+              }
             } else {
               complete(Unauthorized, "You do not have sufficient privileges")
             }
@@ -84,7 +86,6 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
 
   /**
    * Route to generate a pair of read and read and write API keys.
-   * @param owner the future owner of the pair of API keys
    */
   @ApiOperation(value = "Generates a pair of read and read/write API keys",
     notes = "Returns a pair of API keys", httpMethod = "POST")
@@ -103,8 +104,8 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
       authentication, which was not supplied with the request"""),
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
-  def addRoute(owner: String) =
-    post {
+  def addRoute =
+    (anyParam('owner) | entity(as[String])) { owner =>
       complete {
         (apiKeyActor ? AddBothKey(owner)).mapTo[(StatusCode, String)]
       }
@@ -112,7 +113,6 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
 
   /**
    * Route to delete every API key belonging to an owner.
-   * @param owner the owner of the API keys to be deleted
    */
   @ApiOperation(value = "Deletes every API key belonging to an owner",
     httpMethod = "DELETE")
@@ -130,8 +130,8 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
       authentication, which was not supplied with the request"""),
     new ApiResponse(code = 404, message = "Owner not found")
   ))
-  def deleteKeysRoute(owner: String) =
-    delete {
+  def deleteKeysRoute =
+    anyParam('owner) { owner =>
       complete {
         (apiKeyActor ? DeleteKeys(owner)).mapTo[(StatusCode, String)]
       }
@@ -160,10 +160,8 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
   ))
   def deleteKeyRoute =
     anyParam('key) { key =>
-      delete {
-        complete {
-          (apiKeyActor ? DeleteKey(key)).mapTo[(StatusCode, String)]
-        }
+      complete {
+        (apiKeyActor ? DeleteKey(key)).mapTo[(StatusCode, String)]
       }
     }
 }

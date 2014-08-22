@@ -182,7 +182,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
 
   /**
    * Deletes all API keys belonging to the specified owner.
-   * @param owner ownere of the API keys we want to delete
+   * @param owner owner of the API keys we want to delete
    * @return a (status code, json response) pair
    */
   def deleteFromOwner(owner: String): (StatusCode, String) =

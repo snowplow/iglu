@@ -33,6 +33,7 @@ import org.specs2.time.NoTimeConversions
 // Spray
 import spray.http._
 import StatusCodes._
+import MediaTypes._
 import spray.testkit.Specs2RouteTest
 
 class ApiKeyGenServiceSpec extends Specification
@@ -56,8 +57,18 @@ class ApiKeyGenServiceSpec extends Specification
 
   val start = "/api/auth/"
   val deleteUrl = s"${start}keygen?key="
-  val ownerUrl = s"${start}keygen?owner=com.test.dont.take.this"
-  val conflictingOwnerUrl = s"${start}keygen?owner=com.test.dont"
+
+  val owner = "com.test.dont.take.this"
+  val faultyOwner = "com.test.dont"
+  val owner2 = "com.unittest"
+  val faultyOwner2 = "com.unit"
+  val owner3 = "com.no.idea"
+  val faultyOwner3 = "com.no"
+
+  //postUrl
+  val postUrl1 = s"${start}keygen?owner=${owner}"
+  val postUrl2 = s"${start}keygen"
+  val conflictingPostUrl1 = s"${start}keygen?owner=${faultyOwner}"
 
   sequential
 
@@ -65,54 +76,150 @@ class ApiKeyGenServiceSpec extends Specification
 
     "for POST requests" should {
 
-      "return a 401 if the key provided is not super" in {
-        Post(ownerUrl) ~> addHeader("api_key", notSuperKey) ~>
-          sealRoute(routes) ~> check {
-            status === Unauthorized
-            responseAs[String] must contain("You do not have sufficient privil")
-          }
+      "return a 401 if the key provided is not super with query param" in {
+        Post(postUrl1) ~> addHeader("api_key", notSuperKey) ~>
+        sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("You do not have sufficient privileges")
+        }
       }
 
-      "return a 401 if the key provided is not an uuid" in {
-        Post(ownerUrl) ~> addHeader("api_key", notUuidKey) ~>
-          sealRoute(routes) ~> check {
-            status === Unauthorized
-            responseAs[String] must
-              contain("The supplied authentication is invalid")
-          }
+      "return a 401 if the key provided is not super with form data" in {
+        Post(postUrl2, FormData(Seq("owner" -> owner2))) ~>
+        addHeader("api_key", notSuperKey) ~> sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("You do not have sufficient privileges")
+        }
+      }
+
+      "return a 401 if the key provided is not super with body request" in {
+        Post(postUrl2, HttpEntity(`application/json`, owner3)) ~>
+        addHeader("api_key", notSuperKey) ~> sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("You do not have sufficient privileges")
+        }
+      }
+
+      "return a 401 if the key provided is not an uuid with query param" in {
+        Post(postUrl1) ~> addHeader("api_key", notUuidKey) ~>
+        sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("The supplied authentication is invalid")
+        }
+      }
+
+      "return a 401 if the key provided is not an uuid with form data" in {
+        Post(postUrl2, FormData(Seq("owner" -> owner2))) ~>
+        addHeader("api_key", notUuidKey) ~> sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("The supplied authentication is invalid")
+        }
+      }
+
+      "return a 401 if the key provided is not an uuid with body request" in {
+        Post(postUrl2, HttpEntity(`application/json`, owner3)) ~>
+        addHeader("api_key", notUuidKey) ~> sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("The supplied authentication is invalid")
+        }
       }
       
-      """return a proper json with the keys if the owner is not colliding with
-        anyone""" in {
-          Post(ownerUrl) ~> addHeader("api_key", superKey) ~>
-            sealRoute(routes) ~> check {
-              status === Created
-              val response = responseAs[String]
-              response must contain("read") and contain("write")
-              val map = parse(response).extract[Map[String, String]]
-              readKey = map getOrElse("read", "")
-              writeKey = map getOrElse("write", "")
-              readKey must beMatching(uidRegex)
-              writeKey must beMatching(uidRegex)
-            }
+      """return a 200 with the keys if the owner is not colliding with anyone
+      with query param""" in {
+        Post(postUrl1) ~> addHeader("api_key", superKey) ~>
+        sealRoute(routes) ~> check {
+          status === Created
+          val response = responseAs[String]
+          response must contain("read") and contain("write")
+          val map = parse(response).extract[Map[String, String]]
+          readKey = map getOrElse("read", "")
+          writeKey = map getOrElse("write", "")
+          readKey must beMatching(uidRegex)
+          writeKey must beMatching(uidRegex)
         }
-
-      "return a 401 if the new owner already exists" in {
-        Post(ownerUrl) ~> addHeader("api_key", superKey) ~>
-          sealRoute(routes) ~> check {
-            status === Unauthorized
-            responseAs[String] must
-              contain("This owner is conflicting with an existing one")
-          }
       }
 
-      "return a 401 if a new owner is conflicting with an existing one" in {
-        Post(conflictingOwnerUrl) ~> addHeader("api_key", superKey) ~>
-          sealRoute(routes) ~> check {
-            status === Unauthorized
-            responseAs[String] must
-              contain("This owner is conflicting with an existing one")
-          }
+      //to manually delete
+      """return a 200 with the keys if the owner is not colliding with anyone
+      with form data""" in {
+        Post(postUrl2, FormData(Seq("owner" -> owner2))) ~>
+        addHeader("api_key", superKey) ~> sealRoute(routes) ~> check {
+          status === Created
+          responseAs[String] must contain("read") and contain("write")
+        }
+      }
+
+      //to manually delete
+      """return a 200 with the keys if the owner is not colliding with anyone
+      with body request""" in {
+        Post(postUrl2, HttpEntity(`application/json`, owner3)) ~>
+        addHeader("api_key", superKey) ~> sealRoute(routes) ~> check {
+          status === Created
+          responseAs[String] must contain("read") and contain("write")
+        }
+      }
+
+      "return a 401 if the owner already exists with quer param" in {
+        Post(postUrl1) ~> addHeader("api_key", superKey) ~>
+        sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("This owner is conflicting with an existing one")
+        }
+      }
+
+      "return a 401 if the owner already exists with form data" in {
+        Post(postUrl2, FormData(Seq("owner" -> owner2))) ~>
+        addHeader("api_key", superKey) ~> sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("This owner is conflicting with an existing one")
+        }
+      }
+
+      "return a 401 if the owner already exists with body request" in {
+        Post(postUrl2, HttpEntity(`application/json`, owner3)) ~>
+        addHeader("api_key", superKey) ~> sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("This owner is conflicting with an existing one")
+        }
+      }
+
+      """return a 401 if the new owner is conflicting with an existing one with
+      query param""" in {
+        Post(conflictingPostUrl1) ~> addHeader("api_key", superKey) ~>
+        sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("This owner is conflicting with an existing one")
+        }
+      }
+
+      """return a 401 if the new owner is conflicting with an existing one with
+      form data""" in {
+        Post(postUrl2, FormData(Seq("owner" -> faultyOwner2))) ~>
+        addHeader("api_key", superKey) ~> sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("This owner is conflicting with an existing one")
+        }
+      }
+
+      """return a 401 if the new owner is conflicting with an existing one with
+      body request""" in {
+        Post(postUrl2, HttpEntity(`application/json`, faultyOwner3)) ~>
+        addHeader("api_key", superKey) ~> sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must
+            contain("This owner is conflicting with an existing one")
+        }
       }
     }
 
@@ -120,53 +227,53 @@ class ApiKeyGenServiceSpec extends Specification
 
       "return a 401 if the key provided is not super" in {
         Delete(deleteUrl + readKey) ~> addHeader("api_key", notSuperKey) ~>
-          sealRoute(routes) ~> check {
-            status === Unauthorized
-            responseAs[String] must contain("You do not have sufficient privil")
-          }
+        sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must contain("You do not have sufficient privileg")
+        }
       }
 
       "return a 404 if the key is not found" in {
         Delete(deleteUrl + UUID.randomUUID().toString) ~>
-          addHeader("api_key", superKey) ~> sealRoute(routes) ~> check {
-            status === NotFound
-            responseAs[String] must contain("API key not found")
-          }
+        addHeader("api_key", superKey) ~> sealRoute(routes) ~> check {
+          status === NotFound
+          responseAs[String] must contain("API key not found")
+        }
       }
 
       "return a 200 if the key is found and sufficient privileges" in {
         Delete(deleteUrl + readKey) ~> addHeader("api_key", superKey) ~>
-          sealRoute(routes) ~> check {
-            status === OK
-            responseAs[String] must contain("API key successfully deleted")
-          }
+        sealRoute(routes) ~> check {
+          status === OK
+          responseAs[String] must contain("API key successfully deleted")
+        }
       }
     }
 
     "for DELETE requests with owner param" should {
 
       "return a 401 if the key provided is not super" in {
-        Delete(ownerUrl) ~> addHeader("api_key", notSuperKey) ~>
-          sealRoute(routes) ~> check {
-            status === Unauthorized
-            responseAs[String] must contain("You do not have sufficient privil")
-          }
+        Delete(postUrl1) ~> addHeader("api_key", notSuperKey) ~>
+        sealRoute(routes) ~> check {
+          status === Unauthorized
+          responseAs[String] must contain("You do not have sufficient privileg")
+        }
       }
 
       "return a 200 if there are keys associated with this owner" in {
-        Delete(ownerUrl) ~> addHeader("api_key", superKey) ~>
-          sealRoute(routes) ~> check {
-            status === OK
-            responseAs[String] must contain("API key deleted for ")
-          }
+        Delete(postUrl1) ~> addHeader("api_key", superKey) ~>
+        sealRoute(routes) ~> check {
+          status === OK
+          responseAs[String] must contain("API key deleted for ")
+        }
       }
 
       "return a 404 if there are no keys associated with this owner" in {
-        Delete(ownerUrl) ~> addHeader("api_key", superKey) ~>
-          sealRoute(routes) ~> check {
-            status === NotFound
-            responseAs[String] must contain("Owner not found")
-          }
+        Delete(postUrl1) ~> addHeader("api_key", superKey) ~>
+        sealRoute(routes) ~> check {
+          status === NotFound
+          responseAs[String] must contain("Owner not found")
+        }
       }
     }
   }
