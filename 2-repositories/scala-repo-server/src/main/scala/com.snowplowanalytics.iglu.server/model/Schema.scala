@@ -85,6 +85,7 @@ class SchemaDAO(val db: Database) extends DAO {
     schema: String,
     //schema: JValue,
     createdAt: LocalDateTime,
+    updatedAt: LocalDateTime,
     isPublic: Boolean
   )
 
@@ -102,10 +103,12 @@ class SchemaDAO(val db: Database) extends DAO {
     //def schema = column[JValue]("schema", O.DBType("json"), O.NotNull)
     def createdAt = column[LocalDateTime]("createdat", O.DBType("timestamp"),
       O.NotNull)
+    def updatedAt = column[LocalDateTime]("updatedat", O.DBType("timestamp"),
+      O.NotNull)
     def isPublic = column[Boolean]("ispublic", O.DBType("boolean"), O.NotNull)
 
     def * = (schemaId, vendor, name, format, version, schema, createdAt,
-      isPublic) <> (Schema.tupled, Schema.unapply)
+      updatedAt, isPublic) <> (Schema.tupled, Schema.unapply)
   }
 
   //Object used to access the table
@@ -113,7 +116,7 @@ class SchemaDAO(val db: Database) extends DAO {
 
   //Case classes for json formatting
   case class Permission(read: String, write: String)
-  case class Metadata(location: String, createdAt: String,
+  case class Metadata(location: String, createdAt: String, updatedAt: String,
     permissions: Permission)
   case class ResSchema(schema: JValue, metadata: Metadata)
   case class ResMetadata(vendor: String, name: String, format: String,
@@ -154,6 +157,7 @@ class SchemaDAO(val db: Database) extends DAO {
             .map(s => ResSchema(parse(s.schema),
               Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
                 s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
                 getPermission(s.vendor, owner, permission, s.isPublic))))
 
         if (l.length == 1) {
@@ -190,6 +194,7 @@ class SchemaDAO(val db: Database) extends DAO {
               .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
                 Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
                   s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
                   getPermission(s.vendor, owner, permission, s.isPublic))))
 
           if (l.length == 1) {
@@ -229,6 +234,7 @@ class SchemaDAO(val db: Database) extends DAO {
               .map(s => ResSchema(parse(s.schema),
                 Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
                   s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
                   getPermission(s.vendor, owner, permission, s.isPublic))))
 
           if (l.length == 1) {
@@ -268,6 +274,7 @@ class SchemaDAO(val db: Database) extends DAO {
               .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
                 Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
                   s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
                   getPermission(s.vendor, owner, permission, s.isPublic))))
 
           if (l.length == 1) {
@@ -310,6 +317,7 @@ class SchemaDAO(val db: Database) extends DAO {
             .map(s => ResSchema(parse(s.schema),
               Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
                 s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
                 getPermission(s.vendor, owner, permission, s.isPublic))))
 
         if (l.length == 1) {
@@ -352,6 +360,7 @@ class SchemaDAO(val db: Database) extends DAO {
             .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
               Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
                 s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
                 getPermission(s.vendor, owner, permission, s.isPublic))))
 
         if (l.length == 1) {
@@ -394,6 +403,7 @@ class SchemaDAO(val db: Database) extends DAO {
               .map(s => ResSchema(parse(s.schema),
                 Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
                   s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
                   getPermission(s.vendor, owner, permission, s.isPublic))))
 
           if (l.length == 1) {
@@ -436,6 +446,7 @@ class SchemaDAO(val db: Database) extends DAO {
               .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
                 Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
                   s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
                   getPermission(s.vendor, owner, permission, s.isPublic))))
 
           if (l.length == 1) {
@@ -464,6 +475,7 @@ class SchemaDAO(val db: Database) extends DAO {
         .map(s => ResSchema(parse(s.schema),
           Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
             s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+            s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
             getPermission(s.vendor, owner, permission, s.isPublic))))
 
       if (l.length == 1) {
@@ -491,6 +503,7 @@ class SchemaDAO(val db: Database) extends DAO {
         .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
           Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
             s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+            s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
             getPermission(s.vendor, owner, permission, s.isPublic))))
 
       if (l.length == 1) {
@@ -525,7 +538,7 @@ class SchemaDAO(val db: Database) extends DAO {
                 result(401, "This schema already exists"))
               case _ => schemas.insert(
                 Schema(0, vendor, name, format, version, schema,
-                  new LocalDateTime(), isPublic)) match {
+                  new LocalDateTime(), new LocalDateTime(), isPublic)) match {
                     case 0 => (InternalServerError,
                       result(500, "Something went wrong"))
                     case n => (Created, result(201, "Schema successfully added",
@@ -562,8 +575,8 @@ class SchemaDAO(val db: Database) extends DAO {
                      s.name === name &&
                      s.format === format &&
                      s.version === version)
-                   .map(s => (s.schema, s.isPublic))
-                   .update(schema, isPublic) match {
+                   .map(s => (s.schema, s.isPublic, s.updatedAt))
+                   .update(schema, isPublic, new LocalDateTime()) match {
                      case 1 => (OK, result(200, "Schema successfully updated",
                        buildLoc(vendor, name, format, version)))
                      case _ => (InternalServerError,
@@ -573,7 +586,8 @@ class SchemaDAO(val db: Database) extends DAO {
                  schemas
                    .insert(
                      Schema(0, vendor, name, format, version, schema,
-                       new LocalDateTime(), isPublic)) match {
+                       new LocalDateTime(), new LocalDateTime(),
+                       isPublic)) match {
                          case 0 => (InternalServerError,
                            result(500, "Something went wrong"))
                          case n => (Created,
