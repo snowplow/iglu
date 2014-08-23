@@ -18,7 +18,6 @@ package actor
 
 // This project
 import model.SchemaDAO
-import util.Config
 
 // Akka
 import akka.actor.Actor
@@ -196,7 +195,7 @@ class SchemaActor extends Actor {
   import SchemaActor._
 
   // Schema model
-  private val schema = new SchemaDAO(Config.db)
+  private val schema = new SchemaDAO(BootedCore.db)
 
   /**
    * Method specifying how the actor should handle the incoming messages.

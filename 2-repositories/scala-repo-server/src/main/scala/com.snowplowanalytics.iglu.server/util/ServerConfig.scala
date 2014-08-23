@@ -18,14 +18,13 @@ package util
 // This project
 import IgluPostgresDriver.simple._
 
-import com.typesafe.config.ConfigFactory
+// Config
+import com.typesafe.config.Config
 
 /**
  * Config object getting the information stored in application.conf
  */
-object Config {
-
-  val config = ConfigFactory.load()
+class ServerConfig(config: Config) {
 
   //Interface on which the server will be running
   val interface = config.getString("repo-server.interface")

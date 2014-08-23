@@ -19,11 +19,20 @@ package com.snowplowanalytics.iglu.server
 import actor.{ SchemaActor, ApiKeyActor }
 import model.{ SchemaDAO, ApiKeyDAO }
 import service.RoutedHttpService
-import util.Config
+import util.ServerConfig
 
 // Akka
 import akka.actor.{ ActorSystem, Props }
 import akka.io.IO
+
+// Argot
+import org.clapper.argot._
+
+// Config
+import com.typesafe.config.{ ConfigFactory, Config }
+
+// Java
+import java.io.File
 
 // Spray
 import spray.can.Http
@@ -41,10 +50,39 @@ import slick.jdbc.meta.MTable
  * It registers the termination handler to stop the actor system when the
  * JVM shuts down as well.
  */
-trait BootedCore extends Core with Api {
+object BootedCore extends App with Core with CoreActors with Api {
+
+  // Command line argument parser
+  val parser = new ArgotParser(
+    programName = generated.Settings.name,
+    compactUsage = true,
+    preUsage = Some("%s: Version %s. Copyright (c) 2014, %s.".format(
+      generated.Settings.name,
+      generated.Settings.version,
+      generated.Settings.organization)
+    )
+  )
+
+  val config = parser.option[Config](List("config"), "filename",
+    "Configuration file. Defaults to \"resources/application.conf\" " +
+    "(within .jar) if not set") { (c, opt) =>
+      val file = new File(c)
+      if (file.exists) {
+        ConfigFactory.parseFile(file)
+      } else {
+        parser.usage("Configuration file \"%s\" does not exist".format(c))
+        ConfigFactory.empty
+      }
+    }
+  parser.parse(args)
+
+  val rawConf = config.value.getOrElse(ConfigFactory.load("application"))
+  val serverConfig = new ServerConfig(rawConf)
+
+  val db = serverConfig.db
 
   // Creates a new ActorSystem
-  def system = ActorSystem("iglu-server")
+  def system = ActorSystem("iglu-server", rawConf)
   def actorRefFactory = system
 
   // Starts a new http service
@@ -52,18 +90,18 @@ trait BootedCore extends Core with Api {
 
   // Creates the necessary table is they are not already present in the
   // database
-  Config.db withDynSession {
+  db withDynSession {
     if (MTable.getTables("schemas").list.isEmpty) {
-      new SchemaDAO(Config.db).createTable
+      new SchemaDAO(db).createTable
     }
     if (MTable.getTables("apikeys").list.isEmpty) {
-      new ApiKeyDAO(Config.db).createTable
+      new ApiKeyDAO(db).createTable
     }
   }
 
   // Starts the server
   IO(Http)(system) !
-    Http.Bind(rootService, Config.interface, port = Config.port)
+    Http.Bind(rootService, serverConfig.interface, port = serverConfig.port)
 
   // Register the termination handler for when the JVM shuts down
   sys.addShutdownHook(system.shutdown())
