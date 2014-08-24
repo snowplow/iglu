@@ -18,7 +18,6 @@ package test.model
 // This project
 import model.ApiKeyDAO
 import util.IgluPostgresDriver.simple._
-import util.Config
 
 // Java
 import java.util.UUID

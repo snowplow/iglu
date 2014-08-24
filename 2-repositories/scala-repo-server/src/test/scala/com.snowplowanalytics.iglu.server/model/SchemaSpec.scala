@@ -18,7 +18,6 @@ package test.model
 // This project
 import model.SchemaDAO
 import util.IgluPostgresDriver.simple._
-import util.Config
 
 // Slick
 import scala.slick.driver.JdbcDriver.backend.Database.dynamicSession
