@@ -59,7 +59,8 @@ object BuildSettings {
       _.copy(prependShellScript = Some(defaultShellScript))
     },
     // Name it as an executable
-    jarName in assembly := { s"${name.value}-${version.value}" }
+    jarName in assembly := { s"${name.value}-${version.value}" },
+    test in assembly := {}
   )
 
   lazy val buildSettings = basicSettings ++ scalifySettings ++
