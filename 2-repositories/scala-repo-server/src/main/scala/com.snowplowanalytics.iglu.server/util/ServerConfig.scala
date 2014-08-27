@@ -19,12 +19,14 @@ package util
 import IgluPostgresDriver.simple._
 
 // Config
-import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
 
 /**
  * Config object getting the information stored in application.conf
  */
-class ServerConfig(config: Config) {
+object ServerConfig {
+
+  val config = BootedCore.config.value.getOrElse(ConfigFactory.load)
 
   //Interface on which the server will be running
   val interface = config.getString("repo-server.interface")

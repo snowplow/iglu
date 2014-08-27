@@ -31,13 +31,13 @@ trait Api extends HttpService with CoreActors with Core {
   lazy val routes =
     pathPrefix("api") {
       pathPrefix("auth") {
-        new ApiKeyGenService(apiKey).routes
+        new ApiKeyGenService(apiKeyActor).routes
       } ~
       pathPrefix("schemas") {
         pathPrefix("validate") {
-          new ValidationService(schema, apiKey).routes
+          new ValidationService(schemaActor, apiKeyActor).routes
         } ~
-        new SchemaService(schema, apiKey).routes
+        new SchemaService(schemaActor, apiKeyActor).routes
       }
     } ~
     get {

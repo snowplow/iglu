@@ -76,13 +76,8 @@ object BootedCore extends App with Core with CoreActors with Api {
     }
   parser.parse(args)
 
-  val rawConf = config.value.getOrElse(ConfigFactory.load("application"))
-  val serverConfig = new ServerConfig(rawConf)
-
-  val db = serverConfig.db
-
   // Creates a new ActorSystem
-  def system = ActorSystem("iglu-server", rawConf)
+  def system = ActorSystem("iglu-server")
   def actorRefFactory = system
 
   // Starts a new http service
@@ -90,18 +85,18 @@ object BootedCore extends App with Core with CoreActors with Api {
 
   // Creates the necessary table is they are not already present in the
   // database
-  db withDynSession {
+  ServerConfig.db withDynSession {
     if (MTable.getTables("schemas").list.isEmpty) {
-      new SchemaDAO(db).createTable
+      new SchemaDAO(ServerConfig.db).createTable
     }
     if (MTable.getTables("apikeys").list.isEmpty) {
-      new ApiKeyDAO(db).createTable
+      new ApiKeyDAO(ServerConfig.db).createTable
     }
   }
 
   // Starts the server
   IO(Http)(system) !
-    Http.Bind(rootService, serverConfig.interface, port = serverConfig.port)
+    Http.Bind(rootService, ServerConfig.interface, port = ServerConfig.port)
 
   // Register the termination handler for when the JVM shuts down
   sys.addShutdownHook(system.shutdown())
@@ -117,6 +112,6 @@ trait Core {
 trait CoreActors {
   this: Core =>
 
-  lazy val schema = system.actorOf(Props[SchemaActor])
-  lazy val apiKey = system.actorOf(Props[ApiKeyActor])
+  lazy val schemaActor = system.actorOf(Props[SchemaActor])
+  lazy val apiKeyActor = system.actorOf(Props[ApiKeyActor])
 }

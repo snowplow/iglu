@@ -18,6 +18,7 @@ package actor
 
 // This project
 import model.ApiKeyDAO
+import util.ServerConfig
 
 // Akka
 import akka.actor.Actor
@@ -66,7 +67,7 @@ class ApiKeyActor extends Actor {
   import ApiKeyActor._
 
   // ApiKey model
-  val apiKey = new ApiKeyDAO(BootedCore.db)
+  val apiKey = new ApiKeyDAO(ServerConfig.db)
 
   /**
    * Method specifying how the actor should handle the incoming messages.

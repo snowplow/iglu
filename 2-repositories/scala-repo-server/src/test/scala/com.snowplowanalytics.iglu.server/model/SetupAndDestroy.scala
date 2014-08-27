@@ -15,6 +15,9 @@
 package com.snowplowanalytics.iglu.server
 package test.model
 
+// This project
+import util.ServerConfig
+
 // Slick
 import slick.driver.JdbcDriver.backend.Database
 import Database.dynamicSession
@@ -23,14 +26,12 @@ import slick.jdbc.{ StaticQuery => Q }
 trait SetupAndDestroy extends BeforeAndAfterAll {
   private val dbName = getClass.getSimpleName.toLowerCase
 
-  val config = BootedCore.serverConfig
-
   private val db = Database.forURL(
-    url =
-      s"jdbc:postgresql://${config.pgHost}:${config.pgPort}/${config.pgDbName}",
-    user = config.pgUsername,
-    password = config.pgPassword,
-    driver = config.pgDriver
+    url =  s"jdbc:postgresql://${ServerConfig.pgHost}:${ServerConfig.pgPort}/" +
+      s"${ServerConfig.pgDbName}",
+    user = ServerConfig.pgUsername,
+    password = ServerConfig.pgPassword,
+    driver = ServerConfig.pgDriver
   )
 
   def beforeAll() {
@@ -47,10 +48,10 @@ trait SetupAndDestroy extends BeforeAndAfterAll {
   }
 
   val database = Database.forURL(
-    url =
-      s"jdbc:postgresql://${config.pgHost}:${config.pgPort}/${dbName}",
-    user = config.pgUsername,
-    password = config.pgPassword,
-    driver = config.pgDriver
+    url = s"jdbc:postgresql://${ServerConfig.pgHost}:${ServerConfig.pgPort}/" +
+      s"${dbName}",
+    user = ServerConfig.pgUsername,
+    password = ServerConfig.pgPassword,
+    driver = ServerConfig.pgDriver
   )
 }
