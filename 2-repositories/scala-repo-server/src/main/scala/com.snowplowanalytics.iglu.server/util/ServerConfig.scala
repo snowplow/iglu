@@ -26,7 +26,7 @@ import com.typesafe.config.ConfigFactory
  */
 object ServerConfig {
 
-  val config = BootedCore.config.value.getOrElse(ConfigFactory.load)
+  val config = ConfigFactory.load
 
   //Interface on which the server will be running
   val interface = config.getString("repo-server.interface")
