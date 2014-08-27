@@ -44,8 +44,8 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
   implicit val formats = DefaultFormats
 
   val tableName = "apikeys"
-  val owner = "com.unittest"
-  val faultyOwner = "com.unit"
+  val vendorPrefix = "com.unittest"
+  val faultyVendorPrefix = "com.unit"
   val notUid = "this-is-not-an-uuid"
 
   var readKey = ""
@@ -71,7 +71,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
     "for addReadWrite" should {
 
       "add the API keys properly" in {
-        val (status, res) = apiKey.addReadWrite(owner)
+        val (status, res) = apiKey.addReadWrite(vendorPrefix)
         val map = parse(res).extract[Map[String, String]]
 
         readKey = map getOrElse("read", "")
@@ -92,20 +92,22 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where owner = '${owner}';""").first === 2
+            where vendor_prefix = '${vendorPrefix}';""").first === 2
         }
       }
 
-      "not add API keys if the owner is conflicting with an existing one" in {
-        val (status, res) = apiKey.addReadWrite(faultyOwner)
+      "not add API keys if the vendor prefix is conflicting with an existing" +
+      "one" in {
+        val (status, res) = apiKey.addReadWrite(faultyVendorPrefix)
         status === Unauthorized
-        res must contain("This owner is conflicting with an existing one")
+        res must
+          contain("This vendor prefix is conflicting with an existing one")
 
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where owner = '${faultyOwner}';""").first === 0
+            where vendor_prefix = '${faultyVendorPrefix}';""").first === 0
         }
       }
     }
@@ -114,8 +116,8 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
 
       "properly retrieve the API key" in {
         apiKey.get(readKey) match {
-          case Some((owner, permission)) =>
-            owner must contain(owner)
+          case Some((vendorPrefix, permission)) =>
+            vendorPrefix must contain(vendorPrefix)
             permission must contain("read")
           case _ => failure
         }
@@ -186,31 +188,32 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
       }
     }
 
-    "for deleteFromOwner" should {
+    "for deleteFromVendorPrefix" should {
 
-      "properly delete API keys associated with an owner" in {
-        val (status, res) = apiKey.deleteFromOwner(owner)
+      "properly delete API keys associated with a vendor prefix" in {
+        val (status, res) = apiKey.deleteFromVendorPrefix(vendorPrefix)
         status === OK
-        res must contain("API key deleted for " + owner)
+        res must contain("API key deleted for " + vendorPrefix)
 
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where owner = '${owner}';""").first === 0
+            where vendor_prefix = '${vendorPrefix}';""").first === 0
         }
       }
 
-      "return a 404 if there are no API keys associated with this owner" in {
-        val (status, res) = apiKey.deleteFromOwner(owner)
+      "return a 404 if there are no API keys associated with this vendor" +
+      "prefix" in {
+        val (status, res) = apiKey.deleteFromVendorPrefix(vendorPrefix)
         status === NotFound
-        res must contain("Owner not found")
+        res must contain("Vendor prefix not found")
 
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where owner = '${owner}';""").first === 0
+            where vendor_prefix = '${vendorPrefix}';""").first === 0
         }
       }
     }

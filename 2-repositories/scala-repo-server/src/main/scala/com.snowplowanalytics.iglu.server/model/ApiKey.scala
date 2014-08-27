@@ -48,13 +48,13 @@ class ApiKeyDAO(val db: Database) extends DAO {
    * Case class representing an API key in the database.
    * @constructor create an API key object from required data
    * @param uid API key uuid serving as primary key
-   * @param owner of the API key
+   * @param vendorPrefix of the API key
    * @param permission API key permission in (read, write, super)
    * @param createdAt date at which point the API key was created
    */
   case class ApiKey(
     uid: UUID,
-    owner: String,
+    vendorPrefix: String,
     permission: String,
     createdAt: LocalDateTime
   )
@@ -64,13 +64,14 @@ class ApiKeyDAO(val db: Database) extends DAO {
    */
   class ApiKeys(tag: Tag) extends Table[ApiKey](tag, "apikeys") {
     def uid = column[UUID]("uid", O.PrimaryKey, O.DBType("uuid"))
-    def owner = column[String]("owner", O.DBType("varchar(200)"), O.NotNull)
+    def vendorPrefix = column[String]("vendor_prefix", O.DBType("varchar(200)"),
+      O.NotNull)
     def permission = column[String]("permission",
       O.DBType("varchar(20)"), O.NotNull, O.Default[String]("read"))
     def createdAt = column[LocalDateTime]("createdat", O.DBType("timestamp"),
       O.NotNull)
 
-    def * = (uid, owner, permission, createdAt) <>
+    def * = (uid, vendorPrefix, permission, createdAt) <>
       (ApiKey.tupled, ApiKey.unapply)
   }
 
@@ -90,14 +91,17 @@ class ApiKeyDAO(val db: Database) extends DAO {
   /**
    * Gets an API key from an uuid.
    * @param uid the API key's uuid
-   * @return an option containing a (owner, permission) pair
+   * @return an option containing a (vendorPrefix, permission) pair
    */
   def get(uid: String): Option[(String, String)] = {
     if (uid matches uidRegex) {
       val uuid = UUID.fromString(uid)
       db withDynSession {
-        val l: List[(String, String)] = apiKeys.filter(_.uid === uuid).
-          map(k => (k.owner, k.permission)).list
+        val l: List[(String, String)] =
+          apiKeys
+            .filter(_.uid === uuid)
+            .map(k => (k.vendorPrefix, k.permission))
+            .list
         if (l.length == 1) {
           Some(l(0))
         } else {
@@ -110,44 +114,49 @@ class ApiKeyDAO(val db: Database) extends DAO {
   }
 
   /**
-   * Validates that a new owner is not conflicting with an existing one
+   * Validates that a new vendorPrefix is not conflicting with an existing one
    * (same prefix).
-   * @param owner owner of the new API keys being validated
-   * @return a boolean indicating whether or not we allow this new API key owner
+   * @param vendorPrefix vendorPrefix of the new API keys being validated
+   * @return a boolean indicating whether or not we allow this new API key
+   * vendor prefix
    */
-  private def validate(owner: String): Boolean =
+  private def validate(vendorPrefix: String): Boolean =
     db withDynSession {
-      apiKeys.map(_.owner).list.
-        filter(o => o.startsWith(owner) || owner.startsWith(o) || o == owner).
-        length == 0
+      apiKeys
+        .map(_.vendorPrefix)
+        .list
+        .filter(o => o.startsWith(vendorPrefix) || vendorPrefix.startsWith(o) ||
+          o == vendorPrefix)
+        .length == 0
     }
 
   /**
    * Adds a new API key.
-   * @param owner owner of the new API key
+   * @param vendorPrefix vendorPrefix of the new API key
    * @param permission permission of the new API key
    * @return a status code and a json response pair
    */
-  private def add(owner: String, permission: String): (StatusCode, String) =
+  private def add(vendorPrefix: String, permission: String):
+  (StatusCode, String) =
     db withDynSession {
       val uid = UUID.randomUUID()
       apiKeys.insert(
-        ApiKey(uid, owner, permission, new LocalDateTime())) match {
+        ApiKey(uid, vendorPrefix, permission, new LocalDateTime())) match {
           case 0 => (InternalServerError, "Something went wrong")
           case n => (OK, uid.toString)
         }
     }
 
   /**
-   * Adds both read and write API keys for an owner after validating it.
-   * @param owner owner of the new pair of keys
+   * Adds both read and write API keys for a vendor prefix after validating it.
+   * @param vendorPrefix vendorPrefix of the new pair of keys
    * @returns a status code and a json containing the pair of API keys.
    */
-  def addReadWrite(owner: String): (StatusCode, String) =
+  def addReadWrite(vendorPrefix: String): (StatusCode, String) =
     db withDynSession {
-      if (validate(owner)) {
-        val (statusRead, keyRead) = add(owner, "read")
-        val (statusWrite, keyWrite) = add(owner, "write")
+      if (validate(vendorPrefix)) {
+        val (statusRead, keyRead) = add(vendorPrefix, "read")
+        val (statusWrite, keyWrite) = add(vendorPrefix, "write")
 
         if(statusRead == InternalServerError ||
           statusWrite == InternalServerError) {
@@ -158,7 +167,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
             (Created, writePretty(Map("read" -> keyRead, "write" -> keyWrite)))
           }
       } else {
-        (Unauthorized, "This owner is conflicting with an existing one")
+        (Unauthorized, "This vendor prefix is conflicting with an existing one")
       }
     }
 
@@ -181,16 +190,16 @@ class ApiKeyDAO(val db: Database) extends DAO {
     }
 
   /**
-   * Deletes all API keys belonging to the specified owner.
-   * @param owner owner of the API keys we want to delete
+   * Deletes all API keys having to the specified vendor prefix.
+   * @param vendorPrefix vendor prefix of the API keys we want to delete
    * @return a (status code, json response) pair
    */
-  def deleteFromOwner(owner: String): (StatusCode, String) =
+  def deleteFromVendorPrefix(vendorPrefix: String): (StatusCode, String) =
     db withDynSession {
-      apiKeys.filter(_.owner === owner).delete match {
-        case 0 => (NotFound, result(404, "Owner not found"))
-        case 1 => (OK, result(200, "API key deleted for " + owner))
-        case n => (OK, result(200, "API keys deleted for " + owner))
+      apiKeys.filter(_.vendorPrefix === vendorPrefix).delete match {
+        case 0 => (NotFound, result(404, "Vendor prefix not found"))
+        case 1 => (OK, result(200, "API key deleted for " + vendorPrefix))
+        case n => (OK, result(200, "API keys deleted for " + vendorPrefix))
       }
     }
 }

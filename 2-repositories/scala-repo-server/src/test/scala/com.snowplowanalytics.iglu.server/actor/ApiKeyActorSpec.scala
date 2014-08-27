@@ -55,8 +55,8 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
 
   implicit val formats = DefaultFormats
 
-  val owner = "com.actor.unit.test"
-  val faultyOwner = "com.actor.unit"
+  val vendorPrefix = "com.actor.unit.test"
+  val faultyVendorPrefix = "com.actor.unit"
 
   val notUuidKey = "this-is-not-an-uid"
 
@@ -69,8 +69,8 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
 
     "for AddBothKey" should {
 
-      "return a 200 for a non-conflicting owner" in {
-        val future = key ? AddBothKey(owner)
+      "return a 200 for a non-conflicting vendor prefix" in {
+        val future = key ? AddBothKey(vendorPrefix)
         val Success((status: StatusCode, result: String)) = future.value.get
 
         val map = parse(result).extract[Map[String, String]]
@@ -80,21 +80,22 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
         result must contain("read") and contain("write")
       }
 
-      "return a 401 if the owner is conflicting" in {
-        val future = key ? AddBothKey(faultyOwner)
+      "return a 401 if the vendor prefix is conflicting" in {
+        val future = key ? AddBothKey(faultyVendorPrefix)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === Unauthorized
-        result must contain("This owner is conflicting with an existing one")
+        result must
+          contain("This vendor prefix is conflicting with an existing one")
       }
     }
 
     "for GetKey" should {
 
-      "return a valid (owner, permission) pair" in {
+      "return a valid (vendor prefix, permission) pair" in {
         val future = key ? GetKey(readKey)
-        val Success(Some((owner: String, permission: String))) =
+        val Success(Some((vp: String, permission: String))) =
           future.value.get
-        owner must contain(owner)
+        vp must contain(vendorPrefix)
         permission must contain("read")
       }
 
@@ -137,18 +138,19 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
 
     "for DeleteKeys" should {
 
-      "return a 200 if there are keys associated with this owner" in {
-        val future = key ? DeleteKeys(owner)
+      "return a 200 if there are keys associated with this vendor prefix" in {
+        val future = key ? DeleteKeys(vendorPrefix)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
-        result must contain("API key deleted for " + owner)
+        result must contain("API key deleted for " + vendorPrefix)
       }
 
-      "return a 404 if there are no API keys associated with this owner" in {
-        val future = key ? DeleteKeys(owner)
+      "return a 404 if there are no API keys associated with this vendor" +
+      "prefix" in {
+        val future = key ? DeleteKeys(vendorPrefix)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
-        result must contain("Owner not found")
+        result must contain("Vendor prefix not found")
       }
     }
   }

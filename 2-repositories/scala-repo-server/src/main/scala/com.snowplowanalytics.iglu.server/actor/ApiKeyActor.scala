@@ -41,9 +41,10 @@ object ApiKeyActor {
   /**
    * Message to send in order to add a (write, read) pair of keys for the
    * specified owner if it is not conflicting with an existing one.
-   * @param owner future owner of the API keys to be generated
+   * @param vendorPrefix the API keys to be generated will have this vendor
+   * prefix
    */
-  case class AddBothKey(owner: String)
+  case class AddBothKey(vendorPrefix: String)
 
   /**
    * Message to send in order to delete a key specifying its uuid.
@@ -54,9 +55,9 @@ object ApiKeyActor {
   /**
    * Message to send in order to delete every keys belonging to the specified
    * owner.
-   * @param owner owner of the API keys to be deleted
+   * @param vendorPrefix the API keys having this vendor prefix will be deleted
    */
-  case class DeleteKeys(owner: String)
+  case class DeleteKeys(vendorPrefix: String)
 }
 
 /**
@@ -76,10 +77,11 @@ class ApiKeyActor extends Actor {
 
     case GetKey(uid) => sender ! apiKey.get(uid)
 
-    case AddBothKey(owner) => sender ! apiKey.addReadWrite(owner)
+    case AddBothKey(vendorPrefix) => sender ! apiKey.addReadWrite(vendorPrefix)
 
     case DeleteKey(uid) => sender ! apiKey.delete(uid)
 
-    case DeleteKeys(owner) => sender ! apiKey.deleteFromOwner(owner)
+    case DeleteKeys(vendorPrefix) =>
+      sender ! apiKey.deleteFromVendorPrefix(vendorPrefix)
   }
 }

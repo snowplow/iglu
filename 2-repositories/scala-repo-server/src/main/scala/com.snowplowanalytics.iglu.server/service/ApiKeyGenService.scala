@@ -90,12 +90,13 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
   @ApiOperation(value = "Generates a pair of read and read/write API keys",
     notes = "Returns a pair of API keys", httpMethod = "POST")
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "owner", value = "Future owner of the API keys",
-      required = true, dataType = "string", paramType = "query")
+    new ApiImplicitParam(name = "vendor_prefix",
+      value = "Vendor prefix of the API keys", required = true,
+      dataType = "string", paramType = "query")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 401,
-      message = "This owner is conflicting with an existing one"),
+      message = "This vendor prefix is conflicting with an existing one"),
     new ApiResponse(code = 401,
       message = "You do not have sufficient privileges"),
     new ApiResponse(code = 401,
@@ -105,33 +106,35 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
   def addRoute =
-    (anyParam('owner) | entity(as[String])) { owner =>
+    (anyParam('vendor_prefix) | entity(as[String])) { vendorPrefix =>
       complete {
-        (apiKeyActor ? AddBothKey(owner)).mapTo[(StatusCode, String)]
+        (apiKeyActor ? AddBothKey(vendorPrefix)).mapTo[(StatusCode, String)]
       }
     }
 
   /**
-   * Route to delete every API key belonging to an owner.
+   * Route to delete every API key having a specific vendor prefix.
    */
-  @ApiOperation(value = "Deletes every API key belonging to an owner",
+  @ApiOperation(value = "Deletes every API key having this vendor prefix",
     httpMethod = "DELETE")
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "owner", value = "API keys' owner",
-      required = true, dataType = "string", paramType = "query")
+    new ApiImplicitParam(name = "vendor_prefix",
+      value = "API keys' vendor prefix", required = true, dataType = "string",
+      paramType = "query")
   ))
   @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "API key deleted for the owner"),
+    new ApiResponse(code = 200,
+      message = "API key deleted for the vendor prefix"),
     new ApiResponse(code = 401,
       message = "You do not have sufficient privileges"),
     new ApiResponse(code = 401,
       message = "The supplied authentication is invalid"),
     new ApiResponse(code = 401, message = """The resource requires
       authentication, which was not supplied with the request"""),
-    new ApiResponse(code = 404, message = "Owner not found")
+    new ApiResponse(code = 404, message = "Vendor prefix not found")
   ))
   def deleteKeysRoute =
-    anyParam('owner) { owner =>
+    anyParam('vendor_prefix) { owner =>
       complete {
         (apiKeyActor ? DeleteKeys(owner)).mapTo[(StatusCode, String)]
       }
