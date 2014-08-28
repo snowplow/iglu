@@ -25,15 +25,6 @@ import util.ServerConfig
 import akka.actor.{ ActorSystem, Props }
 import akka.io.IO
 
-// Argot
-import org.clapper.argot._
-
-// Config
-import com.typesafe.config.{ ConfigFactory, Config }
-
-// Java
-import java.io.File
-
 // Spray
 import spray.can.Http
 
@@ -50,31 +41,7 @@ import slick.jdbc.meta.MTable
  * It registers the termination handler to stop the actor system when the
  * JVM shuts down as well.
  */
-object BootedCore extends App with Core with CoreActors with Api {
-
-  // Command line argument parser
-  val parser = new ArgotParser(
-    programName = generated.Settings.name,
-    compactUsage = true,
-    preUsage = Some("%s: Version %s. Copyright (c) 2014, %s.".format(
-      generated.Settings.name,
-      generated.Settings.version,
-      generated.Settings.organization)
-    )
-  )
-
-  val config = parser.option[Config](List("config"), "filename",
-    "Configuration file. Defaults to \"resources/application.conf\" " +
-    "(within .jar) if not set") { (c, opt) =>
-      val file = new File(c)
-      if (file.exists) {
-        ConfigFactory.parseFile(file)
-      } else {
-        parser.usage("Configuration file \"%s\" does not exist".format(c))
-        ConfigFactory.empty
-      }
-    }
-  parser.parse(args)
+trait BootedCore extends Core with Api {
 
   // Creates a new ActorSystem
   def system = ActorSystem("iglu-server")

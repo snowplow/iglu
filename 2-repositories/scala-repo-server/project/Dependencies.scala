@@ -23,7 +23,6 @@ object Dependencies {
   object V {
     // Scala
     val akka  = "2.3.4"
-    val argot = "1.0.3"
     val joda = "1.6"
     val jodaTime = "2.3"
     val json4s = "3.2.11-SNAPSHOT"
@@ -43,7 +42,6 @@ object Dependencies {
     // Scala
     val akkaActor     = "com.typesafe.akka"    %% "akka-actor"            % V.akka
     val akkaSlf4j     = "com.typesafe.akka"    %% "akka-slf4j"            % V.akka
-    val argot         = "org.clapper"          %% "argot"                 % V.argot
     val joda          = "org.joda"             %  "joda-convert"          % V.joda
     val jodaTime      = "joda-time"            %  "joda-time"             % V.jodaTime
     val json4s        = "org.json4s"           %% "json4s-jackson"        % V.json4s
