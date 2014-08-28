@@ -10,7 +10,7 @@ We currently have two Iglu "repo" technologies available for deploying your Iglu
 |:-------------------------|:-------------|:-----------------------------------------------------------|:-----------------|
 | [JVM-embedded repo] [r1] | Embedded     | An Iglu repository embedded in a Java or Scala application | Production-ready |
 | [Static repo] [r2]       | Remote       | An Iglu repository server structured as a static website   | Production-ready |
-| [Scala repo server] [r3] | Remote       | An Iglu repository server structured as a RESTful API      | Beta             |
+| [Scala repo server] [r3] | Remote       | A RESTful Iglu repository server written in Scala          | Beta             |
 
 <a name="iglu-central" />
 ## Iglu Central
