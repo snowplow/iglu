@@ -47,6 +47,7 @@ import com.github.fge.jsonschema.core.report.{
 
 // Scala
 import scala.collection.JavaConversions._
+import scala.io.Source
 
 // Scalaz
 import scalaz._
@@ -84,7 +85,6 @@ class SchemaDAO(val db: Database) extends DAO {
     format: String,
     version: String,
     schema: String,
-    //schema: JValue,
     createdAt: LocalDateTime,
     updatedAt: LocalDateTime,
     isPublic: Boolean
@@ -101,7 +101,6 @@ class SchemaDAO(val db: Database) extends DAO {
     def format = column[String]("format", O.DBType("varchar(50)"), O.NotNull)
     def version = column[String]("version", O.DBType("varchar(50)"), O.NotNull)
     def schema = column[String]("schema", O.DBType("text"), O.NotNull)
-    //def schema = column[JValue]("schema", O.DBType("json"), O.NotNull)
     def createdAt = column[LocalDateTime]("createdat", O.DBType("timestamp"),
       O.NotNull)
     def updatedAt = column[LocalDateTime]("updatedat", O.DBType("timestamp"),
@@ -123,16 +122,29 @@ class SchemaDAO(val db: Database) extends DAO {
   case class ResMetadata(vendor: String, name: String, format: String,
     version: String, metadata: Metadata)
 
+  val selfDescVendor = "."
+  val selfDescName = "self-desc"
+  val selfDescFormat = "jsonschema"
+  val selfDescVersion = "1-0-0"
+
   /**
    * Creates the schemas table.
    */
-  def createTable = db withDynSession { schemas.ddl.create }
+  private def createTable = db withDynSession { schemas.ddl.create }
 
   /**
    * Deletes the schemas table.
    */
   def dropTable = db withDynSession { schemas.ddl.drop }
 
+  def initTable = {
+    createTable
+    val source = Source.fromURL(getClass.getResource("/valid-schema.json"))
+    val lines = source.getLines mkString "\n"
+    source.close
+    add(selfDescVendor, selfDescName, selfDescFormat, selfDescVersion, lines,
+      selfDescVendor, "write", true)
+  }
 
   /**
    * Gets every schema belongig to a specific vendor.
@@ -678,9 +690,8 @@ class SchemaDAO(val db: Database) extends DAO {
             case Some(jvalue) => {
               val jsonNode = asJsonNode(jvalue)
               val schemaNode =
-                asJsonNode(parse(getNoMetadata(
-                  "com.snowplowanalytics.self-desc", "schema", "jsonschema",
-                  "1-0-0")))
+                asJsonNode(parse(getNoMetadata(selfDescVendor, selfDescName,
+                  selfDescFormat, selfDescVersion)))
 
               validateAgainstSchema(jsonNode, schemaNode) match {
                 case scalaz.Success(j) =>
