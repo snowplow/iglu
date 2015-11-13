@@ -70,7 +70,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
   val versions = List(version)
 
   val invalidSchema = """{ "some" : "json" }"""
-  val innerSchema = """"some" : "json""""
+  val innerSchema = "\"some\" : \"json\""
   val validSchema = 
   """{
     "self": {
