@@ -612,6 +612,24 @@ class SchemaDAO(val db: Database) extends DAO {
          (Unauthorized, result(401, "You do not have sufficient privileges"))
        }
 
+  def delete(vendor: String, name: String, format: String, version: String,
+    owner: String, permission: String,
+    isPublic: Boolean = false): (StatusCode, String)  =
+      if (permission == "write" && (vendor startsWith owner)) {
+        db withDynSession {
+          schemas.filter(s =>
+            s.vendor === vendor &&
+            s.name === name &&
+            s.format === format &&
+            s.version === version)
+          .delete match {
+            case 1 => (OK, "Schema successfully deleted")
+          }
+        }
+      } else {
+        (Unauthorized, result(401, "You do not have sufficient privileges"))
+      }
+
    /**
     * Validates the the instance provided is valid against the specified schema.
     * @param vendor the schema's vendor

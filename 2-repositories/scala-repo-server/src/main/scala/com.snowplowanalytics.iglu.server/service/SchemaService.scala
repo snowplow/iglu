@@ -91,6 +91,9 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
           put {
             updateRoute(authPair._1, authPair._2)
           } ~
+          delete {
+            deleteRoute(authPair._1, authPair._2)
+          } ~
           get {
             path("public") {
               publicSchemasRoute(authPair._1, authPair._2)
@@ -223,6 +226,23 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                   permission, isPublic == Some("true")))
                     .mapTo[(StatusCode, String)]
               }
+            }
+          }
+        }
+
+  /**
+   * Delete route
+   * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
+   */
+  def deleteRoute(owner: String, permission: String) =
+      path("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
+        "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
+          anyParam('isPublic.?) { isPublic =>
+            complete {
+              (schemaActor ? DeleteSchema(v, n, f, vs, owner,
+                permission, isPublic == Some("true")))
+                  .mapTo[(StatusCode, String)]
             }
           }
         }
