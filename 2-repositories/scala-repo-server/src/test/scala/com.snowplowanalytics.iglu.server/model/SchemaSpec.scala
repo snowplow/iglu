@@ -61,8 +61,8 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
   val invalidSchema = """{ "some" : "json" }"""
   val invalidSchema2 = """{ "some" : "json2" }"""
-  val innerSchema = """"some" : "json""""
-  val innerSchema2 = """"some" : "json2""""
+  val innerSchema = "\"some\" : \"json\""
+  val innerSchema2 = "\"some\" : \"json2\""
   val validSchema = 
   """{
     "self": {
