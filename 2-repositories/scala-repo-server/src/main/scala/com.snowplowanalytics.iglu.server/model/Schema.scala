@@ -122,8 +122,8 @@ class SchemaDAO(val db: Database) extends DAO {
   case class ResMetadata(vendor: String, name: String, format: String,
     version: String, metadata: Metadata)
 
-  val selfDescVendor = "."
-  val selfDescName = "self-desc"
+  val selfDescVendor = "com.snowplowanalytics.self-desc"
+  val selfDescName = "schema"
   val selfDescFormat = "jsonschema"
   val selfDescVersion = "1-0-0"
 
