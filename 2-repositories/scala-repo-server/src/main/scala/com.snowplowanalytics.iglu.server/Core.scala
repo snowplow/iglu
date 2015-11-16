@@ -54,8 +54,9 @@ trait BootedCore extends Core with Api {
   // database
   ServerConfig.db withDynSession {
     if (MTable.getTables("schemas").list.isEmpty) {
-      new SchemaDAO(ServerConfig.db).initTable
+      new SchemaDAO(ServerConfig.db).createTable()
     }
+    new SchemaDAO(ServerConfig.db).bootstrapSelfDescSchema()
     if (MTable.getTables("apikeys").list.isEmpty) {
       new ApiKeyDAO(ServerConfig.db).createTable
     }

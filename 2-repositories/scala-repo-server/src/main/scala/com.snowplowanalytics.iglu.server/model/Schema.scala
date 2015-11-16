@@ -130,20 +130,31 @@ class SchemaDAO(val db: Database) extends DAO {
   /**
    * Creates the schemas table.
    */
-  private def createTable = db withDynSession { schemas.ddl.create }
+  def createTable() = db withDynSession { schemas.ddl.create }
 
   /**
    * Deletes the schemas table.
    */
   def dropTable = db withDynSession { schemas.ddl.drop }
 
-  def initTable = {
-    createTable
+  def bootstrapSelfDescSchema(): Unit = if (!bootstrapSchemaExists) {
     val source = Source.fromURL(getClass.getResource("/valid-schema.json"))
     val lines = source.getLines mkString "\n"
     source.close
     add(selfDescVendor, selfDescName, selfDescFormat, selfDescVersion, lines,
       selfDescVendor, "write", true)
+  }
+
+  /**
+   * Whether the self-desc schema exists in the database
+   */
+  private def bootstrapSchemaExists(): Boolean = db withDynSession {
+    ! (for {
+      s <- schemas if
+        s.vendor === "com.snowplowanalytics.snowplow" &&
+        s.name === "self-desc" &&
+        s.format === "jsonschema"
+    } yield s).list.isEmpty
   }
 
   /**
