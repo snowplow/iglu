@@ -98,17 +98,17 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
             path("public") {
               publicSchemasRoute(authPair._1, authPair._2)
             } ~
-            path(("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-              "[0-9]+-[0-9]+-[0-9]+".r).repeat(separator = ",")) { list =>
+            path((VendorPattern / NamePattern / FormatPattern / VersionPattern)
+              .repeat(separator = ",")) { list =>
                 val transposed = list.map(_.toList).transpose
                 readRoute(transposed(0), transposed(1), transposed(2),
                   transposed(3), authPair._1, authPair._2)
             } ~
-            pathPrefix("[a-z]+\\.[a-z.-]+".r.repeat(separator = ",")) { v =>
-              pathPrefix("[a-zA-Z0-9_-]+".r.repeat(separator = ",")) { n =>
-                pathPrefix("[a-z]+".r.repeat(separator = ",")) { f =>
+            pathPrefix(VendorPattern.repeat(separator = ",")) { v =>
+              pathPrefix(NamePattern.repeat(separator = ",")) { n =>
+                pathPrefix(FormatPattern.repeat(separator = ",")) { f =>
                   path(
-                    "[0-9]+-[0-9]+-[0-9]+".r.repeat(separator = ",")) { vs =>
+                    VersionPattern.repeat(separator = ",")) { vs =>
                       readRoute(v, n, f, vs, authPair._1, authPair._2)
                   } ~
                   pathEnd {
@@ -166,8 +166,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
   def addRoute(owner: String, permission: String) =
-      path("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-        "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
+      path(VendorPattern / NamePattern / FormatPattern / VersionPattern) { (v, n, f, vs) =>
           anyParam('isPublic.?) { isPublic =>
             validateSchema(f) { schema =>
               complete {
@@ -217,8 +216,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
   def updateRoute(owner: String, permission: String) =
-      path("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-        "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
+      path(VendorPattern / NamePattern / FormatPattern / VersionPattern) { (v, n, f, vs) =>
           anyParam('isPublic.?) { isPublic =>
             validateSchema(f) { schema =>
               complete {
@@ -236,8 +234,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
    * @param permission API key's permission
    */
   def deleteRoute(owner: String, permission: String) =
-      path("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-        "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
+      path(VendorPattern / NamePattern / FormatPattern / VersionPattern) { (v, n, f, vs) =>
           anyParam('isPublic.?) { isPublic =>
             complete {
               (schemaActor ? DeleteSchema(v, n, f, vs, owner,

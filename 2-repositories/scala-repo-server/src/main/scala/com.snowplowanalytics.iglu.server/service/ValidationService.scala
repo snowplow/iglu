@@ -70,11 +70,10 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       respondWithMediaType(`application/json`) {
         get {
           auth { authPair =>
-            path("[a-z]+".r) { format =>
+            path(VendorPattern) { format =>
               validateSchemaRoute(format)
             } ~
-            path("[a-z]+\\.[a-z.-]+".r / "[a-zA-Z0-9_-]+".r / "[a-z]+".r /
-              "[0-9]+-[0-9]+-[0-9]+".r) { (v, n, f, vs) =>
+            path(VendorPattern / NamePattern / FormatPattern / VersionPattern) { (v, n, f, vs) =>
                 validateRoute(v, n, f, vs)
               }
           }

@@ -23,4 +23,9 @@ import Scalaz._
 
 package object server {
   type ValidatedNel[A] = ValidationNel[ProcessingMessage, A]
+
+  val VendorPattern = "[a-zA-Z0-9-_.]+".r
+  val NamePattern = "[a-zA-Z0-9-_]+".r
+  val FormatPattern = "[a-zA-Z0-9-_]+".r
+  val VersionPattern = "[0-9]+-[0-9]+-[0-9]+".r
 }
