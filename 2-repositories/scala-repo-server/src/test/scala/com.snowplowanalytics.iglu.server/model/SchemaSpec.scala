@@ -50,7 +50,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
   val name2 = "ad_click2"
   val name2s = List(name2)
   val name3 = "ad_click3"
-  val nameSelfDesc = "self-desc"
+  val nameSelfDesc = "schema"
   val faultyName = "ad_click4"
   val faultyNames = List(faultyName)
   val format = "jsonschema"
@@ -80,10 +80,11 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
   "SchemaDAO" should {
 
-    "for initTable" should {
+    "for createTable" should {
 
       "create the schemas table" in {
-        schema.initTable
+        schema.createTable()
+        schema.bootstrapSelfDescSchema()
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
