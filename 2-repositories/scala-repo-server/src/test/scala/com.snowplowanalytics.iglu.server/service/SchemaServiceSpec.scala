@@ -13,7 +13,7 @@
 * governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.server
-package test.service
+package service
 
 // Scala
 import scala.concurrent.duration._

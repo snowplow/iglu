@@ -13,11 +13,10 @@
 * governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.server
-package test.actor
+package actor
 
 // This project
-import actor.SchemaActor
-import actor.SchemaActor._
+import SchemaActor._
 
 // Akka
 import akka.actor.ActorSystem

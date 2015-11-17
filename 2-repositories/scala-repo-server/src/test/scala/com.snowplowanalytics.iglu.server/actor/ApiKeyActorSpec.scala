@@ -13,11 +13,10 @@
 * governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.server
-package test.actor
+package actor
 
 // This project
-import actor.ApiKeyActor
-import actor.ApiKeyActor._
+import ApiKeyActor._
 
 // Akka
 import akka.actor.ActorSystem
