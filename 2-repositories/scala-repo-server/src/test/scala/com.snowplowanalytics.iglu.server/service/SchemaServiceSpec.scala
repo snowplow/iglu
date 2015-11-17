@@ -29,7 +29,7 @@ import MediaTypes._
 import spray.testkit.Specs2RouteTest
 
 class SchemaServiceSpec extends Specification
-  with Api with Specs2RouteTest with NoTimeConversions {
+  with Api with Specs2RouteTest with NoTimeConversions with SetupAndDestroy {
 
   def actorRefFactory = system
 

@@ -52,15 +52,7 @@ trait BootedCore extends Core with Api {
 
   // Creates the necessary table is they are not already present in the
   // database
-  ServerConfig.db withDynSession {
-    if (MTable.getTables("schemas").list.isEmpty) {
-      new SchemaDAO(ServerConfig.db).createTable()
-    }
-    new SchemaDAO(ServerConfig.db).bootstrapSelfDescSchema()
-    if (MTable.getTables("apikeys").list.isEmpty) {
-      new ApiKeyDAO(ServerConfig.db).createTable
-    }
-  }
+  TableInitialization.initializeTables()
 
   // Starts the server
   IO(Http)(system) !
@@ -68,6 +60,22 @@ trait BootedCore extends Core with Api {
 
   // Register the termination handler for when the JVM shuts down
   sys.addShutdownHook(system.shutdown())
+}
+
+object TableInitialization {
+  // Creates the necessary table is they are not already present in the
+  // database
+  def initializeTables(): Unit = {
+    ServerConfig.db withDynSession {
+      if (MTable.getTables("schemas").list.isEmpty) {
+        new SchemaDAO(ServerConfig.db).createTable()
+      }
+      new SchemaDAO(ServerConfig.db).bootstrapSelfDescSchema()
+      if (MTable.getTables("apikeys").list.isEmpty) {
+        new ApiKeyDAO(ServerConfig.db).createTable
+      }
+    }
+  }
 }
 
 trait Core {
