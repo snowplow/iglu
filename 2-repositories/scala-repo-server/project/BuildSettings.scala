@@ -29,6 +29,9 @@ object BuildSettings {
     maxErrors               := 5,
     // http://www.scala-sbt.org/0.13.0/docs/Detailed-Topics/Forking.html
     fork in run             := true,
+    fork in Test            := true,
+    // Ensure that the correct config file is loaded for testing
+    javaOptions in Test     += "-Dconfig.file=./test.conf",
     resolvers               ++= Dependencies.resolutionRepos
   )
 

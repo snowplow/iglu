@@ -28,7 +28,7 @@ import StatusCodes._
 import spray.testkit.Specs2RouteTest
 
 class ValidationServiceSpec extends Specification
-  with Api with Specs2RouteTest with NoTimeConversions {
+  with Api with Specs2RouteTest with NoTimeConversions with SetupAndDestroy {
 
   def actorRefFactory = system
 

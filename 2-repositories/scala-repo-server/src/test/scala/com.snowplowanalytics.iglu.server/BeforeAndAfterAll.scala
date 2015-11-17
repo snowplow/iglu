@@ -15,11 +15,11 @@
 package com.snowplowanalytics.iglu.server
 
 // Specs2
-import org.specs2.mutable.Specification
+import org.specs2.mutable.SpecificationLike
 import org.specs2.specification.Fragments
 import org.specs2.specification.Step
 
-trait BeforeAndAfterAll extends Specification {
+trait BeforeAndAfterAll extends SpecificationLike {
   override def map(fragments: =>Fragments) =
     Step(beforeAll) ^ fragments ^ Step(afterAll)
 

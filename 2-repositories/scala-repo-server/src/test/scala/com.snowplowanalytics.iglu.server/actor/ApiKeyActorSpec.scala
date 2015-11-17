@@ -39,13 +39,14 @@ import scala.util.Success
 
 // Specs2
 import org.specs2.mutable.SpecificationLike
+import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
 
 // Spray
 import spray.http.StatusCode
 import spray.http.StatusCodes._
 
-class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
+class ApiKeyActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
   with ImplicitSender with NoTimeConversions {
 
   implicit val timeout = Timeout(20.seconds)
