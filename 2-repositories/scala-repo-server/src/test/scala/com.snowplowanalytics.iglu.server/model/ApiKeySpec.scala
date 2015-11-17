@@ -13,10 +13,9 @@
 * governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.server
-package test.model
+package model
 
 // This project
-import model.ApiKeyDAO
 import util.IgluPostgresDriver.simple._
 
 // Java

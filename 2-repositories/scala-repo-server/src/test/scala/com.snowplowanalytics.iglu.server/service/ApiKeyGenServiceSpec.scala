@@ -13,7 +13,7 @@
 * governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.server
-package test.service
+package service
 
 // Java
 import java.util.UUID

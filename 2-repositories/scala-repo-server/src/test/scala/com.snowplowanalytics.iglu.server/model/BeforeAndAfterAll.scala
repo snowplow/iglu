@@ -13,7 +13,6 @@
 * governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.server
-package test.model
 
 // Specs2
 import org.specs2.mutable.Specification
