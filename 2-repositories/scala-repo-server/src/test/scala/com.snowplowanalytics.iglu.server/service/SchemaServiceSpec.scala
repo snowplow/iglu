@@ -381,7 +381,7 @@ class SchemaServiceSpec extends Specification
             check {
               status === Unauthorized
               responseAs[String] must
-                contain("The supplied authentication is invalid")
+                contain("You do not have sufficient privileges")
             }
         }
 
@@ -390,7 +390,7 @@ class SchemaServiceSpec extends Specification
             check {
               status === Unauthorized
               responseAs[String] must
-                contain("The supplied authentication is invalid")
+                contain("You do not have sufficient privileges")
             }
         }
 
@@ -398,7 +398,7 @@ class SchemaServiceSpec extends Specification
           Get(url) ~> sealRoute(routes) ~> check {
             status === Unauthorized
             responseAs[String] must
-              contain("The resource requires authentication")
+              contain("You do not have sufficient privileges")
           }
         }
 
@@ -835,7 +835,7 @@ class SchemaServiceSpec extends Specification
         Post(postUrl4) ~> sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
-            contain("The resource requires authentication")
+            contain("You do not have sufficient privileges")
         }
       }
 
@@ -844,7 +844,7 @@ class SchemaServiceSpec extends Specification
         sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
-            contain("The resource requires authentication")
+            contain("You do not have sufficient privileges")
         }
       }
 
@@ -853,7 +853,7 @@ class SchemaServiceSpec extends Specification
         sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
-            contain("The resource requires authentication")
+            contain("You do not have sufficient privileges")
         }
       }
 
@@ -862,7 +862,7 @@ class SchemaServiceSpec extends Specification
         sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
-            contain("The supplied authentication is invalid")
+            contain("You do not have sufficient privileges")
         }
       }
 
@@ -871,7 +871,7 @@ class SchemaServiceSpec extends Specification
         addHeader("api_key", notUuidKey) ~> sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
-            contain("The supplied authentication is invalid")
+            contain("You do not have sufficient privileges")
         }
       }
 
@@ -880,7 +880,7 @@ class SchemaServiceSpec extends Specification
         addHeader("api_key", notUuidKey) ~> sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
-            contain("The supplied authentication is invalid")
+            contain("You do not have sufficient privileges")
         }
       }
 
@@ -1074,7 +1074,7 @@ class SchemaServiceSpec extends Specification
         Put(postUrl4) ~> sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
-            contain("The resource requires authentication")
+            contain("You do not have sufficient privileges")
         }
       }
 
@@ -1083,7 +1083,7 @@ class SchemaServiceSpec extends Specification
         sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
-            contain("The resource requires authentication")
+            contain("You do not have sufficient privileges")
         }
       }
 
@@ -1092,7 +1092,7 @@ class SchemaServiceSpec extends Specification
         sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
-            contain("The resource requires authentication")
+            contain("You do not have sufficient privileges")
         }
       }
 
@@ -1101,7 +1101,7 @@ class SchemaServiceSpec extends Specification
         sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
-            contain("The supplied authentication is invalid")
+            contain("You do not have sufficient privileges")
         }
       }
 
@@ -1110,7 +1110,7 @@ class SchemaServiceSpec extends Specification
         addHeader("api_key", notUuidKey) ~> sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
-            contain("The supplied authentication is invalid")
+            contain("You do not have sufficient privileges")
         }
       }
 
@@ -1119,7 +1119,7 @@ class SchemaServiceSpec extends Specification
         addHeader("api_key", notUuidKey) ~> sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
-            contain("The supplied authentication is invalid")
+            contain("You do not have sufficient privileges")
         }
       }
 

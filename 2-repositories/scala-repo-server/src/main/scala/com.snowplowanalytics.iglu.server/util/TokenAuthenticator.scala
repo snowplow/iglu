@@ -38,7 +38,10 @@ object TokenAuthenticator {
       context: RequestContext =>
         context.request.headers.
           find(_.name.toLowerCase == headerName).
-          map(_.value)
+          map(_.value) match {
+            case None => Some("-")
+            case s => s
+          }
     }
   }
 

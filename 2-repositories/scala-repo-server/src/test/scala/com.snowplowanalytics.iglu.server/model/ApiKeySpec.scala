@@ -132,7 +132,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
       "return None if the API key is not in the db" in {
         val uid = UUID.randomUUID.toString
         apiKey.get(uid) match {
-          case None => success
+          case Some(("-",  "-")) => success
           case _ => failure
         }
 
@@ -146,7 +146,7 @@ class ApiKeySpec extends Specification with SetupAndDestroy {
 
       "return None if the API key is not a uuid" in {
         apiKey.get(notUid) match {
-          case None => success
+          case Some(("-",  "-")) => success
           case _ => failure
         }
       }

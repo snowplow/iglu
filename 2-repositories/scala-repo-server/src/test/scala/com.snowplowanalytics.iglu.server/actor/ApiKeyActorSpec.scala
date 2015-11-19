@@ -101,13 +101,13 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return None if the API key is not found" in {
         val future = key ? GetKey(UUID.randomUUID.toString)
-        val Success(None) = future.value.get
+        val Success(Some(("-", "-"))) = future.value.get
         success
       }
 
       "return None if the API key is not an uuid" in {
         val future = key ? GetKey(notUuidKey)
-        val Success(None) = future.value.get
+        val Success(Some(("-", "-"))) = future.value.get
         success
       }
     }
