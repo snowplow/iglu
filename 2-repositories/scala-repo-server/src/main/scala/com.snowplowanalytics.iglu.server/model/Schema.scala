@@ -177,7 +177,7 @@ class SchemaDAO(val db: Database) extends DAO {
       } else {
         val l: List[JValue] =
           preliminaryList
-            .filter(s => (s.vendor startsWith owner) || s.isPublic)
+            .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
             .map(s =>
               parse(s.schema) merge Extraction.decompose(
                 MetadataContainer(
@@ -216,7 +216,7 @@ class SchemaDAO(val db: Database) extends DAO {
         } else {
           val l: List[ResMetadata] =
             preliminaryList
-              .filter(s => (s.vendor startsWith owner) || s.isPublic)
+              .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
               .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
                 Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
                   s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
@@ -256,7 +256,7 @@ class SchemaDAO(val db: Database) extends DAO {
         } else {
           val l: List[JValue] =
             preliminaryList
-              .filter(s => (s.vendor startsWith owner) || s.isPublic)
+              .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
               .map(s =>
                 parse(s.schema) merge Extraction.decompose(
                   MetadataContainer(
@@ -298,7 +298,7 @@ class SchemaDAO(val db: Database) extends DAO {
         } else {
           val l: List[ResMetadata] =
             preliminaryList
-              .filter(s => (s.vendor startsWith owner) || s.isPublic)
+              .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
               .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
                 Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
                   s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
@@ -341,7 +341,7 @@ class SchemaDAO(val db: Database) extends DAO {
       } else {
         val l: List[JValue] =
           preliminaryList
-            .filter(s => (s.vendor startsWith owner) || s.isPublic)
+            .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
             .map(s =>
               parse(s.schema) merge Extraction.decompose(
                 MetadataContainer(
@@ -386,7 +386,7 @@ class SchemaDAO(val db: Database) extends DAO {
       } else {
         val l: List[ResMetadata] =
           preliminaryList
-            .filter(s => (s.vendor startsWith owner) || s.isPublic)
+            .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
             .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
               Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
                 s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
@@ -429,7 +429,7 @@ class SchemaDAO(val db: Database) extends DAO {
         } else {
           val l: List[JValue] =
             preliminaryList
-              .filter(s => (s.vendor startsWith owner) || s.isPublic)
+              .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
               .map(s =>
                 parse(s.schema) merge Extraction.decompose(
                   MetadataContainer(
@@ -474,7 +474,7 @@ class SchemaDAO(val db: Database) extends DAO {
         } else {
           val l: List[ResMetadata] =
             preliminaryList
-              .filter(s => (s.vendor startsWith owner) || s.isPublic)
+              .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
               .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
                 Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
                   s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
@@ -564,7 +564,7 @@ class SchemaDAO(val db: Database) extends DAO {
   def add(vendor: String, name: String, format: String, version: String,
     schema: String, owner: String, permission: String,
     isPublic: Boolean = false): (StatusCode, String) =
-      if (permission == "write" && (vendor startsWith owner)) {
+      if (permission == "write" &&( (vendor startsWith owner) || owner == "*")) {
         db withDynSession {
           get(List(vendor), List(name), List(format), List(version), owner,
             permission) match {
@@ -599,7 +599,7 @@ class SchemaDAO(val db: Database) extends DAO {
    def update(vendor: String, name: String, format: String, version: String,
      schema: String, owner: String, permission: String,
      isPublic: Boolean = false): (StatusCode, String) =
-       if (permission == "write" && (vendor startsWith owner)) {
+       if (permission == "write" &&( (vendor startsWith owner) || owner == "*")) {
          db withDynSession {
            get(List(vendor), List(name), List(format), List(version), owner,
              permission) match {
@@ -638,7 +638,7 @@ class SchemaDAO(val db: Database) extends DAO {
   def delete(vendor: String, name: String, format: String, version: String,
     owner: String, permission: String,
     isPublic: Boolean = false): (StatusCode, String)  =
-      if (permission == "write" && (vendor startsWith owner)) {
+      if (permission == "write" &&( (vendor startsWith owner) || owner == "*")) {
         db withDynSession {
           schemas.filter(s =>
             s.vendor === vendor &&
@@ -779,7 +779,7 @@ class SchemaDAO(val db: Database) extends DAO {
         } else {
           "private"
         },
-        if ((vendor startsWith owner) && permission == "write") {
+        if( ((vendor startsWith owner) || owner == "*") && permission == "write") {
           "private"
         } else {
           "none"
