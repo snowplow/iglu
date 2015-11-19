@@ -570,9 +570,12 @@ class SchemaDAO(val db: Database) extends DAO {
             permission) match {
               case (OK, j) => (Unauthorized,
                 result(401, "This schema already exists"))
-              case _ => schemas.insert(
-                Schema(0, vendor, name, format, version, schema,
-                  new LocalDateTime(), new LocalDateTime(), isPublic)) match {
+              case _ => {
+                val now = new LocalDateTime()
+                schemas.insert(
+                  Schema(0, vendor, name, format, version, schema,
+                  now, now, isPublic))
+                } match {
                     case 0 => (InternalServerError,
                       result(500, "Something went wrong"))
                     case n => (Created, result(201, "Schema successfully added",
@@ -598,7 +601,7 @@ class SchemaDAO(val db: Database) extends DAO {
    */
    def update(vendor: String, name: String, format: String, version: String,
      schema: String, owner: String, permission: String,
-     isPublic: Boolean = false): (StatusCode, String) =
+     isPublic: Boolean = false): (StatusCode, String) = {
        if (permission == "write" &&( (vendor startsWith owner) || owner == "*")) {
          db withDynSession {
            get(List(vendor), List(name), List(format), List(version), owner,
@@ -616,12 +619,14 @@ class SchemaDAO(val db: Database) extends DAO {
                      case _ => (InternalServerError,
                        result(500, "Something went wrong"))
                    }
-               case (NotFound, j) =>
+               case (NotFound, j) => {
+                val now = new LocalDateTime()
                  schemas
                    .insert(
                      Schema(0, vendor, name, format, version, schema,
-                       new LocalDateTime(), new LocalDateTime(),
-                       isPublic)) match {
+                       now, now,
+                       isPublic))
+                   } match {
                          case 0 => (InternalServerError,
                            result(500, "Something went wrong"))
                          case n => (Created,
@@ -634,6 +639,7 @@ class SchemaDAO(val db: Database) extends DAO {
        } else {
          (Unauthorized, result(401, "You do not have sufficient privileges"))
        }
+     }
 
   def delete(vendor: String, name: String, format: String, version: String,
     owner: String, permission: String,
