@@ -646,8 +646,9 @@ class SchemaDAO(val db: Database) extends DAO {
             s.format === format &&
             s.version === version)
           .delete match {
+            case 0 => (404, "Schema not found")
             case 1 => (OK, "Schema successfully deleted")
-            case _ => (404, "Schema not found")
+            case n => (OK, s"$n schemas successfully deleted")
           }
         }
       } else {
