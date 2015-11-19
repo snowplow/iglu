@@ -109,7 +109,7 @@ class ApiKeyGenServiceSpec extends Specification
         sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
-            contain("The supplied authentication is invalid")
+            contain("You do not have sufficient privileges")
         }
       }
 
@@ -118,7 +118,7 @@ class ApiKeyGenServiceSpec extends Specification
         addHeader("api_key", notUuidKey) ~> sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
-            contain("The supplied authentication is invalid")
+            contain("You do not have sufficient privileges")
         }
       }
 
@@ -127,7 +127,7 @@ class ApiKeyGenServiceSpec extends Specification
         addHeader("api_key", notUuidKey) ~> sealRoute(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
-            contain("The supplied authentication is invalid")
+            contain("You do not have sufficient privileges")
         }
       }
       

@@ -105,11 +105,11 @@ class ApiKeyDAO(val db: Database) extends DAO {
         if (l.length == 1) {
           Some(l(0))
         } else {
-          None
+          Some("-" -> "-")
         }
       }
     } else {
-      None
+      Some("-" -> "-")
     }
   }
 
