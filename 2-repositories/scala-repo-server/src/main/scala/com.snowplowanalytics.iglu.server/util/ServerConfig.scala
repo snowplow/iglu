@@ -18,6 +18,9 @@ package util
 // This project
 import IgluPostgresDriver.simple._
 
+// Scala
+import scala.collection.JavaConverters._
+
 // Config
 import com.typesafe.config.ConfigFactory
 
@@ -28,16 +31,18 @@ object ServerConfig {
 
   val config = ConfigFactory.load
 
+  val env = System.getenv.asScala.lift
+
   //Interface on which the server will be running
   val interface = config.getString("repo-server.interface")
   //Port on which the server will be running
-  val port = config.getInt("repo-server.port")
+  val port = env("PORT").map(_.toInt) getOrElse config.getInt("repo-server.port")
 
-  val pgHost = config.getString("postgres.host")
-  val pgPort = config.getInt("postgres.port")
-  val pgDbName = config.getString("postgres.dbname")
-  val pgUsername = config.getString("postgres.username")
-  val pgPassword = config.getString("postgres.password")
+  val pgHost = env("RDS_HOSTNAME") getOrElse config.getString("postgres.host")
+  val pgPort = env("RDS_PORT").map(_.toInt) getOrElse config.getInt("postgres.port")
+  val pgDbName = env("RDS_DB_NAME") getOrElse config.getString("postgres.dbname")
+  val pgUsername = env("RDS_USERNAME") getOrElse config.getString("postgres.username")
+  val pgPassword = env("RDS_PASSWORD") getOrElse config.getString("postgres.password")
   val pgDriver = config.getString("postgres.driver")
 
   //Reference to the database
