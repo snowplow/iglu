@@ -50,10 +50,10 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
 (implicit executionContext: ExecutionContext) extends Directives with Service {
 
   /**
-   * Creates a ``TokenAuthenticator`` to extract the api_key http header and
+   * Creates a ``TokenAuthenticator`` to extract the apikey http header and
    * validates it against the database.
    */
-  val authenticator = TokenAuthenticator[(String, String)]("api_key") {
+  val authenticator = TokenAuthenticator[(String, String)]("apikey") {
     key => (apiKeyActor ? GetKey(key)).mapTo[Option[(String, String)]]
   }
 
