@@ -86,7 +86,7 @@ class ValidationServiceSpec extends Specification
     "for self-describing validation" should {
 
       "return a 200 if the schema provided is self-describing" in {
-        Get(validUrl) ~> addHeader("api_key", key) ~> routes ~> check {
+        Get(validUrl) ~> addHeader("apikey", key) ~> routes ~> check {
           status === OK
           responseAs[String] must
             contain("The schema provided is a valid self-describing schema")
@@ -94,7 +94,7 @@ class ValidationServiceSpec extends Specification
       }
 
       "return a 400 if the schema provided is not self-describing" in {
-        Get(invalidUrl) ~> addHeader("api_key", key) ~> routes ~> check {
+        Get(invalidUrl) ~> addHeader("apikey", key) ~> routes ~> check {
           status === BadRequest
           responseAs[String] must contain(
             "The schema provided is not a valid self-describing schema") and
@@ -103,14 +103,14 @@ class ValidationServiceSpec extends Specification
       }
 
       "return a 400 if the schema provided is not valid" in {
-        Get(notSchemaUrl) ~> addHeader("api_key", key) ~> routes ~> check {
+        Get(notSchemaUrl) ~> addHeader("apikey", key) ~> routes ~> check {
           status === BadRequest
           responseAs[String] must contain("The schema provided is not valid")
         }
       }
 
       "return a 400 if the format provided is not supported" in {
-        Get(invalidFormatUrl) ~> addHeader("api_key", key) ~> routes ~> check {
+        Get(invalidFormatUrl) ~> addHeader("apikey", key) ~> routes ~> check {
           status === BadRequest
           responseAs[String] must
             contain("The schema format provided is not supported")
@@ -121,7 +121,7 @@ class ValidationServiceSpec extends Specification
     "for instance validation" should {
 
       "return a 200 if the instance is valid against the schema" in {
-        Get(validInstanceUrl) ~> addHeader("api_key", key) ~> routes ~> check {
+        Get(validInstanceUrl) ~> addHeader("apikey", key) ~> routes ~> check {
           status === OK
           responseAs[String] must
             contain("The instance provided is valid against the schema")
@@ -129,7 +129,7 @@ class ValidationServiceSpec extends Specification
       }
 
       "return a 400 if the instance is not valid against the schema" in {
-        Get(invalidInstanceUrl) ~> addHeader("api_key", key) ~> routes ~>
+        Get(invalidInstanceUrl) ~> addHeader("apikey", key) ~> routes ~>
         check {
           status === BadRequest
           responseAs[String] must
@@ -138,14 +138,14 @@ class ValidationServiceSpec extends Specification
       }
 
       "return a 400 if the instance provided is not valid" in {
-        Get(notInstanceUrl) ~> addHeader("api_key", key) ~> routes ~> check {
+        Get(notInstanceUrl) ~> addHeader("apikey", key) ~> routes ~> check {
           status === BadRequest
           responseAs[String] must contain("The instance provided is not valid")
         }
       }
 
       "return a 404 if the schema to validate against was not found" in {
-        Get(notFoundInstanceUrl) ~> addHeader("api_key", key) ~> routes ~>
+        Get(notFoundInstanceUrl) ~> addHeader("apikey", key) ~> routes ~>
         check {
           status === NotFound
           responseAs[String] must

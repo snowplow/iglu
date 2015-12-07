@@ -65,7 +65,7 @@ object TokenAuthenticator {
      */
     def apply(context: RequestContext): Future[Authentication[T]] =
       extractor(context) match {
-        //if there is no api_key header provided
+        //if there is no apikey header provided
         case None => Future(
           Left(AuthenticationFailedRejection(CredentialsMissing, List())))
         case Some(token) =>
