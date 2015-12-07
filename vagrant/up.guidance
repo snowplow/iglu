@@ -1,0 +1,5 @@
+To get started:
+vagrant ssh
+cd /vagrant/2-repositories/scala-repo-server
+./scripts/create-test-user.bash
+sbt test
