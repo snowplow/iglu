@@ -3,3 +3,4 @@ vagrant ssh
 cd /vagrant/2-repositories/scala-repo-server
 ./create-test-user.sh
 sbt test
+./create-beanstalk-jar.sh
