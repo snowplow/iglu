@@ -22,4 +22,8 @@ Vagrant.configure("2") do |config|
     sh.path = "vagrant/up.bash"
   end
 
+  config.push.define "publish-iglu-server", strategy: "local-exec" do |push|
+    push.script = "vagrant/push/publish-iglu-server.bash"
+  end
+
 end
