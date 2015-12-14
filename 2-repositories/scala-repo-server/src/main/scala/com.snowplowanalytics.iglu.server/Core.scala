@@ -15,6 +15,9 @@
 */
 package com.snowplowanalytics.iglu.server
 
+// Scala
+import scala.util.control.NonFatal
+
 //This project
 import actor.{ SchemaActor, ApiKeyActor }
 import model.{ SchemaDAO, ApiKeyDAO }
@@ -47,19 +50,26 @@ trait BootedCore extends Core with Api {
   def system = ActorSystem("iglu-server")
   def actorRefFactory = system
 
-  // Starts a new http service
-  val rootService = system.actorOf(Props(new RoutedHttpService(routes)))
+  try {
+    // Starts a new http service
+    val rootService = system.actorOf(Props(new RoutedHttpService(routes)))
 
-  // Creates the necessary table is they are not already present in the
-  // database
-  TableInitialization.initializeTables()
+    // Creates the necessary table is they are not already present in the
+    // database
+    TableInitialization.initializeTables()
 
-  // Starts the server
-  IO(Http)(system) !
-    Http.Bind(rootService, ServerConfig.interface, port = ServerConfig.port)
+    // Starts the server
+    IO(Http)(system) !
+      Http.Bind(rootService, ServerConfig.interface, port = ServerConfig.port)
 
-  // Register the termination handler for when the JVM shuts down
-  sys.addShutdownHook(system.shutdown())
+    // Register the termination handler for when the JVM shuts down
+    sys.addShutdownHook(system.shutdown())
+  } catch {
+    case NonFatal(nf) =>
+      nf.printStackTrace()
+      // Necessary to stop app from hanging indefinitely
+      System.exit(1)
+  }
 }
 
 object TableInitialization {
