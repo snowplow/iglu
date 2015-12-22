@@ -50,8 +50,8 @@ function get_version {
 	local __out_error=$2
 
 	# Extract the version from SBT and save it in a .gitignored file named "VERSION"
-	vagrant ssh -c "cd /vagrant && sbt -Dsbt.log.noformat=true version | tail -1 | cut -d' ' -f2 > VERSION" \
-	  || die "Failed to get extract version information from package.json"
+	vagrant ssh -c "cd /vagrant/2-repositories/scala-repo-server && sbt -Dsbt.log.noformat=true version | tail -1 | cut -d' ' -f2 > ../../VERSION" \
+	  || die "Failed to get extract version information from sbt"
 	file_version=`cat VERSION`
 	tag_version=`git describe --abbrev=0 --tags`
 	if [ ${file_version} != ${tag_version} ] ; then
@@ -145,8 +145,11 @@ function build_artifact() {
 	[ -f "${fatjar_path}" ] || die "Cannot find required fatjar: ${fatjar_path}. Did you forget to update fatjar versions?"
 	cp ${fatjar_path} ${artifact_folder}
 
+	# Remove the prepended shell script
+	tail -c +44 ${fatjar_path} > ${fatjar_file}.jar
 	artifact_path=./${dist_path}/${artifact_name}
-	zip -j ${artifact_path} ${artifact_folder}/${fatjar_file}
+	zip -j ${artifact_path} ${fatjar_file}.jar
+	rm ${fatjar_file}.jar
 	eval ${__out_artifact_name}=${artifact_name}
 	eval ${__out_artifact_path}=${artifact_path}
 }
