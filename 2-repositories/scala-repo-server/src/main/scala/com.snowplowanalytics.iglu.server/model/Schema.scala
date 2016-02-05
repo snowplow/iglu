@@ -47,6 +47,7 @@ import com.github.fge.jsonschema.core.report.{
 
 // Scala
 import scala.collection.JavaConversions._
+import scala.io.Source
 
 // Scalaz
 import scalaz._
@@ -84,7 +85,6 @@ class SchemaDAO(val db: Database) extends DAO {
     format: String,
     version: String,
     schema: String,
-    //schema: JValue,
     createdAt: LocalDateTime,
     updatedAt: LocalDateTime,
     isPublic: Boolean
@@ -101,7 +101,6 @@ class SchemaDAO(val db: Database) extends DAO {
     def format = column[String]("format", O.DBType("varchar(50)"), O.NotNull)
     def version = column[String]("version", O.DBType("varchar(50)"), O.NotNull)
     def schema = column[String]("schema", O.DBType("text"), O.NotNull)
-    //def schema = column[JValue]("schema", O.DBType("json"), O.NotNull)
     def createdAt = column[LocalDateTime]("createdat", O.DBType("timestamp"),
       O.NotNull)
     def updatedAt = column[LocalDateTime]("updatedat", O.DBType("timestamp"),
@@ -123,16 +122,40 @@ class SchemaDAO(val db: Database) extends DAO {
   case class ResMetadata(vendor: String, name: String, format: String,
     version: String, metadata: Metadata)
 
+  val selfDescVendor = "com.snowplowanalytics.self-desc"
+  val selfDescName = "schema"
+  val selfDescFormat = "jsonschema"
+  val selfDescVersion = "1-0-0"
+
   /**
    * Creates the schemas table.
    */
-  def createTable = db withDynSession { schemas.ddl.create }
+  def createTable() = db withDynSession { schemas.ddl.create }
 
   /**
    * Deletes the schemas table.
    */
   def dropTable = db withDynSession { schemas.ddl.drop }
 
+  def bootstrapSelfDescSchema(): Unit = if (!bootstrapSchemaExists) {
+    val source = Source.fromURL(getClass.getResource("/valid-schema.json"))
+    val lines = source.getLines mkString "\n"
+    source.close
+    add(selfDescVendor, selfDescName, selfDescFormat, selfDescVersion, lines,
+      selfDescVendor, "write", true)
+  }
+
+  /**
+   * Whether the self-desc schema exists in the database
+   */
+  private def bootstrapSchemaExists(): Boolean = db withDynSession {
+    ! (for {
+      s <- schemas if
+        s.vendor === "com.snowplowanalytics.snowplow" &&
+        s.name === "self-desc" &&
+        s.format === "jsonschema"
+    } yield s).list.isEmpty
+  }
 
   /**
    * Gets every schema belongig to a specific vendor.
@@ -154,7 +177,7 @@ class SchemaDAO(val db: Database) extends DAO {
       } else {
         val l: List[JValue] =
           preliminaryList
-            .filter(s => (s.vendor startsWith owner) || s.isPublic)
+            .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
             .map(s =>
               parse(s.schema) merge Extraction.decompose(
                 MetadataContainer(
@@ -193,7 +216,7 @@ class SchemaDAO(val db: Database) extends DAO {
         } else {
           val l: List[ResMetadata] =
             preliminaryList
-              .filter(s => (s.vendor startsWith owner) || s.isPublic)
+              .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
               .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
                 Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
                   s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
@@ -233,7 +256,7 @@ class SchemaDAO(val db: Database) extends DAO {
         } else {
           val l: List[JValue] =
             preliminaryList
-              .filter(s => (s.vendor startsWith owner) || s.isPublic)
+              .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
               .map(s =>
                 parse(s.schema) merge Extraction.decompose(
                   MetadataContainer(
@@ -275,7 +298,7 @@ class SchemaDAO(val db: Database) extends DAO {
         } else {
           val l: List[ResMetadata] =
             preliminaryList
-              .filter(s => (s.vendor startsWith owner) || s.isPublic)
+              .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
               .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
                 Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
                   s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
@@ -318,7 +341,7 @@ class SchemaDAO(val db: Database) extends DAO {
       } else {
         val l: List[JValue] =
           preliminaryList
-            .filter(s => (s.vendor startsWith owner) || s.isPublic)
+            .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
             .map(s =>
               parse(s.schema) merge Extraction.decompose(
                 MetadataContainer(
@@ -363,7 +386,7 @@ class SchemaDAO(val db: Database) extends DAO {
       } else {
         val l: List[ResMetadata] =
           preliminaryList
-            .filter(s => (s.vendor startsWith owner) || s.isPublic)
+            .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
             .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
               Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
                 s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
@@ -406,7 +429,7 @@ class SchemaDAO(val db: Database) extends DAO {
         } else {
           val l: List[JValue] =
             preliminaryList
-              .filter(s => (s.vendor startsWith owner) || s.isPublic)
+              .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
               .map(s =>
                 parse(s.schema) merge Extraction.decompose(
                   MetadataContainer(
@@ -451,7 +474,7 @@ class SchemaDAO(val db: Database) extends DAO {
         } else {
           val l: List[ResMetadata] =
             preliminaryList
-              .filter(s => (s.vendor startsWith owner) || s.isPublic)
+              .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
               .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
                 Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
                   s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
@@ -541,15 +564,18 @@ class SchemaDAO(val db: Database) extends DAO {
   def add(vendor: String, name: String, format: String, version: String,
     schema: String, owner: String, permission: String,
     isPublic: Boolean = false): (StatusCode, String) =
-      if (permission == "write" && (vendor startsWith owner)) {
+      if (permission == "write" &&( (vendor startsWith owner) || owner == "*")) {
         db withDynSession {
           get(List(vendor), List(name), List(format), List(version), owner,
             permission) match {
               case (OK, j) => (Unauthorized,
                 result(401, "This schema already exists"))
-              case _ => schemas.insert(
-                Schema(0, vendor, name, format, version, schema,
-                  new LocalDateTime(), new LocalDateTime(), isPublic)) match {
+              case _ => {
+                val now = new LocalDateTime()
+                schemas.insert(
+                  Schema(0, vendor, name, format, version, schema,
+                  now, now, isPublic))
+                } match {
                     case 0 => (InternalServerError,
                       result(500, "Something went wrong"))
                     case n => (Created, result(201, "Schema successfully added",
@@ -575,8 +601,8 @@ class SchemaDAO(val db: Database) extends DAO {
    */
    def update(vendor: String, name: String, format: String, version: String,
      schema: String, owner: String, permission: String,
-     isPublic: Boolean = false): (StatusCode, String) =
-       if (permission == "write" && (vendor startsWith owner)) {
+     isPublic: Boolean = false): (StatusCode, String) = {
+       if (permission == "write" &&( (vendor startsWith owner) || owner == "*")) {
          db withDynSession {
            get(List(vendor), List(name), List(format), List(version), owner,
              permission) match {
@@ -593,12 +619,14 @@ class SchemaDAO(val db: Database) extends DAO {
                      case _ => (InternalServerError,
                        result(500, "Something went wrong"))
                    }
-               case (NotFound, j) =>
+               case (NotFound, j) => {
+                val now = new LocalDateTime()
                  schemas
                    .insert(
                      Schema(0, vendor, name, format, version, schema,
-                       new LocalDateTime(), new LocalDateTime(),
-                       isPublic)) match {
+                       now, now,
+                       isPublic))
+                   } match {
                          case 0 => (InternalServerError,
                            result(500, "Something went wrong"))
                          case n => (Created,
@@ -611,6 +639,27 @@ class SchemaDAO(val db: Database) extends DAO {
        } else {
          (Unauthorized, result(401, "You do not have sufficient privileges"))
        }
+     }
+
+  def delete(vendor: String, name: String, format: String, version: String,
+    owner: String, permission: String,
+    isPublic: Boolean = false): (StatusCode, String)  =
+      if (permission == "write" &&( (vendor startsWith owner) || owner == "*")) {
+        db withDynSession {
+          schemas.filter(s =>
+            s.vendor === vendor &&
+            s.name === name &&
+            s.format === format &&
+            s.version === version)
+          .delete match {
+            case 0 => (404, "Schema not found")
+            case 1 => (OK, "Schema successfully deleted")
+            case n => (OK, s"$n schemas successfully deleted")
+          }
+        }
+      } else {
+        (Unauthorized, result(401, "You do not have sufficient privileges"))
+      }
 
    /**
     * Validates the the instance provided is valid against the specified schema.
@@ -660,9 +709,8 @@ class SchemaDAO(val db: Database) extends DAO {
             case Some(jvalue) => {
               val jsonNode = asJsonNode(jvalue)
               val schemaNode =
-                asJsonNode(parse(getNoMetadata(
-                  "com.snowplowanalytics.self-desc", "schema", "jsonschema",
-                  "1-0-0")))
+                asJsonNode(parse(getNoMetadata(selfDescVendor, selfDescName,
+                  selfDescFormat, selfDescVersion)))
 
               validateAgainstSchema(jsonNode, schemaNode) match {
                 case scalaz.Success(j) =>
@@ -739,7 +787,7 @@ class SchemaDAO(val db: Database) extends DAO {
         } else {
           "private"
         },
-        if ((vendor startsWith owner) && permission == "write") {
+        if( ((vendor startsWith owner) || owner == "*") && permission == "write") {
           "private"
         } else {
           "none"

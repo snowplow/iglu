@@ -13,11 +13,10 @@
 * governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.server
-package test.actor
+package actor
 
 // This project
-import actor.SchemaActor
-import actor.SchemaActor._
+import SchemaActor._
 
 // Akka
 import akka.actor.ActorSystem
@@ -32,13 +31,14 @@ import scala.util.Success
 
 // Specs2
 import org.specs2.mutable.SpecificationLike
+import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
 
 // Spray
 import spray.http.StatusCode
 import spray.http.StatusCodes._
 
-class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
+class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
   with ImplicitSender with NoTimeConversions {
 
   implicit val timeout = Timeout(20.seconds)
@@ -70,7 +70,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SpecificationLike
   val versions = List(version)
 
   val invalidSchema = """{ "some" : "json" }"""
-  val innerSchema = """"some" : "json""""
+  val innerSchema = "\"some\" : \"json\""
   val validSchema = 
   """{
     "self": {

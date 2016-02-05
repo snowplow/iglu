@@ -62,6 +62,20 @@ object SchemaActor {
     isPublic: Boolean = false)
 
   /**
+   * Message to send in order to delete a schema based on its
+   * (vendor, name, format, version) tuple.
+   * @param vendor schema's vendor
+   * @param name schema's name
+   * @param format schema's format
+   * @param version schema's version
+   * @param owner the owner of the API key the request was made with
+   * @param permission API key's permission
+   * @param isPublic wheter or not the schema is publicly available
+   */
+  case class DeleteSchema(vendor: String, name: String, format: String,
+    version: String, owner: String, permission: String, isPublic: Boolean = false)
+
+  /**
    * Message to send in order to retrieve every public schema.
    * @param owner the owner of the API key the request was made with
    * @param permission API key's permission
@@ -208,6 +222,9 @@ class SchemaActor extends Actor {
 
     case UpdateSchema(v, n, f, vs, s, o, p, i) =>
       sender ! schema.update(v, n, f, vs, s, o, p, i)
+
+    case DeleteSchema(v, n, f, vs, o, p, i) =>
+      sender ! schema.delete(v, n, f, vs, o, p, i)
 
     case GetPublicSchemas(o, p) => sender ! schema.getPublicSchemas(o, p)
 

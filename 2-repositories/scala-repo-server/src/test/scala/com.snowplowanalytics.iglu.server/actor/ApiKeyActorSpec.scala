@@ -13,11 +13,10 @@
 * governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.server
-package test.actor
+package actor
 
 // This project
-import actor.ApiKeyActor
-import actor.ApiKeyActor._
+import ApiKeyActor._
 
 // Akka
 import akka.actor.ActorSystem
@@ -40,13 +39,14 @@ import scala.util.Success
 
 // Specs2
 import org.specs2.mutable.SpecificationLike
+import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
 
 // Spray
 import spray.http.StatusCode
 import spray.http.StatusCodes._
 
-class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
+class ApiKeyActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
   with ImplicitSender with NoTimeConversions {
 
   implicit val timeout = Timeout(20.seconds)
@@ -101,13 +101,13 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SpecificationLike
 
       "return None if the API key is not found" in {
         val future = key ? GetKey(UUID.randomUUID.toString)
-        val Success(None) = future.value.get
+        val Success(Some(("-", "-"))) = future.value.get
         success
       }
 
       "return None if the API key is not an uuid" in {
         val future = key ? GetKey(notUuidKey)
-        val Success(None) = future.value.get
+        val Success(Some(("-", "-"))) = future.value.get
         success
       }
     }

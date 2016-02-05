@@ -105,11 +105,11 @@ class ApiKeyDAO(val db: Database) extends DAO {
         if (l.length == 1) {
           Some(l(0))
         } else {
-          None
+          Some("-" -> "-")
         }
       }
     } else {
-      None
+      Some("-" -> "-")
     }
   }
 
@@ -125,8 +125,8 @@ class ApiKeyDAO(val db: Database) extends DAO {
       apiKeys
         .map(_.vendorPrefix)
         .list
-        .filter(o => o.startsWith(vendorPrefix) || vendorPrefix.startsWith(o) ||
-          o == vendorPrefix)
+        .filter(o => (o.startsWith(vendorPrefix) || vendorPrefix.startsWith(o) ||
+          o == vendorPrefix) && o != "*")
         .length == 0
     }
 
