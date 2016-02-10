@@ -22,6 +22,22 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 // Spray
 import spray.routing.HttpService
+import spray.http.{
+  HttpRequest,
+  HttpResponse,
+  HttpEntity,
+  HttpCookie,
+  SomeOrigins,
+  AllOrigins
+}
+import spray.http.HttpHeaders.{
+  `Remote-Address`,
+  `Raw-Request-URI`,
+  `Origin`,
+  `Access-Control-Allow-Origin`,
+  `Access-Control-Allow-Credentials`,
+  `Access-Control-Allow-Headers`
+}
 
 /**
  * Api trait regroups the routes from all the different services.
@@ -47,5 +63,38 @@ trait Api extends HttpService with CoreActors with Core {
         }
       } ~
       getFromResourceDirectory("swagger-ui")
+    } ~
+    options {
+      requestInstance { request =>
+        complete(preflightResponse(request))
+      }
     }
+
+  /**
+   * Creates a response to the CORS preflight Options request
+   *
+   * @param request Incoming preflight Options request
+   * @return Response granting permissions to make the actual request
+   */
+  def preflightResponse(request: HttpRequest) = HttpResponse().withHeaders(List(
+    getAccesssControlAllowOriginHeader(request),
+    `Access-Control-Allow-Credentials`(true),
+    `Access-Control-Allow-Headers`( "Content-Type")))
+
+  /**
+   * Creates an Access-Control-Allow-Origin header which specifically
+   * allows the domain which made the request
+   *
+   * @param request Incoming request
+   * @return Header
+   */
+  def getAccesssControlAllowOriginHeader(request: HttpRequest) =
+    `Access-Control-Allow-Origin`(request.headers.find(_ match {
+      case `Origin`(origin) => true
+      case _ => false
+    }) match {
+      case Some(`Origin`(origin)) => SomeOrigins(origin)
+      case _ => AllOrigins
+    })
+
 }
