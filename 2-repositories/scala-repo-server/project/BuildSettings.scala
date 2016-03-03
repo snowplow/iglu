@@ -57,12 +57,8 @@ object BuildSettings {
   import AssemblyKeys._
   
   lazy val sbtAssemblySettings = assemblySettings ++ Seq(
-    // Executable jarfile
-    assemblyOption in assembly ~= {
-      _.copy(prependShellScript = Some(defaultShellScript))
-    },
-    // Name it as an executable
-    jarName in assembly := { s"${name.value}-${version.value}" },
+    // Simple name
+    jarName in assembly := { s"${name.value}-${version.value}.jar" },
     test in assembly := {}
   )
 
