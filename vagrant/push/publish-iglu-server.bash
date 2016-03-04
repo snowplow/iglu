@@ -141,10 +141,8 @@ function build_artifact() {
 	cp ${fatjar_path} ${artifact_folder}
 
 	# Remove the prepended shell script
-	tail -c +44 ${fatjar_path} > ${fatjar_file}.jar
-	artifact_path=./${dist_path}/${artifact_name}
-	zip -j ${artifact_path} ${fatjar_file}.jar
-	rm ${fatjar_file}.jar
+	artifact_path=${artifact_folder}/${artifact_name}
+	zip -j ${artifact_path} ${artifact_folder}/${fatjar_file}
 	eval ${__out_artifact_name}=${artifact_name}
 	eval ${__out_artifact_path}=${artifact_path}
 }
