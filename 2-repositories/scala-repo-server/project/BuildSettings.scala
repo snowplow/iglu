@@ -20,7 +20,7 @@ object BuildSettings {
   //Basic settings for our app
   lazy val basicSettings = Seq[Setting[_]](
     organization            := "com.snowplowanalytics",
-    version                 := "0.1.0",
+    version                 := "0.2.0",
     description             := "Scala schema server for Iglu",
     scalaVersion            := "2.10.1",
     scalacOptions           := Seq("-deprecation", "-encoding", "utf8",
@@ -29,6 +29,9 @@ object BuildSettings {
     maxErrors               := 5,
     // http://www.scala-sbt.org/0.13.0/docs/Detailed-Topics/Forking.html
     fork in run             := true,
+    fork in Test            := true,
+    // Ensure that the correct config file is loaded for testing
+    javaOptions in Test     += "-Dconfig.file=./test.conf",
     resolvers               ++= Dependencies.resolutionRepos
   )
 
@@ -54,12 +57,8 @@ object BuildSettings {
   import AssemblyKeys._
   
   lazy val sbtAssemblySettings = assemblySettings ++ Seq(
-    // Executable jarfile
-    assemblyOption in assembly ~= {
-      _.copy(prependShellScript = Some(defaultShellScript))
-    },
-    // Name it as an executable
-    jarName in assembly := { s"${name.value}-${version.value}" },
+    // Simple name
+    jarName in assembly := { s"${name.value}-${version.value}.jar" },
     test in assembly := {}
   )
 

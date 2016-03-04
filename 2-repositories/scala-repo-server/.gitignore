@@ -12,6 +12,5 @@ src_managed/
 project/boot/
 project/plugins/project/
 
-# Scala-IDE specific
-.scala_dependencies
-.worksheet
+# Don't include VERSION file
+VERSION

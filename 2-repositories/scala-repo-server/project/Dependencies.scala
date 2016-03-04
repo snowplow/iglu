@@ -25,7 +25,7 @@ object Dependencies {
     val akka  = "2.3.4"
     val joda = "1.6"
     val jodaTime = "2.3"
-    val json4s = "3.2.11-SNAPSHOT"
+    val json4s = "3.2.11"
     val jsonValidator = "2.2.5"
     val postgres = "9.1-901-1.jdbc4"
     val slf4j = "1.6.4"

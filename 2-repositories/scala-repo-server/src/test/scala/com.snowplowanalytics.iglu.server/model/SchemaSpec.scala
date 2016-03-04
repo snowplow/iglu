@@ -13,10 +13,9 @@
 * governing permissions and limitations there under.
 */
 package com.snowplowanalytics.iglu.server
-package test.model
+package model
 
 // This project
-import model.SchemaDAO
 import util.IgluPostgresDriver.simple._
 
 // Slick
@@ -50,6 +49,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
   val name2 = "ad_click2"
   val name2s = List(name2)
   val name3 = "ad_click3"
+  val nameSelfDesc = "schema"
   val faultyName = "ad_click4"
   val faultyNames = List(faultyName)
   val format = "jsonschema"
@@ -60,8 +60,8 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
   val invalidSchema = """{ "some" : "json" }"""
   val invalidSchema2 = """{ "some" : "json2" }"""
-  val innerSchema = """"some" : "json""""
-  val innerSchema2 = """"some" : "json2""""
+  val innerSchema = "\"some\" : \"json\""
+  val innerSchema2 = "\"some\" : \"json2\""
   val validSchema = 
   """{
     "self": {
@@ -82,12 +82,22 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for createTable" should {
 
       "create the schemas table" in {
-        schema.createTable
+        schema.createTable()
+        schema.bootstrapSelfDescSchema()
         database withDynSession {
           Q.queryNA[Int](
             s"""select count(*)
             from pg_catalog.pg_tables
             where tablename = '${tableName}';""").first === 1
+        }
+      }
+
+      "insert the self-desc validation schema" in {
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from ${tableName}
+            where name = '${nameSelfDesc}';""").first === 1
         }
       }
     }
@@ -326,7 +336,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where ispublic = true;""").first === 1
+            where ispublic = true;""").first === 2
         }
       }
     }
@@ -343,7 +353,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
           Q.queryNA[Int](
             s"""select count(*)
             from ${tableName}
-            where ispublic = true;""").first === 1
+            where ispublic = true;""").first === 2
         }
       }
     }

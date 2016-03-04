@@ -56,7 +56,7 @@
       log("key: " + key);
       if(key && key.trim() != "") {
         log("added key " + key);
-        window.authorizations.add("key", new ApiKeyAuthorization("api_key", key, "header"));
+        window.authorizations.add("key", new ApiKeyAuthorization("apikey", key, "header"));
       }
     })
     window.swaggerUi.load();
@@ -70,7 +70,7 @@
     <a id="iglulogo" href="http://snowplowanalytics.com/">Iglu API documentation</a>
     <a id="logo" href="http://swagger.wordnik.com/">powered by Swagger</a>
     <form id='api_selector'>
-        <div class="input"><input placeholder="api_key" id="input_apiKey" name="apiKey" type="text"/></div>
+        <div class="input"><input placeholder="apikey" id="input_apiKey" name="apiKey" type="text"/></div>
     </form>
   </div>
 </div>

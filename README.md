@@ -1,5 +1,9 @@
 # Iglu Schema Repository
 
+[ ![Build Status] [travis-image] ] [travis]
+[ ![Release] [release-image] ] [releases]
+[ ![License] [license-image] ] [license]
+
 Iglu is a machine-readable, open-source schema repository for **[JSON Schema] [json-schema]** from the team at **[Snowplow Analytics] [snowplow-website]**. A schema repository (sometimes called a registry) is like npm or Maven or git but holds data schemas instead of software or code.
 
 Iglu is used extensively in **[Snowplow] [snowplow-repo]**. For a presentation on how we came to build Iglu, see **[this blog post] [snowplow-schema-post]**.
@@ -40,6 +44,15 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
+[travis-image]: https://travis-ci.org/snowplow/iglu.png?branch=master
+[travis]: http://travis-ci.org/snowplow/iglu
+
+[release-image]: https://img.shields.io/badge/release-3_Penny_Black-orange.svg?style=flat
+[releases]: https://github.com/snowplow/snowplow/releases
+
+[license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
+[license]: http://www.apache.org/licenses/LICENSE-2.0
+
 [json-schema]: http://json-schema.org/
 [snowplow-website]: http://snowplowanalytics.com
 [snowplow-repo]: https://github.com/snowplow/snowplow
@@ -63,5 +76,4 @@ limitations under the License.
 [roadmap]: https://github.com/snowplow/iglu/wiki/Product-roadmap
 [contributing]: https://github.com/snowplow/iglu/wiki/Contributing
 
-[license]: http://www.apache.org/licenses/LICENSE-2.0
 [talk-to-us]: https://github.com/snowplow/snowplow/wiki/Talk-to-us
