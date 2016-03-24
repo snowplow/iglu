@@ -1,9 +1,22 @@
 language: scala
 scala:
-  - 2.10.1
+- 2.10.1
+- 2.11.8
 jdk:
   - oraclejdk7
 script:
-  - cd 2-repositories/scala-repo-server
-  - ./scripts/create-test-user.bash
-  - sbt test
+- cd 2-repositories/scala-repo-server
+- ./scripts/create-test-user.bash
+- sbt test
+- cd ../../0-common/scala-core
+- sbt test
+- sbt "project iglu-core-circe" test
+- sbt "project iglu-core-json4s" test
+- cd ../..
+deploy:
+  skip_cleanup: true
+  provider: script
+  script: ./.travis/deploy.sh $TRAVIS_TAG
+  on:
+    condition: '"$(.travis/is_core_release_tag.sh $TRAVIS_TAG)" == "" && $? == 0 && "${TRAVIS_SCALA_VERSION}" == "2.11.8"'
+    tags: true
