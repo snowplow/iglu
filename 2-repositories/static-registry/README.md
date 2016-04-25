@@ -1,6 +1,6 @@
-# Static repo
+# Static registry
 
-A static repo is simply an Iglu repository server structured as a static website.
+A static registry is simply an Iglu registry server structured as a static website.
 
 ## Find out more
 
@@ -10,7 +10,7 @@ A static repo is simply an Iglu repository server structured as a static website
 
 ## Copyright and license
 
-Iglu Static Repo is copyright 2014 Snowplow Analytics Ltd.
+Iglu Static Registry is copyright 2014-2016 Snowplow Analytics Ltd.
 
 Licensed under the **[Apache License, Version 2.0] [license]** (the "License");
 you may not use this software except in compliance with the License.
