@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Copyright (c) 2015-2016 Snowplow Analytics Ltd. All rights reserved.
 #
