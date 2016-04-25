@@ -35,7 +35,7 @@ upload () {
     echo $1 | awk -F '/' '{print $(NF-3)"/"$(NF-2)"/"$(NF-1)"/"$(NF)}';
   )";
   echo "\nUploading schema in file '$1' to endpoint '$destination'";
-  curl "${destination}?isPublic=true" -XPOST -d @$1 -H "apikey: $apikey";
+  curl "${destination}?isPublic=true" -XPOST -d @$1 -H "apikey: $apikey" --fail;
 }
 
 # Predicate checking if first argument contains `jsonschema` as its format
