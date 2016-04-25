@@ -13,11 +13,13 @@
 # implied.  See the Apache License Version 2.0 for the specific language
 # governing permissions and limitations there under.
 
-# Script to upload all schemas in a folder to the Iglu repo
-# Takes three arguments: the target repo host, the API key, and the input schema directory
+# Script to upload all schemas in a folder to the Iglu registry
+# Takes three arguments: the target registry host, the API key, and the input 
+# schema directory
+
 # Uses PUT rather than POST, so existing schemas are overwritten
 
-# Note that this script assumes the target Scala Repo Server is empty:
+# Note that this script assumes the target Scala Registry Server is empty:
 # it has no intelligent synchronization routine yet
 
 set -e;
