@@ -32,5 +32,5 @@ for schemapath in $(find $schemafolder -type f | grep 'jsonschema'); do
     echo $schemapath | awk -F '/' '{print $(NF-3)"/"$(NF-2)"/"$(NF-1)"/"$(NF)}';
   )";
   echo "\nUploading schema in file '$schemapath' to endpoint '$destination'";
-  curl "${destination}?isPublic=true" -XPOST -d @$schemapath -H "apikey: $apikey";
+  curl "${destination}?isPublic=true" -XPUT -d @$schemapath -H "apikey: $apikey";
 done;
