@@ -17,17 +17,10 @@ import sbt._
 import Keys._
 
 object Json4sBuildSettings {
-  import BuildSettings.igluCoreVersion
+  import BuildSettings._
 
   // Settings specific for Iglu Core Json4s implementation
-  lazy val json4sBuildSettings = Seq[Setting[_]](
-    organization := "com.snowplowanalytics",
-    version := igluCoreVersion,
-    description := "Iglu Core type classes instances for Json4s",
-    scalaVersion := "2.10.6",
-    crossScalaVersions := Seq("2.10.6", "2.11.8"),
-    scalacOptions := Seq("-deprecation", "-encoding", "utf8", "-Yrangepos",
-                         "-feature", "-unchecked", "-Xlog-reflective-calls",
-                         "-Xlint")
-  )
+  lazy val json4sBuildSettings = commonSettings ++ Seq[Setting[_]](
+    description := "Iglu Core type classes instances for Json4s"
+  ) ++ mavenCentralExtras ++ publishSettings
 }

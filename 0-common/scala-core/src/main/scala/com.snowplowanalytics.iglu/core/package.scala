@@ -26,12 +26,12 @@ package object core {
    * This implicit class will add extraction methods to all types
    * with defined [[ExtractFrom]] instance
    */
-  implicit final class ExtractFromOps[E: ExtractFrom](entity: E) extends ExtractFrom.ExtractFromOps(entity)
+  implicit final class ExtractFromOps[E: ExtractFrom](entity: E) extends ExtractFrom.ExtractFromOps[E](entity)
 
   /**
    * This implicit class will add attachment methods to all types
    * with defined [[AttachTo]] instance
    */
-  implicit final class AttachToOps[E: AttachTo](entity: E) extends AttachTo.AttachToOps(entity)
+  implicit final class AttachToOps[E: AttachTo](entity: E) extends AttachTo.AttachToOps[E](entity)
 
 }
