@@ -3,7 +3,7 @@ scala:
 - 2.10.1
 - 2.11.8
 jdk:
-  - oraclejdk7
+- oraclejdk7
 script:
 - cd 2-repositories/scala-repo-server
 - ./scripts/create-test-user.bash
@@ -20,3 +20,8 @@ deploy:
   on:
     condition: '"$(.travis/is_core_release_tag.sh $TRAVIS_TAG)" == "" && $? == 0 && "${TRAVIS_SCALA_VERSION}" == "2.11.8"'
     tags: true
+env:
+  global:
+  - secure: giEJ6EdAXy+clvVBfkV42t6SH7Ze1DSdTrpAucLXHOl4UF7J+TgECDIPeSbhy/y3g4cDFb37mB1dl1gOv5UYuBm8/92Agj+oQpK49nRsc4+xXeEpraHEGlq1L+BW0zVZx+w6M3eTBu9uT0skDAF3aeVFu7BJtTonrQh2Fr+RD3I=
+  - secure: LQIIIape04LUL4cv2SMS10AVlHofxPO0HxcT12EAefSuHJyGfMYKSAIywloPQob/rCeGcWIICCycgXfx3O4joM+axI4tZuNoGQ7LyiJrIEFDtGdFW5Cl+fZwJXtaYEy+fDBCwi+c+oK6olSDyXgNXj4EVZgOYuDxJ8FexQDj6Ok=
+
