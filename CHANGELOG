@@ -1,3 +1,17 @@
+Release 4 Epaulette (2015-05-xx)
+--------------------------------
+Common: added Sonatype credentials to .travis.yml (#159)
+Common: added Bintray credentials to .travis.yml (#157)
+Common: fixed publishing date for Penny Black in CHANGELOG (closes #160)
+Scala Core: added (#135)
+Registry Syncer: added counter and auto-generation of keys (#140)
+Registry Syncer: added --fail into curl command (#133)
+Registry Syncer: changed hash-bang interpreter to bash (#152)
+Registry Syncer: renamed from Repo Syncer (#141)
+Registry Syncer: fixed assumption that any string with "jsonschema" contains JSON Schema (#137)
+Registry Syncer: change HTTP method from POST to PUT (#134)
+Static Schema Registry: renamed from Static Schema Repo (#132)
+
 Release 3 Penny Black (2016-03-04)
 ----------------------------------
 Common: added dedicated Vagrant setup (#96)
