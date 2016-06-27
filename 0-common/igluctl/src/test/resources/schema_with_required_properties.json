@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "required": ["requiredKey", "anotherRequired"],
+  "properties": {
+    "oneKey": { "type": "string" },
+    "requiredKey": {"type": "integer"},
+    "objectKey": {
+      "type": "object",
+      "required": ["skippedRequired"],
+      "properties": {
+        "skippedRequired": { "type": "string" }
+      }
+    },
+    "anotherRequired": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {"type": "number"}
+      }
+    }
+  }
+}
