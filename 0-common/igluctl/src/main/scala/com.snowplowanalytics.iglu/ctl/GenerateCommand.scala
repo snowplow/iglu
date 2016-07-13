@@ -39,7 +39,7 @@ import Scalaz._
 import FileUtils._
 import Utils._
 
-case class DdlCommand(
+case class GenerateCommand(
   input: File,
   output: File,
   db: String = "redshift",        // Isn't checked anywhere
@@ -49,9 +49,9 @@ case class DdlCommand(
   varcharSize: Int = 4096,
   splitProduct: Boolean = false,
   noHeader: Boolean = false,
-  force: Boolean = false) {
+  force: Boolean = false) extends Command.CtlCommand {
 
-  import DdlCommand._
+  import GenerateCommand._
 
   /**
    * Primary working method of `ddl` command
@@ -278,7 +278,7 @@ case class DdlCommand(
   }
 }
 
-object DdlCommand {
+object GenerateCommand {
 
   /**
    * Class holding an aggregated output ready to be written

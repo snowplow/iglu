@@ -80,6 +80,7 @@ echo "curl --silent ${host}/api/auth/keygen -X POST -H "apikey: ${apikey}" -d "v
 api_keys="$(curl --silent ${host}/api/auth/keygen -X POST -H "apikey: ${apikey}" -d "vendor_prefix=*")"
 write_api_key="$(echo ${api_keys} | python -c 'import json,sys;print(json.load(sys.stdin)["write"])')"
 read_api_key="$(echo ${api_keys} | python -c 'import json,sys;print(json.load(sys.stdin)["read"])')"
+echo $api_keys
 echo "Keys: $(echo ${api_keys} | xargs)"
 
 # Upload found keys

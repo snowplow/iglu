@@ -70,7 +70,7 @@ class FileUtilsSpec extends Specification { def is = s2"""
          |	"additionalProperties": false
          |}""".stripMargin)
 
-    val schemaFile = FileUtils.JsonFile("1-0-0", schema)
+    val schemaFile = FileUtils.JsonFile(None, "1-0-0", schema)
 
     // result
     val schemaKey = SchemaKey("org.ietf", "http_cookie", "jsonschema", SchemaVer(1,0,0))
