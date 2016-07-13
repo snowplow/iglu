@@ -24,9 +24,9 @@ import scopt.OptionParser
 case class Command(
   // common
   command:       Option[String] = None,
+  input:         Option[File]   = None,
 
   // ddl
-  input:         Option[File]   = None,
   output:        Option[File]   = None,
   db:            String         = "redshift",
   withJsonPaths: Boolean        = false,
@@ -35,16 +35,31 @@ case class Command(
   varcharSize:   Int            = 4096,
   splitProduct:  Boolean        = false,
   noHeader:      Boolean        = false,
-  force:         Boolean        = false
+  force:         Boolean        = false,
+
+  // sync
+  host:          Option[String] = None,
+  apiKey:        Option[String] = None
 ) {
-  def toDdl: Option[DdlCommand] = command match {
+  def toCommand: Option[Command.CtlCommand] = command match {
     case Some("static generate") => Some(
-      DdlCommand(input.get, output.getOrElse(new File(".")), db,withJsonPaths, rawMode, schema, varcharSize, splitProduct, noHeader, force))
+      GenerateCommand(input.get, output.getOrElse(new File(".")), db,withJsonPaths, rawMode, schema, varcharSize, splitProduct, noHeader, force))
+    case Some("static push") =>
+      Some(SyncCommand(host.get, apiKey.get, input.get))
     case _ => None
   }
 }
 
 object Command {
+  
+  private def subcommand(sub: String)(unit: Unit, root: Command): Command =
+    root.copy(command = root.command.map(_ + " " + sub))
+
+  /**
+   * Trait common for all commands
+   */
+  private[ctl] trait CtlCommand
+
   val cliParser = new OptionParser[Command]("igluctl") {
 
     head(generated.ProjectSettings.name, generated.ProjectSettings.version)

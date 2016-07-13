@@ -16,7 +16,7 @@ import org.specs2.Specification
 import org.json4s.jackson.JsonMethods.parse
 import java.io.File
 
-import com.snowplowanalytics.iglu.ctl.DdlCommand.DdlOutput
+import com.snowplowanalytics.iglu.ctl.GenerateCommand.DdlOutput
 import com.snowplowanalytics.iglu.ctl.FileUtils.TextFile
 
 //
@@ -156,13 +156,13 @@ class DdlCommandSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    val jsonFile = JsonFile("1-0-0", sourceSchema)
+    val jsonFile = JsonFile(None, "1-0-0", sourceSchema)
     val stubFile: File = new File(".")
-    val command = DdlCommand(stubFile, stubFile)
+    val command = GenerateCommand(stubFile, stubFile)
 
     val output = command.transformSelfDescribing(List(jsonFile))
 
-    val expected = DdlCommand.DdlOutput(List(TextFile(new File("com.amazon.aws.lambda/java_context_1.sql"), resultContent)))
+    val expected = GenerateCommand.DdlOutput(List(TextFile(new File("com.amazon.aws.lambda/java_context_1.sql"), resultContent)))
 
     def dropHeader(o: DdlOutput): DdlOutput = {
       val textFile = o.ddls.head.file
@@ -278,13 +278,13 @@ class DdlCommandSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    val jsonFile = JsonFile("java-context.json", sourceSchema)
+    val jsonFile = JsonFile(None, "java-context.json", sourceSchema)
     val stubFile: File = new File(".")
-    val command = DdlCommand(stubFile, stubFile, rawMode = true, noHeader = true, varcharSize = 128)
+    val command = GenerateCommand(stubFile, stubFile, rawMode = true, noHeader = true, varcharSize = 128)
 
     val output = command.transformRaw(List(jsonFile))
 
-    val expected = DdlCommand.DdlOutput(List(TextFile(new File("./java_context.sql"), resultContent)))
+    val expected = GenerateCommand.DdlOutput(List(TextFile(new File("./java_context.sql"), resultContent)))
 
     output must beEqualTo(expected)
   }
@@ -401,13 +401,13 @@ class DdlCommandSpec extends Specification { def is = s2"""
          |}""".stripMargin)
 
 
-    val jsonFile = JsonFile("1-0-0", sourceSchema)
+    val jsonFile = JsonFile(None, "1-0-0", sourceSchema)
     val stubFile: File = new File(".")
-    val command = DdlCommand(stubFile, stubFile, noHeader = true, schema = Some("snowplow"))
+    val command = GenerateCommand(stubFile, stubFile, noHeader = true, schema = Some("snowplow"))
 
     val output = command.transformSelfDescribing(List(jsonFile))
 
-    val expected = DdlCommand.DdlOutput(
+    val expected = GenerateCommand.DdlOutput(
       List(TextFile(new File("com.amazon.aws.ec2/instance_identity_document_1.sql"), resultContent))
     )
 
@@ -556,9 +556,9 @@ class DdlCommandSpec extends Specification { def is = s2"""
          |    ]
          |}""".stripMargin
 
-    val jsonFile = JsonFile("1-0-0", sourceSchema)
+    val jsonFile = JsonFile(None, "1-0-0", sourceSchema)
     val stubFile: File = new File(".")
-    val command = DdlCommand(stubFile, stubFile, withJsonPaths = true)
+    val command = GenerateCommand(stubFile, stubFile, withJsonPaths = true)
 
     val output = command.transformSelfDescribing(List(jsonFile)).jsonPaths.head
 

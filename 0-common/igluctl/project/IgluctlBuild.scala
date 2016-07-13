@@ -39,6 +39,7 @@ object IgluctlBuild extends Build {
         Libraries.scopt,
         Libraries.scalaz7,
         Libraries.json4sJackson,
+        Libraries.scalajHttp,
         // Scala (test only)
         Libraries.specs2,
         Libraries.scalazSpecs2,

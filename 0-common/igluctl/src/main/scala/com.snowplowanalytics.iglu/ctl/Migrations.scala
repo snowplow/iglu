@@ -28,7 +28,7 @@ import FileUtils.TextFile
 import Utils.splitValidations
 
 /**
- * Helper module for [[DdlCommand]] with functions responsible for DDL migrations
+ * Helper module for [[GenerateCommand]] with functions responsible for DDL migrations
  */
 object Migrations {
   /**

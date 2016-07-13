@@ -36,6 +36,8 @@ object FileUtils {
 
   type ValidJsonFileList = List[Validation[String, JsonFile]]
 
+  type ValidJsonFileStream = Stream[Validation[String, JsonFile]]
+
   // AttachToSchema can be used both to extract and attach
   implicit val schemaExtract = com.snowplowanalytics.iglu.core.json4s.AttachToSchema
 
@@ -76,8 +78,12 @@ object FileUtils {
 
   /**
    * Class representing JSON file with path and parsed content
+   *
+   * @param path full path on filesystem *with* file name if file already exists
+   * @param fileName always present name of file
+   * @param content valid JSON content
    */
-  case class JsonFile(fileName: String, content: JValue) {
+  case class JsonFile(path: Option[String], fileName: String, content: JValue) {
     /**
      * Try to extract Self-describing JSON Schema from JSON file
      * [[JsonFile]] not neccessary contains JSON Schema, it also used for storing
@@ -87,8 +93,17 @@ object FileUtils {
      */
     def extractSelfDescribingSchema: Validation[String, SelfDescribingSchema[JValue]] = {
       val optionalSchema = content.toSchema.map(_.success[String])
-      optionalSchema.getOrElse(s"Cannot extract Self-describing JSON Schema from JSON file [$fileName]".failure)
+      optionalSchema.getOrElse(s"Cannot extract Self-describing JSON Schema from JSON file [$getKnownPath]".failure)
     }
+
+    /**
+     * Return known part of file path. If `path` is present it will join it
+     * with filename, otherwise return just `fileName`
+     *
+     * @return fileName or full absolute path
+     */
+    def getKnownPath: String =
+      path.map(new File(_, fileName).getAbsolutePath).getOrElse(fileName)
   }
 
   /**
@@ -156,27 +171,46 @@ object FileUtils {
   /**
    * Get list of JSON Files from either a directory (multiple JSON Files)
    * or single file (one-element list)
+   * This is eager implementation, which means it will load all files in
+   * memory once it is invoked
    *
    * @param file Java File object pointing to File or dir
+   * @param predicate optional predicate allowing to filter files by their
+   *                  path or access rights, so they not appear as failures
    * @return list of validated JsonFiles
    */
-  def getJsonFiles(file: File): ValidJsonFileList =
-    if (!file.exists()) Failure(s"Path [${file.getAbsolutePath}] doesn't exist") :: Nil
-    else if (file.isDirectory) listAllFiles(file).map(getJsonFile)
-    else getJsonFile(file) :: Nil
+  def getJsonFiles(file: File, predicate: Option[File => Boolean] = None): ValidJsonFileList =
+    getJsonFilesStream(file, predicate).toList
 
   /**
-   * Recursively get all files in ``dir`` except hidden
+   * Lazily get list of JSON Files from either a directory (multiple JSON Files)
+   * or single file (one-element list)
+   *
+   * @param file Java File object pointing to File or dir
+   * @param predicate optional predicate allowing to filter files by their
+   *                  path or access rights, so they not appear as failures
+   * @return list of validated JsonFiles
+   */
+  def getJsonFilesStream(file: File, predicate: Option[File => Boolean] = None): ValidJsonFileStream =
+    if (!file.exists()) Failure(s"Path [${file.getAbsolutePath}] doesn't exist") #:: Stream.empty
+    else if (file.isDirectory) predicate match {
+      case Some(p) => streamAllFiles(file).filter(p).map(getJsonFile)
+      case None    => streamAllFiles(file).map(getJsonFile)
+    }
+    else getJsonFile(file) #:: Stream.empty
+
+  /**
+   * Recursively and lazily get all files in ``dir`` except hidden
    *
    * @param dir directory to scan
    * @return list of found files
    */
-  def listAllFiles(dir: File): List[File] = {
+  def streamAllFiles(dir: File): Stream[File] = {
     def scanSubdir(subDir: File): Array[File] = {
       val these = subDir.listFiles.filterNot(_.getName.startsWith("."))
       these ++ these.filter(_.isDirectory).flatMap(scanSubdir)
     }
-    scanSubdir(dir).filter(_.isFile).toList
+    scanSubdir(dir).filter(_.isFile).toStream
   }
 
   /**
@@ -187,7 +221,7 @@ object FileUtils {
    */
   def getJsonFile(file: File): Validation[String, JsonFile] =
     getJsonFromFile(file) match {
-      case Success(json) => JsonFile(file.getName, json).success
+      case Success(json) => JsonFile(Some(file.getParent), file.getName, json).success
       case Failure(str) => str.failure
     }
 
