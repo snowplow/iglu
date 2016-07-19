@@ -16,6 +16,7 @@ object Main extends App {
   Command.cliParser.parse(args, Command()).flatMap(_.toCommand) match {
     case Some(ddl: GenerateCommand) => ddl.processDdl()
     case Some(sync: SyncCommand) => sync.process()
+    case Some(lint: LintCommand) => lint.process()
     case _ => Command.cliParser.showUsageAsError()
   }
 }

@@ -39,13 +39,17 @@ case class Command(
 
   // sync
   host:          Option[String] = None,
-  apiKey:        Option[String] = None
+  apiKey:        Option[String] = None,
+
+  // lint
+  skipWarnings:  Boolean        = false
 ) {
   def toCommand: Option[Command.CtlCommand] = command match {
     case Some("static generate") => Some(
       GenerateCommand(input.get, output.getOrElse(new File(".")), db,withJsonPaths, rawMode, schema, varcharSize, splitProduct, noHeader, force))
     case Some("static push") =>
       Some(SyncCommand(host.get, apiKey.get, input.get))
+    case Some("lint") => Some(LintCommand(input.get, skipWarnings))
     case _ => None
   }
 }
@@ -72,61 +76,93 @@ object Command {
       .children(
 
         cmd("generate")
-        .action { (_, c) => c.copy(command = c.command.map(_ + " generate")) }
-        .text("Generate DDL out of JSON Schema\n")
-        .children(
+          .action { (_, c) => c.copy(command = c.command.map(_ + " generate")) }
+          .text("Generate DDL out of JSON Schema\n")
+          .children(
 
-          arg[File]("input")
-            action { (x, c) => c.copy(input = Some(x)) } required()
-            text "Path to single JSON schema or directory with JSON Schemas",
+            arg[File]("input")
+              action { (x, c) => c.copy(input = Some(x)) } required()
+              text "Path to single JSON schema or directory with JSON Schemas",
 
-          opt[File]("output")
-            action { (x, c) => c.copy(output = Some(x)) }
-            valueName "<path>"
-            text "Directory to put generated data\t\tDefault: current dir",
+            opt[File]("output")
+              action { (x, c) => c.copy(output = Some(x)) }
+              valueName "<path>"
+              text "Directory to put generated data\t\tDefault: current dir",
 
-          opt[String]("schema")
-            action { (x, c) => c.copy(schema = Some(x)) }
-            valueName "<name>"
-            text "Redshift schema name\t\t\t\tDefault: atomic",
+            opt[String]("schema")
+              action { (x, c) => c.copy(schema = Some(x)) }
+              valueName "<name>"
+              text "Redshift schema name\t\t\t\tDefault: atomic",
 
-          opt[String]("db")
-            action { (x, c) => c.copy(db = x) }
-            valueName "<name>"
-            text "DB to which we need to generate DDL\t\tDefault: redshift",
+            opt[String]("db")
+              action { (x, c) => c.copy(db = x) }
+              valueName "<name>"
+              text "DB to which we need to generate DDL\t\tDefault: redshift",
 
-          opt[Int]("varchar-size")
-            action { (x, c) => c.copy(varcharSize = x) }
-            valueName "<n>"
-            text "Default size for varchar data type\t\tDefault: 4096",
+            opt[Int]("varchar-size")
+              action { (x, c) => c.copy(varcharSize = x) }
+              valueName "<n>"
+              text "Default size for varchar data type\t\tDefault: 4096",
 
-          opt[Unit]("with-json-paths")
-            action { (_, c) => c.copy(withJsonPaths = true) }
-            text "Produce JSON Paths files with DDL",
+            opt[Unit]("with-json-paths")
+              action { (_, c) => c.copy(withJsonPaths = true) }
+              text "Produce JSON Paths files with DDL",
 
-          opt[Unit]("raw-mode")
-            action { (_, c) => c.copy(rawMode = true) }
-            text "Produce raw DDL without Snowplow-specific data",
+            opt[Unit]("raw-mode")
+              action { (_, c) => c.copy(rawMode = true) }
+              text "Produce raw DDL without Snowplow-specific data",
 
-          opt[Unit]("split-product")
-            action { (_, c) => c.copy(splitProduct = true) }
-            text "Split product types (like [string,integer]) into separate columns",
+            opt[Unit]("split-product")
+              action { (_, c) => c.copy(splitProduct = true) }
+              text "Split product types (like [string,integer]) into separate columns",
 
-          opt[Unit]("no-header")
-            action { (_, c) => c.copy(noHeader = true) }
-            text "Do not place header comments into output DDL",
+            opt[Unit]("no-header")
+              action { (_, c) => c.copy(noHeader = true) }
+              text "Do not place header comments into output DDL",
 
-          opt[Unit]("force")
-            action { (_, c) => c.copy(force = true) }
-            text "Force override existing manually-edited files",
+            opt[Unit]("force")
+              action { (_, c) => c.copy(force = true) }
+              text "Force override existing manually-edited files",
 
-          checkConfig {
-            case command: Command if command.withJsonPaths && command.splitProduct =>
-              failure("Options --with-json-paths and --split-product cannot be used together")
-            case _ => success
-          }
-        )
+            checkConfig {
+              case command: Command if command.withJsonPaths && command.splitProduct =>
+                failure("Options --with-json-paths and --split-product cannot be used together")
+              case _ => success
+            }
+          ),
+
+        cmd("push")
+          .action(subcommand("push"))
+          .text("Upload Schemas from folder into the Iglu registry\n")
+          .children(
+
+            arg[File]("input") required()
+              action { (x, c) => c.copy(input = Some(x))}
+              text "Path to directory with JSON Schemas",
+
+            arg[String]("host")
+              action { (x, c) => c.copy(host = Some(x))}
+              text "Iglu Registry host to upload Schemas",
+
+            arg[String]("apikey")
+              action { (x, c) => c.copy(apiKey = Some(x))}
+              text "API Key\n"
+          )
     )
+
+    cmd("lint")
+      .action { (_, c) => c.copy(command = Some("lint"))}
+      .text("Lint Schemas\n")
+      .children(
+
+        arg[File]("input") required()
+          action { (x, c) => c.copy(input = Some(x)) }
+          text "Path to directory with JSON Schemas",
+
+        opt[Unit]("skip-warnings")
+          action { (_, c) => c.copy(skipWarnings = true) }
+          text "Don't output messages with log level less than ERROR"
+      )
   }
 }
 
