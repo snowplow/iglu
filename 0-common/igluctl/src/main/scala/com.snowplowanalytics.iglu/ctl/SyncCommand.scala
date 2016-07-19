@@ -99,7 +99,7 @@ case class SyncCommand(host: String, masterApiKey: String, inputDir: File) exten
     val resultsT = for {
       writeKey <- fromXor(apiKeys.map(_.write))
       json     <- fromXors(jsons)
-      schema   <- fromXor(extractSchema(json))
+      schema   <- fromXor(LintCommand.extractSchema(json))
     } yield buildRequest(schema, writeKey)
     resultsT.run
   }
@@ -318,16 +318,6 @@ object SyncCommand {
     Option(throwable.getMessage).getOrElse(throwable.toString)
 
   /**
-   * Get Iglu-compatible path (com.acme/event/jsonschema/1-0-2) from full
-   * absolute file path
-   *
-   * @param fullPath file's absolute path
-   * @return four last path entities joined by OS-separator
-   */
-  private def getPath(fullPath: String): String =
-    fullPath.split(separator).takeRight(4).mkString(separator)
-
-  /**
    * Predicate used to filter only files which Iglu path contains `jsonschema`
    * as format
    *
@@ -338,37 +328,6 @@ object SyncCommand {
     file.getAbsolutePath.split(separator).takeRight(4) match {
       case Array(_, _, format, _) => format == "jsonschema"
       case _ => false
-    }
-
-  /**
-   * Check if path of some JSON file corresponds with Iglu path extracted
-   * from its self-describing info
-   *
-   * @param jsonFile some existing JSON file with defined path in it
-   * @param schemaKey schema key extracted from it
-   * @return true if extracted path is equal to FS path
-   */
-  def equalPath(jsonFile: JsonFile, schemaKey: SchemaKey): Boolean =
-    jsonFile.path match {
-      case Some(_) =>
-        val path = getPath(jsonFile.getKnownPath)
-        SchemaKey.fromPath(path) == Some(schemaKey)
-      case None => false
-    }
-
-  /**
-   * Extract self-describing JSON Schema from JSON file
-   *
-   * @param jsonFile some existing on FS valid JSON file
-   * @return self-describing JSON Schema if successful or error message if
-   *         file is not Schema or self-describing Schema or has invalid
-   *         file path
-   */
-  def extractSchema(jsonFile: JsonFile): String \/ IgluSchema =
-    jsonFile.extractSelfDescribingSchema.disjunction match {
-      case \/-(schema) if equalPath(jsonFile, schema.self) => schema.right
-      case \/-(schema) => s"Error: JSON Schema [${schema.self.toSchemaUri}] doesn't conform path [${getPath(jsonFile.getKnownPath)}]".left
-      case -\/(error) => error.left
     }
 
   /**

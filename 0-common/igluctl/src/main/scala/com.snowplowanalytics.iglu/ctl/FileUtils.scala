@@ -110,7 +110,7 @@ object FileUtils {
    * Creates a new file with the contents of the list inside.
    *
    * @param fileName The name of the new file
-   * @param fileDir The directory we want the file to live in, w/o trailing slash
+   * @param fileDir The directory we want the file to live in, w/output trailing slash
    * @param content Content of file
    * @return a success or failure string about the process
    */

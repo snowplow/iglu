@@ -14,12 +14,16 @@ package com.snowplowanalytics.iglu.ctl
 
 // Scalaz
 import scalaz._
+import Scalaz._
 
 // Iglu
 import com.snowplowanalytics.iglu.core.SchemaKey
 import com.snowplowanalytics.iglu.schemaddl.{ RevisionGroup, ModelGroup }
 
 object Utils {
+
+  type Failing[+A] = String \/ A
+
   /**
    * Split list of scalaz Validation in pair of List with successful values
    * and List with unsuccessful values
@@ -47,7 +51,7 @@ object Utils {
    * @param schemaKey Schema description
    * @return tuple of four values defining revision
    */
-  def revisionGroup(schemaKey: SchemaKey): RevisionGroup =
+  private[iglu] def revisionGroup(schemaKey: SchemaKey): RevisionGroup =
     (schemaKey.vendor, schemaKey.name, schemaKey.version.model, schemaKey.version.revision)
 
   /**
@@ -56,7 +60,23 @@ object Utils {
    * @param schemaKey Schema description
    * @return tuple of three values defining revision
    */
-  def modelGroup(schemaKey: SchemaKey): ModelGroup =
+  private[iglu] def modelGroup(schemaKey: SchemaKey): ModelGroup =
     (schemaKey.vendor, schemaKey.name, schemaKey.version.model)
+
+  /**
+   * Convert disjunction value into `EitherT`
+   * Used in for-comprehensions to mimic disjunction as `Stream[String \/ A]`
+   * and extract A
+   */
+  private[iglu] def fromXor[A](value: Failing[A]): EitherT[Stream, String, A] =
+    EitherT[Stream, String, A](value.point[Stream])
+
+  /**
+   * Convert stream of disjunctions into `EitherT`
+   * Used in for-comprehensions to mimic disjunction as `Stream[String \/ A]`
+   * and extract A
+   */
+  private[iglu] def fromXors[A, B](value: Stream[Failing[A]]): EitherT[Stream, String, A] =
+    EitherT[Stream, String, A](value)
 }
 
