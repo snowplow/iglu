@@ -27,8 +27,28 @@ You can transform JSON Schema into Redshift (other storages are coming) DDL, usi
 This functionality was previously implemented as **[Schema Guru] [schema-guru]** (pre-0.7.0) `ddl` subcommand
 
 ```bash
-$ ./igluctl_0.1.0 static generate {{path_to_jsonschemas}} 
+$ ./igluctl_0.1.0 static generate {{input}}
 ```
+
+### Push JSON Schemas
+
+You can push your JSON Schemas from local filesystem to Iglu Scala Registry in batch manner using `igluctl static push` command.
+This functionality was previously implemented as `registry-sync.sh` shell script.
+
+```bash
+$ ./igluctl_0.1.0 static push {{input}} {{registry_host}} {{apikey}}
+```
+
+### Linting
+
+You can check your JSON Schema for vairous common mistakes using `igluctl lint` command.
+
+```bash
+$ ./igluctl_0.1.0 lint {{input}}
+```
+
+This check will include JSON Syntax validation (`required` is not empty, `maximum` is integer etc)
+and also "sanity check", which checks that particular JSON Schema can always validate at least one possible JSON.
 
 
 ## Copyright and License
