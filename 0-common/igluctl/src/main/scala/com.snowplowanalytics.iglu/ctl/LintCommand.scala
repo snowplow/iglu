@@ -12,6 +12,9 @@
  */
 package com.snowplowanalytics.iglu.ctl
 
+// Scala
+import scala.collection.JavaConversions.asScalaIterator
+
 // scalaz
 import scalaz._
 import Scalaz._
@@ -23,19 +26,17 @@ import org.json4s.jackson.JsonMethods.{ asJsonNode, fromJsonNode }
 // Java
 import java.io.File
 
-import scala.collection.JavaConversions.asScalaIterator
-
 // JSON Schema Validator
-import com.github.fge.jsonschema.core.report.ListProcessingReport
-import com.github.fge.jsonschema.core.report.ProcessingMessage
-
+import com.github.fge.jsonschema.core.report.{ ListProcessingReport, ProcessingMessage }
 
 // Iglu core
 import com.snowplowanalytics.iglu.core.SchemaKey
-import com.snowplowanalytics.iglu.core.json4s.StringifySchema
 
 // Schema DDL
 import com.snowplowanalytics.iglu.schemaddl.IgluSchema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.{ Schema, SanityLinter }
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s.Json4sToSchema._
+
 
 // This library
 import FileUtils.{ getJsonFilesStream, JsonFile }
@@ -43,18 +44,30 @@ import FileUtils.{ getJsonFilesStream, JsonFile }
 case class LintCommand(inputDir: File, skipWarnings: Boolean) extends Command.CtlCommand {
   import LintCommand._
 
+  /**
+   * Primary method running command logic
+   */
   def process(): Unit = {
     val jsons = getJsonFilesStream(inputDir, Some(filterJsonSchemas))
     val reports = jsons.map { file => 
       val report = file.map(check)
       flattenReport(report) 
     }
-    output(reports).exit()
+    reports.foldLeft(Total(0, 0))((acc, cur) => acc.add(cur)).exit()
   }
 
+  /**
+   * Perform syntax check and sanity lint
+   *
+   * @param jsonFile valid JSON file, supposed to contain JSON Schema
+   * @return [[Report]] ADT, indicating successful lint or containing errors
+   */
   def check(jsonFile: JsonFile): Report = {
+    val pathCheck = extractSchema(jsonFile).map(_ => ()).validation.toValidationNel
     val syntaxCheck = validateSchema(jsonFile.content, skipWarnings)
-    val fullValidation = syntaxCheck |+| SanityLinter.lint(jsonFile.content)
+    val lintCheck = Schema.parse(jsonFile.content).map(SanityLinter.lint)
+
+    val fullValidation = syntaxCheck |+| pathCheck |+| lintCheck.getOrElse("Doesn't contain JSON Schema".failureNel)
 
     fullValidation match {
       case scalaz.Success(_) =>
@@ -67,16 +80,56 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean) extends Command.Ct
 
 object LintCommand {
 
+  /**
+   * OS-specific separator
+   */
   private val separator = System.getProperty("file.separator", "/")
 
+  /**
+   * FGE validator for Self-describing schemas
+   */
   lazy val validator = SelfSyntaxChecker.getSyntaxValidator
 
-  case class Result(success: Int, failures: Int) {
-    def exit(): Unit =
+  /**
+   * End-of-the-world class, containing info about success/failure of execution
+   *
+   * @param successes number of successfully validated schemas
+   * @param failures number of schemas with errors
+   */
+  case class Total(successes: Int, failures: Int) {
+    /**
+     * Exit from app with error status if invalid schemas were found
+     */
+    def exit(): Unit = {
+      println(s"TOTAL: $successes Schemas were successfully validated")
+      println(s"TOTAL: $failures errors were encountered")
+
       if (failures > 0) sys.exit(1)
       else sys.exit(0)
+    }
+
+    /**
+     * Append and print report for another schema
+     *
+     * @param report schema processing result
+     * @return modified total object
+     */
+    def add(report: Report): Total = report match {
+      case s: Success =>
+        println(s"SUCCESS: ${s.asString}")
+        copy(successes = successes + 1)
+      case f: Failure =>
+        println(s"FAILURE: ${f.asString}")
+        copy(failures = failures + 1)
+      case f: SchemaFailure =>
+        println(s"FAILURE: ${f.asString}")
+        copy(failures = failures + 1)
+    }
   }
 
+  /**
+   * Output ADT, representing success or containing errors
+   */
   sealed trait Report { def asString: String }
 
   /**
@@ -100,25 +153,6 @@ object LintCommand {
     def asString = s"Schema [$filePath] is successfully validated"
   }
 
-  def output(reports: Stream[Report]): Result = {
-    var success = 0
-    var failures = 0
-    reports.foreach {
-      case s: Success =>
-        success += 1
-        println(s"SUCCESS: ${s.asString}")
-      case f: Failure =>
-        failures += 1
-        println(s"FAILURE: ${f.asString}")
-      case f: SchemaFailure =>
-        failures += 1
-        println(s"FAILURE: ${f.asString}")
-    }
-    println(s"TOTAL: $success Schemas were successfully validated")
-    println(s"TOTAL: $failures Schemas contain errors")
-    Result(success, failures)
-  }
-
   /**
    * Transform failing [[Report]] to plain [[Report]] by transforming
    * left into [[Failure]] (IO/parsing/runtime error)
@@ -136,17 +170,17 @@ object LintCommand {
    * Validate syntax of JSON Schema using FGE JSON Schema Validator
    *
    * @param json JSON supposed to be JSON Schema
-   * @param skipWarning whether to count warning (such as unknown keywords) as
+   * @param skipWarnings whether to count warning (such as unknown keywords) as
    *                    errors or silently ignore them
    * @return non-empty list of error messages in case of invalid Schema
    *         or unit if case of successful
    */
-  def validateSchema(json: JValue, skipWarning: Boolean): ValidationNel[String, Unit] = {
+  def validateSchema(json: JValue, skipWarnings: Boolean): ValidationNel[String, Unit] = {
     val jsonNode = asJsonNode(json)
     val report = validator.validateSchema(jsonNode)
                           .asInstanceOf[ListProcessingReport]
 
-    report.iterator.toList.filter(filterMessages(skipWarning)).map(_.toString) match {
+    report.iterator.toList.filter(filterMessages(skipWarnings)).map(_.toString) match {
       case Nil => ().success
       case h :: t => NonEmptyList(h, t: _*).failure
     }
@@ -157,7 +191,7 @@ object LintCommand {
    *
    * @param skipWarning curried arg to produce predicate
    * @param message validation message produced by FGE validator
-   * @return always true if `skipWarning` is false, otherwise depends on loglevel
+   * @return always true if `skipWarnings` is false, otherwise depends on loglevel
    */
   def filterMessages(skipWarning: Boolean)(message: ProcessingMessage): Boolean =
     if (skipWarning) fromJsonNode(message.asJson()) \ "level" match {
