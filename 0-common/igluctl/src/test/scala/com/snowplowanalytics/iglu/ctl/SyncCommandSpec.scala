@@ -89,14 +89,14 @@ class SyncCommandSpec extends Specification { def is = s2"""
       """.stripMargin)
     val jsonFile4 = JsonFile(Some("/event/jsonschema"), "1-0-2", schema4)
 
-    (SyncCommand.extractSchema(jsonFile1).toEither must beRight).and(
-      SyncCommand.extractSchema(jsonFile2).toEither must beLeft.like {
+    (LintCommand.extractSchema(jsonFile1).toEither must beRight).and(
+      LintCommand.extractSchema(jsonFile2).toEither must beLeft.like {
         case error => error must beEqualTo("Error: JSON Schema [iglu:com.acme/event/jsonschema/1-0-1] doesn't conform path [com.acme/event/jsonschema/1-0-2]")
       }
     ).and(
-      SyncCommand.extractSchema(jsonFile3).toEither must beLeft("Cannot extract Self-describing JSON Schema from JSON file [/path/to/schemas/com.acme/event/jsonschema/1-0-2]")
+      LintCommand.extractSchema(jsonFile3).toEither must beLeft("Cannot extract Self-describing JSON Schema from JSON file [/path/to/schemas/com.acme/event/jsonschema/1-0-2]")
     ).and(
-      SyncCommand.extractSchema(jsonFile4).toEither must beLeft("Error: JSON Schema [iglu:com.acme/event/jsonschema/1-0-2] doesn't conform path [/event/jsonschema/1-0-2]")
+      LintCommand.extractSchema(jsonFile4).toEither must beLeft("Error: JSON Schema [iglu:com.acme/event/jsonschema/1-0-2] doesn't conform path [/event/jsonschema/1-0-2]")
     )
   }
 
