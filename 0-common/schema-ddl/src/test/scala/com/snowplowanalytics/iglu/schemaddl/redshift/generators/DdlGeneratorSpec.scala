@@ -29,6 +29,7 @@ import com.snowplowanalytics.iglu.schemaddl.FlatSchema
 class DdlGeneratorSpec extends Specification { def is = s2"""
   Check DDL generation specification
     Generate correct DDL for atomic table $e1
+    Generate correct DDL for with runlength encoding for booleans $e2
   """
 
   def e1 = {
@@ -56,4 +57,33 @@ class DdlGeneratorSpec extends Specification { def is = s2"""
 
     ddl must beEqualTo(resultDdl)
   }
+
+  def e2 = {
+    val flatSchema = FlatSchema(
+      ListMap(
+        "foo" -> Map("type" -> "boolean"),
+        "baz" -> Map("type" -> "boolean"),
+        "bar" -> Map("enum" -> "one,two,three")
+      ),
+      Set("foo")
+    )
+
+    val resultDdl = CreateTable(
+      "atomic.launch_missles",
+      DdlGenerator.selfDescSchemaColumns ++
+      DdlGenerator.parentageColumns ++
+      List(
+        Column("foo",RedshiftBoolean,Set(CompressionEncoding(RunLengthEncoding)),Set(Nullability(NotNull))),
+        Column("bar",RedshiftVarchar(5),Set(CompressionEncoding(LzoEncoding)),Set()),
+        Column("baz",RedshiftBoolean,Set(CompressionEncoding(RunLengthEncoding)),Set())
+      ),
+      Set(ForeignKeyTable(NonEmptyList("root_id"),RefTable("atomic.events",Some("event_id")))),
+      Set(Diststyle(Key), DistKeyTable("root_id"),SortKeyTable(None,NonEmptyList("root_tstamp")))
+    )
+
+    val ddl = DdlGenerator.generateTableDdl(flatSchema, "launch_missles", None, 4096)
+
+    ddl must beEqualTo(resultDdl)
+  }
+
 }

@@ -23,7 +23,7 @@ object EncodeSuggestions {
   // Suggest LZO Encoding for boolean, double precision and real
   val lzoSuggestion: EncodingSuggestion = (properties, dataType, columnName) =>
     dataType match {
-      case RedshiftBoolean => Some(RawEncoding)
+      case RedshiftBoolean => Some(RunLengthEncoding)
       case RedshiftDouble => Some(RawEncoding)
       case RedshiftReal => Some(RawEncoding)
       case _ => None
