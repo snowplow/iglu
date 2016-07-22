@@ -1,8 +1,8 @@
-Release 4 Epaulettes (2015-05-22)
+Release 4 Epaulettes (2016-05-22)
 ---------------------------------
 Common: added Sonatype credentials to .travis.yml (#159)
 Common: added Bintray credentials to .travis.yml (#157)
-Common: fixed publishing date for Penny Black in CHANGELOG (closes #160)
+Common: fixed publishing date for Penny Black in CHANGELOG (#160)
 Scala Core: added (#135)
 Registry Syncer: added counter and auto-generation of keys (#140)
 Registry Syncer: added --fail into curl command (#133)
