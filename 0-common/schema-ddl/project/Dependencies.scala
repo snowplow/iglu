@@ -16,6 +16,7 @@ object Dependencies {
 
   object V {
     // Scala
+    val igluCoreJson4s   = "0.1.0"
     val scalaz7          = "7.0.8"
     val json4s           = "3.3.0"
     // Scala (test only)
@@ -26,6 +27,7 @@ object Dependencies {
 
   object Libraries {
     // Scala
+    val igluCoreJson4s   = "com.snowplowanalytics"      %% "iglu-core-json4s"          % V.igluCoreJson4s
     val scalaz7          = "org.scalaz"                 %% "scalaz-core"               % V.scalaz7
     val json4sJackson    = "org.json4s"                 %% "json4s-jackson"            % V.json4s
     // Scala (test only)
