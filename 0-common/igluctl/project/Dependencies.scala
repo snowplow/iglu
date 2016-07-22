@@ -19,7 +19,7 @@ object Dependencies {
     val jsonValidator    = "2.2.6"
     // Scala
     val igluCoreJson4s   = "0.1.0"
-    val schemaddl        = "0.4.0-M1"
+    val schemaddl        = "0.4.0-M2"
     val scopt            = "3.5.0"
     val scalaz7          = "7.0.8"
     val json4s           = "3.2.11"

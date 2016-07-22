@@ -1,3 +1,18 @@
+Release 5 Scinde Dawk (2016-07-xx)
+---------------------------------
+Common: add snowplow-generic Bintray credentials to .travis.yml (#178)
+Common: refactor CI/CD (#177)
+Documentation: fix r4 CHANGELOG (#174)
+igluctl: use exit status 1 for static generate (#184)
+igluctl: add linting for nonsense schemas (#164)
+igluctl: add igluctl lint command (#145)
+igluctl: port Repo Syncer into igluctl static push (#144)
+igluctl: port schema-guru ddl to igluctl static generate (#143)
+Schema DDL: change Redshift encoding for boolean to runlength (#173)
+Schema DDL: add JSON Schema AST (#172)
+Schema DDL: move schema-ddl into Iglu (#158)
+Registry Syncer: delete (#179)
+
 Release 4 Epaulettes (2016-05-22)
 ---------------------------------
 Common: added Sonatype credentials to .travis.yml (#159)
