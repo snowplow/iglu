@@ -13,8 +13,16 @@
  * express or implied.  See the Apache License Version 2.0 for the specific
  * language governing permissions and limitations there under.
  */
+import bintray.BintrayPlugin._
+import bintray.BintrayKeys._
+import sbtassembly.AssemblyPlugin.autoImport._
+import sbtassembly.AssemblyPlugin.defaultShellScript
+import com.typesafe.sbt.packager.universal.UniversalPlugin.autoImport._
+import com.typesafe.sbt.packager.archetypes.JavaAppPackaging.autoImport._
+import com.typesafe.sbt.packager.SettingsHelper._
 import sbt._
 import Keys._
+
 
 object BuildSettings {
 
@@ -23,7 +31,7 @@ object BuildSettings {
     organization          :=  "com.snowplowanalytics",
     version               :=  "0.1.0-rc1",
     description           :=  "Iglu Command Line Interface",
-    scalaVersion          :=  "2.10.6",
+    scalaVersion          :=  "2.11.8",
     crossScalaVersions    :=  Seq("2.10.6", "2.11.8"),
     scalacOptions         :=  Seq("-deprecation", "-encoding", "utf8",
                                   "-unchecked", "-feature",
@@ -42,5 +50,47 @@ object BuildSettings {
     Seq(file)
   })
 
-  lazy val buildSettings = basicSettings ++ scalifySettings
+  // Bintray publish settings
+  lazy val publishSettings = bintraySettings ++ Seq[Setting[_]](
+    licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
+    bintrayOrganization := Some("snowplow"),
+    bintrayRepository := "snowplow-generic"
+  )
+
+  // Assembly settings
+  lazy val sbtAssemblySettings: Seq[Setting[_]] = Seq(
+
+    // Executable jarfile
+    assemblyOption in assembly ~= { _.copy(prependShellScript = Some(defaultShellScript)) },
+
+    // Name it as an executable
+    assemblyJarName in assembly := { s"${name.value}" },
+
+    // Make this executable
+    mainClass in assembly := Some("com.snowplowanalytics.iglu.ctl.Main")
+
+  )
+
+  // Packaging (sbt-native-packager) settings
+  lazy val deploySettings = Seq(
+    // Don't publish MD5/SHA checksums
+    checksums := Nil,
+
+    // Assemble zip archive with fat jar
+    mappings in Universal := {
+      // Use fat jar built by sbt-assembly
+      val fatJar = (assembly in Compile).value
+
+      // We don't need anything except fat jar
+      val nativePackagerFiles = Nil
+
+      // Add the fat jar 
+      nativePackagerFiles :+ (fatJar -> ("/" + fatJar.getName))
+    },
+
+    scriptClasspath := Seq( (assemblyJarName in assembly).value )
+  ) ++ makeDeploymentSettings(Universal, packageBin in Universal, "zip")
+
+
+  lazy val buildSettings = basicSettings ++ scalifySettings ++ publishSettings ++ sbtAssemblySettings ++ deploySettings
 }
