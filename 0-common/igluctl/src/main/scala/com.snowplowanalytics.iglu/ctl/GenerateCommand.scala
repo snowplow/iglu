@@ -275,6 +275,8 @@ case class GenerateCommand(
       .map(_.write(force)).foreach(printMessage)
 
     result.warnings.foreach(printMessage)
+
+    if (result.warnings.filter(_.contains("Error")).nonEmpty) sys.exit(1)
   }
 }
 
