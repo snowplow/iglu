@@ -1,0 +1,236 @@
+{
+    "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+    "description": "Schema for a Mandrill message clicked event",
+    "self": {
+        "vendor": "com.mandrill",
+        "name": "message_clicked",
+        "format": "jsonschema",
+        "version": "1-0-0"
+    },
+
+    "type": "object",
+    "properties": {
+        "_id": {
+            "type": "string"
+        },
+        "ip": {
+            "type": "string"
+        },
+        "location": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string"
+                },
+                "country_short": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "postal_code": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "timezone": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "msg": {
+            "type": "object",
+            "properties": {
+                "_id": {
+                    "type": "string"
+                },
+                "_version": {
+                    "type": "string"
+                },
+                "clicks": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "ts": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "url": {
+                                "type": "string"
+                            },
+                            "ip": {
+                                "type": "string"
+                            },
+                            "location": {
+                                "type": ["string", "null"]
+                            },
+                            "ua": {
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "email": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "properties": {
+                        "user_id": {
+                            "type": "number"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "opens": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "ts": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "ip": {
+                                "type": "string"
+                            },
+                            "location": {
+                                "type": ["string", "null"]
+                            },
+                            "ua": {
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "sender": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "ts": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "resends": {
+                    "type": "array"
+                },
+                "smtp_events": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "ts": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "type": {
+                                "type": "string"
+                            },
+                            "diag": {
+                                "type": "string"
+                            },
+                            "source_ip": {
+                                "type": "string"
+                            },
+                            "destination_ip": {
+                                "type": "string"
+                            },
+                            "size": {
+                                "type": "integer"
+                            }                   
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "template": {
+                    "type": ["string", "null"]
+                }
+            },
+            "additionalProperties": false
+        },
+        "ts": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "url": {
+            "type": "string"
+        },
+        "user_agent_parsed": {
+            "type": "object",
+            "properties": {
+                "mobile": {
+                    "type": "boolean"
+                },
+                "os_company_url": {
+                    "type": "string"
+                },
+                "os_company": {
+                    "type": "string"
+                },
+                "os_family": {
+                    "type": "string"
+                },
+                "os_icon": {
+                    "type": "string"
+                },
+                "os_name": {
+                    "type": "string"
+                },
+                "os_url": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "ua_company_url": {
+                    "type": "string"
+                },
+                "ua_company": {
+                    "type": "string"
+                },
+                "ua_family": {
+                    "type": "string"
+                },
+                "ua_icon": {
+                    "type": "string"
+                },
+                "ua_name": {
+                    "type": "string"
+                },
+                "ua_url": {
+                    "type": "string"
+                },
+                "ua_version": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "user_agent": {
+            "type": "string"
+        }
+    },
+    "additionalProperties": false
+}
