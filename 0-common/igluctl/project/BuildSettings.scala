@@ -60,21 +60,20 @@ object BuildSettings {
     publishMavenStyle := false,
 
     // Custom Bintray resolver used to publish package with custom Ivy patterns (custom path in Bintray)
-    // This fragile piece of code should be borrowed very carefully
+    // It requires ~/.bintray/credentials file and bintrayOrganization setting
     publishTo in bintray := {
-      val credentials = BintrayCredentials.read(bintrayCredentialsFile.value).right.get.get
-      val bintrayRepo = BintrayRepo(credentials, Some(bintrayOrganization.value.get), name.value)
-      val repo = bintrayRepo.client.repo(bintrayOrganization.value.get, bintrayRepository.value)
-      val pack = repo.get(name.value)
-      val resolver = BintrayIvyResolver(
-        bintrayRepository.value,
-        pack.version(version.value),
-        // Ivy artifact patterns should have format [artifact]_[revision].[ext],
-        // but it's impossible to have underscores in revision
-        Seq(s"${name.value}_${version.value.replace('-', '_')}.[ext]"),
-        release = true)
-
-      Some(new RawRepository(resolver))
+      for {
+        bintrayOrg     <- bintrayOrganization.value
+        credentials    <- BintrayCredentials.read(bintrayCredentialsFile.value).right.toOption.flatten
+        bintrayRepo     = BintrayRepo(credentials, Some(bintrayOrg), name.value)
+        connectedRepo   = bintrayRepo.client.repo(bintrayOrg, bintrayRepository.value)
+        bintrayPackage  = connectedRepo.get(name.value)
+        ivyResolver     = BintrayIvyResolver(
+          bintrayRepository.value,
+          bintrayPackage.version(version.value),
+          Seq(s"${name.value}_${version.value.replace('-', '_')}.[ext]"),   // Ivy Pattern
+          release = true)
+      } yield new RawRepository(ivyResolver)
     }
   )
 
