@@ -129,7 +129,7 @@ object FileUtils {
             s"File [${file.getAbsolutePath}] already exists and probably was modified manually. You can use --force to override".failure
           } else if (force) {
             printToFile(file)(_.println(content))
-            s"File [${file.getAbsolutePath}] was overridden successfully!".success
+            s"File [${file.getAbsolutePath}] was overridden successfully (no change)!".success
           } else {
             s"File [${file.getAbsolutePath}] was not modified".success
           }
