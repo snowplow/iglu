@@ -108,9 +108,7 @@ case class GenerateCommand(
       val order = orderingMap.getOrElse(revisionGroup(description), Nil)
       table.reorderTable(order)
     }.toList
-    val ddlWarnings =
-      ddlFiles.flatMap(_.ddlFile.warnings)
-
+    val ddlWarnings = getDdlWarnings(ddlFiles)
 
     // Build DDL-files and JSONPaths file (in correct order and camelCased column names)
     val outputPair = for {
@@ -406,5 +404,24 @@ object GenerateCommand {
         }
     }
     aggregated.map { case (revision, (desc, defn)) => (desc, defn) }
+  }
+
+  /**
+   * Helper function used to extract warning from each generated DDL file
+   * @todo make it more consistent with next DDL AST release
+   */
+  private[ctl] def getDdlWarnings(ddlFiles: List[TableDefinition]): List[String] = {
+    def extract(definition: TableDefinition): List[String] = {
+      val file = definition.ddlFile
+      val igluUri = file.statements.collectFirst { case CommentOn(_, uri) => uri }
+      file.warnings.map { warning =>
+        igluUri match {
+          case Some(uri) => s"Warning: in JSON Schema [$uri]: $warning"
+          case None => s"Warning: in generated DDL [${definition.path}/${definition.fileName}]: $warning"
+        }
+      }
+    }
+
+    for { file <- ddlFiles; warning <- extract(file) } yield warning
   }
 }
