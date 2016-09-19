@@ -115,7 +115,7 @@ class SyncCommandSpec extends Specification { def is = s2"""
       """.stripMargin)
     val stubFile = JsonFile(Some("/path/to/schemas/com.acme/event/jsonschema"), "1-0-2", schema)
 
-    val command = SyncCommand("doesn't matter", "doesn't matter", new File("."))
+    val command = SyncCommand("doesn't matter", null, new File("."))
     val failedStream = command.buildRequests("error".left, Stream(stubFile.right, stubFile.right, stubFile.right, stubFile.right))
     failedStream must beEqualTo(Stream("error".left))
   }
