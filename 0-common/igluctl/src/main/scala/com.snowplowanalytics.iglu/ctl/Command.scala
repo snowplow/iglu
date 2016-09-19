@@ -47,6 +47,7 @@ case class Command(
   // sync
   registryRoot:  Option[HttpUrl] = None,
   apiKey:        Option[UUID]    = None,
+  isPublic:      Boolean         = false,
 
   // lint
   skipWarnings:  Boolean         = false
@@ -55,7 +56,7 @@ case class Command(
     case Some("static generate") => Some(
       GenerateCommand(input.get, output.getOrElse(new File(".")), db,withJsonPaths, rawMode, schema, varcharSize, splitProduct, noHeader, force))
     case Some("static push") =>
-      Some(SyncCommand(registryRoot.get, apiKey.get, input.get))
+      Some(SyncCommand(registryRoot.get, apiKey.get, input.get, isPublic))
     case Some("lint") =>
       Some(LintCommand(input.get, skipWarnings))
     case _ =>
@@ -161,14 +162,18 @@ object Command {
 
             arg[HttpUrl]("registryRoot")
               action { (x, c) => c.copy(registryRoot = Some(x))}
-              text "Iglu Registry registryRoot to upload Schemas",
+              text "Iglu Registry registry root to upload Schemas",
 
             arg[UUID]("apikey")
               action { (x, c) => c.copy(apiKey = Some(x))}
-              text "API Key\n",
+              text "Master API Key",
+
+            opt[Unit]("public")
+              action { (_, c) => c.copy(isPublic = true)}
+              text "Upload all schemas as public",
 
             checkConfig {
-              case Command(_, Some(input), _, _, _, _, _, _, _, _, _, _, _, _) =>
+              case Command(_, Some(input), _, _, _, _, _, _, _, _, _, _, _, _, _) =>
                 if (input.exists && input.canRead) success
                 else failure(s"Input [${input.getAbsolutePath}] isn't available for read")
             }
