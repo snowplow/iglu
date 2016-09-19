@@ -46,7 +46,7 @@ import SyncCommand._
  * @param masterApiKey mater key UUID which can be used to create any Schema
  * @param inputDir directory with JSON Schemas or single JSON file
  */
-case class SyncCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File) extends Command.CtlCommand {
+case class SyncCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File, isPublic: Boolean) extends Command.CtlCommand {
 
   private implicit val stringifySchema = StringifySchema
 
@@ -116,7 +116,7 @@ case class SyncCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File
   def buildRequest(schema: IgluSchema, writeKey: String): HttpRequest @@ PostSchema = {
     val request = Http(s"$registryRoot/api/schemas/${schema.self.toPath}")
       .header("apikey", writeKey)
-      .param("isPublic", "false")
+      .param("isPublic", isPublic.toString)
       .put(schema.asString)
     Tag.of[PostSchema](request)
   }
