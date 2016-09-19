@@ -89,7 +89,7 @@ object Command {
               valueName "<path>"
               text "Directory to put generated data\t\tDefault: current dir",
 
-            opt[String]("schema")
+            opt[String]("dbschema")
               action { (x, c) => c.copy(schema = Some(x)) }
               valueName "<name>"
               text "Redshift schema name\t\t\t\tDefault: atomic",

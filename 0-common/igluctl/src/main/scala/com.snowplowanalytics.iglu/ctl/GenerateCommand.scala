@@ -45,7 +45,7 @@ case class GenerateCommand(
   db: String = "redshift",        // Isn't checked anywhere
   withJsonPaths: Boolean = false,
   rawMode: Boolean = false,
-  schema: Option[String] = None,  // empty for raw, "atomic" for non-raw
+  dbSchema: Option[String] = None,  // empty for raw, "atomic" for non-raw
   varcharSize: Int = 4096,
   splitProduct: Boolean = false,
   noHeader: Boolean = false,
@@ -88,12 +88,12 @@ case class GenerateCommand(
    * @return transformation result containing all data to output
    */
   private[ctl] def transformSelfDescribing(files: List[JsonFile]): DdlOutput = {
-    val dbSchema = schema.getOrElse("atomic")
+    val dbSchemaStr = dbSchema.getOrElse("atomic")
     // Parse Self-describing Schemas
     val (schemaErrors, schemas) = splitValidations(files.map(_.extractSelfDescribingSchema))
 
     // Build table definitions from JSON Schemas
-    val validatedDdls = schemas.map(schema => selfDescSchemaToDdl(schema, dbSchema).map(ddl => (schema.self, ddl)))
+    val validatedDdls = schemas.map(schema => selfDescSchemaToDdl(schema, dbSchemaStr).map(ddl => (schema.self, ddl)))
     val (ddlErrors, ddlPairs) = splitValidations(validatedDdls)
     val ddlMap = groupWithLast(ddlPairs)
 
@@ -101,7 +101,7 @@ case class GenerateCommand(
     val migrationMap = buildMigrationMap(schemas)
     val validOrderingMap = Migration.getOrdering(migrationMap)
     val orderingMap = validOrderingMap.collect { case (k, Success(v)) => (k, v) }
-    val (_, migrations) = splitValidations(Migrations.reifyMigrationMap(migrationMap, Some(dbSchema), varcharSize))
+    val (_, migrations) = splitValidations(Migrations.reifyMigrationMap(migrationMap, Some(dbSchemaStr), varcharSize))
 
     // Order table-definitions according with migrations
     val ddlFiles = ddlMap.map { case (description, table) =>
@@ -129,7 +129,7 @@ case class GenerateCommand(
    * @param dbSchema DB schema name ("atomic")
    * @return validation of either table definition or error message
    */
-  private def selfDescSchemaToDdl(schema: IgluSchema, dbSchema: String): Validation[String, TableDefinition] = {
+  private[ctl] def selfDescSchemaToDdl(schema: IgluSchema, dbSchema: String): Validation[String, TableDefinition] = {
     val ddl = for {
       flatSchema <- FlatSchema.flattenJsonSchema(schema.schema, splitProduct)
     } yield produceTable(flatSchema, schema.self, dbSchema)
@@ -216,12 +216,12 @@ case class GenerateCommand(
    */
   private def produceRawTable(flatSchema: FlatSchema, fileName: String): TableDefinition = {
     val name = StringUtils.getTableName(fileName)
-    val schemaCreate = schema.map(CreateSchema(_)) match {
+    val schemaCreate = dbSchema.map(CreateSchema(_)) match {
       case Some(sc) => List(sc, Empty)
       case None => Nil
     }
-    val table = DdlGenerator.generateTableDdl(flatSchema, name, schema, varcharSize, rawMode)
-    val comment = DdlGenerator.getTableComment(name, schema, fileName)
+    val table = DdlGenerator.generateTableDdl(flatSchema, name, dbSchema, varcharSize, rawMode)
+    val comment = DdlGenerator.getTableComment(name, dbSchema, fileName)
     val ddlFile = DdlFile(header ++ schemaCreate ++ List(table, Empty, comment))
     TableDefinition(".", name, ddlFile)
   }

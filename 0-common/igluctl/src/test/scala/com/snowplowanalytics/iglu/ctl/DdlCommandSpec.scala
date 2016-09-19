@@ -404,7 +404,7 @@ class DdlCommandSpec extends Specification { def is = s2"""
 
     val jsonFile = JsonFile(None, "1-0-0", sourceSchema)
     val stubFile: File = new File(".")
-    val command = GenerateCommand(stubFile, stubFile, noHeader = true, schema = Some("snowplow"))
+    val command = GenerateCommand(stubFile, stubFile, noHeader = true, dbSchema = Some("snowplow"))
 
     val output = command.transformSelfDescribing(List(jsonFile))
 
