@@ -14,6 +14,7 @@ package com.snowplowanalytics.iglu.ctl
 
 // Java
 import java.io.File
+import java.util.UUID
 
 // scopt
 import scopt.OptionParser
@@ -39,7 +40,7 @@ case class Command(
 
   // sync
   host:          Option[String] = None,
-  apiKey:        Option[String] = None,
+  apiKey:        Option[UUID]   = None,
 
   // lint
   skipWarnings:  Boolean        = false
@@ -49,13 +50,17 @@ case class Command(
       GenerateCommand(input.get, output.getOrElse(new File(".")), db,withJsonPaths, rawMode, schema, varcharSize, splitProduct, noHeader, force))
     case Some("static push") =>
       Some(SyncCommand(host.get, apiKey.get, input.get))
-    case Some("lint") => Some(LintCommand(input.get, skipWarnings))
-    case _ => None
+    case Some("lint") =>
+      Some(LintCommand(input.get, skipWarnings))
+    case _ =>
+      None
   }
 }
 
 object Command {
-  
+
+  implicit val uuidRead = scopt.Read.reads(UUID.fromString)
+
   private def subcommand(sub: String)(unit: Unit, root: Command): Command =
     root.copy(command = root.command.map(_ + " " + sub))
 
@@ -144,9 +149,15 @@ object Command {
               action { (x, c) => c.copy(host = Some(x))}
               text "Iglu Registry host to upload Schemas",
 
-            arg[String]("apikey")
+            arg[UUID]("apikey")
               action { (x, c) => c.copy(apiKey = Some(x))}
-              text "API Key\n"
+              text "API Key\n",
+
+            checkConfig {
+              case Command(_, Some(input), _, _, _, _, _, _, _, _, _, _, _, _) =>
+                if (input.exists && input.canRead) success
+                else failure(s"Input [${input.getAbsolutePath}] isn't available for read")
+            }
           )
     )
 

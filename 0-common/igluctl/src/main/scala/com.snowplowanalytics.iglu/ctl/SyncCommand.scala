@@ -25,9 +25,9 @@ import org.json4s.jackson.JsonMethods.parse
 
 // Java
 import java.io.File
+import java.util.UUID
 
 // Iglu core
-import com.snowplowanalytics.iglu.core.SchemaKey
 import com.snowplowanalytics.iglu.core.json4s.StringifySchema
 
 // Schema DDL
@@ -42,9 +42,9 @@ import FileUtils._
  *
  * @param host host (and probably port) of Iglu Registry
  * @param masterApiKey mater key UUID which can be used to create any Schema
- * @param inputDir directory with JSON Schemas
+ * @param inputDir directory with JSON Schemas or single JSON file
  */
-case class SyncCommand(host: String, masterApiKey: String, inputDir: File) extends Command.CtlCommand {
+case class SyncCommand(host: String, masterApiKey: UUID, inputDir: File) extends Command.CtlCommand {
   import SyncCommand._
 
   private implicit val stringifySchema = StringifySchema
@@ -81,7 +81,7 @@ case class SyncCommand(host: String, masterApiKey: String, inputDir: File) exten
    */
   def buildCreateKeysRequest: HttpRequest @@ CreateKeys = {
     val request = Http(s"http://$host/api/auth/keygen")
-      .header("apikey", masterApiKey)
+      .header("apikey", masterApiKey.toString)
       .postForm(List(("vendor_prefix", "*")))
     Tag.of[CreateKeys](request)
   }
@@ -129,14 +129,14 @@ case class SyncCommand(host: String, masterApiKey: String, inputDir: File) exten
    */
   def deleteKey(key: String, purpose: String): Unit = {
     val request = Http(s"http://$host/api/auth/keygen")
-      .header("apikey", masterApiKey)
+      .header("apikey", masterApiKey.toString)
       .param("key", key)
       .method("DELETE")
 
     Validation.fromTryCatch(request.asString) match {
       case Success(response) if response.isSuccess => println(s"$purpose key $key deleted")
       case Success(response) => println(s"FAILURE: DELETE $purpose $key response: ${response.body}")
-      case Failure(throwable) => println(s"FAILURE: $purpose $key: ${getErrorMessage(throwable)}")
+      case Failure(throwable) => println(s"FAILURE: $purpose $key: ${throwable.toString}")
     }
   }
 
@@ -182,6 +182,7 @@ case class SyncCommand(host: String, masterApiKey: String, inputDir: File) exten
 
     /**
      * Perform cleaning
+ *
      * @param f cleaning function
      */
     def clean(f: () => Unit): Unit = f()
@@ -304,18 +305,10 @@ object SyncCommand {
         case -\/(_) =>
           Result(Left(response.body), Unknown)
       }
-    else Result(Left(response.body), Failed)
+    else {
+      Result(Left(response.body), Failed)
+    }
   }
-
-  /**
-   * Helper function trying to get message from throwable, which can be null
-   * and if null, just stringifying whole throwable
-   *
-   * @param throwable some exception value
-   * @return stringified version of exception
-   */
-  def getErrorMessage(throwable: Throwable): String =
-    Option(throwable.getMessage).getOrElse(throwable.toString)
 
   /**
    * Predicate used to filter only files which Iglu path contains `jsonschema`
@@ -344,11 +337,10 @@ object SyncCommand {
     val apiKeys = for {
       response  <- \/.fromTryCatch(request.asString)
       json      <- \/.fromTryCatch(parse(response.body))
-                     .leftMap(_ => new Exception(s"Non-JSON message: [${response.body}]; apikeys were expected"))
       extracted <- \/.fromTryCatch(json.extract[ApiKeys])
     } yield extracted
 
-    apiKeys.leftMap(getErrorMessage)
+    apiKeys.leftMap(e => cutString(e.toString))
   }
 
   /**
@@ -363,7 +355,7 @@ object SyncCommand {
   def postSchema(request: HttpRequest @@ PostSchema): Failing[Result] =
     for {
       response <- \/.fromTryCatch(request.asString)
-                    .leftMap(getErrorMessage)
+                    .leftMap(_.toString)
     } yield getUploadStatus(response)
 
   /**
@@ -381,4 +373,14 @@ object SyncCommand {
    */
   private def fromXors[A, B](value: Stream[Failing[A]]): EitherT[Stream, String, A] =
     EitherT[Stream, String, A](value)
+
+  /**
+   * Cut possibly long string (as compressed HTML) to a string with three dots
+   */
+  private def cutString(s: String, length: Short = 256): String = {
+    val origin = s.take(length)
+    if (origin.length == length) origin + "..."
+    else origin
+  }
+
 }
