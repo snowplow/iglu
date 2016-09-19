@@ -25,6 +25,7 @@ import org.json4s.jackson.JsonMethods.parse
 
 // Java
 import java.io.File
+import java.net.URL
 import java.util.UUID
 
 // Iglu core
@@ -35,17 +36,17 @@ import com.snowplowanalytics.iglu.schemaddl.IgluSchema
 
 // This project
 import FileUtils._
+import SyncCommand._
 
 /**
  * Class holding arguments passed from shell into `sync` igluctl command
  * and command's main logic
  *
- * @param host host (and probably port) of Iglu Registry
+ * @param registryRoot full URL (host, port) of Iglu Registry
  * @param masterApiKey mater key UUID which can be used to create any Schema
  * @param inputDir directory with JSON Schemas or single JSON file
  */
-case class SyncCommand(host: String, masterApiKey: UUID, inputDir: File) extends Command.CtlCommand {
-  import SyncCommand._
+case class SyncCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File) extends Command.CtlCommand {
 
   private implicit val stringifySchema = StringifySchema
 
@@ -80,7 +81,7 @@ case class SyncCommand(host: String, masterApiKey: UUID, inputDir: File) extends
    * @return HTTP POST-request ready to be sent
    */
   def buildCreateKeysRequest: HttpRequest @@ CreateKeys = {
-    val request = Http(s"http://$host/api/auth/keygen")
+    val request = Http(s"$registryRoot/api/auth/keygen")
       .header("apikey", masterApiKey.toString)
       .postForm(List(("vendor_prefix", "*")))
     Tag.of[CreateKeys](request)
@@ -113,7 +114,7 @@ case class SyncCommand(host: String, masterApiKey: UUID, inputDir: File) extends
    * @return HTTP POST-request ready to be sent
    */
   def buildRequest(schema: IgluSchema, writeKey: String): HttpRequest @@ PostSchema = {
-    val request = Http(s"http://$host/api/schemas/${schema.self.toPath}")
+    val request = Http(s"$registryRoot/api/schemas/${schema.self.toPath}")
       .header("apikey", writeKey)
       .param("isPublic", "false")
       .put(schema.asString)
@@ -128,7 +129,7 @@ case class SyncCommand(host: String, masterApiKey: UUID, inputDir: File) extends
    * @param purpose what exact key being deleted, used to log, can be empty
    */
   def deleteKey(key: String, purpose: String): Unit = {
-    val request = Http(s"http://$host/api/auth/keygen")
+    val request = Http(s"$registryRoot/api/auth/keygen")
       .header("apikey", masterApiKey.toString)
       .param("key", key)
       .method("DELETE")
@@ -194,7 +195,7 @@ case class SyncCommand(host: String, masterApiKey: UUID, inputDir: File) extends
 }
 
 /**
- * Companion objects, containing functions not closed on `masterApiKey`, `host`, etc
+ * Companion objects, containing functions not closed on `masterApiKey`, `registryRoot`, etc
  */
 object SyncCommand {
 
@@ -274,6 +275,13 @@ object SyncCommand {
    * Type-tag used to mark HTTP request as aiming to post JSON Schema
    */
   sealed trait PostSchema
+
+  /**
+   * Type-tag used to mark URL as HTTP
+   */
+  sealed trait HttpUrlTag
+
+  type HttpUrl = URL @@ HttpUrlTag
 
   /**
    * Transform failing [[Result]] to plain [[Result]] by inserting exception
@@ -383,4 +391,19 @@ object SyncCommand {
     else origin
   }
 
+  /**
+   * Parse registry root (HTTP URL) from string with default `http://` protocol
+   *
+   * @param url string representing just host or full URL of registry root.
+   *            Registry root is URL **without** /api
+   * @return either error or URL tagged as HTTP in case of success
+   */
+  def parseRegistryRoot(url: String): Throwable \/ HttpUrl =
+    \/.fromTryCatch {
+      if (url.startsWith("http://") || url.startsWith("https://")) {
+        Tag.of[HttpUrlTag](new URL(url.stripSuffix("/")))
+      } else {
+        Tag.of[HttpUrlTag](new URL("http://" + url.stripSuffix("/")))
+      }
+    }
 }
