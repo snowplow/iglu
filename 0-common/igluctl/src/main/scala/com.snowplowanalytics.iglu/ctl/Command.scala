@@ -12,6 +12,9 @@
  */
 package com.snowplowanalytics.iglu.ctl
 
+// scalaz
+import scalaz._
+
 // Java
 import java.io.File
 import java.util.UUID
@@ -19,37 +22,40 @@ import java.util.UUID
 // scopt
 import scopt.OptionParser
 
+// This library
+import SyncCommand._
+
 /**
  * Common command container
  */
 case class Command(
   // common
-  command:       Option[String] = None,
-  input:         Option[File]   = None,
+  command:       Option[String]  = None,
+  input:         Option[File]    = None,
 
   // ddl
-  output:        Option[File]   = None,
-  db:            String         = "redshift",
-  withJsonPaths: Boolean        = false,
-  rawMode:       Boolean        = false,
-  schema:        Option[String] = None,
-  varcharSize:   Int            = 4096,
-  splitProduct:  Boolean        = false,
-  noHeader:      Boolean        = false,
-  force:         Boolean        = false,
+  output:        Option[File]    = None,
+  db:            String          = "redshift",
+  withJsonPaths: Boolean         = false,
+  rawMode:       Boolean         = false,
+  schema:        Option[String]  = None,
+  varcharSize:   Int             = 4096,
+  splitProduct:  Boolean         = false,
+  noHeader:      Boolean         = false,
+  force:         Boolean         = false,
 
   // sync
-  host:          Option[String] = None,
-  apiKey:        Option[UUID]   = None,
+  registryRoot:  Option[HttpUrl] = None,
+  apiKey:        Option[UUID]    = None,
 
   // lint
-  skipWarnings:  Boolean        = false
+  skipWarnings:  Boolean         = false
 ) {
   def toCommand: Option[Command.CtlCommand] = command match {
     case Some("static generate") => Some(
       GenerateCommand(input.get, output.getOrElse(new File(".")), db,withJsonPaths, rawMode, schema, varcharSize, splitProduct, noHeader, force))
     case Some("static push") =>
-      Some(SyncCommand(host.get, apiKey.get, input.get))
+      Some(SyncCommand(registryRoot.get, apiKey.get, input.get))
     case Some("lint") =>
       Some(LintCommand(input.get, skipWarnings))
     case _ =>
@@ -59,7 +65,15 @@ case class Command(
 
 object Command {
 
+  // Type class instance to parse UUID
   implicit val uuidRead = scopt.Read.reads(UUID.fromString)
+  
+  implicit val httpUrlRead: scopt.Read[HttpUrl] = scopt.Read.reads { s =>
+    SyncCommand.parseRegistryRoot(s) match {
+      case \/-(httpUrl) => httpUrl
+      case -\/(e) => throw e
+    }
+  }
 
   private def subcommand(sub: String)(unit: Unit, root: Command): Command =
     root.copy(command = root.command.map(_ + " " + sub))
@@ -145,9 +159,9 @@ object Command {
               action { (x, c) => c.copy(input = Some(x))}
               text "Path to directory with JSON Schemas",
 
-            arg[String]("host")
-              action { (x, c) => c.copy(host = Some(x))}
-              text "Iglu Registry host to upload Schemas",
+            arg[HttpUrl]("registryRoot")
+              action { (x, c) => c.copy(registryRoot = Some(x))}
+              text "Iglu Registry registryRoot to upload Schemas",
 
             arg[UUID]("apikey")
               action { (x, c) => c.copy(apiKey = Some(x))}

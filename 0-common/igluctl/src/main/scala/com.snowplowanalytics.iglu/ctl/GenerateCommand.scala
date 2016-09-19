@@ -274,7 +274,7 @@ case class GenerateCommand(
 
     result.warnings.foreach(printMessage)
 
-    if (result.warnings.filter(_.contains("Error")).nonEmpty) sys.exit(1)
+    if (result.warnings.exists(_.contains("Error"))) sys.exit(1)
   }
 }
 
