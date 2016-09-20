@@ -36,7 +36,7 @@ import com.snowplowanalytics.iglu.schemaddl.IgluSchema
 
 // This project
 import FileUtils._
-import SyncCommand._
+import PushCommand._
 
 /**
  * Class holding arguments passed from shell into `sync` igluctl command
@@ -46,7 +46,7 @@ import SyncCommand._
  * @param masterApiKey mater key UUID which can be used to create any Schema
  * @param inputDir directory with JSON Schemas or single JSON file
  */
-case class SyncCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File, isPublic: Boolean) extends Command.CtlCommand {
+case class PushCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File, isPublic: Boolean) extends Command.CtlCommand {
 
   private implicit val stringifySchema = StringifySchema
 
@@ -100,7 +100,7 @@ case class SyncCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File
     val resultsT = for {
       writeKey <- fromXor(apiKeys.map(_.write))
       json     <- fromXors(jsons)
-      schema   <- fromXor(LintCommand.extractSchema(json))
+      schema   <- fromXor(Utils.extractSchema(json))
     } yield buildRequest(schema, writeKey)
     resultsT.run
   }
@@ -197,7 +197,7 @@ case class SyncCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File
 /**
  * Companion objects, containing functions not closed on `masterApiKey`, `registryRoot`, etc
  */
-object SyncCommand {
+object PushCommand {
 
   /**
    * Anything that can bear error message
@@ -216,9 +216,6 @@ object SyncCommand {
 
   // json4s serialization
   private implicit val formats = DefaultFormats
-
-  // OS-specific file separator
-  private val separator = System.getProperty("file.separator", "/")
 
   /**
    * Class container holding temporary read/write apikeys, extracted from
@@ -317,19 +314,6 @@ object SyncCommand {
       Result(Left(response.body), Failed)
     }
   }
-
-  /**
-   * Predicate used to filter only files which Iglu path contains `jsonschema`
-   * as format
-   *
-   * @param file any real file
-   * @return true if third entity of Iglu path is `jsonschema`
-   */
-  private def filterJsonSchemas(file: File): Boolean =
-    file.getAbsolutePath.split(separator).takeRight(4) match {
-      case Array(_, _, format, _) => format == "jsonschema"
-      case _ => false
-    }
 
   /**
    * Perform HTTP request bundled with master apikey to create and get

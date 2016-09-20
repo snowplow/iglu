@@ -18,11 +18,52 @@ import Scalaz._
 
 // Iglu
 import com.snowplowanalytics.iglu.core.SchemaKey
-import com.snowplowanalytics.iglu.schemaddl.{ RevisionGroup, ModelGroup }
+import com.snowplowanalytics.iglu.schemaddl.{ IgluSchema, RevisionGroup, ModelGroup }
+
+// This library
+import FileUtils.{ separator, JsonFile }
 
 object Utils {
 
   type Failing[+A] = String \/ A
+
+  /**
+   * Get Iglu-compatible path (com.acme/event/jsonschema/1-0-2) from full
+   * absolute file path
+   *
+   * @param fullPath file's absolute path
+   * @return four last path entities joined by OS-separator
+   */
+  def getPath(fullPath: String): String =
+    fullPath.split(separator).takeRight(4).mkString(separator)
+
+  /**
+   * Check if path of some JSON file corresponds with Iglu path extracted
+   * from its self-describing info
+   *
+   * @param jsonFile some existing JSON file with defined path in it
+   * @param schemaKey schema key extracted from it
+   * @return true if extracted path is equal to FS path
+   */
+  def equalPath(jsonFile: JsonFile, schemaKey: SchemaKey): Boolean = {
+    val path = getPath(jsonFile.path)
+    SchemaKey.fromPath(path).contains(schemaKey)
+  }
+
+  /**
+   * Extract self-describing JSON Schema from JSON file
+   *
+   * @param jsonFile some existing on FS valid JSON file
+   * @return self-describing JSON Schema if successful or error message if
+   *         file is not Schema or self-describing Schema or has invalid
+   *         file path
+   */
+  def extractSchema(jsonFile: JsonFile): String \/ IgluSchema =
+    jsonFile.extractSelfDescribingSchema.disjunction match {
+      case \/-(schema) if equalPath(jsonFile, schema.self) => schema.right
+      case \/-(schema) => s"Error: JSON Schema [${schema.self.toSchemaUri}] doesn't conform path [${getPath(jsonFile.getKnownPath)}]".left
+      case -\/(error) => error.left
+    }
 
   /**
    * Split list of scalaz Validation in pair of List with successful values

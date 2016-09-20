@@ -29,17 +29,13 @@ import java.io.File
 // JSON Schema Validator
 import com.github.fge.jsonschema.core.report.{ ListProcessingReport, ProcessingMessage }
 
-// Iglu core
-import com.snowplowanalytics.iglu.core.SchemaKey
-
 // Schema DDL
-import com.snowplowanalytics.iglu.schemaddl.IgluSchema
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.{ Schema, SanityLinter }
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s.Json4sToSchema._
 
-
 // This library
-import FileUtils.{ getJsonFilesStream, JsonFile }
+import FileUtils.{ getJsonFilesStream, JsonFile, filterJsonSchemas }
+import Utils.extractSchema
 
 case class LintCommand(inputDir: File, skipWarnings: Boolean) extends Command.CtlCommand {
   import LintCommand._
@@ -79,11 +75,6 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean) extends Command.Ct
 }
 
 object LintCommand {
-
-  /**
-   * OS-specific separator
-   */
-  private val separator = System.getProperty("file.separator", "/")
 
   /**
    * FGE validator for Self-describing schemas
@@ -201,59 +192,4 @@ object LintCommand {
       case _ => true
     }
     else true
-
-  /**
-   * Predicate used to filter only files which Iglu path contains `jsonschema`
-   * as format
-   *
-   * @param file any real file
-   * @return true if third entity of Iglu path is `jsonschema`
-   */
-  private def filterJsonSchemas(file: File): Boolean =
-    file.getAbsolutePath.split(separator).takeRight(4) match {
-      case Array(_, _, format, _) => format == "jsonschema"
-      case _ => false
-    }
-
-  /**
-   * Get Iglu-compatible path (com.acme/event/jsonschema/1-0-2) from full
-   * absolute file path
-   *
-   * @param fullPath file's absolute path
-   * @return four last path entities joined by OS-separator
-   */
-  private def getPath(fullPath: String): String =
-    fullPath.split(separator).takeRight(4).mkString(separator)
-
-
-  /**
-   * Check if path of some JSON file corresponds with Iglu path extracted
-   * from its self-describing info
-   *
-   * @param jsonFile some existing JSON file with defined path in it
-   * @param schemaKey schema key extracted from it
-   * @return true if extracted path is equal to FS path
-   */
-  def equalPath(jsonFile: JsonFile, schemaKey: SchemaKey): Boolean =
-    jsonFile.path match {
-      case Some(_) =>
-        val path = getPath(jsonFile.getKnownPath)
-        SchemaKey.fromPath(path) == Some(schemaKey)
-      case None => false
-    }
-
-  /**
-   * Extract self-describing JSON Schema from JSON file
-   *
-   * @param jsonFile some existing on FS valid JSON file
-   * @return self-describing JSON Schema if successful or error message if
-   *         file is not Schema or self-describing Schema or has invalid
-   *         file path
-   */
-  def extractSchema(jsonFile: JsonFile): String \/ IgluSchema =
-    jsonFile.extractSelfDescribingSchema.disjunction match {
-      case \/-(schema) if equalPath(jsonFile, schema.self) => schema.right
-      case \/-(schema) => s"Error: JSON Schema [${schema.self.toSchemaUri}] doesn't conform path [${getPath(jsonFile.getKnownPath)}]".left
-      case -\/(error) => error.left
-    }
 }

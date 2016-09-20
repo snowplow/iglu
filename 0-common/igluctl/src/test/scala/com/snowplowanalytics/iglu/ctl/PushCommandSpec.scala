@@ -28,7 +28,7 @@ import FileUtils.JsonFile
 import scalaz._
 import Scalaz._
 
-class SyncCommandSpec extends Specification { def is = s2"""
+class PushCommandSpec extends Specification { def is = s2"""
   Registry sync command (sync) specification
     check paths on FS and SchemaKey.toPath correspondence $e1
     short-circuit request-generation on invalid apikey $e2
@@ -48,7 +48,9 @@ class SyncCommandSpec extends Specification { def is = s2"""
         |  "type": "object"
         |}
       """.stripMargin)
-    val jsonFile1 = JsonFile(Some("/path/to/schemas/com.acme/event/jsonschema"), "1-0-2", schema1)
+    val jsonFile1 = JsonFile(schema1, new File("/path/to/schemas/com.acme/event/jsonschema/1-0-2"))
+
+    ClassLoader.getSystemClassLoader.getResource("")
 
     // invalid SchemaVer
     val schema2 =  parse(
@@ -63,7 +65,7 @@ class SyncCommandSpec extends Specification { def is = s2"""
         |  "type": "object"
         |}
       """.stripMargin)
-    val jsonFile2 = JsonFile(Some("/path/to/schemas/com.acme/event/jsonschema"), "1-0-2", schema2)
+    val jsonFile2 = JsonFile(schema2, new File("/path/to/schemas/com.acme/event/jsonschema/1-0-2"))
 
     // not self-describing
     val schema3 =  parse(
@@ -72,7 +74,7 @@ class SyncCommandSpec extends Specification { def is = s2"""
         |  "type": "object"
         |}
       """.stripMargin)
-    val jsonFile3 = JsonFile(Some("/path/to/schemas/com.acme/event/jsonschema"), "1-0-2", schema3)
+    val jsonFile3 = JsonFile(schema3, new File("/path/to/schemas/com.acme/event/jsonschema/1-0-2"))
 
     // not full path
     val schema4 = parse(
@@ -87,16 +89,16 @@ class SyncCommandSpec extends Specification { def is = s2"""
         |  "type": "object"
         |}
       """.stripMargin)
-    val jsonFile4 = JsonFile(Some("/event/jsonschema"), "1-0-2", schema4)
+    val jsonFile4 = JsonFile(schema4, new File("/event/jsonschema/1-0-2"))
 
-    (LintCommand.extractSchema(jsonFile1).toEither must beRight).and(
-      LintCommand.extractSchema(jsonFile2).toEither must beLeft.like {
+    (Utils.extractSchema(jsonFile1).toEither must beRight).and(
+      Utils.extractSchema(jsonFile2).toEither must beLeft.like {
         case error => error must beEqualTo("Error: JSON Schema [iglu:com.acme/event/jsonschema/1-0-1] doesn't conform path [com.acme/event/jsonschema/1-0-2]")
       }
     ).and(
-      LintCommand.extractSchema(jsonFile3).toEither must beLeft("Cannot extract Self-describing JSON Schema from JSON file [/path/to/schemas/com.acme/event/jsonschema/1-0-2]")
+      Utils.extractSchema(jsonFile3).toEither must beLeft("Cannot extract Self-describing JSON Schema from JSON file [/path/to/schemas/com.acme/event/jsonschema/1-0-2]")
     ).and(
-      LintCommand.extractSchema(jsonFile4).toEither must beLeft("Error: JSON Schema [iglu:com.acme/event/jsonschema/1-0-2] doesn't conform path [/event/jsonschema/1-0-2]")
+      Utils.extractSchema(jsonFile4).toEither must beLeft("Error: JSON Schema [iglu:com.acme/event/jsonschema/1-0-2] doesn't conform path [/event/jsonschema/1-0-2]")
     )
   }
 
@@ -113,11 +115,10 @@ class SyncCommandSpec extends Specification { def is = s2"""
         |  "type": "object"
         |}
       """.stripMargin)
-    val stubFile = JsonFile(Some("/path/to/schemas/com.acme/event/jsonschema"), "1-0-2", schema)
+    val stubFile = JsonFile(schema, new File("/path/to/schemas/com.acme/event/jsonschema/1-0-2"))
 
-    val command = SyncCommand(null, null, new File("."))
+    val command = PushCommand(null, null, new File("."), true)
     val failedStream = command.buildRequests("error".left, Stream(stubFile.right, stubFile.right, stubFile.right, stubFile.right))
     failedStream must beEqualTo(Stream("error".left))
   }
-
 }

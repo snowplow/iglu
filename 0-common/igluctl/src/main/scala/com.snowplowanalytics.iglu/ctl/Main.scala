@@ -15,8 +15,9 @@ package com.snowplowanalytics.iglu.ctl
 object Main extends App {
   Command.cliParser.parse(args, Command()).flatMap(_.toCommand) match {
     case Some(ddl: GenerateCommand) => ddl.processDdl()
-    case Some(sync: SyncCommand) => sync.process()
+    case Some(sync: PushCommand) => sync.process()
     case Some(lint: LintCommand) => lint.process()
-    case _ => Command.cliParser.showUsageAsError()
+    case Some(s3cp: S3cpCommand) => s3cp.process()
+    case _ => sys.exit(1)
   }
 }

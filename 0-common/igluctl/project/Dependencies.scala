@@ -24,6 +24,7 @@ object Dependencies {
     val scalaz7          = "7.0.8"
     val json4s           = "3.2.11"
     val scalajHttp       = "2.3.0"
+    val awscala          = "0.5.7"
     // Scala (test only)
     val specs2           = "2.3.13"
     val scalazSpecs2     = "0.2"
@@ -41,6 +42,7 @@ object Dependencies {
     val scalaz7          = "org.scalaz"                 %% "scalaz-core"               % V.scalaz7
     val json4sJackson    = "org.json4s"                 %% "json4s-jackson"            % V.json4s
     val scalajHttp       = "org.scalaj"                 %% "scalaj-http"               % V.scalajHttp
+    val awscala          = "com.github.seratch"         %% "awscala"                   % V.awscala
     // Scala (test only)
     val specs2           = "org.specs2"                 %% "specs2"                    % V.specs2         % "test"
     val scalazSpecs2     = "org.typelevel"              %% "scalaz-specs2"             % V.scalazSpecs2   % "test"
