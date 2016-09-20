@@ -22,7 +22,7 @@ import com.snowplowanalytics.iglu.ctl.FileUtils.TextFile
 //
 import com.snowplowanalytics.iglu.ctl.FileUtils.JsonFile
 
-class DdlCommandSpec extends Specification { def is = s2"""
+class GenerateCommandSpec extends Specification { def is = s2"""
   DDL-generation command (ddl) specification
     correctly convert com.amazon.aws.lambda/java_context_1 with default arguments $e1
     correctly convert com.amazon.aws.lambda/java_context_1 with --raw --no-header --varchar 128 $e2
@@ -157,7 +157,7 @@ class DdlCommandSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    val jsonFile = JsonFile(None, "1-0-0", sourceSchema)
+    val jsonFile = JsonFile(sourceSchema, new File("1-0-0"))
     val stubFile: File = new File(".")
     val command = GenerateCommand(stubFile, stubFile)
 
@@ -279,7 +279,7 @@ class DdlCommandSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    val jsonFile = JsonFile(None, "java-context.json", sourceSchema)
+    val jsonFile = JsonFile(sourceSchema, new File("java-context.json"))
     val stubFile: File = new File(".")
     val command = GenerateCommand(stubFile, stubFile, rawMode = true, noHeader = true, varcharSize = 128)
 
@@ -402,7 +402,7 @@ class DdlCommandSpec extends Specification { def is = s2"""
          |}""".stripMargin)
 
 
-    val jsonFile = JsonFile(None, "1-0-0", sourceSchema)
+    val jsonFile = JsonFile(sourceSchema, new File("1-0-0"))
     val stubFile: File = new File(".")
     val command = GenerateCommand(stubFile, stubFile, noHeader = true, dbSchema = Some("snowplow"))
 
@@ -557,7 +557,7 @@ class DdlCommandSpec extends Specification { def is = s2"""
          |    ]
          |}""".stripMargin
 
-    val jsonFile = JsonFile(None, "1-0-0", sourceSchema)
+    val jsonFile = JsonFile(sourceSchema, new File("1-0-0"))
     val stubFile: File = new File(".")
     val command = GenerateCommand(stubFile, stubFile, withJsonPaths = true)
 

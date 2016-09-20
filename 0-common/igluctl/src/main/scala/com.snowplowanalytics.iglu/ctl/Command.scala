@@ -23,40 +23,50 @@ import java.util.UUID
 import scopt.OptionParser
 
 // This library
-import SyncCommand._
+import PushCommand._
 
 /**
  * Common command container
  */
 case class Command(
   // common
-  command:       Option[String]  = None,
-  input:         Option[File]    = None,
+  command:         Option[String]  = None,
+  input:           Option[File]    = None,
 
   // ddl
-  output:        Option[File]    = None,
-  db:            String          = "redshift",
-  withJsonPaths: Boolean         = false,
-  rawMode:       Boolean         = false,
-  schema:        Option[String]  = None,
-  varcharSize:   Int             = 4096,
-  splitProduct:  Boolean         = false,
-  noHeader:      Boolean         = false,
-  force:         Boolean         = false,
+  output:          Option[File]    = None,
+  db:              String          = "redshift",
+  withJsonPaths:   Boolean         = false,
+  rawMode:         Boolean         = false,
+  schema:          Option[String]  = None,
+  varcharSize:     Int             = 4096,
+  splitProduct:    Boolean         = false,
+  noHeader:        Boolean         = false,
+  force:           Boolean         = false,
 
   // sync
-  registryRoot:  Option[HttpUrl] = None,
-  apiKey:        Option[UUID]    = None,
-  isPublic:      Boolean         = false,
+  registryRoot:    Option[HttpUrl] = None,
+  apiKey:          Option[UUID]    = None,
+  isPublic:        Boolean         = false,
 
   // lint
-  skipWarnings:  Boolean         = false
+  skipWarnings:    Boolean         = false,
+
+  // s3
+  bucket:          Option[String]  = None,
+  s3path:          Option[String]  = None,
+  accessKeyId:     Option[String]  = None,
+  secretAccessKey: Option[String]  = None,
+  profile:         Option[String]  = None,
+  region:          Option[String]  = None
 ) {
   def toCommand: Option[Command.CtlCommand] = command match {
     case Some("static generate") => Some(
       GenerateCommand(input.get, output.getOrElse(new File(".")), db,withJsonPaths, rawMode, schema, varcharSize, splitProduct, noHeader, force))
     case Some("static push") =>
-      Some(SyncCommand(registryRoot.get, apiKey.get, input.get, isPublic))
+      Some(PushCommand(registryRoot.get, apiKey.get, input.get, isPublic))
+    case Some("static s3cp") =>
+      Some(S3cpCommand(input.get, bucket.get, s3path, accessKeyId, secretAccessKey, profile, region))
     case Some("lint") =>
       Some(LintCommand(input.get, skipWarnings))
     case _ =>
@@ -70,7 +80,7 @@ object Command {
   implicit val uuidRead = scopt.Read.reads(UUID.fromString)
   
   implicit val httpUrlRead: scopt.Read[HttpUrl] = scopt.Read.reads { s =>
-    SyncCommand.parseRegistryRoot(s) match {
+    PushCommand.parseRegistryRoot(s) match {
       case \/-(httpUrl) => httpUrl
       case -\/(e) => throw e
     }
@@ -84,6 +94,13 @@ object Command {
    */
   private[ctl] trait CtlCommand
 
+  def inputReadable(c: Command): Either[String, Unit] =
+    c.input match {
+      case Some(input) if input.exists() && input.canRead => Right(())
+      case Some(input) => Left(s"Input [${input.getAbsolutePath}] isn't available for read")
+      case None => Left(s"Incorrect CLI state: $c")
+    }
+
   val cliParser = new OptionParser[Command]("igluctl") {
 
     head(generated.ProjectSettings.name, generated.ProjectSettings.version)
@@ -94,6 +111,8 @@ object Command {
       .action { (_, c) => c.copy(command = Some("static")) }
       .text("Static Iglu generator\n")
       .children(
+
+        checkConfig(inputReadable),
 
         cmd("generate")
           .action { (_, c) => c.copy(command = c.command.map(_ + " generate")) }
@@ -142,7 +161,7 @@ object Command {
 
             opt[Unit]("force")
               action { (_, c) => c.copy(force = true) }
-              text "Force override existing manually-edited files",
+              text "Force override existing manually-edited files\n",
 
             checkConfig {
               case command: Command if command.withJsonPaths && command.splitProduct =>
@@ -170,14 +189,57 @@ object Command {
 
             opt[Unit]("public")
               action { (_, c) => c.copy(isPublic = true)}
-              text "Upload all schemas as public",
+              text "Upload all schemas as public\n"
 
-            checkConfig {
-              case Command(_, Some(input), _, _, _, _, _, _, _, _, _, _, _, _, _) =>
-                if (input.exists && input.canRead) success
-                else failure(s"Input [${input.getAbsolutePath}] isn't available for read")
+          ),
+
+        cmd("s3cp")
+          .action(subcommand("s3cp"))
+          .text("Upload Schema Registry onto Amazon S3\n")
+          .children(
+
+            arg[File]("input") required()
+              action { (x, c) => c.copy(input = Some(x))}
+              text "Path to directory with JSON Schemas",
+
+            arg[String]("bucket") required()
+              action { (x, c) => c.copy(bucket = Some(x))}
+              text "Bucket name to upload Schemas",
+
+            opt[String]("s3path")
+              action { (x, c) => c.copy(s3path = Some(x))}
+              text "Path in the bucket to upload Schemas\t\tDefault: bucket root",
+
+            opt[String]("accessKeyId") optional()
+              action { (x, c) => c.copy(accessKeyId = Some(x))}
+              valueName "<key>"
+              text "AWS Access Key Id",
+
+            opt[String]("secretAccessKey")
+              action { (x, c) => c.copy(secretAccessKey = Some(x))}
+              valueName "<key>"
+              text "AWS Secret Access Key",
+
+            opt[String]("profile")
+              action { (x, c) => c.copy(profile = Some(x))}
+              valueName "<name>"
+              text "AWS Profile",
+
+            opt[String]("region")
+              action { (x, c) => c.copy(region = Some(x))}
+              valueName "<name>"
+              text "AWS S3 region\t\tDefault: us-east-1\n",
+
+            checkConfig { (c: Command) =>
+              (c.secretAccessKey, c.accessKeyId, c.profile) match {
+                case (Some(_), Some(_), None) => success
+                case (None, None, Some(_)) => success
+                case (None, None, None) => success
+                case _ => failure("You need provide either both accessKeyId and secretAccessKey OR just profile OR have credentials in other lookup places")
+              }
             }
           )
+
     )
 
     cmd("lint")

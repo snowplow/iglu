@@ -41,6 +41,8 @@ object FileUtils {
   // AttachToSchema can be used both to extract and attach
   implicit val schemaExtract = com.snowplowanalytics.iglu.core.json4s.AttachToSchema
 
+  val separator = System.getProperty("file.separator", "/")
+
   /**
    * Class representing file path and content ready
    * to be written to file system
@@ -77,13 +79,12 @@ object FileUtils {
   }
 
   /**
-   * Class representing JSON file with path and parsed content
+   * Class representing JSON content and reference on filesystem
    *
-   * @param path full path on filesystem *with* file name if file already exists
-   * @param fileName always present name of file
    * @param content valid JSON content
+   * @param origin real file object
    */
-  case class JsonFile(path: Option[String], fileName: String, content: JValue) {
+  class JsonFile private(val content: JValue, val origin: File) {
     /**
      * Try to extract Self-describing JSON Schema from JSON file
      * [[JsonFile]] not neccessary contains JSON Schema, it also used for storing
@@ -96,14 +97,22 @@ object FileUtils {
       optionalSchema.getOrElse(s"Cannot extract Self-describing JSON Schema from JSON file [$getKnownPath]".failure)
     }
 
+    def fileName: String = origin.getName
+
+    def path: String = origin.getCanonicalPath
+
     /**
      * Return known part of file path. If `path` is present it will join it
      * with filename, otherwise return just `fileName`
      *
      * @return fileName or full absolute path
      */
-    def getKnownPath: String =
-      path.map(new File(_, fileName).getAbsolutePath).getOrElse(fileName)
+    def getKnownPath: String = origin.getAbsolutePath
+  }
+
+  object JsonFile {
+    def apply(content: JValue, origin: File) =
+      new JsonFile(content, origin)
   }
 
   /**
@@ -221,7 +230,7 @@ object FileUtils {
    */
   def getJsonFile(file: File): Validation[String, JsonFile] =
     getJsonFromFile(file) match {
-      case Success(json) => JsonFile(Some(file.getParent), file.getName, json).success
+      case Success(json) => JsonFile(json, file).success
       case Failure(str) => str.failure
     }
 
@@ -276,4 +285,17 @@ object FileUtils {
       case e: IOException => true
     }
   }
+
+  /**
+   * Predicate used to filter only files which Iglu path contains `jsonschema`
+   * as format
+   *
+   * @param file any real file
+   * @return true if third entity of Iglu path is `jsonschema`
+   */
+  def filterJsonSchemas(file: File): Boolean =
+    file.getAbsolutePath.split(separator).takeRight(4) match {
+      case Array(_, _, format, _) => format == "jsonschema"
+      case _ => false
+    }
 }
