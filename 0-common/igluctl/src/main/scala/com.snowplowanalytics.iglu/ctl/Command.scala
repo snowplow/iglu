@@ -22,6 +22,9 @@ import java.util.UUID
 // scopt
 import scopt.OptionParser
 
+// Schema DDL
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.{ SeverityLevel, FirstLevel, SecondLevel }
+
 // This library
 import PushCommand._
 
@@ -51,6 +54,7 @@ case class Command(
 
   // lint
   skipWarnings:    Boolean         = false,
+  severityLevel:   SeverityLevel   = FirstLevel,
 
   // s3
   bucket:          Option[String]  = None,
@@ -68,7 +72,7 @@ case class Command(
     case Some("static s3cp") =>
       Some(S3cpCommand(input.get, bucket.get, s3path, accessKeyId, secretAccessKey, profile, region))
     case Some("lint") =>
-      Some(LintCommand(input.get, skipWarnings))
+      Some(LintCommand(input.get, skipWarnings, severityLevel))
     case _ =>
       None
   }
@@ -84,6 +88,12 @@ object Command {
       case \/-(httpUrl) => httpUrl
       case -\/(e) => throw e
     }
+  }
+
+  implicit val severityLevelRead: scopt.Read[SeverityLevel] = scopt.Read.reads {
+    case "1" => FirstLevel
+    case "2" => SecondLevel
+    case l => throw new IllegalArgumentException(s"Error: $l is invalid severity level")
   }
 
   private def subcommand(sub: String)(unit: Unit, root: Command): Command =
@@ -107,12 +117,12 @@ object Command {
     help("help") text "Print this help message"
     version("version") text "Print version info\n"
 
+    checkConfig(inputReadable)    // Input accepted by all subcommands
+
     cmd("static")
       .action { (_, c) => c.copy(command = Some("static")) }
       .text("Static Iglu generator\n")
       .children(
-
-        checkConfig(inputReadable),
 
         cmd("generate")
           .action { (_, c) => c.copy(command = c.command.map(_ + " generate")) }
@@ -228,7 +238,7 @@ object Command {
             opt[String]("region")
               action { (x, c) => c.copy(region = Some(x))}
               valueName "<name>"
-              text "AWS S3 region\t\tDefault: us-east-1\n",
+              text "AWS S3 region\t\t\t\tDefault: us-west-2\n",
 
             checkConfig { (c: Command) =>
               (c.secretAccessKey, c.accessKeyId, c.profile) match {
@@ -239,7 +249,6 @@ object Command {
               }
             }
           )
-
     )
 
     cmd("lint")
@@ -247,13 +256,17 @@ object Command {
       .text("Lint Schemas\n")
       .children(
 
-        arg[File]("input") required()
-          action { (x, c) => c.copy(input = Some(x)) }
+        arg[File]("input") required() action { (x, c) => c.copy(input = Some(x)) }
           text "Path to directory with JSON Schemas",
 
         opt[Unit]("skip-warnings")
           action { (_, c) => c.copy(skipWarnings = true) }
-          text "Don't output messages with log level less than ERROR"
+          text "Don't output messages with log level less than ERROR",
+
+        opt[SeverityLevel]("severityLevel")
+          action { (x, c) => c.copy(severityLevel = x) }
+          text "Severity level\t\t\t\tDefault: 1"
+
       )
   }
 }

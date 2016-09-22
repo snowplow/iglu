@@ -31,13 +31,14 @@ import com.github.fge.jsonschema.core.report.{ ListProcessingReport, ProcessingM
 
 // Schema DDL
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.{ Schema, SanityLinter }
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.SeverityLevel
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s.Json4sToSchema._
 
 // This library
 import FileUtils.{ getJsonFilesStream, JsonFile, filterJsonSchemas }
 import Utils.extractSchema
 
-case class LintCommand(inputDir: File, skipWarnings: Boolean) extends Command.CtlCommand {
+case class LintCommand(inputDir: File, skipWarnings: Boolean, severityLevel: SeverityLevel) extends Command.CtlCommand {
   import LintCommand._
 
   /**
@@ -49,7 +50,7 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean) extends Command.Ct
       val report = file.map(check)
       flattenReport(report) 
     }
-    reports.foldLeft(Total(0, 0))((acc, cur) => acc.add(cur)).exit()
+    reports.foldLeft(Total(0, 0, 0))((acc, cur) => acc.add(cur)).exit()
   }
 
   /**
@@ -61,7 +62,8 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean) extends Command.Ct
   def check(jsonFile: JsonFile): Report = {
     val pathCheck = extractSchema(jsonFile).map(_ => ()).validation.toValidationNel
     val syntaxCheck = validateSchema(jsonFile.content, skipWarnings)
-    val lintCheck = Schema.parse(jsonFile.content).map(SanityLinter.lint)
+
+    val lintCheck = Schema.parse(jsonFile.content).map { schema => SanityLinter.lint(schema, severityLevel) }
 
     val fullValidation = syntaxCheck |+| pathCheck |+| lintCheck.getOrElse("Doesn't contain JSON Schema".failureNel)
 
@@ -85,17 +87,18 @@ object LintCommand {
    * End-of-the-world class, containing info about success/failure of execution
    *
    * @param successes number of successfully validated schemas
-   * @param failures number of schemas with errors
+   * @param failedSchemas number of schemas with errors
    */
-  case class Total(successes: Int, failures: Int) {
+  case class Total(successes: Int, failedSchemas: Int, totalFailures: Int) {
     /**
      * Exit from app with error status if invalid schemas were found
      */
     def exit(): Unit = {
       println(s"TOTAL: $successes Schemas were successfully validated")
-      println(s"TOTAL: $failures errors were encountered")
+      println(s"TOTAL: $failedSchemas invalid Schemas were encountered")
+      println(s"TOTAL: $totalFailures errors were encountered")
 
-      if (failures > 0) sys.exit(1)
+      if (failedSchemas + totalFailures > 0) sys.exit(1)
       else sys.exit(0)
     }
 
@@ -111,10 +114,10 @@ object LintCommand {
         copy(successes = successes + 1)
       case f: Failure =>
         println(s"FAILURE: ${f.asString}")
-        copy(failures = failures + 1)
+        copy(failedSchemas = failedSchemas + 1)
       case f: SchemaFailure =>
         println(s"FAILURE: ${f.asString}")
-        copy(failures = failures + 1)
+        copy(failedSchemas = failedSchemas + 1, totalFailures = totalFailures + f.errors.size)
     }
   }
 
@@ -137,7 +140,10 @@ object LintCommand {
    * Unknown properties are not errors
    */
   case class SchemaFailure(filePath: String, errors: List[String]) extends Report {
-    def asString = s"Schema [$filePath] contains following errors: \n${errors.mkString("\n")}"
+    def asString = s"Schema [$filePath] contains following errors: \n${formatErrors(errors)}"
+
+    def formatErrors(errors: List[String]): String =
+      errors.zipWithIndex.map { case (e, i) => s"${i + 1}. $e" }.mkString("\n")
   }
 
   case class Success(filePath: String) extends Report {
