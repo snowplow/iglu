@@ -17,6 +17,7 @@ import scalaz._
 import Scalaz._
 
 // This library
+import StringProperties._
 import CommonProperties._
 import ArrayProperties.{AdditionalItemsSchema, ListItems, TupleItems}
 import ObjectProperties.{ AdditionalPropertiesSchema, AdditionalPropertiesAllowed, PatternProperties, Properties, Required }
@@ -83,6 +84,25 @@ object SanityLinter {
         case Some(t) => t != jsonType
         case None => false            // absent type is ok
       }
+
+    /**
+     * Check if Schema has no specific type *OR* has no type at all
+     */
+    def withType(jsonType: Type): Boolean =
+      value.`type` match {
+        case Some(Product(types)) => types.contains(jsonType)
+        case Some(t) => t == jsonType
+        case None => false            // absent type is ok
+      }
+
+    /**
+     * Check if Schema has specified format
+     */
+    def withFormat(format: Format): Boolean =
+      value.format match {
+        case Some(f) => format == f
+        case None => false
+      }
   }
 
   /**
@@ -95,9 +115,9 @@ object SanityLinter {
    * @return non-empty list of summed failures (all, including nested) or
    *         unit in case of success
    */
-  def lint(schema: Schema): LintSchema = {
+  def lint(schema: Schema, severityLevel: SeverityLevel): LintSchema = {
     // Current level validations
-    val validations = linters.map(linter => linter(schema))
+    val validations = severityLevel.linters.map(linter => linter(schema))
       .foldMap(_.toValidationNel)
 
     // Validations of child nodes
@@ -105,30 +125,30 @@ object SanityLinter {
 
     val properties = schema.properties match {
       case Some(props) =>
-        props.value.values.foldLeft(schemaSuccess)((_, s) => lint(s))
+        props.value.values.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel))
       case None => schemaSuccess
     }
 
     val patternProperties = schema.patternProperties match {
       case Some(PatternProperties(props)) =>
-        props.values.foldLeft(schemaSuccess)((_, s) => lint(s))
+        props.values.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel))
       case _ => schemaSuccess
     }
 
     val additionalProperties = schema.additionalProperties match {
-      case Some(AdditionalPropertiesSchema(s)) => lint(s)
+      case Some(AdditionalPropertiesSchema(s)) => lint(s, severityLevel)
       case _ => schemaSuccess
     }
 
     val items = schema.items match {
-      case Some(ListItems(s)) => lint(s)
+      case Some(ListItems(s)) => lint(s, severityLevel)
       case Some(TupleItems(i)) =>
-        i.foldLeft(schemaSuccess)((_, s) => lint(s))
+        i.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel))
       case None => schemaSuccess
     }
 
     val additionalItems = schema.additionalItems match {
-      case Some(AdditionalItemsSchema(s)) => lint(s)
+      case Some(AdditionalItemsSchema(s)) => lint(s, severityLevel)
       case _ => schemaSuccess
     }
 
@@ -137,6 +157,8 @@ object SanityLinter {
   }
 
   // Linter functions
+
+  // First Severity Level
 
   /**
    * Check that number's `minimum` property isn't greater than `maximum`
@@ -231,16 +253,57 @@ object SanityLinter {
     }
   }
 
+  // Second Severity Level
+
   /**
-   * List of all available linters
+   * Check that schema with type `number` or `integer` contains both minimum
+   * and maximum properties
    */
-  val linters = List(
-    // Check if some min cannot be greater than corresponding max
-    lintMinimumMaximum, lintMinMaxLength, lintMinMaxItems,
-    // Check if type of Schema corresponds with its validation properties
-    lintNumberProperties, lintStringProperties, lintObjectProperties, lintArrayProperties,
-    // Other checks
-    lintPossibleKeys
-  )
+  val lintMinMaxPresent: Linter = (schema: Schema) => {
+    if (schema.withType(Number) || schema.withType(Integer)) {
+      (schema.minimum, schema.maximum) match {
+        case (Some(_), Some(_)) => propertySuccess
+        case (None, Some(_)) => "Numeric Schema doesn't contain minimum property".failure
+        case (Some(_), None) => "Numeric Schema doesn't contain maximum property".failure
+        case _ => "Numeric Schema doesn't contain minimum and maximum properties".failure
+      }
+    }
+    else propertySuccess
+  }
+
+  /**
+   * Check that schema with type `string` contains `maxLength` property or has
+   * other possibility to extract length
+   */
+  val lintMaxLength: Linter = (schema: Schema) => {
+    if (schema.withType(String) && schema.enum.isEmpty && schema.maxLength.isEmpty) {
+      if (schema.withFormat(Ipv4Format) || schema.withFormat(Ipv6Format) || schema.withFormat(DateTimeFormat)) {
+        propertySuccess
+      } else {
+        "String Schema doesn't contain maxLength nor enum properties nor appropriate format".failure
+      }
+    } else {
+      propertySuccess
+    }
+  }
+
+  trait SeverityLevel {
+    def linters: List[Linter]
+  }
+
+  case object FirstLevel extends SeverityLevel {
+    val linters = List(
+      // Check if some min cannot be greater than corresponding max
+      lintMinimumMaximum, lintMinMaxLength, lintMinMaxItems,
+      // Check if type of Schema corresponds with its validation properties
+      lintNumberProperties, lintStringProperties, lintObjectProperties, lintArrayProperties,
+      // Other checks
+      lintPossibleKeys
+    )
+  }
+
+  case object SecondLevel extends SeverityLevel {
+    val linters = FirstLevel.linters ++ List(lintMinMaxPresent, lintMaxLength)
+  }
 }
 
