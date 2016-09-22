@@ -149,6 +149,14 @@ case class S3cpCommand(
    * @return full S3 path
    */
   def getS3Path(file: File): String = {
+    val pathOnS3: String = {
+      val path = file.getAbsolutePath.drop(inputDir.getAbsolutePath.length + 1)
+      if (FileUtils.separator == """\""")
+        path.replace(FileUtils.separator, """/""")
+      else
+        path
+    }
+
     val bucketPath = path match {
       case Some("/") => ""
       case Some(p) if p.endsWith("/") => p
@@ -157,7 +165,7 @@ case class S3cpCommand(
     }
 
     if (inputDir.isDirectory) {
-      bucketPath + inputDir.getName + "/" + file.getAbsolutePath.drop(inputDir.getAbsolutePath.length + 1)
+      bucketPath + inputDir.getName + "/" + pathOnS3
     } else {
       bucketPath + inputDir.getName
     }
@@ -205,4 +213,8 @@ object S3cpCommand {
   object Total {
     val empty = Total(0, 0)
   }
+
+  /**
+   * Replace
+   */
 }

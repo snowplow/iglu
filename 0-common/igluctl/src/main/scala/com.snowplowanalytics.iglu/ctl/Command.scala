@@ -108,7 +108,7 @@ object Command {
     c.input match {
       case Some(input) if input.exists() && input.canRead => Right(())
       case Some(input) => Left(s"Input [${input.getAbsolutePath}] isn't available for read")
-      case None => Left(s"Incorrect CLI state: $c")
+      case _ => Right(())
     }
 
   val cliParser = new OptionParser[Command]("igluctl") {
@@ -117,7 +117,7 @@ object Command {
     help("help") text "Print this help message"
     version("version") text "Print version info\n"
 
-    checkConfig(inputReadable)    // Input accepted by all subcommands
+    checkConfig(inputReadable)
 
     cmd("static")
       .action { (_, c) => c.copy(command = Some("static")) }

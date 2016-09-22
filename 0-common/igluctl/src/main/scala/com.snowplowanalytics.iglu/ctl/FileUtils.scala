@@ -287,6 +287,19 @@ object FileUtils {
   }
 
   /**
+   * OS-specific filesystem path-split
+   *
+   * @param path absolute path to file
+   * @return list of all parts of absolute file path ready to be joined by `separator`
+   */
+  def splitPath(path: String): List[String] = {
+    val sep = if (separator == """\""") """\\""" else separator
+    path.split(sep).toList
+  }
+
+  def splitPath(file: File): List[String] = splitPath(file.getAbsolutePath)
+
+  /**
    * Predicate used to filter only files which Iglu path contains `jsonschema`
    * as format
    *
@@ -294,8 +307,8 @@ object FileUtils {
    * @return true if third entity of Iglu path is `jsonschema`
    */
   def filterJsonSchemas(file: File): Boolean =
-    file.getAbsolutePath.split(separator).takeRight(4) match {
-      case Array(_, _, format, _) => format == "jsonschema"
+    splitPath(file).takeRight(4) match {
+      case List(_, _, format, _) => format == "jsonschema"
       case _ => false
     }
 }
