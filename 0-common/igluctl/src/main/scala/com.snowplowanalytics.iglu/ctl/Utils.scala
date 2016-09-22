@@ -21,7 +21,7 @@ import com.snowplowanalytics.iglu.core.SchemaKey
 import com.snowplowanalytics.iglu.schemaddl.{ IgluSchema, RevisionGroup, ModelGroup }
 
 // This library
-import FileUtils.{ separator, JsonFile }
+import FileUtils.{ JsonFile, splitPath }
 
 object Utils {
 
@@ -35,7 +35,7 @@ object Utils {
    * @return four last path entities joined by OS-separator
    */
   def getPath(fullPath: String): String =
-    fullPath.split(separator).takeRight(4).mkString(separator)
+    splitPath(fullPath).takeRight(4).mkString("/")  // Always URL-compatible
 
   /**
    * Check if path of some JSON file corresponds with Iglu path extracted
@@ -46,7 +46,7 @@ object Utils {
    * @return true if extracted path is equal to FS path
    */
   def equalPath(jsonFile: JsonFile, schemaKey: SchemaKey): Boolean = {
-    val path = getPath(jsonFile.path)
+    val path = getPath(jsonFile.origin.getAbsolutePath)
     SchemaKey.fromPath(path).contains(schemaKey)
   }
 
