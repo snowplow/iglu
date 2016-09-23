@@ -10,14 +10,34 @@ Igluctl is command-line tool, allowing to perform most common tasks with **[Iglu
 
 ## User Quickstart
 
-Download the latest Igluctl from Bintray:
+You can download igluctl archive from our Bintray, using following link:
 
-```bash
-$ wget http://dl.bintray.com/snowplow/snowplow-generic/igluctl_0.1.0.zip
-$ unzip igluctl_0.1.0.zip
+```
+http://dl.bintray.com/snowplow/snowplow-generic/igluctl_0.2.0.zip
 ```
 
-Assuming you have a recent JVM installed.
+Before running it - make sure you have [Oracle JRE 7] [jre] installed.
+
+### Windows
+
+After downloading and unzipping archive you'll find file `igluctl` which is single executable file.
+
+To run it you can use following format (executable file should be in current directory):
+
+```bash
+$ java -jar igluctl lint {{input}}
+```
+
+Below and everywhere in documentation you'll find example commands without `java -jar` prefix, which is Windows-specific.
+
+### Mac OS X and Linux
+
+You can extract and run archive using following commands:
+
+```bash
+$ unzip -j igluctl_0.2.0.zip
+$ ./igluctl lint {{input}}
+```
 
 ## CLI
 
@@ -27,7 +47,7 @@ You can transform JSON Schema into Redshift (other storages are coming) DDL, usi
 This functionality was previously implemented as **[Schema Guru] [schema-guru]** (pre-0.7.0) `ddl` subcommand
 
 ```bash
-$ ./igluctl_0.1.0 static generate {{input}}
+$ ./igluctl static generate {{input}}
 ```
 
 ### Push JSON Schemas
@@ -36,15 +56,26 @@ You can push your JSON Schemas from local filesystem to Iglu Scala Registry in b
 This functionality was previously implemented as `registry-sync.sh` shell script.
 
 ```bash
-$ ./igluctl_0.1.0 static push {{input}} {{registry_host}} {{apikey}}
+$ ./igluctl static push {{input}} {{registry_host}} {{apikey}}
 ```
+
+### Copy JSON Schemas to AWS S3
+
+You also can copy your JSON Schemas (JSON Path files or any other files) to Amazon S3 storage using `igluctl static s3cp` command.
+
+```bash
+$ ./igluctl static s3cp {{input}} {{bucketname}} --accessKeyId {{ACCESS_KEY_ID}} --secretAccessKey {{SECRET_ACCESS_KEY}} --region {{AWS_REGION}}
+```
+
+Igluctl will closely follow [AWS CLI] [aws-cli] tools behavior while looking for credentials, which means you can omit `accessKeyId` and `secretKeyId` options
+if you have AWS `default` profile or appropriate environment variables.
 
 ### Linting
 
 You can check your JSON Schema for vairous common mistakes using `igluctl lint` command.
 
 ```bash
-$ ./igluctl_0.1.0 lint {{input}}
+$ ./igluctl_0.2.0 lint {{input}}
 ```
 
 This check will include JSON Syntax validation (`required` is not empty, `maximum` is integer etc)
@@ -73,3 +104,6 @@ limitations under the License.
 
 [iglu]: https://github.com/snowplow/iglu
 [schema-guru]: https://github.com/snowplow/schema-guru
+
+[jre]: http://www.oracle.com/technetwork/java/javase/downloads/jre8-downloads-2133155.html
+[aws-cli]: http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#config-settings-and-precedence
