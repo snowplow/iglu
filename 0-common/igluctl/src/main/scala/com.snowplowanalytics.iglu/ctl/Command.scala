@@ -12,50 +12,90 @@
  */
 package com.snowplowanalytics.iglu.ctl
 
+// scalaz
+import scalaz._
+
 // Java
 import java.io.File
+import java.util.UUID
 
 // scopt
 import scopt.OptionParser
+
+// Schema DDL
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.{ SeverityLevel, FirstLevel, SecondLevel }
+
+// This library
+import PushCommand._
 
 /**
  * Common command container
  */
 case class Command(
   // common
-  command:       Option[String] = None,
-  input:         Option[File]   = None,
+  command:         Option[String]  = None,
+  input:           Option[File]    = None,
 
   // ddl
-  output:        Option[File]   = None,
-  db:            String         = "redshift",
-  withJsonPaths: Boolean        = false,
-  rawMode:       Boolean        = false,
-  schema:        Option[String] = None,
-  varcharSize:   Int            = 4096,
-  splitProduct:  Boolean        = false,
-  noHeader:      Boolean        = false,
-  force:         Boolean        = false,
+  output:          Option[File]    = None,
+  db:              String          = "redshift",
+  withJsonPaths:   Boolean         = false,
+  rawMode:         Boolean         = false,
+  schema:          Option[String]  = None,
+  varcharSize:     Int             = 4096,
+  splitProduct:    Boolean         = false,
+  noHeader:        Boolean         = false,
+  force:           Boolean         = false,
 
   // sync
-  host:          Option[String] = None,
-  apiKey:        Option[String] = None,
+  registryRoot:    Option[HttpUrl] = None,
+  apiKey:          Option[UUID]    = None,
+  isPublic:        Boolean         = false,
 
   // lint
-  skipWarnings:  Boolean        = false
+  skipWarnings:    Boolean         = false,
+  severityLevel:   SeverityLevel   = FirstLevel,
+
+  // s3
+  bucket:          Option[String]  = None,
+  s3path:          Option[String]  = None,
+  accessKeyId:     Option[String]  = None,
+  secretAccessKey: Option[String]  = None,
+  profile:         Option[String]  = None,
+  region:          Option[String]  = None
 ) {
   def toCommand: Option[Command.CtlCommand] = command match {
     case Some("static generate") => Some(
       GenerateCommand(input.get, output.getOrElse(new File(".")), db,withJsonPaths, rawMode, schema, varcharSize, splitProduct, noHeader, force))
     case Some("static push") =>
-      Some(SyncCommand(host.get, apiKey.get, input.get))
-    case Some("lint") => Some(LintCommand(input.get, skipWarnings))
-    case _ => None
+      Some(PushCommand(registryRoot.get, apiKey.get, input.get, isPublic))
+    case Some("static s3cp") =>
+      Some(S3cpCommand(input.get, bucket.get, s3path, accessKeyId, secretAccessKey, profile, region))
+    case Some("lint") =>
+      Some(LintCommand(input.get, skipWarnings, severityLevel))
+    case _ =>
+      None
   }
 }
 
 object Command {
+
+  // Type class instance to parse UUID
+  implicit val uuidRead = scopt.Read.reads(UUID.fromString)
   
+  implicit val httpUrlRead: scopt.Read[HttpUrl] = scopt.Read.reads { s =>
+    PushCommand.parseRegistryRoot(s) match {
+      case \/-(httpUrl) => httpUrl
+      case -\/(e) => throw e
+    }
+  }
+
+  implicit val severityLevelRead: scopt.Read[SeverityLevel] = scopt.Read.reads {
+    case "1" => FirstLevel
+    case "2" => SecondLevel
+    case l => throw new IllegalArgumentException(s"Error: $l is invalid severity level")
+  }
+
   private def subcommand(sub: String)(unit: Unit, root: Command): Command =
     root.copy(command = root.command.map(_ + " " + sub))
 
@@ -64,11 +104,20 @@ object Command {
    */
   private[ctl] trait CtlCommand
 
+  def inputReadable(c: Command): Either[String, Unit] =
+    c.input match {
+      case Some(input) if input.exists() && input.canRead => Right(())
+      case Some(input) => Left(s"Input [${input.getAbsolutePath}] isn't available for read")
+      case _ => Right(())
+    }
+
   val cliParser = new OptionParser[Command]("igluctl") {
 
     head(generated.ProjectSettings.name, generated.ProjectSettings.version)
     help("help") text "Print this help message"
     version("version") text "Print version info\n"
+
+    checkConfig(inputReadable)
 
     cmd("static")
       .action { (_, c) => c.copy(command = Some("static")) }
@@ -89,7 +138,7 @@ object Command {
               valueName "<path>"
               text "Directory to put generated data\t\tDefault: current dir",
 
-            opt[String]("schema")
+            opt[String]("dbschema")
               action { (x, c) => c.copy(schema = Some(x)) }
               valueName "<name>"
               text "Redshift schema name\t\t\t\tDefault: atomic",
@@ -122,7 +171,7 @@ object Command {
 
             opt[Unit]("force")
               action { (_, c) => c.copy(force = true) }
-              text "Force override existing manually-edited files",
+              text "Force override existing manually-edited files\n",
 
             checkConfig {
               case command: Command if command.withJsonPaths && command.splitProduct =>
@@ -140,13 +189,65 @@ object Command {
               action { (x, c) => c.copy(input = Some(x))}
               text "Path to directory with JSON Schemas",
 
-            arg[String]("host")
-              action { (x, c) => c.copy(host = Some(x))}
-              text "Iglu Registry host to upload Schemas",
+            arg[HttpUrl]("registryRoot")
+              action { (x, c) => c.copy(registryRoot = Some(x))}
+              text "Iglu Registry registry root to upload Schemas",
 
-            arg[String]("apikey")
+            arg[UUID]("apikey")
               action { (x, c) => c.copy(apiKey = Some(x))}
-              text "API Key\n"
+              text "Master API Key",
+
+            opt[Unit]("public")
+              action { (_, c) => c.copy(isPublic = true)}
+              text "Upload all schemas as public\n"
+
+          ),
+
+        cmd("s3cp")
+          .action(subcommand("s3cp"))
+          .text("Upload Schema Registry onto Amazon S3\n")
+          .children(
+
+            arg[File]("input") required()
+              action { (x, c) => c.copy(input = Some(x))}
+              text "Path to directory with JSON Schemas",
+
+            arg[String]("bucket") required()
+              action { (x, c) => c.copy(bucket = Some(x))}
+              text "Bucket name to upload Schemas",
+
+            opt[String]("s3path")
+              action { (x, c) => c.copy(s3path = Some(x))}
+              text "Path in the bucket to upload Schemas\t\tDefault: bucket root",
+
+            opt[String]("accessKeyId") optional()
+              action { (x, c) => c.copy(accessKeyId = Some(x))}
+              valueName "<key>"
+              text "AWS Access Key Id",
+
+            opt[String]("secretAccessKey")
+              action { (x, c) => c.copy(secretAccessKey = Some(x))}
+              valueName "<key>"
+              text "AWS Secret Access Key",
+
+            opt[String]("profile")
+              action { (x, c) => c.copy(profile = Some(x))}
+              valueName "<name>"
+              text "AWS Profile",
+
+            opt[String]("region")
+              action { (x, c) => c.copy(region = Some(x))}
+              valueName "<name>"
+              text "AWS S3 region\t\t\t\tDefault: us-west-2\n",
+
+            checkConfig { (c: Command) =>
+              (c.secretAccessKey, c.accessKeyId, c.profile) match {
+                case (Some(_), Some(_), None) => success
+                case (None, None, Some(_)) => success
+                case (None, None, None) => success
+                case _ => failure("You need provide either both accessKeyId and secretAccessKey OR just profile OR have credentials in other lookup places")
+              }
+            }
           )
     )
 
@@ -155,13 +256,17 @@ object Command {
       .text("Lint Schemas\n")
       .children(
 
-        arg[File]("input") required()
-          action { (x, c) => c.copy(input = Some(x)) }
+        arg[File]("input") required() action { (x, c) => c.copy(input = Some(x)) }
           text "Path to directory with JSON Schemas",
 
         opt[Unit]("skip-warnings")
           action { (_, c) => c.copy(skipWarnings = true) }
-          text "Don't output messages with log level less than ERROR"
+          text "Don't output messages with log level less than ERROR",
+
+        opt[SeverityLevel]("severityLevel")
+          action { (x, c) => c.copy(severityLevel = x) }
+          text "Severity level\t\t\t\tDefault: 1"
+
       )
   }
 }

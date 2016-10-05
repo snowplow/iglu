@@ -102,7 +102,7 @@ def check_version():
         match = re.search('\[info\]\s*(\d+\.\d+\.\d+.*)$', line)
         if match:
             if match.group(1) != version:
-                sys.exit("Version extracted from TRAVIS_TAG [{0}] doesn't conform declared in SBT [{1}]".format(version, sbt_version))
+                sys.exit("Version extracted from TRAVIS_TAG [{0}] doesn't conform declared in SBT [{1}]".format(version, match.group(1)))
             else:
                 return
 

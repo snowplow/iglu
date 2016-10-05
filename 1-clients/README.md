@@ -17,8 +17,8 @@ There are currently two Iglu client libraries available:
 |-------------------------------------|-------------------------------|-----------------------------------|---------------------------------------------|
 | [![i1] [techdocs-image]] [techdocs] | [![i2] [setup-image]] [setup] | [![i3] [roadmap-image]] [roadmap] | [![i4] [contributing-image]] [contributing] |
 
-[c1]: ./objc-client
-[c2]: ./scala-client
+[c1]: https://github.com/snowplow/iglu/wiki/ObjC-client
+[c2]: https://github.com/snowplow/iglu/wiki/Scala-client
 
 [techdocs-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/techdocs.png
 [setup-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/setup.png
