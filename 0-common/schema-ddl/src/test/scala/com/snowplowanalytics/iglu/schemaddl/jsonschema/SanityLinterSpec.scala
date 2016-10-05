@@ -29,6 +29,8 @@ class SanityLinterSpec extends Specification { def is = s2"""
     recognize minLength and object type incompatibility $e1
     recognize minimum/maximum incompatibility inside deeply nested Schema (can be unwanted behavior) $e2
     recognize impossibility to fulfill required property $e3
+    recognize errors for second severity level $e4
+    recognize error in the middle of object $e5
   """
 
   def e1 = {
@@ -40,7 +42,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)).get
 
-    SanityLinter.lint(schema) must beEqualTo(Failure(NonEmptyList("Properties [minLength] require string or absent type")))
+    SanityLinter.lint(schema, SanityLinter.FirstLevel) must beEqualTo(Failure(NonEmptyList("Properties [minLength] require string or absent type")))
   }
 
   def e2 = {
@@ -71,7 +73,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)).get
 
-    SanityLinter.lint(schema) must beEqualTo(Failure(NonEmptyList("minimum property [5] is greater than maximum [0]")))
+    SanityLinter.lint(schema, SanityLinter.FirstLevel) must beEqualTo(Failure(NonEmptyList("minimum property [5] is greater than maximum [0]")))
   }
 
   def e3 = {
@@ -87,7 +89,91 @@ class SanityLinterSpec extends Specification { def is = s2"""
       """.stripMargin
     )).get
 
-    SanityLinter.lint(schema) must beEqualTo(Failure(NonEmptyList("Properties [twoKey] is required, but not listed in properties")))
+    SanityLinter.lint(schema, SanityLinter.FirstLevel) must beEqualTo(Failure(NonEmptyList("Properties [twoKey] is required, but not listed in properties")))
   }
 
+  def e4 = {
+    val schema = Schema.parse(parse(
+      """
+        |{
+        |    "type": "object",
+        |    "properties": {
+        |       "sku": {
+        |           "type": "string"
+        |       },
+        |       "name": {
+        |           "type": "string"
+        |       },
+        |       "category": {
+        |           "type": "string"
+        |       },
+        |       "unitPrice": {
+        |           "type": "number"
+        |       },
+        |       "quantity": {
+        |           "type": "number"
+        |       },
+        |       "currency": {
+        |           "type": "string"
+        |       }
+        |    },
+        |    "required": ["sku", "quantity"],
+        |    "additionalProperties": false
+        |}
+      """.stripMargin
+    )).get
+
+    SanityLinter.lint(schema, SanityLinter.SecondLevel) must beEqualTo(
+      Failure(NonEmptyList(
+        "String Schema doesn't contain maxLength nor enum properties nor appropriate format",
+        "Numeric Schema doesn't contain minimum and maximum properties",
+        "String Schema doesn't contain maxLength nor enum properties nor appropriate format",
+        "String Schema doesn't contain maxLength nor enum properties nor appropriate format",
+        "String Schema doesn't contain maxLength nor enum properties nor appropriate format",
+        "Numeric Schema doesn't contain minimum and maximum properties"
+      ))
+    )
+  }
+
+  def e5 = {
+    val schema = Schema.parse(parse(
+      """
+        |{
+        |    "type": "object",
+        |    "properties": {
+        |       "sku": {
+        |           "type": "string"
+        |       },
+        |       "name": {
+        |           "type": "string",
+        |           "maximum": 0
+        |       },
+        |       "category": {
+        |           "type": "string",
+        |           "minimum": 0
+        |       },
+        |       "unitPrice": {
+        |           "type": "number"
+        |       },
+        |       "quantity": {
+        |           "type": "number"
+        |       },
+        |       "currency": {
+        |           "type": "string"
+        |       }
+        |    },
+        |    "required": ["sku", "quantity"],
+        |    "additionalProperties": false
+        |}
+      """.stripMargin
+    )).get
+
+    SanityLinter.lint(schema, SanityLinter.FirstLevel) must beEqualTo(
+      Failure(NonEmptyList(
+        "Properties [maximum] require number, integer or absent type",
+        "Properties [minimum] require number, integer or absent type"
+      ))
+    )
+
+  }
 }

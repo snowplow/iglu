@@ -1,4 +1,20 @@
-Release 5 Scinde Dawk (2016-07-xx)
+Release 6 Ceres (2016-10-05)
+----------------------------
+Documentation: break out Igluctl quick-start into Windows, macOS, Linux (#209)
+Documentation: fix broken links in clients README (#109)
+Schema DDL: add severity levels to linter (#215)
+igluctl: escape Windows-separator character (#208)
+igluctl: add iglu lint severity levels (#175)
+igluctl: add s3cp subcommand (#201)
+igluctl: add option to upload schemas publicly (#202)
+igluctl: add ability to provide full URL as registry root (#199)
+igluctl: make error messages more explicit (#198)
+igluctl: fix build with absent Bintray credentials (#200)
+igluctl: rename schema option to dbschema (#197)
+igluctl: make output of static generate more consistent (#171)
+igluctl: make static generate --force more explicit (#166)
+
+Release 5 Scinde Dawk (2016-08-01)
 ---------------------------------
 Common: add snowplow-generic Bintray credentials to .travis.yml (#178)
 Common: refactor CI/CD (#177)

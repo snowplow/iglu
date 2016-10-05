@@ -25,9 +25,10 @@ import org.json4s.jackson.JsonMethods.parse
 
 // Java
 import java.io.File
+import java.net.URL
+import java.util.UUID
 
 // Iglu core
-import com.snowplowanalytics.iglu.core.SchemaKey
 import com.snowplowanalytics.iglu.core.json4s.StringifySchema
 
 // Schema DDL
@@ -35,17 +36,17 @@ import com.snowplowanalytics.iglu.schemaddl.IgluSchema
 
 // This project
 import FileUtils._
+import PushCommand._
 
 /**
  * Class holding arguments passed from shell into `sync` igluctl command
  * and command's main logic
  *
- * @param host host (and probably port) of Iglu Registry
+ * @param registryRoot full URL (host, port) of Iglu Registry
  * @param masterApiKey mater key UUID which can be used to create any Schema
- * @param inputDir directory with JSON Schemas
+ * @param inputDir directory with JSON Schemas or single JSON file
  */
-case class SyncCommand(host: String, masterApiKey: String, inputDir: File) extends Command.CtlCommand {
-  import SyncCommand._
+case class PushCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File, isPublic: Boolean) extends Command.CtlCommand {
 
   private implicit val stringifySchema = StringifySchema
 
@@ -80,8 +81,8 @@ case class SyncCommand(host: String, masterApiKey: String, inputDir: File) exten
    * @return HTTP POST-request ready to be sent
    */
   def buildCreateKeysRequest: HttpRequest @@ CreateKeys = {
-    val request = Http(s"http://$host/api/auth/keygen")
-      .header("apikey", masterApiKey)
+    val request = Http(s"$registryRoot/api/auth/keygen")
+      .header("apikey", masterApiKey.toString)
       .postForm(List(("vendor_prefix", "*")))
     Tag.of[CreateKeys](request)
   }
@@ -99,7 +100,7 @@ case class SyncCommand(host: String, masterApiKey: String, inputDir: File) exten
     val resultsT = for {
       writeKey <- fromXor(apiKeys.map(_.write))
       json     <- fromXors(jsons)
-      schema   <- fromXor(LintCommand.extractSchema(json))
+      schema   <- fromXor(Utils.extractSchema(json))
     } yield buildRequest(schema, writeKey)
     resultsT.run
   }
@@ -113,9 +114,9 @@ case class SyncCommand(host: String, masterApiKey: String, inputDir: File) exten
    * @return HTTP POST-request ready to be sent
    */
   def buildRequest(schema: IgluSchema, writeKey: String): HttpRequest @@ PostSchema = {
-    val request = Http(s"http://$host/api/schemas/${schema.self.toPath}")
+    val request = Http(s"$registryRoot/api/schemas/${schema.self.toPath}")
       .header("apikey", writeKey)
-      .param("isPublic", "false")
+      .param("isPublic", isPublic.toString)
       .put(schema.asString)
     Tag.of[PostSchema](request)
   }
@@ -128,15 +129,15 @@ case class SyncCommand(host: String, masterApiKey: String, inputDir: File) exten
    * @param purpose what exact key being deleted, used to log, can be empty
    */
   def deleteKey(key: String, purpose: String): Unit = {
-    val request = Http(s"http://$host/api/auth/keygen")
-      .header("apikey", masterApiKey)
+    val request = Http(s"$registryRoot/api/auth/keygen")
+      .header("apikey", masterApiKey.toString)
       .param("key", key)
       .method("DELETE")
 
     Validation.fromTryCatch(request.asString) match {
       case Success(response) if response.isSuccess => println(s"$purpose key $key deleted")
       case Success(response) => println(s"FAILURE: DELETE $purpose $key response: ${response.body}")
-      case Failure(throwable) => println(s"FAILURE: $purpose $key: ${getErrorMessage(throwable)}")
+      case Failure(throwable) => println(s"FAILURE: $purpose $key: ${throwable.toString}")
     }
   }
 
@@ -182,6 +183,7 @@ case class SyncCommand(host: String, masterApiKey: String, inputDir: File) exten
 
     /**
      * Perform cleaning
+ *
      * @param f cleaning function
      */
     def clean(f: () => Unit): Unit = f()
@@ -193,9 +195,9 @@ case class SyncCommand(host: String, masterApiKey: String, inputDir: File) exten
 }
 
 /**
- * Companion objects, containing functions not closed on `masterApiKey`, `host`, etc
+ * Companion objects, containing functions not closed on `masterApiKey`, `registryRoot`, etc
  */
-object SyncCommand {
+object PushCommand {
 
   /**
    * Anything that can bear error message
@@ -214,9 +216,6 @@ object SyncCommand {
 
   // json4s serialization
   private implicit val formats = DefaultFormats
-
-  // OS-specific file separator
-  private val separator = System.getProperty("file.separator", "/")
 
   /**
    * Class container holding temporary read/write apikeys, extracted from
@@ -275,6 +274,13 @@ object SyncCommand {
   sealed trait PostSchema
 
   /**
+   * Type-tag used to mark URL as HTTP
+   */
+  sealed trait HttpUrlTag
+
+  type HttpUrl = URL @@ HttpUrlTag
+
+  /**
    * Transform failing [[Result]] to plain [[Result]] by inserting exception
    * message instead of server message
    *
@@ -304,31 +310,10 @@ object SyncCommand {
         case -\/(_) =>
           Result(Left(response.body), Unknown)
       }
-    else Result(Left(response.body), Failed)
-  }
-
-  /**
-   * Helper function trying to get message from throwable, which can be null
-   * and if null, just stringifying whole throwable
-   *
-   * @param throwable some exception value
-   * @return stringified version of exception
-   */
-  def getErrorMessage(throwable: Throwable): String =
-    Option(throwable.getMessage).getOrElse(throwable.toString)
-
-  /**
-   * Predicate used to filter only files which Iglu path contains `jsonschema`
-   * as format
-   *
-   * @param file any real file
-   * @return true if third entity of Iglu path is `jsonschema`
-   */
-  private def filterJsonSchemas(file: File): Boolean =
-    file.getAbsolutePath.split(separator).takeRight(4) match {
-      case Array(_, _, format, _) => format == "jsonschema"
-      case _ => false
+    else {
+      Result(Left(response.body), Failed)
     }
+  }
 
   /**
    * Perform HTTP request bundled with master apikey to create and get
@@ -344,11 +329,10 @@ object SyncCommand {
     val apiKeys = for {
       response  <- \/.fromTryCatch(request.asString)
       json      <- \/.fromTryCatch(parse(response.body))
-                     .leftMap(_ => new Exception(s"Non-JSON message: [${response.body}]; apikeys were expected"))
       extracted <- \/.fromTryCatch(json.extract[ApiKeys])
     } yield extracted
 
-    apiKeys.leftMap(getErrorMessage)
+    apiKeys.leftMap(e => cutString(e.toString))
   }
 
   /**
@@ -363,7 +347,7 @@ object SyncCommand {
   def postSchema(request: HttpRequest @@ PostSchema): Failing[Result] =
     for {
       response <- \/.fromTryCatch(request.asString)
-                    .leftMap(getErrorMessage)
+                    .leftMap(_.toString)
     } yield getUploadStatus(response)
 
   /**
@@ -381,4 +365,29 @@ object SyncCommand {
    */
   private def fromXors[A, B](value: Stream[Failing[A]]): EitherT[Stream, String, A] =
     EitherT[Stream, String, A](value)
+
+  /**
+   * Cut possibly long string (as compressed HTML) to a string with three dots
+   */
+  private def cutString(s: String, length: Short = 256): String = {
+    val origin = s.take(length)
+    if (origin.length == length) origin + "..."
+    else origin
+  }
+
+  /**
+   * Parse registry root (HTTP URL) from string with default `http://` protocol
+   *
+   * @param url string representing just host or full URL of registry root.
+   *            Registry root is URL **without** /api
+   * @return either error or URL tagged as HTTP in case of success
+   */
+  def parseRegistryRoot(url: String): Throwable \/ HttpUrl =
+    \/.fromTryCatch {
+      if (url.startsWith("http://") || url.startsWith("https://")) {
+        Tag.of[HttpUrlTag](new URL(url.stripSuffix("/")))
+      } else {
+        Tag.of[HttpUrlTag](new URL("http://" + url.stripSuffix("/")))
+      }
+    }
 }
