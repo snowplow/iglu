@@ -17,6 +17,7 @@ object Dependencies {
   object V {
     // Java
     val jsonValidator    = "2.2.6"
+    val codemodel        = "2.6"
     // Scala
     val igluCoreJson4s   = "0.1.0"
     val schemaddl        = "0.5.0"
@@ -35,6 +36,7 @@ object Dependencies {
   object Libraries {
     // Java
     val jsonValidator    = "com.github.fge"             %  "json-schema-validator"     % V.jsonValidator
+    val codemodel        = "com.sun.codemodel"          %  "codemodel"                 % V.codemodel
     // Scala
     val igluCoreJson4s   = "com.snowplowanalytics"      %% "iglu-core-json4s"          % V.igluCoreJson4s
     val schemaddl        = "com.snowplowanalytics"      %% "schema-ddl"                % V.schemaddl
@@ -43,6 +45,7 @@ object Dependencies {
     val json4sJackson    = "org.json4s"                 %% "json4s-jackson"            % V.json4s
     val scalajHttp       = "org.scalaj"                 %% "scalaj-http"               % V.scalajHttp
     val awscala          = "com.github.seratch"         %% "awscala"                   % V.awscala
+
     // Scala (test only)
     val specs2           = "org.specs2"                 %% "specs2"                    % V.specs2         % "test"
     val scalazSpecs2     = "org.typelevel"              %% "scalaz-specs2"             % V.scalazSpecs2   % "test"
