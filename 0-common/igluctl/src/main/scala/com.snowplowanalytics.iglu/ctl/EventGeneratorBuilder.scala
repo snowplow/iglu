@@ -16,12 +16,15 @@ class EventGeneratorBuilder(val codeModel : JCodeModel) {
 
   private val PUBLIC_STATIC_FINAL = JMod.PUBLIC | JMod.STATIC | JMod.FINAL
 
+  private val STRING_TYPE = classRef(classOf[String])
+
   private val JAVA_TYPES = collection.immutable.HashMap(
     "boolean" -> codeModel.BOOLEAN ,
     "number" -> codeModel.DOUBLE ,
     "integer" -> codeModel.LONG ,
     "string" -> classRef(classOf[String])
   )
+
 
   def generateClass(packageName : String, className : String, flatSchema : FlatSchema, schemaUri : String) : Unit = {
     // We generate a subclass of SelfDescribingJson so it can be used equivalently
@@ -31,7 +34,7 @@ class EventGeneratorBuilder(val codeModel : JCodeModel) {
     // Embed the schema as a constant
     val schema = pojoClass.field(PUBLIC_STATIC_FINAL, classOf[String] ,"SCHEMA", JExpr.lit(schemaUri))
 
-    val valueMapClass = classRef("java.util.Map", classRef(classOf[String]), classRef(classOf[Object]))
+    val valueMapClass = classRef("java.util.Map", STRING_TYPE, classRef(classOf[Object]))
 
     // Constructor just delegates to super, passing in the schema
     val constructor = pojoClass.constructor(JMod.PRIVATE)
@@ -49,8 +52,8 @@ class EventGeneratorBuilder(val codeModel : JCodeModel) {
   private def generateBuilderClass(pojoClass : JDefinedClass, flatSchema : FlatSchema) : JDefinedClass = {
     // Builder will accumulate fields into a wrapped map so it can be easily passed through constructor
     val builderClass = pojoClass._class(PUBLIC_STATIC_FINAL, "Builder")
-    val valueMapClass = classRef("java.util.Map", classRef(classOf[String]), classRef(classOf[Object]))
-    val mapClass = classRef("java.util.HashMap", classRef(classOf[String]), classRef(classOf[Object]))
+    val valueMapClass = classRef("java.util.Map", STRING_TYPE, classRef(classOf[Object]))
+    val mapClass = classRef("java.util.HashMap", STRING_TYPE, classRef(classOf[Object]))
 
     val valuesMap = builderClass.field(JMod.PRIVATE, valueMapClass, "values", JExpr._new(mapClass))
 
@@ -70,12 +73,21 @@ class EventGeneratorBuilder(val codeModel : JCodeModel) {
   }
 
   private def generateSetter(builderClass : JDefinedClass, fieldName : String, properties : Map[String, String]) : Unit = {
-    val setter = builderClass.method(JMod.PUBLIC, builderClass, EventGeneratorBuilder.asJavaName(fieldName))
-    val fieldType = properties.get("type").flatMap(JAVA_TYPES.get).getOrElse(classRef(classOf[String]))
-    setter.param(fieldType, "value")
-    setter.body().invoke(JExpr.ref("values"), "put").arg(fieldName).arg(JExpr.ref("value"))
-    setter.body()._return(JExpr._this())
-    properties.get("description").map(setter.javadoc().addParam("value").append(_))
+    val setterName = EventGeneratorBuilder.asJavaName(fieldName)
+    val typeList = properties.get("type").map(parseTypes).getOrElse(Seq.empty)
+    val description = properties.get("description")
+
+    for (fieldType <- typeList) {
+      val setter = builderClass.method(JMod.PUBLIC, builderClass, setterName)
+      setter.param(fieldType, "value")
+      setter.body().invoke(JExpr.ref("values"), "put").arg(fieldName).arg(JExpr.ref("value"))
+      setter.body()._return(JExpr._this())
+      description.map(setter.javadoc().addParam("value").append(_))
+    }
+  }
+
+  private def parseTypes(types : String): Seq[JType] = {
+    types.split(",").map(JAVA_TYPES.get).filter(_.isDefined).map(_.get).toSeq
   }
 
   private def generateFieldCheck(buildMethod: JMethod, field: String) = {

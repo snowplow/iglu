@@ -15,7 +15,17 @@ import scalaz._
 /**
   * Created by kirwin on 3/31/17.
   */
-case class GenerateJavaCommand(input: File, output: File) extends Command.CtlCommand {
+case class GenerateJavaCommand(input: File,
+                               output: File,
+                               packageSuffix: String) extends Command.CtlCommand {
+
+  val effectiveSuffix =
+    if (packageSuffix.startsWith(".") || packageSuffix.isEmpty) {
+      packageSuffix
+    }
+    else {
+      "." + packageSuffix
+    }
 
   def processJava(): Unit = {
     val allFiles = getJsonFiles(input)
@@ -105,7 +115,7 @@ case class GenerateJavaCommand(input: File, output: File) extends Command.CtlCom
   // Want to get a set of schemas, as we'll generate a single class, but a builder per class
   private def produceClass(flatSchema: FlatSchema, schemaKey: SchemaKey) : ClassDefinition = {
 
-    val packageName = schemaKey.vendor
+    val packageName = schemaKey.vendor + effectiveSuffix
     val className = javafy(schemaKey.name, true) + versionSuffix(schemaKey.version)
 
     val classBuilder = EventGeneratorBuilder()
@@ -114,7 +124,6 @@ case class GenerateJavaCommand(input: File, output: File) extends Command.CtlCom
     val packageDir = packageName.replace('.', '/')
     ClassDefinition(s"${packageDir}/${className}", classBuilder)
   }
-
 
   private def javafy(schemaName : String, initialUpperCase : Boolean = false) : String  = {
     val buffer = new StringBuilder(schemaName.length)
