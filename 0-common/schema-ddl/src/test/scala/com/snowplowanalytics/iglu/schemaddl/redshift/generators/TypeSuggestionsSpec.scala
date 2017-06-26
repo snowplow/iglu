@@ -24,6 +24,8 @@ class TypeSuggestionsSpec extends Specification { def is = s2"""
     recognize string,null maxLength == minLength as CHAR $e4
     recognize number with product type $e5
     recognize integer with product type $e6
+    recognize timestamp $e7
+    recognize full date $e8
   """
 
   def e1 = {
@@ -54,5 +56,15 @@ class TypeSuggestionsSpec extends Specification { def is = s2"""
   def e6 = {
     val props = Map("type" -> "integer,null")
     DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftBigInt)
+  }
+
+  def e7 = {
+    val props = Map("type" -> "string", "format" -> "date-time")
+    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftTimestamp)
+  }
+
+  def e8 = {
+    val props = Map("type" -> "string", "format" -> "date")
+    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftDate)
   }
 }

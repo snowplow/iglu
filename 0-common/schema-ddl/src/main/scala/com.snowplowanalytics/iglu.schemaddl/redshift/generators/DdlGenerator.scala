@@ -185,6 +185,7 @@ object DdlGenerator {
     complexEnumSuggestion,
     productSuggestion,
     timestampSuggestion,
+    dateSuggestion,
     arraySuggestion,
     integerSuggestion,
     numberSuggestion,

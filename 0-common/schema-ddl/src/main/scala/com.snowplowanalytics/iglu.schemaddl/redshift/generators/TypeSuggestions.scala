@@ -54,6 +54,13 @@ object TypeSuggestions {
       case _ => None
     }
 
+  val dateSuggestion: DataTypeSuggestion = (properties, columnName) =>
+    (properties.get("type"), properties.get("format")) match {
+      case(Some(types), Some("date")) if types.contains("string") =>
+        Some(RedshiftDate)
+      case _ => None
+    }
+
   val arraySuggestion: DataTypeSuggestion = (properties, columnName) =>
     properties.get("type") match {
       case Some(types) if types.contains("array") =>
