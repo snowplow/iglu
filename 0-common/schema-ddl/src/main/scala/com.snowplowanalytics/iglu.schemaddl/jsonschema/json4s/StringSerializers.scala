@@ -29,6 +29,7 @@ object StringSerializers {
       case JString(format) if format == "email" => EmailFormat
       case JString(format) if format == "hostname" => HostNameFormat
       case JString(format) if format == "date-time" => DateTimeFormat
+      case JString(format) if format == "date" => DateFormat
       case JString(format) => CustomFormat(format)
       case x => throw new MappingException("Format must be string")
     },
