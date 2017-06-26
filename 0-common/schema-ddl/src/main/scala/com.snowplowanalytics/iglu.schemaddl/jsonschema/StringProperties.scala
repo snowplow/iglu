@@ -52,6 +52,7 @@ object StringProperties {
   case object Ipv6Format extends Format { val asString = "ipv6" }
   case object EmailFormat extends Format { val asString = "email" }
   case object DateTimeFormat extends Format { val asString = "date-time" }
+  case object DateFormat extends Format { val asString = "date" }
   case object HostNameFormat extends Format { val asString = "hostname" }
 
   /**
