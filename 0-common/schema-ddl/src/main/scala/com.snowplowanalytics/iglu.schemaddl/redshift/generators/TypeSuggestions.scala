@@ -117,6 +117,8 @@ object TypeSuggestions {
         Some(RedshiftVarchar(39))
       case (Some(types),     _,                           _,                      Some("ipv4")) if types.contains("string") =>
         Some(RedshiftVarchar(15))
+      case (Some(types),     _,                           _,                      Some("email")) if types.contains("string") =>
+        Some(RedshiftVarchar(255))
       case (Some(types),     Some(IntegerAsString(maxLength)), _,              _) if types.contains("string") =>
         Some(RedshiftVarchar(maxLength))
       case (_,              _,                            Some(enum),             _) => {
