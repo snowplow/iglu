@@ -94,6 +94,10 @@ class ParseSpec extends Specification { def is = s2"""
         |    "ipAddress": {
         |      "type": "string",
         |      "format": "ipv4"
+        |    },
+        |    "email": {
+        |      "type": "string",
+        |      "format": "email"
         |    }
         |  },
         |  "additionalProperties": false
@@ -114,6 +118,10 @@ class ParseSpec extends Specification { def is = s2"""
         "ipAddress" -> Schema(
           `type` = String,
           format = Ipv4Format
+        ),
+        "email" -> Schema(
+          `type` = String,
+          format = EmailFormat
         ),
         "someString" -> Schema(
           `type` = String
@@ -188,6 +196,10 @@ class ParseSpec extends Specification { def is = s2"""
         "ipAddress" -> Schema(
           `type` = String,
           format = Ipv4Format
+        ),
+        "email" -> Schema(
+          `type` = String,
+          format = EmailFormat
         ),
         "someString" -> Schema(
           `type` = String
@@ -307,6 +319,10 @@ class ParseSpec extends Specification { def is = s2"""
         |    "ipAddress": {
         |      "type": "string",
         |      "format": "ipv4"
+        |    },
+        |    "email": {
+        |      "type": "string",
+        |      "format": "email"
         |    }
         |  },
         |  "additionalProperties": false
