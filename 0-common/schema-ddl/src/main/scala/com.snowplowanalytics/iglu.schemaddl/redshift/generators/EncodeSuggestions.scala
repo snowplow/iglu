@@ -29,5 +29,9 @@ object EncodeSuggestions {
       case _ => None
     }
 
-
+  val zstdSuggestion: EncodingSuggestion = (properties, dataType, columnName) =>
+    dataType match {
+      case RedshiftVarchar(_) => Some(ZstdEncoding)
+      case _ => None
+    }
 }
