@@ -195,7 +195,7 @@ object DdlGenerator {
   )
 
   // List of compression encoding suggestions
-  val encodingSuggestions: List[EncodingSuggestion] = List(lzoSuggestion)
+  val encodingSuggestions: List[EncodingSuggestion] = List(lzoSuggestion, zstdSuggestion)
 
 
   /**
@@ -230,7 +230,7 @@ object DdlGenerator {
    * Takes each suggestion out of ``compressionEncodingSuggestions`` and
    * decide whether current properties satisfy it, then return the compression
    * encoding.
-   * If nothing suggested LZO Encoding returned as default
+   * If nothing suggested ZSTD Encoding returned as default
    *
    * @param properties is a string we need to recognize
    * @param dataType redshift data type for current column
@@ -246,7 +246,7 @@ object DdlGenerator {
   : CompressionEncoding = {
 
     suggestions match {
-      case Nil => CompressionEncoding(LzoEncoding) // LZO is default for user-generated
+      case Nil => CompressionEncoding(ZstdEncoding) // ZSTD is default for user-generated
       case suggestion :: tail => suggestion(properties, dataType, columnName) match {
         case Some(encoding) => CompressionEncoding(encoding)
         case None => getEncoding(properties, dataType, columnName, tail)
