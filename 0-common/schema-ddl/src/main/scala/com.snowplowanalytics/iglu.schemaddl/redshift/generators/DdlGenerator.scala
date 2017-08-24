@@ -85,19 +85,19 @@ object DdlGenerator {
 
   // Columns with data taken from self-describing schema
   private[redshift] val selfDescSchemaColumns = List(
-    Column("schema_vendor", RedshiftVarchar(128), Set(CompressionEncoding(RunLengthEncoding)), Set(Nullability(NotNull))),
-    Column("schema_name", RedshiftVarchar(128), Set(CompressionEncoding(RunLengthEncoding)), Set(Nullability(NotNull))),
-    Column("schema_format", RedshiftVarchar(128), Set(CompressionEncoding(RunLengthEncoding)), Set(Nullability(NotNull))),
-    Column("schema_version", RedshiftVarchar(128), Set(CompressionEncoding(RunLengthEncoding)), Set(Nullability(NotNull)))
+    Column("schema_vendor", RedshiftVarchar(128), Set(CompressionEncoding(ZstdEncoding)), Set(Nullability(NotNull))),
+    Column("schema_name", RedshiftVarchar(128), Set(CompressionEncoding(ZstdEncoding)), Set(Nullability(NotNull))),
+    Column("schema_format", RedshiftVarchar(128), Set(CompressionEncoding(ZstdEncoding)), Set(Nullability(NotNull))),
+    Column("schema_version", RedshiftVarchar(128), Set(CompressionEncoding(ZstdEncoding)), Set(Nullability(NotNull)))
   )
 
   // Snowplow-specific columns
   private[redshift] val parentageColumns = List(
     Column("root_id", RedshiftChar(36), Set(CompressionEncoding(RawEncoding)), Set(Nullability(NotNull))),
-    Column("root_tstamp", RedshiftTimestamp, Set(CompressionEncoding(LzoEncoding)), Set(Nullability(NotNull))),
-    Column("ref_root", RedshiftVarchar(255), Set(CompressionEncoding(RunLengthEncoding)), Set(Nullability(NotNull))),
-    Column("ref_tree", RedshiftVarchar(1500), Set(CompressionEncoding(RunLengthEncoding)), Set(Nullability(NotNull))),
-    Column("ref_parent", RedshiftVarchar(255), Set(CompressionEncoding(RunLengthEncoding)), Set(Nullability(NotNull)))
+    Column("root_tstamp", RedshiftTimestamp, Set(CompressionEncoding(ZstdEncoding)), Set(Nullability(NotNull))),
+    Column("ref_root", RedshiftVarchar(255), Set(CompressionEncoding(ZstdEncoding)), Set(Nullability(NotNull))),
+    Column("ref_tree", RedshiftVarchar(1500), Set(CompressionEncoding(ZstdEncoding)), Set(Nullability(NotNull))),
+    Column("ref_parent", RedshiftVarchar(255), Set(CompressionEncoding(ZstdEncoding)), Set(Nullability(NotNull)))
   )
 
 
@@ -196,7 +196,7 @@ object DdlGenerator {
   )
 
   // List of compression encoding suggestions
-  val encodingSuggestions: List[EncodingSuggestion] = List(lzoSuggestion)
+  val encodingSuggestions: List[EncodingSuggestion] = List(lzoSuggestion, zstdSuggestion)
 
 
   /**
@@ -231,7 +231,7 @@ object DdlGenerator {
    * Takes each suggestion out of ``compressionEncodingSuggestions`` and
    * decide whether current properties satisfy it, then return the compression
    * encoding.
-   * If nothing suggested LZO Encoding returned as default
+   * If nothing suggested ZSTD Encoding returned as default
    *
    * @param properties is a string we need to recognize
    * @param dataType redshift data type for current column
@@ -247,7 +247,7 @@ object DdlGenerator {
   : CompressionEncoding = {
 
     suggestions match {
-      case Nil => CompressionEncoding(LzoEncoding) // LZO is default for user-generated
+      case Nil => CompressionEncoding(ZstdEncoding) // ZSTD is default for user-generated
       case suggestion :: tail => suggestion(properties, dataType, columnName) match {
         case Some(encoding) => CompressionEncoding(encoding)
         case None => getEncoding(properties, dataType, columnName, tail)

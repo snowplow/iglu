@@ -69,3 +69,5 @@ case object RunLengthEncoding extends CompressionEncodingValue { def toDdl = "RU
 case object Text255Encoding extends CompressionEncodingValue { def toDdl = "TEXT255" }
 
 case object Text32KEncoding extends CompressionEncodingValue { def toDdl = "TEXT32K" }
+
+case object ZstdEncoding extends CompressionEncodingValue { def toDdl = "ZSTD"}
