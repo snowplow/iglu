@@ -85,19 +85,19 @@ object DdlGenerator {
 
   // Columns with data taken from self-describing schema
   private[redshift] val selfDescSchemaColumns = List(
-    Column("schema_vendor", RedshiftVarchar(128), Set(CompressionEncoding(RunLengthEncoding)), Set(Nullability(NotNull))),
-    Column("schema_name", RedshiftVarchar(128), Set(CompressionEncoding(RunLengthEncoding)), Set(Nullability(NotNull))),
-    Column("schema_format", RedshiftVarchar(128), Set(CompressionEncoding(RunLengthEncoding)), Set(Nullability(NotNull))),
-    Column("schema_version", RedshiftVarchar(128), Set(CompressionEncoding(RunLengthEncoding)), Set(Nullability(NotNull)))
+    Column("schema_vendor", RedshiftVarchar(128), Set(CompressionEncoding(ZstdEncoding)), Set(Nullability(NotNull))),
+    Column("schema_name", RedshiftVarchar(128), Set(CompressionEncoding(ZstdEncoding)), Set(Nullability(NotNull))),
+    Column("schema_format", RedshiftVarchar(128), Set(CompressionEncoding(ZstdEncoding)), Set(Nullability(NotNull))),
+    Column("schema_version", RedshiftVarchar(128), Set(CompressionEncoding(ZstdEncoding)), Set(Nullability(NotNull)))
   )
 
   // Snowplow-specific columns
   private[redshift] val parentageColumns = List(
     Column("root_id", RedshiftChar(36), Set(CompressionEncoding(RawEncoding)), Set(Nullability(NotNull))),
-    Column("root_tstamp", RedshiftTimestamp, Set(CompressionEncoding(LzoEncoding)), Set(Nullability(NotNull))),
-    Column("ref_root", RedshiftVarchar(255), Set(CompressionEncoding(RunLengthEncoding)), Set(Nullability(NotNull))),
-    Column("ref_tree", RedshiftVarchar(1500), Set(CompressionEncoding(RunLengthEncoding)), Set(Nullability(NotNull))),
-    Column("ref_parent", RedshiftVarchar(255), Set(CompressionEncoding(RunLengthEncoding)), Set(Nullability(NotNull)))
+    Column("root_tstamp", RedshiftTimestamp, Set(CompressionEncoding(ZstdEncoding)), Set(Nullability(NotNull))),
+    Column("ref_root", RedshiftVarchar(255), Set(CompressionEncoding(ZstdEncoding)), Set(Nullability(NotNull))),
+    Column("ref_tree", RedshiftVarchar(1500), Set(CompressionEncoding(ZstdEncoding)), Set(Nullability(NotNull))),
+    Column("ref_parent", RedshiftVarchar(255), Set(CompressionEncoding(ZstdEncoding)), Set(Nullability(NotNull)))
   )
 
 
