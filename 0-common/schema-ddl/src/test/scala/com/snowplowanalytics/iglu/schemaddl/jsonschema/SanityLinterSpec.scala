@@ -35,6 +35,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
     recognize non-required properties don't have type null for third severity level $e7
     recognize unknown formats $e8
     recognize maxLength is greater than Redshift VARCHAR(max) $e9
+    recognize schema doesn't contain description property for third severity level $e10
   """
 
   def e1 = {
@@ -229,9 +230,12 @@ class SanityLinterSpec extends Specification { def is = s2"""
 
     SanityLinter.lint(schema, SanityLinter.ThirdLevel, 0) must beEqualTo(
       Failure(NonEmptyList(
+        "Object Schema doesn't contain description property",
         "It is recommended to express absence of property via nullable type",
         "String Schema doesn't contain maxLength nor enum properties nor appropriate format",
-        "Numeric Schema doesn't contain minimum and maximum properties"
+        "String Schema doesn't contain description property",
+        "Numeric Schema doesn't contain minimum and maximum properties",
+        "Number Schema doesn't contain description property"
       ))
     )
   }
@@ -269,5 +273,59 @@ class SanityLinterSpec extends Specification { def is = s2"""
       """.stripMargin)).get
 
     SanityLinter.lint(schema, SanityLinter.FirstLevel, 0) must beEqualTo(Failure(NonEmptyList("maxLength [65536] is greater than Redshift VARCHAR(max), 65535")))
+  }
+
+def e10 = {
+    val schema = Schema.parse(parse(
+      """
+        |{
+        |    "type": "object",
+        |    "description": "Placeholder object",
+        |    "properties": {
+        |       "sku": {
+        |           "type": "string",
+        |           "maxLength": 10
+        |       },
+        |       "name": {
+        |           "type": "string",
+        |           "maxLength": 10
+        |       },
+        |       "category": {
+        |           "type": "string",
+        |           "maxLength": 10
+        |       },
+        |       "unitPrice": {
+        |           "type": "number",
+        |           "minimum": 0,
+        |           "maximum": 1
+        |       },
+        |       "quantity": {
+        |           "type": "number",
+        |           "minimum": 0,
+        |           "maximum": 1,
+        |           "description": "Quantity (whole number)"
+        |       },
+        |       "currency": {
+        |           "type": "string",
+        |           "maxLength": 10,
+        |           "description": "Store currency code"
+        |       }
+        |    },
+        |    "required": ["sku", "quantity"],
+        |    "additionalProperties": false
+        |}
+      """.stripMargin
+    )).get
+
+    SanityLinter.lint(schema, SanityLinter.ThirdLevel, 0) must beEqualTo(
+      Failure(NonEmptyList(
+        "It is recommended to express absence of property via nullable type",
+        "String Schema doesn't contain description property",
+        "String Schema doesn't contain description property",
+        "String Schema doesn't contain description property",
+        "Number Schema doesn't contain description property"
+      ))
+    )
+
   }
 }

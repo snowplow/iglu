@@ -27,7 +27,7 @@ Also there's ``schemaddl.generators.redshift.Ddl`` module providing AST-like str
 
 ### JSON Paths
 
-Amazon Redhshift uses **[COPY][redshift-copy]** command to load data into table.
+Amazon Redshift uses **[COPY][redshift-copy]** command to load data into table.
 To map data into columns JSONPaths file used.
 It may be generated with ``schemaddl.generators.redshift.JsonPathGenerator.getJsonPathsFile`` method.
 Which accepts list of ``schemaddl.generators.redshift.Ddl.Column`` objects (which can be taken from ``Table`` DDL object) and returns JSONPaths file as a string.
@@ -38,7 +38,7 @@ but JSONPaths file always should have the same order of fields and thus we canno
 
 ## Copyright and License
 
-Schema DDL is copyright 2015-2017 Snowplow Analytics Ltd.
+Schema DDL is copyright 2014-2017 Snowplow Analytics Ltd.
 
 Licensed under the **[Apache License, Version 2.0][license]** (the "License");
 you may not use this software except in compliance with the License.

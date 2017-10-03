@@ -60,6 +60,17 @@ object CommonSerializers {
     }
     ))
 
+  object DescriptionSerializer extends CustomSerializer[Description](x => (
+    {
+      case JString(value) => Description(value)
+      case x => throw new MappingException(x + " isn't valid description")
+    },
+
+    {
+      case Description(value) => JString(value)
+    }
+    ))
+
 
   object EnumSerializer extends CustomSerializer[Enum](_ => (
     {

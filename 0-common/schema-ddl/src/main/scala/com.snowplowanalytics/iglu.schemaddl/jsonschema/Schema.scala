@@ -53,12 +53,13 @@ case class Schema(
   // common
   `type`:               Option[Type]                 = None,
   enum:                 Option[Enum]                 = None,
-  oneOf:                Option[OneOf]                = None
+  oneOf:                Option[OneOf]                = None,
+  description:          Option[Description]          = None
 ) {
 
   private[iglu] val allProperties = List(multipleOf, minimum, maximum, maxLength, minLength,
     pattern, format, items, additionalItems, minItems, maxItems, properties,
-    additionalProperties, required, patternProperties, `type`, enum, oneOf)
+    additionalProperties, required, patternProperties, `type`, enum, oneOf, description)
 }
 
 object Schema {
