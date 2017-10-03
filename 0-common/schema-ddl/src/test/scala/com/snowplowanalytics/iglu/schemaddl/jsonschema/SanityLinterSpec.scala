@@ -31,6 +31,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
     recognize impossibility to fulfill required property $e3
     recognize errors for second severity level $e4
     recognize error in the middle of object $e5
+    recognize errors for third severity level $e6
   """
 
   def e1 = {
@@ -172,6 +173,59 @@ class SanityLinterSpec extends Specification { def is = s2"""
       Failure(NonEmptyList(
         "Properties [maximum] require number, integer or absent type",
         "Properties [minimum] require number, integer or absent type"
+      ))
+    )
+
+  }
+
+def e6 = {
+    val schema = Schema.parse(parse(
+      """
+        |{
+        |    "type": "object",
+        |    "description": "Placeholder object",
+        |    "properties": {
+        |       "sku": {
+        |           "type": "string",
+        |           "maxLength": 10
+        |       },
+        |       "name": {
+        |           "type": "string",
+        |           "maxLength": 10
+        |       },
+        |       "category": {
+        |           "type": "string",
+        |           "maxLength": 10
+        |       },
+        |       "unitPrice": {
+        |           "type": "number",
+        |           "minimum": 0,
+        |           "maximum": 1
+        |       },
+        |       "quantity": {
+        |           "type": "number",
+        |           "minimum": 0,
+        |           "maximum": 1,
+        |           "description": "Quantity (whole number)"
+        |       },
+        |       "currency": {
+        |           "type": "string",
+        |           "maxLength": 10,
+        |           "description": "Store currency code"
+        |       }
+        |    },
+        |    "required": ["sku", "quantity"],
+        |    "additionalProperties": false
+        |}
+      """.stripMargin
+    )).get
+
+    SanityLinter.lint(schema, SanityLinter.ThirdLevel) must beEqualTo(
+      Failure(NonEmptyList(
+        "String Schema doesn't contain description property",
+        "String Schema doesn't contain description property",
+        "String Schema doesn't contain description property",
+        "Number Schema doesn't contain description property"
       ))
     )
 
