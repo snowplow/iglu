@@ -287,6 +287,20 @@ object SanityLinter {
     }
   }
 
+  // Third Severity Level
+
+  /**
+   * Check that each 'field' contains a description property
+   */
+  val lintDescriptionPresent: Linter = (schema: Schema) => {
+    (schema.description) match {
+      case Some(_) => propertySuccess
+      case None => s"${schema.`type`.get} Schema doesn't contain description property".failure
+      case _ => propertySuccess
+    }
+  }
+
+
   trait SeverityLevel {
     def linters: List[Linter]
   }
@@ -304,6 +318,10 @@ object SanityLinter {
 
   case object SecondLevel extends SeverityLevel {
     val linters = FirstLevel.linters ++ List(lintMinMaxPresent, lintMaxLength)
+  }
+
+  case object ThirdLevel extends SeverityLevel {
+    val linters = FirstLevel.linters ++ SecondLevel.linters ++ List(lintDescriptionPresent)
   }
 }
 

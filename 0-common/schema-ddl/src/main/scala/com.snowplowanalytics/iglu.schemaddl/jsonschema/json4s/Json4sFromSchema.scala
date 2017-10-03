@@ -36,6 +36,7 @@ object Json4sFromSchema {
       CommonSerializers.TypeSerializer +
       CommonSerializers.EnumSerializer +
       CommonSerializers.OneOfSerializer +
+      CommonSerializers.DescriptionSerializer +
       NumberSerializers.MaximumSerializer +
       NumberSerializers.MinimumSerializer +
       NumberSerializers.MultipleOfSerializer +

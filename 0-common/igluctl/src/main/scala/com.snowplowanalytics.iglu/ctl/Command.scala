@@ -23,7 +23,7 @@ import java.util.UUID
 import scopt.OptionParser
 
 // Schema DDL
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.{ SeverityLevel, FirstLevel, SecondLevel }
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.{ SeverityLevel, FirstLevel, SecondLevel, ThirdLevel }
 
 // This library
 import PushCommand._
@@ -93,6 +93,7 @@ object Command {
   implicit val severityLevelRead: scopt.Read[SeverityLevel] = scopt.Read.reads {
     case "1" => FirstLevel
     case "2" => SecondLevel
+    case "3" => ThirdLevel
     case l => throw new IllegalArgumentException(s"Error: $l is invalid severity level")
   }
 
