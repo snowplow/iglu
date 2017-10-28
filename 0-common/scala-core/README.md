@@ -2,11 +2,11 @@
 
 Core entities for working with Iglu in Scala.
 
-Recent documentation can be found on dedicated wiki page: **[Iglu Scala Core] [techdocs]**.
+Recent documentation can be found on dedicated wiki page: **[Iglu Scala Core][techdocs]**.
 
 ## Developer quickstart
 
-Assuming git, **[Vagrant] [vagrant-install]** and **[VirtualBox] [virtualbox-install]** installed:
+Assuming git, **[Vagrant][vagrant-install]** and **[VirtualBox][virtualbox-install]** installed:
 
 ```bash
  host> git clone https://github.com/snowplow/iglu
@@ -17,15 +17,15 @@ guest> sbt compile
 
 ## Find out more
 
-| **[Technical Docs] [techdocs]**     | **[Setup Guide] [setup]**     | **[Roadmap] [roadmap]**           | **[Contributing] [contributing]**           |
+| **[Technical Docs][techdocs]**     | **[Setup Guide][setup]**     | **[Roadmap][roadmap]**           | **[Contributing][contributing]**           |
 |-------------------------------------|-------------------------------|-----------------------------------|---------------------------------------------|
-| [![i1] [techdocs-image]] [techdocs] | [![i2] [setup-image]] [setup] | [![i3] [roadmap-image]] [roadmap] | [![i4] [contributing-image]] [contributing] |
+| [![i1][techdocs-image]][techdocs] | [![i2][setup-image]][setup] | [![i3][roadmap-image]][roadmap] | [![i4][contributing-image]][contributing] |
 
 ## Copyright and license
 
 Iglu Scala Core is copyright 2016 Snowplow Analytics Ltd.
 
-Licensed under the **[Apache License, Version 2.0] [license]** (the "License");
+Licensed under the **[Apache License, Version 2.0][license]** (the "License");
 you may not use this software except in compliance with the License.
 
 Unless required by applicable law or agreed to in writing, software

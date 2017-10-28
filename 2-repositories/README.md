@@ -1,6 +1,6 @@
 # Iglu repositories
 
-An Iglu repository acts as a store of data schemas (currently JSON Schemas only). Hosting JSON Schemas in an Iglu repository allows you to use those schemas in Iglu-capable systems such as [Snowplow] [snowplow-wiki].
+An Iglu repository acts as a store of data schemas (currently JSON Schemas only). Hosting JSON Schemas in an Iglu repository allows you to use those schemas in Iglu-capable systems such as [Snowplow][snowplow-wiki].
 
 ## Available repositories
 
@@ -8,22 +8,22 @@ We currently have two Iglu "repo" technologies available for deploying your Iglu
 
 | **Repository**           | **Category** | **Description**                                            | **Status**       |
 |:-------------------------|:-------------|:-----------------------------------------------------------|:-----------------|
-| [JVM-embedded repo] [r1] | Embedded     | An Iglu repository embedded in a Java or Scala application | Production-ready |
-| [Static repo] [r2]       | Remote       | An Iglu repository server structured as a static website   | Production-ready |
-| [Scala repo server] [r3] | Remote       | A RESTful Iglu repository server written in Scala          | Beta             |
+| [JVM-embedded repo][r1] | Embedded     | An Iglu repository embedded in a Java or Scala application | Production-ready |
+| [Static repo][r2]       | Remote       | An Iglu repository server structured as a static website   | Production-ready |
+| [Scala repo server][r3] | Remote       | A RESTful Iglu repository server written in Scala          | Beta             |
 
 <a name="iglu-central" />
 ## Iglu Central
 
-Iglu Central ([http://iglucentral.com] [iglucentral-website]) is a public repository of JSON Schemas hosted by [Snowplow Analytics] [snowplow-website].
+Iglu Central ([http://iglucentral.com][iglucentral-website]) is a public repository of JSON Schemas hosted by [Snowplow Analytics][snowplow-website].
 
-We do not git-submodule Iglu Central into the main Iglu repository because it is fast-moving. Its GitHub repository is [snowplow/iglu-central] [iglucentral-repo].
+We do not git-submodule Iglu Central into the main Iglu repository because it is fast-moving. Its GitHub repository is [snowplow/iglu-central][iglucentral-repo].
 
 ## Find out more
 
-| **[Technical Docs] [techdocs]**     | **[Setup Guide] [setup]**     | **[Roadmap] [roadmap]**           | **[Contributing] [contributing]**           |
+| **[Technical Docs][techdocs]**     | **[Setup Guide][setup]**     | **[Roadmap][roadmap]**           | **[Contributing][contributing]**           |
 |-------------------------------------|-------------------------------|-----------------------------------|---------------------------------------------|
-| [![i1] [techdocs-image]] [techdocs] | [![i2] [setup-image]] [setup] | [![i3] [roadmap-image]] [roadmap] | [![i4] [contributing-image]] [contributing] |
+| [![i1][techdocs-image]][techdocs] | [![i2][setup-image]][setup] | [![i3][roadmap-image]][roadmap] | [![i4][contributing-image]][contributing] |
 
 [snowplow-wiki]: https://github.com/snowplow/snowplow/wiki
 
