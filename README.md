@@ -1,12 +1,12 @@
 # Iglu Schema Repository
 
-[ ![Build Status] [travis-image] ] [travis]
-[ ![Release] [release-image] ] [releases]
-[ ![License] [license-image] ] [license]
+[ ![Build Status][travis-image] ][travis]
+[ ![Release][release-image] ][releases]
+[ ![License][license-image] ][license]
 
-Iglu is a machine-readable, open-source schema repository for **[JSON Schema] [json-schema]** from the team at **[Snowplow Analytics] [snowplow-website]**. A schema repository (sometimes called a registry) is like npm or Maven or git but holds data schemas instead of software or code.
+Iglu is a machine-readable, open-source schema repository for **[JSON Schema][json-schema]** from the team at **[Snowplow Analytics][snowplow-website]**. A schema repository (sometimes called a registry) is like npm or Maven or git but holds data schemas instead of software or code.
 
-Iglu is used extensively in **[Snowplow] [snowplow-repo]**. For a presentation on how we came to build Iglu, see **[this blog post] [snowplow-schema-post]**.
+Iglu is used extensively in **[Snowplow][snowplow-repo]**. For a presentation on how we came to build Iglu, see **[this blog post][snowplow-schema-post]**.
 
 ## Iglu technology 101
 
@@ -15,27 +15,27 @@ Iglu consists of two key components:
 1. Clients that can resolve schemas from one or more Iglu repositories
 2. Servers that can host an Iglu repository over HTTP
 
-![iglu-technical-architecture] [iglu-technical-architecture]
+![iglu-technical-architecture][iglu-technical-architecture]
 
-We also operate **[Iglu Central] [iglu-central]** (**[repo] [iglu-central-repo]**), which is like RubyGems.org or Maven Central but for storing publically-available JSON Schemas.
+We also operate **[Iglu Central][iglu-central]** (**[repo][iglu-central-repo]**), which is like RubyGems.org or Maven Central but for storing publically-available JSON Schemas.
 
-At this time, Iglu only supports **[self-describing JSON Schemas] [self-desc-jsons]** that use **[SchemaVer] [schemaver]**.
+At this time, Iglu only supports **[self-describing JSON Schemas][self-desc-jsons]** that use **[SchemaVer][schemaver]**.
 
 ## Find out more
 
-| **[Technical Docs] [techdocs]**     | **[Setup Guide] [setup]**     | **[Roadmap] [roadmap]**           | **[Contributing] [contributing]**           |
+| **[Technical Docs][techdocs]**     | **[Setup Guide][setup]**     | **[Roadmap][roadmap]**           | **[Contributing][contributing]**           |
 |-------------------------------------|-------------------------------|-----------------------------------|---------------------------------------------|
-| [![i1] [techdocs-image]] [techdocs] | [![i2] [setup-image]] [setup] | [![i3] [roadmap-image]] [roadmap] | [![i4] [contributing-image]] [contributing] |
+| [![i1][techdocs-image]][techdocs] | [![i2][setup-image]][setup] | [![i3][roadmap-image]][roadmap] | [![i4][contributing-image]][contributing] |
 
 ## Questions or need help?
 
-All support for Iglu is handled through the standard Snowplow Analytics channels. Check out the **[Talk to us] [talk-to-us]** page on the Snowplow wiki.
+All support for Iglu is handled through the standard Snowplow Analytics channels. Check out the **[Talk to us][talk-to-us]** page on the Snowplow wiki.
 
 ## Copyright and license
 
 Iglu is copyright 2014-2016 Snowplow Analytics Ltd.
 
-Licensed under the **[Apache License, Version 2.0] [license]** (the "License");
+Licensed under the **[Apache License, Version 2.0][license]** (the "License");
 you may not use this software except in compliance with the License.
 
 Unless required by applicable law or agreed to in writing, software
