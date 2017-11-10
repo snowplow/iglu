@@ -62,7 +62,11 @@ case class Command(
   accessKeyId:     Option[String]  = None,
   secretAccessKey: Option[String]  = None,
   profile:         Option[String]  = None,
-  region:          Option[String]  = None
+  region:          Option[String]  = None,
+
+  // java
+  packageSuffix:   String          = ""
+
 ) {
   def toCommand: Option[Command.CtlCommand] = command match {
     case Some("static generate") => Some(
@@ -71,6 +75,8 @@ case class Command(
       Some(PushCommand(registryRoot.get, apiKey.get, input.get, isPublic))
     case Some("static s3cp") =>
       Some(S3cpCommand(input.get, bucket.get, s3path, accessKeyId, secretAccessKey, profile, region))
+    case Some("static java") =>
+      Some(GenerateJavaCommand(input.get, output.getOrElse(new File(".")), packageSuffix))
     case Some("lint") =>
       Some(LintCommand(input.get, skipWarnings, severityLevel))
     case _ =>
@@ -248,6 +254,25 @@ object Command {
                 case _ => failure("You need provide either both accessKeyId and secretAccessKey OR just profile OR have credentials in other lookup places")
               }
             }
+          ),
+
+        cmd("java")
+          .action(subcommand("java"))
+          .text("Generate Java POJO builders")
+          .children(
+            arg[File]("input") required()
+              action { (x, c) => c.copy(input = Some(x))}
+              text "Path to directory with JSON Schemas",
+
+            opt[String]("package-suffix")
+              action { (x, c) => c.copy(packageSuffix = x)}
+              valueName "<string>"
+              text "Suffix to apply to vendor name to construct package name of generated class for a schema",
+
+            opt[File]("output")
+              action { (x, c) => c.copy(output = Some(x)) }
+              valueName "<path>"
+              text "Directory to put generated data\t\tDefault: current dir"
           )
     )
 

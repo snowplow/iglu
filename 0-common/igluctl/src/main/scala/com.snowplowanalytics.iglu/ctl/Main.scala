@@ -22,6 +22,8 @@ object Main extends App {
       lint.process()
     case Some((_, Some(s3cp: S3cpCommand))) =>
       s3cp.process()
+    case Some((_, Some(java : GenerateJavaCommand)))  =>
+      java.processJava()
     case Some((c, _)) if c.command.isEmpty || c.command.contains("static")=>
       Command.cliParser.showUsageAsError()
     case _ =>
