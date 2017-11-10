@@ -37,7 +37,7 @@ object BuildSettings {
 
   // Makes our SBT app settings available from within the app
   lazy val scalifySettings = Seq(sourceGenerators in Compile <+=
-    (sourceManaged in Compile, version, name, organization) map { 
+    (sourceManaged in Compile, version, name, organization) map {
       (d, v, n, o) =>
         val file = d / "settings.scala"
         IO.write(file, s"""
@@ -55,7 +55,7 @@ object BuildSettings {
   // sbt-assembly settings for building an executable
   import sbtassembly.Plugin._
   import AssemblyKeys._
-  
+
   lazy val sbtAssemblySettings = assemblySettings ++ Seq(
     // Simple name
     jarName in assembly := { s"${name.value}-${version.value}.jar" },
