@@ -2,7 +2,7 @@ language: scala
 scala:
 - 2.11.8
 jdk:
-- oraclejdk7
+- oraclejdk8
 script:
 - cd 2-repositories/scala-repo-server
 - ./scripts/create-test-user.bash
