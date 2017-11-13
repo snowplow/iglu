@@ -17,6 +17,7 @@ object Dependencies {
   object V {
     // Java
     val jsonValidator    = "2.2.6"
+    val awsJava          = "1.11.250"
     // Scala
     val schemaddl        = "0.6.0"
     val scopt            = "3.5.0"
@@ -31,6 +32,7 @@ object Dependencies {
   object Libraries {
     // Java
     val jsonValidator    = "com.github.fge"             %  "json-schema-validator"     % V.jsonValidator
+    val awsJava          = "com.amazonaws"              %  "aws-java-sdk-s3"           % V.awsJava
     // Scala
     val schemaddl        = "com.snowplowanalytics"      %% "schema-ddl"                % V.schemaddl
     val scopt            = "com.github.scopt"           %% "scopt"                     % V.scopt
