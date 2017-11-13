@@ -17,6 +17,7 @@ object Dependencies {
   object V {
     // Java
     val jsonValidator    = "2.2.6"
+    val awsJava          = "1.11.228"
     // Scala
     val igluCoreJson4s   = "0.1.0"
     val schemaddl        = "0.6.0"
@@ -35,6 +36,7 @@ object Dependencies {
   object Libraries {
     // Java
     val jsonValidator    = "com.github.fge"             %  "json-schema-validator"     % V.jsonValidator
+    val awsJava          = "com.amazonaws"              %  "aws-java-sdk"              % V.awsJava
     // Scala
     val igluCoreJson4s   = "com.snowplowanalytics"      %% "iglu-core-json4s"          % V.igluCoreJson4s
     val schemaddl        = "com.snowplowanalytics"      %% "schema-ddl"                % V.schemaddl

@@ -34,6 +34,7 @@ object IgluctlBuild extends Build {
       libraryDependencies ++= Seq(
         // Java
         Libraries.jsonValidator,
+        Libraries.awsJava,
         // Scala
         Libraries.igluCoreJson4s,
         Libraries.schemaddl,
