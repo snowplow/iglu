@@ -4,12 +4,13 @@ Iglu clients are used for interacting with Iglu server repos and for resolving s
 
 ## Available clients
 
-There are currently two Iglu client libraries available:
+There are currently three Iglu client libraries available:
 
 | **Repo server**           | **Description**                              | **Status**       |
 |:--------------------------|:---------------------------------------------|:-----------------|
 | [Objective-C client] [c1] | An Iglu client and resolver for Objective-C  | Beta             |
 | [Scala client] [c2]       | An Iglu client and resolver for Scala (2.10) | Production-ready |
+| [Ruby client] [c3]        | An Iglu client and resolver for Ruby         | Production-ready |
 
 ## Find out more
 
@@ -19,6 +20,7 @@ There are currently two Iglu client libraries available:
 
 [c1]: https://github.com/snowplow/iglu/wiki/ObjC-client
 [c2]: https://github.com/snowplow/iglu/wiki/Scala-client
+[c3]: https://github.com/snowplow/iglu/wiki/Ruby-client
 
 [techdocs-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/techdocs.png
 [setup-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/setup.png

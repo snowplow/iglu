@@ -4,3 +4,6 @@
 [submodule "1-clients/objc-client"]
 	path = 1-clients/objc-client
 	url = https://github.com/snowplow/iglu-objc-client.git
+[submodule "1-clients/ruby-client"]
+	path = 1-clients/ruby-client
+	url = https://github.com/snowplow/iglu-ruby-client.git
