@@ -22,7 +22,7 @@ object BuildSettings {
     organization            := "com.snowplowanalytics",
     version                 := "0.2.0",
     description             := "Scala schema server for Iglu",
-    scalaVersion            := "2.10.1",
+    scalaVersion            := "2.10.6",
     scalacOptions           := Seq("-deprecation", "-encoding", "utf8",
                                "-unchecked", "-feature", "-Xcheckinit"),
     scalacOptions in Test   := Seq("-Yrangepos"),
