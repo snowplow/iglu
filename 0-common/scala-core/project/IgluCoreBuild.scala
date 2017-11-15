@@ -31,7 +31,7 @@ object IgluCoreBuild extends Build {
     .settings(
       libraryDependencies ++= Seq(
         // Scala (test only)
-        Libraries.json4s,
+        Libraries.json4sTest,
         Libraries.specs2
       )
     )
