@@ -309,7 +309,7 @@ object GenerateCommand {
      * append them to the end of original create table statemtnt, leaving not
      * listed in `order` on their places
      *
-     * @todo this logic should be contained in DDL AST as pair of DdlFile 
+     * @todo this logic should be contained in DDL AST as pair of DdlFile
      *       and JSONPaths file because they're really tightly coupled
      *       Redshift output
      * @param order sublist of column names in right order that should be
@@ -364,7 +364,11 @@ object GenerateCommand {
   def getFileName(flatSelfElems: SchemaMap): (String, String) = {
     // Make the file name
     val version = "_".concat(flatSelfElems.version.asString.replaceAll("-[0-9]+-[0-9]+", ""))
-    val file = flatSelfElems.name.replaceAll("([^A-Z_])([A-Z])", "$1_$2").toLowerCase.concat(version)
+    val file = flatSelfElems.name
+                            .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
+                            .replaceAll("([a-z\\d])([A-Z])", "$1_$2")
+                            .replaceAll("-", "_")
+                            .toLowerCase.concat(version)
 
     // Return the vendor and the file name together
     (flatSelfElems.vendor, file)
