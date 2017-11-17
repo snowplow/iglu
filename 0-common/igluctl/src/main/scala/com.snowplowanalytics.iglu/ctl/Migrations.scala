@@ -17,7 +17,7 @@ import scalaz._
 import Scalaz._
 
 // Iglu core
-import com.snowplowanalytics.iglu.core.SchemaKey
+import com.snowplowanalytics.iglu.core.SchemaMap
 
 // Schema DDL
 import com.snowplowanalytics.iglu.schemaddl._
@@ -56,7 +56,7 @@ object Migrations {
    * Helper function creating list of [[TextFile]] (with same source, varcharSize
    * and dbSchema) from list of migrations
    */
-  def createTextFiles(migrations: List[Migration], source: SchemaKey, varcharSize: Int, dbSchema: Option[String]) = {
+  def createTextFiles(migrations: List[Migration], source: SchemaMap, varcharSize: Int, dbSchema: Option[String]) = {
     val baseFiles = migrations.map { migration =>
       TextFile(migration.to.asString + ".sql", generateMigration(migration, varcharSize, dbSchema).render)
     }

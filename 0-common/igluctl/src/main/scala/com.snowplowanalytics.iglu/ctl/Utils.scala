@@ -17,7 +17,7 @@ import scalaz._
 import Scalaz._
 
 // Iglu
-import com.snowplowanalytics.iglu.core.SchemaKey
+import com.snowplowanalytics.iglu.core.SchemaMap
 import com.snowplowanalytics.iglu.schemaddl.{ IgluSchema, RevisionGroup, ModelGroup }
 
 // This library
@@ -42,12 +42,12 @@ object Utils {
    * from its self-describing info
    *
    * @param jsonFile some existing JSON file with defined path in it
-   * @param schemaKey schema key extracted from it
+   * @param schemaMap schema key extracted from it
    * @return true if extracted path is equal to FS path
    */
-  def equalPath(jsonFile: JsonFile, schemaKey: SchemaKey): Boolean = {
+  def equalPath(jsonFile: JsonFile, schemaMap: SchemaMap): Boolean = {
     val path = getPath(jsonFile.origin.getAbsolutePath)
-    SchemaKey.fromPath(path).contains(schemaKey)
+    SchemaMap.fromPath(path).contains(schemaMap)
   }
 
   /**
@@ -89,20 +89,20 @@ object Utils {
   /**
    * Extract from Schema description four elements defining REVISION
    *
-   * @param schemaKey Schema description
+   * @param schemaMap Schema description
    * @return tuple of four values defining revision
    */
-  private[iglu] def revisionGroup(schemaKey: SchemaKey): RevisionGroup =
-    (schemaKey.vendor, schemaKey.name, schemaKey.version.model, schemaKey.version.revision)
+  private[iglu] def revisionGroup(schemaMap: SchemaMap): RevisionGroup =
+    (schemaMap.vendor, schemaMap.name, schemaMap.version.model, schemaMap.version.revision)
 
   /**
    * Extract from Schema description three elements defining MODEL
    *
-   * @param schemaKey Schema description
+   * @param schemaMap Schema description
    * @return tuple of three values defining revision
    */
-  private[iglu] def modelGroup(schemaKey: SchemaKey): ModelGroup =
-    (schemaKey.vendor, schemaKey.name, schemaKey.version.model)
+  private[iglu] def modelGroup(schemaMap: SchemaMap): ModelGroup =
+    (schemaMap.vendor, schemaMap.name, schemaMap.version.model)
 
   /**
    * Convert disjunction value into `EitherT`
