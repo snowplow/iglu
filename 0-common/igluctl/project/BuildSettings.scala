@@ -31,7 +31,7 @@ object BuildSettings {
   lazy val basicSettings = Seq[Setting[_]](
     name                  :=  "igluctl",
     organization          :=  "com.snowplowanalytics",
-    version               :=  "0.2.0",
+    version               :=  "0.3.0",
     description           :=  "Iglu Command Line Interface",
     scalaVersion          :=  "2.11.8",
     crossScalaVersions    :=  Seq("2.10.6", "2.11.8"),
