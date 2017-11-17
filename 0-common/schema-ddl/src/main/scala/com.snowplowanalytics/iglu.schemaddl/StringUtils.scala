@@ -13,7 +13,7 @@
 package com.snowplowanalytics.iglu.schemaddl
 
 // IgluCore
-import com.snowplowanalytics.iglu.core.SchemaKey
+import com.snowplowanalytics.iglu.core.SchemaMap
 
 /**
  * Utilities for manipulating Strings
@@ -24,17 +24,17 @@ object StringUtils {
    *
    * "iglu:com.acme/PascalCase/jsonschema/13-0-0" -> "com_acme_pascal_case_13"
    *
-   * @param schemaKey full Schema description
+   * @param schemaMap full Schema description
    * @return the Redshift Table name
    */
-  def getTableName(schemaKey: SchemaKey): String = {
+  def getTableName(schemaMap: SchemaMap): String = {
     // Split the vendor's reversed domain name using underscores rather than dots
-    val snakeCaseOrganization = schemaKey.vendor.replaceAll( """\.""", "_").replaceAll("-", "_").toLowerCase
+    val snakeCaseOrganization = schemaMap.vendor.replaceAll( """\.""", "_").replaceAll("-", "_").toLowerCase
 
     // Change the name from PascalCase to snake_case if necessary
-    val snakeCaseName = toSnakeCase(schemaKey.name)
+    val snakeCaseName = toSnakeCase(schemaMap.name)
 
-    s"${snakeCaseOrganization}_${snakeCaseName}_${schemaKey.version.model}"
+    s"${snakeCaseOrganization}_${snakeCaseName}_${schemaMap.version.model}"
   }
 
   /**

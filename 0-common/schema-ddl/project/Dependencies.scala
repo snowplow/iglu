@@ -16,7 +16,7 @@ object Dependencies {
 
   object V {
     // Scala
-    val igluCoreJson4s   = "0.1.0"
+    val igluCoreJson4s   = "0.2.0"
     val scalaz7          = "7.0.8"
     val json4s           = "3.3.0"
     // Scala (test only)

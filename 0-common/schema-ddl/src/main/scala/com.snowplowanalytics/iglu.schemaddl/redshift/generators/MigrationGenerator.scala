@@ -45,8 +45,8 @@ object MigrationGenerator {
       tableSchema: Option[String] = Some("atomic"))
   : DdlFile = {
 
-    val schemaKey     = SchemaKey(migration.vendor, migration.name, "jsonschema", migration.to)
-    val oldSchemaUri  = SchemaKey(migration.vendor, migration.name, "jsonschema", migration.from).toSchemaUri
+    val schemaKey     = SchemaMap(migration.vendor, migration.name, "jsonschema", migration.to)
+    val oldSchemaUri  = SchemaMap(migration.vendor, migration.name, "jsonschema", migration.from).toSchemaUri
     val tableName     = getTableName(schemaKey)                            // e.g. com_acme_event_1
     val tableNameFull = tableSchema.map(_ + ".").getOrElse("") + tableName   // e.g. atomic.com_acme_event_1
 

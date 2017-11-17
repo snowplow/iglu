@@ -36,7 +36,7 @@ class MigrationGeneratorSpec extends Specification { def is = s2"""
 
   def e1 = {
     val diff = Migration.SchemaDiff(ListMap("status" -> Map("type" -> "string")), empty, Set.empty[String])
-    val schemaMigration = Migration("com.acme", "launch_missles", SchemaVer(1,0,0), SchemaVer(1,0,1), diff)
+    val schemaMigration = Migration("com.acme", "launch_missles", SchemaVer.Full(1,0,0), SchemaVer.Full(1,0,1), diff)
     val ddlMigration = MigrationGenerator.generateMigration(schemaMigration).render
 
     val result =
@@ -62,7 +62,7 @@ class MigrationGeneratorSpec extends Specification { def is = s2"""
 
   def e2 = {
     val diff = Migration.SchemaDiff(empty, empty, Set.empty[String])
-    val schemaMigration = Migration("com.acme", "launch_missles", SchemaVer(2,0,0), SchemaVer(2,0,1), diff)
+    val schemaMigration = Migration("com.acme", "launch_missles", SchemaVer.Full(2,0,0), SchemaVer.Full(2,0,1), diff)
     val ddlMigration = MigrationGenerator.generateMigration(schemaMigration).render
 
     val result =
@@ -93,7 +93,7 @@ class MigrationGeneratorSpec extends Specification { def is = s2"""
       "longitude" -> Map("type" -> "number", "minimum" -> "-180", "maximum" -> "180"))
 
     val diff = Migration.SchemaDiff(newProps, empty, Set.empty[String])
-    val schemaMigration = Migration("com.acme", "launch_missles", SchemaVer(1,0,2), SchemaVer(1,0,3), diff)
+    val schemaMigration = Migration("com.acme", "launch_missles", SchemaVer.Full(1,0,2), SchemaVer.Full(1,0,3), diff)
     val ddlMigration = MigrationGenerator.generateMigration(schemaMigration).render
 
     val result =
