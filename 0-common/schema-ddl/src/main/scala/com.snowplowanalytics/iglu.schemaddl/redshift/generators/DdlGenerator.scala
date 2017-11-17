@@ -21,7 +21,7 @@ import scalaz._
 import scala.annotation.tailrec
 
 // Iglu core
-import com.snowplowanalytics.iglu.core.SchemaKey
+import com.snowplowanalytics.iglu.core.SchemaMap
 
 // This project
 import EncodeSuggestions._
@@ -35,13 +35,13 @@ object DdlGenerator {
   /**
    * Make a DDL header from the self-describing info
    *
-   * @param schemaKey self-describing info
+   * @param schemaMap self-describing info
    * @param schemaName optional schema name
    * @return SQL comment
    */
-  def getTableComment(tableName: String, schemaName: Option[String], schemaKey: SchemaKey): CommentOn = {
+  def getTableComment(tableName: String, schemaName: Option[String], schemaMap: SchemaMap): CommentOn = {
     val schema = schemaName.map(_ + ".").getOrElse("")
-    CommentOn(schema + tableName, schemaKey.toSchemaUri)
+    CommentOn(schema + tableName, schemaMap.toSchemaUri)
   }
 
   /**

@@ -22,8 +22,7 @@ import scalaz._
 import org.json4s.JValue
 
 // Iglu Core
-import core.SchemaKey
-import core.Containers.SelfDescribingSchema
+import core.{ SchemaMap, SelfDescribingSchema }
 
 package object schemaddl {
   /**
@@ -41,12 +40,12 @@ package object schemaddl {
    * com.acme/event/1-0-2    -> [1-0-2/1-0-3]
    * com.acme/config/1-1-0   -> [1-1-0/1-0-1]
    */
-  type MigrationMap = Map[SchemaKey, List[Migration]]
+  type MigrationMap = Map[SchemaMap, List[Migration]]
 
   /**
    * Failure-aware version of [[MigrationMap]]
    */
-  type ValidMigrationMap = Map[SchemaKey, Validation[String, List[Migration]]]
+  type ValidMigrationMap = Map[SchemaMap, Validation[String, List[Migration]]]
 
   /**
    * Schema criterion restricted to revision: vendor/name/m-r-*
