@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -30,16 +30,14 @@ import scala.io.Source
 import java.io.{ IOException, PrintWriter, File }
 
 // Iglu Core
-import com.snowplowanalytics.iglu.core.Containers._
+import com.snowplowanalytics.iglu.core._
+import com.snowplowanalytics.iglu.core.json4s.implicits._
 
 object FileUtils {
 
   type ValidJsonFileList = List[Validation[String, JsonFile]]
 
   type ValidJsonFileStream = Stream[Validation[String, JsonFile]]
-
-  // AttachToSchema can be used both to extract and attach
-  implicit val schemaExtract = com.snowplowanalytics.iglu.core.json4s.AttachToSchema
 
   val separator = System.getProperty("file.separator", "/")
 
@@ -201,12 +199,12 @@ object FileUtils {
    * @return list of validated JsonFiles
    */
   def getJsonFilesStream(file: File, predicate: Option[File => Boolean] = None): ValidJsonFileStream =
-    if (!file.exists()) Failure(s"Path [${file.getAbsolutePath}] doesn't exist") #:: Stream.empty
+    if (!file.exists()) Failure(s"Path [${file.getAbsolutePath}] doesn't exist") #:: Stream.empty[Validation[String, JsonFile]]
     else if (file.isDirectory) predicate match {
       case Some(p) => streamAllFiles(file).filter(p).map(getJsonFile)
       case None    => streamAllFiles(file).map(getJsonFile)
     }
-    else getJsonFile(file) #:: Stream.empty
+    else getJsonFile(file) #:: Stream.empty[Validation[String, JsonFile]]
 
   /**
    * Recursively and lazily get all files in ``dir`` except hidden

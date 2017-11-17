@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -19,7 +19,7 @@ object Dependencies {
     val jsonValidator    = "2.2.6"
     // Scala
     val igluCoreJson4s   = "0.1.0"
-    val schemaddl        = "0.5.0"
+    val schemaddl        = "0.6.0"
     val scopt            = "3.5.0"
     val scalaz7          = "7.0.8"
     val json4s           = "3.2.11"

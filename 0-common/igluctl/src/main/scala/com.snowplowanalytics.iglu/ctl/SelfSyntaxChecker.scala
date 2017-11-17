@@ -36,7 +36,7 @@ import org.json4s._
 import org.json4s.jackson.JsonMethods.fromJsonNode
 
 // Iglu Core
-import com.snowplowanalytics.iglu.core.SchemaKey
+import com.snowplowanalytics.iglu.core.SchemaMap
 import com.snowplowanalytics.iglu.core.json4s.Json4sIgluCodecs.SchemaVerSerializer
 
 /**
@@ -67,9 +67,9 @@ object SelfSyntaxChecker extends AbstractSyntaxChecker("self", NodeType.OBJECT) 
       tree: SchemaTree): Unit = {
 
     val value = fromJsonNode(getNode(tree))
-    value.extractOpt[SchemaKey] match {
+    value.extractOpt[SchemaMap] match {
       case Some(_) => ()
-      case None => report.error(newMsg(tree, bundle, "iglu.invalidSchemaKey").putArgument("value", value))
+      case None => report.error(newMsg(tree, bundle, "iglu.invalidSchemaMap").putArgument("value", value))
     }
   }
 

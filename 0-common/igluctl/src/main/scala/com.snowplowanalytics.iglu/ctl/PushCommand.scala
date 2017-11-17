@@ -29,7 +29,7 @@ import java.net.URL
 import java.util.UUID
 
 // Iglu core
-import com.snowplowanalytics.iglu.core.json4s.StringifySchema
+import com.snowplowanalytics.iglu.core.json4s.implicits._
 
 // Schema DDL
 import com.snowplowanalytics.iglu.schemaddl.IgluSchema
@@ -47,8 +47,6 @@ import PushCommand._
  * @param inputDir directory with JSON Schemas or single JSON file
  */
 case class PushCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File, isPublic: Boolean) extends Command.CtlCommand {
-
-  private implicit val stringifySchema = StringifySchema
 
   /**
    * Primary function, performing IO reading, processing and printing results
