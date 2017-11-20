@@ -21,8 +21,8 @@ object BuildSettings {
   lazy val commonSettings = Seq[Setting[_]](
     organization       := "com.snowplowanalytics",
     version            := "0.2.0",
-    scalaVersion       := "2.11.8",
-    crossScalaVersions := Seq("2.10.6", "2.11.8"),
+    scalaVersion       := "2.12.4",
+    crossScalaVersions := Seq("2.10.6", "2.11.8", "2.12.4"),
     scalacOptions      := Seq("-deprecation", "-encoding", "utf8", "-Yrangepos",
                               "-feature", "-unchecked", "-Xlog-reflective-calls",
                               "-Xlint"),

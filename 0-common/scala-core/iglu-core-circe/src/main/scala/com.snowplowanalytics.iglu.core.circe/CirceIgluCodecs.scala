@@ -14,8 +14,9 @@ package com.snowplowanalytics.iglu.core.circe
 
 // Cats
 import cats.data._
-import cats.std.option._
+import cats.instances.option._
 import cats.syntax.cartesian._
+import cats.syntax.either._
 
 // Circe
 import io.circe._
@@ -61,20 +62,20 @@ object CirceIgluCodecs {
       Json.obj("schema" -> Json.fromString(data.schema.toSchemaUri), "data" -> data.data)
     }
 
-  private[circe] def parseSchemaVer(hCursor: HCursor): Xor[DecodingFailure, SchemaVer] =
+  private[circe] def parseSchemaVer(hCursor: HCursor): Either[DecodingFailure, SchemaVer] =
     for {
       jsonString <- hCursor.as[String]
       parsed     = SchemaVer.parse(jsonString)
-      schemaVer  <- Xor.fromOption(parsed, DecodingFailure("SchemaVer is missing", hCursor.history))
+      schemaVer  <- Either.fromOption(parsed, DecodingFailure("SchemaVer is missing", hCursor.history))
     } yield schemaVer
 
-  private[circe] def parseSchemaKey(hCursor: HCursor): Xor[DecodingFailure, SchemaKey] =
+  private[circe] def parseSchemaKey(hCursor: HCursor): Either[DecodingFailure, SchemaKey] =
     for {
       selfMap   <- hCursor.as[JsonObject].map(_.toMap)
       schemaKey <- selfMapToSchemaKey(selfMap, hCursor)
     } yield schemaKey
 
-  private[circe] def selfMapToSchemaKey(selfMap: Map[String, Json], hCursor: HCursor): Xor[DecodingFailure, SchemaKey] = {
+  private[circe] def selfMapToSchemaKey(selfMap: Map[String, Json], hCursor: HCursor): Either[DecodingFailure, SchemaKey] = {
     val self = (
       selfMap.get("vendor") |@| selfMap.get("name") |@| selfMap.get("format") |@| selfMap.get("version")).map { (v, n, f, ver) =>
       for {
@@ -85,6 +86,6 @@ object CirceIgluCodecs {
       } yield SchemaKey(vendor, name, format, version)
     }
 
-    Xor.fromOption(self.flatten, DecodingFailure("SchemaKey has incompatible format", hCursor.history))
+    Either.fromOption(self.flatten, DecodingFailure("SchemaKey has incompatible format", hCursor.history))
   }
 }

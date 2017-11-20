@@ -29,21 +29,27 @@ object IgluCoreBuild extends Build {
   lazy val project = Project("iglu-core", file("."))
     .settings(buildSettings: _*)
     .settings(
-      libraryDependencies ++= Seq(
+      libraryDependencies <++= Dependencies.onVersion(
+        all = Seq(
         // Scala (test only)
-        Libraries.json4sTest,
-        Libraries.specs2
+        Libraries.json4sTest),
+        on210 = Seq(Libraries.specs2._210),
+        on211 = Seq(Libraries.specs2._211),
+        on212 = Seq(Libraries.specs2._212)
       )
     )
 
   lazy val igluCoreJson4s = Project("iglu-core-json4s", file("iglu-core-json4s"))
     .settings(json4sBuildSettings: _*)
     .settings(
-      libraryDependencies ++= Seq(
+      libraryDependencies <++= Dependencies.onVersion(
+        all = Seq(
         // Scala
-        Libraries.json4s,
+        Libraries.json4s),
         // Scala (test only)
-        Libraries.specs2
+        on210 = Seq(Libraries.specs2._210),
+        on211 = Seq(Libraries.specs2._211),
+        on212 = Seq(Libraries.specs2._212)
       )
     )
     .dependsOn(project)
@@ -51,12 +57,15 @@ object IgluCoreBuild extends Build {
   lazy val igluCoreCirce = Project("iglu-core-circe", file("iglu-core-circe"))
     .settings(circeBuildSettings: _*)
     .settings(
-      libraryDependencies ++= Seq(
+      libraryDependencies <++= Dependencies.onVersion(
+        all = Seq(
         // Scala
         Libraries.circe,
-        Libraries.circeParser,
+        Libraries.circeParser),
         // Scala (test only)
-        Libraries.specs2
+        on210 = Seq(Libraries.specs2._210),
+        on211 = Seq(Libraries.specs2._211),
+        on212 = Seq(Libraries.specs2._212)
       )
     )
     .dependsOn(project)

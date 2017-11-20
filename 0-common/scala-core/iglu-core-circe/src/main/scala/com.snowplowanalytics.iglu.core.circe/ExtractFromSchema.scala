@@ -12,6 +12,8 @@
  */
 package com.snowplowanalytics.iglu.core.circe
 
+import cats.syntax.either._
+
 // Circe
 import io.circe._
 
