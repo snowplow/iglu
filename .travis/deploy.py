@@ -165,10 +165,10 @@ def publish_local_scalacore():
     os.chdir(os.path.join(TRAVIS_BUILD_DIR, "0-common", "scala-core"))
     execute(['sbt', '+test', '--warn'])
     execute(['sbt', '+publishLocal'])
-    execute(['sbt', 'project iglu-core-circe', '+test', '--warn'])
-    execute(['sbt', 'project iglu-core-circe', '+publishLocal', '--warn'])
-    execute(['sbt', 'project iglu-core-json4s', '+test'])
-    execute(['sbt', 'project iglu-core-json4s', '+publishLocal', '--warn'])
+    execute(['sbt', 'project igluCoreCirce', '+test', '--warn'])
+    execute(['sbt', 'project igluCoreCirce', '+publishLocal', '--warn'])
+    execute(['sbt', 'project igluCoreJson4s', '+test'])
+    execute(['sbt', 'project igluCoreJson4s', '+publishLocal', '--warn'])
 
 
 def publish_local_schemaddl():
@@ -203,12 +203,12 @@ def publish_scalacore():
         execute(['sbt', '+test', '--warn'])
         execute(['sbt', '+publish'])
         execute(['sbt', '+bintraySyncMavenCentral'])
-        execute(['sbt', 'project iglu-core-circe', '+test', '--warn'])
-        execute(['sbt', 'project iglu-core-circe', '+publish'])
-        execute(['sbt', 'project iglu-core-circe', '+bintraySyncMavenCentral'])
-        execute(['sbt', 'project iglu-core-json4s', '+test', '--warn'])
-        execute(['sbt', 'project iglu-core-json4s', '+publish'])
-        execute(['sbt', 'project iglu-core-json4s', '+bintraySyncMavenCentral'])
+        execute(['sbt', 'project igluCoreCirce', '+test', '--warn'])
+        execute(['sbt', 'project igluCoreCirce', '+publish'])
+        execute(['sbt', 'project igluCoreCirce', '+bintraySyncMavenCentral'])
+        execute(['sbt', 'project igluCoreJson4s', '+test', '--warn'])
+        execute(['sbt', 'project igluCoreJson4s', '+publish'])
+        execute(['sbt', 'project igluCoreJson4s', '+bintraySyncMavenCentral'])
 
 
 def publish_schemaddl():
