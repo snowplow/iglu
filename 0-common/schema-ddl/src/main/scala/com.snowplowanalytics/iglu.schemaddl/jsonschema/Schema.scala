@@ -59,25 +59,6 @@ case class Schema(
   private[iglu] val allProperties = List(multipleOf, minimum, maximum, maxLength, minLength,
     pattern, format, items, additionalItems, minItems, maxItems, properties,
     additionalProperties, required, patternProperties, `type`, enum, oneOf)
-
-  /**
-   * Concise representation of Schema object
-   */
-  override def toString: String = {
-    val props = allProperties.flatten.map { p =>
-      s"${p.keyName} = ${p.toString}"
-    }
-
-    s"Schema(${props.mkString(", ")})"
-  }
-
-  /**
-   * Check if this Schema is all-permissive `{}` (doesn't contain any rules)
-   *
-   * @return true if Schema is empty
-   */
-  def isEmpty: Boolean =
-    allProperties.flatten.isEmpty
 }
 
 object Schema {
@@ -100,13 +81,4 @@ object Schema {
    */
   def normalize[J: FromSchema](schema: Schema): J =
     implicitly[FromSchema[J]].normalize(schema)
-
-  /**
-   * Helper method to transform property's class into class key
-   */
-  private def lowerCase(s: String): String = {
-    val c = s.toCharArray
-    c(0) = Character.toLowerCase(c(0))
-    new String(c).takeWhile(_ != '(')
-  }
 }

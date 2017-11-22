@@ -30,15 +30,15 @@ object SchemaDdlBuild extends Build {
   lazy val project = Project("schema-ddl", file("."))
     .settings(buildSettings: _*)
     .settings(
-      libraryDependencies ++= Seq(
+      libraryDependencies <++= Dependencies.onVersion(
+        all = Seq(
         // Scala
         Libraries.igluCoreJson4s,
         Libraries.scalaz7,
-        Libraries.json4sJackson,
         // Scala (test only)
-        Libraries.specs2,
-        Libraries.scalazSpecs2,
-        Libraries.scalaCheck
+        Libraries.scalaCheck),
+        on211 = Seq(Libraries.specs2._211),
+        on212 = Seq(Libraries.specs2._212)
       )
     )
 }

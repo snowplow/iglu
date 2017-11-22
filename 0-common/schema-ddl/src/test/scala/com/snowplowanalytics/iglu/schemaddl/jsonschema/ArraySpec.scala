@@ -18,12 +18,12 @@ import org.json4s.jackson.JsonMethods.parse
 
 // specs2
 import org.specs2.Specification
-import org.specs2.scalaz.ValidationMatchers
+
 
 import ArrayProperties._
 import json4s.Json4sToSchema._
 
-class ArraySpec extends Specification with ValidationMatchers { def is = s2"""
+class ArraySpec extends Specification { def is = s2"""
   Check JSON Schema string specification
     parse correct minItems $e1
     parse incorrect (negative) minItems (DECIDE IF THIS DESIRED) $e2
