@@ -18,12 +18,12 @@ import org.json4s.jackson.JsonMethods.parse
 
 // specs2
 import org.specs2.Specification
-import org.specs2.scalaz.ValidationMatchers
+
 
 import json4s.Json4sToSchema._
 import StringProperties._
 
-class CommonSpec extends Specification with ValidationMatchers { def is = s2"""
+class CommonSpec extends Specification { def is = s2"""
   Check JSON Schema common properties
     parse string-typed Schema $e1
     parse union-typed Schema $e2

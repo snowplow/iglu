@@ -25,9 +25,8 @@ import org.json4s.jackson.JsonMethods.parse
 
 // specs2
 import org.specs2.Specification
-import org.specs2.scalaz.ValidationMatchers
 
-class SchemaFlattenerSpec extends Specification with ValidationMatchers { def is = s2"""
+class SchemaFlattenerSpec extends Specification { def is = s2"""
   Check FlatSchema
     split product types $e1
     stringify JSON array $e2
@@ -53,12 +52,12 @@ class SchemaFlattenerSpec extends Specification with ValidationMatchers { def is
 
   def e2 = {
     val jValues = List(JInt(3), JNull, JString("str"), JDecimal(3.3), JDouble(3.13), JString("another_str"))
-    FlatSchema.stringifyArray(jValues) must beSuccessful("3,null,str,3.3,3.13,another_str")
+    FlatSchema.stringifyArray(jValues).toEither must beRight("3,null,str,3.3,3.13,another_str")
   }
 
   def e3 = {
     val jValues = List(JInt(3), JNull, JString("str"), JDecimal(3.3), JDouble(3.13), JString("another_str"), JObject(List(("keyOfFatum", JInt(42)))))
-    FlatSchema.stringifyArray(jValues) must beFailing
+    FlatSchema.stringifyArray(jValues).toEither must beLeft
   }
 
   def e4 = {
@@ -66,7 +65,7 @@ class SchemaFlattenerSpec extends Specification with ValidationMatchers { def is
     val json: JObject = parse(Source.fromURL(getClass.getResource("/schema_with_required_properties.json")).mkString).asInstanceOf[JObject]
     val map = json.extract[Map[String, JValue]]
 
-    FlatSchema.getRequiredProperties(map) must beSuccessful(List("anotherRequired", "requiredKey"))
+    FlatSchema.getRequiredProperties(map).toEither must beRight(List("anotherRequired", "requiredKey"))
                                                          // getRequiredProperties reverses values ^^^
   }
 
@@ -80,7 +79,7 @@ class SchemaFlattenerSpec extends Specification with ValidationMatchers { def is
       "root.anotherRequired" -> Map("type" -> "string")
     )
 
-    FlatSchema.processProperties(root) must beSuccessful(FlatSchema.SubSchema(resultMap, Set()))
+    FlatSchema.processProperties(root).toEither must beRight(FlatSchema.SubSchema(resultMap, Set()))
   }
 
   def e6 = {
@@ -93,13 +92,13 @@ class SchemaFlattenerSpec extends Specification with ValidationMatchers { def is
       "root.anotherRequired" -> Map("type" -> "string")
     )
 
-    FlatSchema.processProperties(root, requiredAccum = Set("root")) must beSuccessful(FlatSchema.SubSchema(resultMap, Set("root.requiredKey", "root.anotherRequired")))
+    FlatSchema.processProperties(root, requiredAccum = Set("root")).toEither must beRight(FlatSchema.SubSchema(resultMap, Set("root.requiredKey", "root.anotherRequired")))
   }
 
   def e7 = {
     val schema = parse("""{"type": "object"}""")
 
-    FlatSchema.flattenJsonSchema(schema, splitProduct = true) must beSuccessful.like {
+    FlatSchema.flattenJsonSchema(schema, splitProduct = true).toEither must beRight.like {
       case flatSchema => flatSchema must beEqualTo(FlatSchema(ListMap.empty[String, Map[String, String]]))
     }
   }
@@ -122,7 +121,7 @@ class SchemaFlattenerSpec extends Specification with ValidationMatchers { def is
         |}
       """.stripMargin)
 
-    FlatSchema.flattenJsonSchema(json, splitProduct = true) must beSuccessful.like {
+    FlatSchema.flattenJsonSchema(json, splitProduct = true).toEither must beRight.like {
       case flatSchema => flatSchema must beEqualTo(FlatSchema(ListMap("nested.object_without_properties" -> Map("type" -> "string"))))
     }
   }
@@ -141,7 +140,7 @@ class SchemaFlattenerSpec extends Specification with ValidationMatchers { def is
         |}
       """.stripMargin)
 
-    FlatSchema.flattenJsonSchema(json, splitProduct = true) must beSuccessful.like {
+    FlatSchema.flattenJsonSchema(json, splitProduct = true).toEither must beRight.like {
       case flatSchema => flatSchema must beEqualTo(FlatSchema(ListMap.empty[String, Map[String, String]]))
     }
   }

@@ -18,12 +18,12 @@ import org.json4s.jackson.JsonMethods.parse
 
 // specs2
 import org.specs2.Specification
-import org.specs2.scalaz.ValidationMatchers
+
 
 import StringProperties._
 import json4s.Json4sToSchema._
 
-class StringSpec extends Specification with ValidationMatchers { def is = s2"""
+class StringSpec extends Specification { def is = s2"""
   Check JSON Schema string specification
     parse correct minLength $e1
     parse maxLength with ipv4 format $e2
