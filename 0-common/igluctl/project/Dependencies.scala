@@ -18,17 +18,13 @@ object Dependencies {
     // Java
     val jsonValidator    = "2.2.6"
     // Scala
-    val igluCoreJson4s   = "0.1.0"
     val schemaddl        = "0.6.0"
     val scopt            = "3.5.0"
-    val scalaz7          = "7.0.8"
-    val json4s           = "3.2.11"
     val scalajHttp       = "2.3.0"
-    val awscala          = "0.5.7"
+    val awscala          = "0.5.9"
     // Scala (test only)
-    val specs2           = "2.3.13"
-    val scalazSpecs2     = "0.2"
-    val scalaCheck       = "1.12.2"
+    val specs2           = "4.0.1"
+    val scalaCheck       = "1.13.5"
   }
 
 
@@ -36,16 +32,12 @@ object Dependencies {
     // Java
     val jsonValidator    = "com.github.fge"             %  "json-schema-validator"     % V.jsonValidator
     // Scala
-    val igluCoreJson4s   = "com.snowplowanalytics"      %% "iglu-core-json4s"          % V.igluCoreJson4s
     val schemaddl        = "com.snowplowanalytics"      %% "schema-ddl"                % V.schemaddl
     val scopt            = "com.github.scopt"           %% "scopt"                     % V.scopt
-    val scalaz7          = "org.scalaz"                 %% "scalaz-core"               % V.scalaz7
-    val json4sJackson    = "org.json4s"                 %% "json4s-jackson"            % V.json4s
     val scalajHttp       = "org.scalaj"                 %% "scalaj-http"               % V.scalajHttp
     val awscala          = "com.github.seratch"         %% "awscala"                   % V.awscala
     // Scala (test only)
-    val specs2           = "org.specs2"                 %% "specs2"                    % V.specs2         % "test"
-    val scalazSpecs2     = "org.typelevel"              %% "scalaz-specs2"             % V.scalazSpecs2   % "test"
+    val specs2           = "org.specs2"                 %% "specs2-core"               % V.specs2         % "test"
     val scalaCheck       = "org.scalacheck"             %% "scalacheck"                % V.scalaCheck     % "test"
   }
 }

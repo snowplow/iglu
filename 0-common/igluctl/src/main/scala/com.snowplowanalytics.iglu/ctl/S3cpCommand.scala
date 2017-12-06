@@ -213,8 +213,4 @@ object S3cpCommand {
   object Total {
     val empty = Total(0, 0)
   }
-
-  /**
-   * Replace
-   */
 }

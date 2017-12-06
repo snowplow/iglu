@@ -154,7 +154,7 @@ object FileUtils {
    *
    * @param f The File we are going to print to
    */
-  private def printToFile(f: File)(op: PrintWriter => Unit) {
+  private def printToFile(f: File)(op: PrintWriter => Unit): Unit = {
     val p = new PrintWriter(f)
     try {
       op(p)

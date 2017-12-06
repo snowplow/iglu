@@ -44,7 +44,7 @@ import com.snowplowanalytics.iglu.core.json4s.Json4sIgluCodecs.SchemaVerSerializ
  * Must be used with `com.github.fge.jsonschema` `Library` to declare that
  * `self` is valid and expected object for all Schemas with
  * `http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#`
- * URI in `$schema` keyword
+ * URI in `\$schema` keyword
  */
 object SelfSyntaxChecker extends AbstractSyntaxChecker("self", NodeType.OBJECT) {
 
@@ -119,4 +119,3 @@ object SelfSyntaxChecker extends AbstractSyntaxChecker("self", NodeType.OBJECT) 
       .getSyntaxValidator
   }
 }
-

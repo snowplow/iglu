@@ -13,7 +13,7 @@
 package com.snowplowanalytics.iglu.ctl
 
 // Scala
-import scala.collection.JavaConversions.asScalaIterator
+import scala.collection.JavaConverters._
 
 // scalaz
 import scalaz._
@@ -177,7 +177,7 @@ object LintCommand {
     val report = validator.validateSchema(jsonNode)
                           .asInstanceOf[ListProcessingReport]
 
-    report.iterator.toList.filter(filterMessages(skipWarnings)).map(_.toString) match {
+    report.iterator.asScala.toList.filter(filterMessages(skipWarnings)).map(_.toString) match {
       case Nil => ().success
       case h :: t => NonEmptyList(h, t: _*).failure
     }
