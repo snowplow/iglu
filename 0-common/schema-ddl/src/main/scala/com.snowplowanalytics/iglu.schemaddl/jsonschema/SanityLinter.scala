@@ -76,7 +76,7 @@ object SanityLinter {
    */
   private implicit class SchemaOps(val value: Schema) {
     /**
-     * Check if Schema has no specifict type *OR* has no type at all
+     * Check if Schema has no specific type *OR* has no type at all
      */
     def withoutType(jsonType: Type): Boolean =
       value.`type` match {
@@ -115,45 +115,60 @@ object SanityLinter {
    * @return non-empty list of summed failures (all, including nested) or
    *         unit in case of success
    */
-  def lint(schema: Schema, severityLevel: SeverityLevel): LintSchema = {
+  def lint(schema: Schema, severityLevel: SeverityLevel, height: Int): LintSchema = {
     // Current level validations
     val validations = severityLevel.linters.map(linter => linter(schema))
       .foldMap(_.toValidationNel)
+
+    val rootTypeCheck =
+      if(severityLevel == SecondLevel)
+        (height match {
+          case 0 =>
+            (schema.`type`, schema.properties) match {
+              case (Some(Object), None) => "Object Schema doesn't have properties".failure
+              case (Some(Object), Some(Properties(_))) => propertySuccess
+              case (_, _) => "Schema doesn't begin with type object".failure
+            }
+          case _ => propertySuccess
+        }).toValidationNel
+      else
+        propertySuccess.toValidationNel
+
 
     // Validations of child nodes
     // In all following properties can be found child Schema
 
     val properties = schema.properties match {
       case Some(props) =>
-        props.value.values.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel))
+        props.value.values.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel, height+1))
       case None => schemaSuccess
     }
 
     val patternProperties = schema.patternProperties match {
       case Some(PatternProperties(props)) =>
-        props.values.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel))
+        props.values.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel, height+1))
       case _ => schemaSuccess
     }
 
     val additionalProperties = schema.additionalProperties match {
-      case Some(AdditionalPropertiesSchema(s)) => lint(s, severityLevel)
+      case Some(AdditionalPropertiesSchema(s)) => lint(s, severityLevel, height+1)
       case _ => schemaSuccess
     }
 
     val items = schema.items match {
-      case Some(ListItems(s)) => lint(s, severityLevel)
+      case Some(ListItems(s)) => lint(s, severityLevel, height+1)
       case Some(TupleItems(i)) =>
-        i.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel))
+        i.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel, height+1))
       case None => schemaSuccess
     }
 
     val additionalItems = schema.additionalItems match {
-      case Some(AdditionalItemsSchema(s)) => lint(s, severityLevel)
+      case Some(AdditionalItemsSchema(s)) => lint(s, severityLevel, height+1)
       case _ => schemaSuccess
     }
 
-    // summing current level validations and child nodes validations
-    validations |+| properties |+| items |+| additionalItems |+| additionalProperties |+| patternProperties
+    // summing current level validations, root type check and child nodes validations
+    validations |+| rootTypeCheck |+| properties |+| items |+| additionalItems |+| additionalProperties |+| patternProperties
   }
 
   // Linter functions
@@ -306,4 +321,3 @@ object SanityLinter {
     val linters = FirstLevel.linters ++ List(lintMinMaxPresent, lintMaxLength)
   }
 }
-

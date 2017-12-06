@@ -31,6 +31,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
     recognize impossibility to fulfill required property $e3
     recognize errors for second severity level $e4
     recognize error in the middle of object $e5
+    recognize root of schema has type non-object for second severity level $e6
   """
 
   def e1 = {
@@ -42,7 +43,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)).get
 
-    SanityLinter.lint(schema, SanityLinter.FirstLevel) must beEqualTo(Failure(NonEmptyList("Properties [minLength] require string or absent type")))
+    SanityLinter.lint(schema, SanityLinter.FirstLevel, 0) must beEqualTo(Failure(NonEmptyList("Properties [minLength] require string or absent type")))
   }
 
   def e2 = {
@@ -73,7 +74,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)).get
 
-    SanityLinter.lint(schema, SanityLinter.FirstLevel) must beEqualTo(Failure(NonEmptyList("minimum property [5] is greater than maximum [0]")))
+    SanityLinter.lint(schema, SanityLinter.FirstLevel, 0) must beEqualTo(Failure(NonEmptyList("minimum property [5] is greater than maximum [0]")))
   }
 
   def e3 = {
@@ -89,7 +90,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
       """.stripMargin
     )).get
 
-    SanityLinter.lint(schema, SanityLinter.FirstLevel) must beEqualTo(Failure(NonEmptyList("Properties [twoKey] is required, but not listed in properties")))
+    SanityLinter.lint(schema, SanityLinter.FirstLevel, 0) must beEqualTo(Failure(NonEmptyList("Properties [twoKey] is required, but not listed in properties")))
   }
 
   def e4 = {
@@ -123,7 +124,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
       """.stripMargin
     )).get
 
-    SanityLinter.lint(schema, SanityLinter.SecondLevel) must beEqualTo(
+    SanityLinter.lint(schema, SanityLinter.SecondLevel, 0) must beEqualTo(
       Failure(NonEmptyList(
         "String Schema doesn't contain maxLength nor enum properties nor appropriate format",
         "Numeric Schema doesn't contain minimum and maximum properties",
@@ -168,12 +169,40 @@ class SanityLinterSpec extends Specification { def is = s2"""
       """.stripMargin
     )).get
 
-    SanityLinter.lint(schema, SanityLinter.FirstLevel) must beEqualTo(
+    SanityLinter.lint(schema, SanityLinter.FirstLevel, 0) must beEqualTo(
       Failure(NonEmptyList(
         "Properties [maximum] require number, integer or absent type",
         "Properties [minimum] require number, integer or absent type"
       ))
     )
+  }
 
+  def e6 = {
+    val schema = Schema.parse(parse(
+      """
+        |{
+        |    "type": "array",
+        |    "items": {
+        |        "type": "object",
+        |        "properties": {
+        |            "schema": {
+        |                "type": "string",
+        |                "pattern": "^iglu:[a-zA-Z0-9-_.]+/[a-zA-Z0-9-_]+/[a-zA-Z0-9-_]+/[0-9]+-[0-9]+-[0-9]+$"
+        |            },
+        |            "data": {}
+        |        },
+        |        "required": ["schema", "data"],
+        |        "additionalProperties": false }
+        |    }
+        |}
+      """.stripMargin
+    )).get
+
+    SanityLinter.lint(schema, SanityLinter.SecondLevel, 0) must beEqualTo(
+      Failure(NonEmptyList(
+        "Schema doesn't begin with type object",
+        "String Schema doesn't contain maxLength nor enum properties nor appropriate format"
+      ))
+    )
   }
 }
