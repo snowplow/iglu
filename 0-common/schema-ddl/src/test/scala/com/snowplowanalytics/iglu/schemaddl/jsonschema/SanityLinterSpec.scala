@@ -31,6 +31,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
     recognize impossibility to fulfill required property $e3
     recognize errors for second severity level $e4
     recognize error in the middle of object $e5
+    recognize root of schema has type non-object for second severity level $e6
   """
 
   def e1 = {
@@ -174,6 +175,34 @@ class SanityLinterSpec extends Specification { def is = s2"""
         "Properties [minimum] require number, integer or absent type"
       ))
     )
+  }
 
+  def e6 = {
+    val schema = Schema.parse(parse(
+      """
+        |{
+        |    "type": "array",
+        |    "items": {
+        |        "type": "object",
+        |        "properties": {
+        |            "schema": {
+        |                "type": "string",
+        |                "pattern": "^iglu:[a-zA-Z0-9-_.]+/[a-zA-Z0-9-_]+/[a-zA-Z0-9-_]+/[0-9]+-[0-9]+-[0-9]+$"
+        |            },
+        |            "data": {}
+        |        },
+        |        "required": ["schema", "data"],
+        |        "additionalProperties": false }
+        |    }
+        |}
+      """.stripMargin
+    )).get
+
+    SanityLinter.lint(schema, SanityLinter.SecondLevel) must beEqualTo(
+      Failure(NonEmptyList(
+        "Schema doesn't begin with type object",
+        "String Schema doesn't contain maxLength nor enum properties nor appropriate format"
+      ))
+    )
   }
 }
