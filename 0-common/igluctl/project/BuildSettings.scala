@@ -33,11 +33,30 @@ object BuildSettings {
     organization          :=  "com.snowplowanalytics",
     version               :=  "0.3.0",
     description           :=  "Iglu Command Line Interface",
-    scalaVersion          :=  "2.11.8",
-    crossScalaVersions    :=  Seq("2.10.6", "2.11.8"),
-    scalacOptions         :=  Seq("-deprecation", "-encoding", "utf8",
-                                  "-unchecked", "-feature",
-                                  "-target:jvm-1.7"),
+    scalaVersion          :=  "2.12.4",
+    scalacOptions         :=  Seq(
+      "-deprecation",
+      "-encoding", "UTF-8",
+      "-feature",
+      "-unchecked",
+      "-Ywarn-unused-import",
+      "-Ywarn-nullary-unit",
+      "-Xfatal-warnings",
+      "-Xlint",
+      "-language:higherKinds",
+      "-Ypartial-unification",
+      "-Xfuture"),
+    scalacOptions in (Compile, console) := Seq(
+      "-deprecation",
+      "-encoding", "UTF-8"
+    ),
+    scalacOptions in (Compile, doc) ++= Seq(
+      "-no-link-warnings" // Suppresses problems with Scaladoc @throws links
+    ),
+    javacOptions := Seq(
+      "-source", "1.8",
+      "-target", "1.8"
+    ),
     scalacOptions in Test :=  Seq("-Yrangepos")
   )
 
