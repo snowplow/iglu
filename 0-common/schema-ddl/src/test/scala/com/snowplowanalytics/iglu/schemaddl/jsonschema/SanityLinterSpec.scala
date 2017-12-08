@@ -32,6 +32,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
     recognize errors for second severity level $e4
     recognize error in the middle of object $e5
     recognize root of schema has type non-object for second severity level $e6
+    recognize non-required properties don't have type null for third severity level $e7
   """
 
   def e1 = {
@@ -202,6 +203,33 @@ class SanityLinterSpec extends Specification { def is = s2"""
       Failure(NonEmptyList(
         "Schema doesn't begin with type object",
         "String Schema doesn't contain maxLength nor enum properties nor appropriate format"
+      ))
+    )
+  }
+
+  def e7 = {
+    val schema = Schema.parse(parse(
+      """
+        |{
+        |    "type": "object",
+        |    "properties": {
+        |      "name": {
+        |        "type": "string"
+        |      },
+        |      "age": {
+        |        "type": "number"
+        |      }
+        |    },
+        |    "required":["name"]
+        |}
+      """.stripMargin
+    )).get
+
+    SanityLinter.lint(schema, SanityLinter.ThirdLevel) must beEqualTo(
+      Failure(NonEmptyList(
+        "It is recommended to express absence of property via nullable type",
+        "String Schema doesn't contain maxLength nor enum properties nor appropriate format",
+        "Numeric Schema doesn't contain minimum and maximum properties"
       ))
     )
   }

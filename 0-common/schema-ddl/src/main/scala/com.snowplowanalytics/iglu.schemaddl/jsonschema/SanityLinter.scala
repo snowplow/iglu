@@ -121,7 +121,7 @@ object SanityLinter {
       .foldMap(_.toValidationNel)
 
     val rootTypeCheck =
-      if(severityLevel == SecondLevel)
+      if(severityLevel == SecondLevel || severityLevel == ThirdLevel)
         (height match {
           case 0 =>
             (schema.`type`, schema.properties) match {
@@ -302,6 +302,26 @@ object SanityLinter {
     }
   }
 
+  // Third Severity Level
+
+  /**
+    * Check that non-required properties have type null
+    */
+  val lintOptionalFields: Linter = (schema: Schema) => {
+    (schema.required, schema.properties) match {
+      case (Some(Required(required)), Some(Properties(properties))) =>
+        val allowedKeys = properties.keySet
+        val requiredKeys = required.toSet
+        val optionalKeys = allowedKeys -- requiredKeys
+        val optKeysWithoutTypeNull = for {
+          key <- optionalKeys
+          if !properties(key).withType(Null)
+        } yield key
+        optKeysWithoutTypeNull.isEmpty.or("It is recommended to express absence of property via nullable type")
+      case _ => propertySuccess
+    }
+  }
+
   trait SeverityLevel {
     def linters: List[Linter]
   }
@@ -319,5 +339,9 @@ object SanityLinter {
 
   case object SecondLevel extends SeverityLevel {
     val linters = FirstLevel.linters ++ List(lintMinMaxPresent, lintMaxLength)
+  }
+
+  case object ThirdLevel extends SeverityLevel {
+    val linters = FirstLevel.linters ++ SecondLevel.linters ++ List(lintOptionalFields)
   }
 }
