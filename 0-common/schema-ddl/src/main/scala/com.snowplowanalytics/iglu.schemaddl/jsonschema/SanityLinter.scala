@@ -268,6 +268,16 @@ object SanityLinter {
     }
   }
 
+  /**
+    * Check that schema contains known formats
+    */
+  val lintUnknownFormats: Linter = (schema: Schema) => {
+    schema.format match {
+      case Some(CustomFormat(format)) => s"Format [$format] is not supported. Available options are: date-time, date, email, hostname, ipv4, ipv6, uri".failure
+      case _ => propertySuccess
+    }
+  }
+
   // Second Severity Level
 
   /**
@@ -333,7 +343,7 @@ object SanityLinter {
       // Check if type of Schema corresponds with its validation properties
       lintNumberProperties, lintStringProperties, lintObjectProperties, lintArrayProperties,
       // Other checks
-      lintPossibleKeys
+      lintPossibleKeys, lintUnknownFormats
     )
   }
 
