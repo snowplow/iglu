@@ -34,6 +34,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
     recognize root of schema has type non-object for second severity level $e6
     recognize non-required properties don't have type null for third severity level $e7
     recognize unknown formats $e8
+    recognize maxLength is greater than Redshift VARCHAR(max) $e9
   """
 
   def e1 = {
@@ -255,5 +256,18 @@ class SanityLinterSpec extends Specification { def is = s2"""
     )).get
 
     SanityLinter.lint(schema, SanityLinter.FirstLevel, 0) must beEqualTo(Failure(NonEmptyList("Format [camelCase] is not supported. Available options are: date-time, date, email, hostname, ipv4, ipv6, uri")))
+  }
+
+  def e9 = {
+    val schema = Schema.parse(parse(
+      """
+        |{
+        |  "type": "string",
+        |  "minLength": 3,
+        |  "maxLength": 65536
+        |}
+      """.stripMargin)).get
+
+    SanityLinter.lint(schema, SanityLinter.FirstLevel, 0) must beEqualTo(Failure(NonEmptyList("maxLength [65536] is greater than Redshift VARCHAR(max), 65535")))
   }
 }

@@ -199,6 +199,20 @@ object SanityLinter {
   }
 
   /**
+    * Check that string's `maxLength` property isn't greater than Redshift VARCHAR(max), 65535
+    * See http://docs.aws.amazon.com/redshift/latest/dg/r_Character_types.html
+    */
+  val lintMaxLengthRange: Linter = (schema: Schema) => {
+    if (schema.withType(String)) {
+      schema.maxLength match {
+        case Some(max) if max.value > 65535 => s"maxLength [${max.value}] is greater than Redshift VARCHAR(max), 65535".failure
+        case _ => propertySuccess
+      }
+    }
+    else propertySuccess
+  }
+
+  /**
    * Check that array's `minItems` property isn't greater than `maxItems`
    */
   val lintMinMaxItems: Linter = (schema: Schema) => {
@@ -343,7 +357,7 @@ object SanityLinter {
       // Check if type of Schema corresponds with its validation properties
       lintNumberProperties, lintStringProperties, lintObjectProperties, lintArrayProperties,
       // Other checks
-      lintPossibleKeys, lintUnknownFormats
+      lintPossibleKeys, lintUnknownFormats, lintMaxLengthRange
     )
   }
 
