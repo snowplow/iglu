@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -13,10 +13,9 @@
 package com.snowplowanalytics.iglu.core.circe
 
 // Cats
-import cats.data._
-import cats.instances.option._
-import cats.syntax.cartesian._
 import cats.syntax.either._
+import cats.syntax.cartesian._
+import cats.instances.option._
 
 // Circe
 import io.circe._
@@ -24,7 +23,6 @@ import io.circe.syntax._
 
 // This library
 import com.snowplowanalytics.iglu.core._
-import com.snowplowanalytics.iglu.core.Containers._
 
 /**
  * Example of Circe codecs for Iglu entities
@@ -39,10 +37,10 @@ object CirceIgluCodecs {
       Json.fromString(schemaVer.asString)
     }
 
-  val decodeSchemaKey: Decoder[SchemaKey] =
-    Decoder.instance(parseSchemaKey)
+  val decodeSchemaKey: Decoder[SchemaMap] =
+    Decoder.instance(parseSchemaMap)
 
-  val encodeSchemaKey: Encoder[SchemaKey] =
+  val encodeSchemaMap: Encoder[SchemaMap] =
     Encoder.instance { key =>
       Json.obj(
         "vendor"  -> Json.fromString(key.vendor),
@@ -54,7 +52,7 @@ object CirceIgluCodecs {
 
   val encodeSchema: Encoder[SelfDescribingSchema[Json]] =
     Encoder.instance { schema =>
-      Json.obj("self" -> schema.self.asJson(encodeSchemaKey)).deepMerge(schema.schema)
+      Json.obj("self" -> schema.self.asJson(encodeSchemaMap)).deepMerge(schema.schema)
     }
 
   val encodeData: Encoder[SelfDescribingData[Json]] =
@@ -69,21 +67,33 @@ object CirceIgluCodecs {
       schemaVer  <- Either.fromOption(parsed, DecodingFailure("SchemaVer is missing", hCursor.history))
     } yield schemaVer
 
-  private[circe] def parseSchemaKey(hCursor: HCursor): Either[DecodingFailure, SchemaKey] =
+  private[circe] def parseSchemaVerFull(hCursor: HCursor): Either[DecodingFailure, SchemaVer.Full] =
+    parseSchemaVer(hCursor) match {
+      case Right(full: SchemaVer.Full) => Right(full)
+      case Right(other) => Left(DecodingFailure(s"SchemaVer ${other.asString} is not full", hCursor.history))
+      case Left(left) => Left(left)
+    }
+
+  private[circe] def parseSchemaMap(hCursor: HCursor): Either[DecodingFailure, SchemaMap] =
     for {
-      selfMap   <- hCursor.as[JsonObject].map(_.toMap)
-      schemaKey <- selfMapToSchemaKey(selfMap, hCursor)
+      map <- hCursor.as[JsonObject].map(_.toMap)
+      selfMapJson <- map.get("self") match {
+        case None => Left(DecodingFailure("self-key is not available", hCursor.history))
+        case Some(self) => Right(self)
+      }
+      selfMap <- selfMapJson.as[JsonObject].map(_.toMap)
+      schemaKey <- selfMapToSchemaMap(selfMap, hCursor)
     } yield schemaKey
 
-  private[circe] def selfMapToSchemaKey(selfMap: Map[String, Json], hCursor: HCursor): Either[DecodingFailure, SchemaKey] = {
-    val self = (
-      selfMap.get("vendor") |@| selfMap.get("name") |@| selfMap.get("format") |@| selfMap.get("version")).map { (v, n, f, ver) =>
-      for {
-        vendor  <- v.asString
-        name    <- n.asString
-        format  <- f.asString
-        version <- ver.as(decodeSchemaVer).toOption
-      } yield SchemaKey(vendor, name, format, version)
+  private[circe] def selfMapToSchemaMap(selfMap: Map[String, Json], hCursor: HCursor): Either[DecodingFailure, SchemaMap] = {
+    val self = (selfMap.get("vendor") |@| selfMap.get("name") |@| selfMap.get("format") |@| selfMap.get("version")).map {
+      (v, n, f, ver) =>
+        for {
+          vendor  <- v.asString
+          name    <- n.asString
+          format  <- f.asString
+          version <- ver.as(Decoder.instance(parseSchemaVerFull)).toOption
+        } yield SchemaMap(vendor, name, format, version)
     }
 
     Either.fromOption(self.flatten, DecodingFailure("SchemaKey has incompatible format", hCursor.history))

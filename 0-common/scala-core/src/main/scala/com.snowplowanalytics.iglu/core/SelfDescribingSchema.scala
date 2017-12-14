@@ -12,25 +12,27 @@
  */
 package com.snowplowanalytics.iglu.core
 
-import org.specs2.Specification
+import typeclasses.{NormalizeSchema, StringifySchema}
 
-class SchemaVerSpec extends Specification { def is = s2"""
-  Specification for SchemaVer
-    validate SchemaVer $e1
-    extract correct SchemaVer $e2
-    fail to validate zero in MODEL $e3
-    fail to validate preceding zero in REVISION $e4
-  """
+/**
+  * Container for Self-describing Schema
+  * Used to eliminate need of Option container when extracting
+  * [[SchemaMap]] with `ExtractSchemaMap` type class
+  *
+  * @param self Schema description
+  * @param schema attached Schema instance itself
+  * @tparam S generic type to represent Schema type (usually it is
+  *           some JSON-library's base trait)
+  */
+case class SelfDescribingSchema[S](self: SchemaMap, schema: S) {
+  /**
+    * Render Schema to its base type [[S]]
+    */
+  def normalize(implicit ev: NormalizeSchema[S]): S = ev.normalize(this)
 
-  def e1 =
-    SchemaVer.isValid("2-42-0") must beTrue
-
-  def e2 =
-    SchemaVer.parse("1-12-1") must beSome(SchemaVer(1,12,1))
-
-  def e3 =
-    SchemaVer.isValid("0-12-1") must beFalse
-
-  def e4 =
-    SchemaVer.isValid("1-02-1") must beFalse
+  /**
+    * Render Schema as [[String]]
+    */
+  def asString(implicit ev: StringifySchema[S]): String = ev.asString(this)
 }
+

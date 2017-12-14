@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -12,25 +12,17 @@
  */
 package com.snowplowanalytics.iglu.core
 
-import org.specs2.Specification
+/**
+  * Entity allowing to fetch and validate schemas for entities of `A`
+  * Resolvers supposed to be implemented as separate artifacts
+  *
+  * @tparam F effect, wrapping resolver's work (such as `Either[String, Option[A]]` or `IO[A]`
+  * @tparam A AST for data and schema
+  */
+trait Resolver[F[_], A] {
+  /** Lookup for a schema, attached to data */
+  def lookup(data: SelfDescribingData[A]): F[SelfDescribingSchema[A]]
 
-class SchemaVerSpec extends Specification { def is = s2"""
-  Specification for SchemaVer
-    validate SchemaVer $e1
-    extract correct SchemaVer $e2
-    fail to validate zero in MODEL $e3
-    fail to validate preceding zero in REVISION $e4
-  """
-
-  def e1 =
-    SchemaVer.isValid("2-42-0") must beTrue
-
-  def e2 =
-    SchemaVer.parse("1-12-1") must beSome(SchemaVer(1,12,1))
-
-  def e3 =
-    SchemaVer.isValid("0-12-1") must beFalse
-
-  def e4 =
-    SchemaVer.isValid("1-02-1") must beFalse
+  /** Validate self-describing data against some schema */
+  def validate(data: SelfDescribingData[A], schema: SelfDescribingSchema[A]): F[Either[String, Unit]]
 }

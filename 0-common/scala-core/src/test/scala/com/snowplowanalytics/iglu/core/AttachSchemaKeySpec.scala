@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -19,15 +19,17 @@ import org.specs2.Specification
 import org.json4s._
 import org.json4s.jackson.JsonMethods.parse
 
-class AttachToSpec extends Specification { def is = s2"""
+class AttachSchemaKeySpec extends Specification { def is = s2"""
   Specification AttachTo type class for instances
     add Schema reference to json4s instance $e1
     add description to json4s Schema $e2
     add and extract SchemaKey to Json $e3
   """
 
+  import syntax._
+
   def e1 = {
-    import IgluCoreCommon.Json4sAttachToData
+    import IgluCoreCommon.Json4SAttachSchemaKeyData
 
     val data: JValue = parse(
       """
@@ -56,7 +58,7 @@ class AttachToSpec extends Specification { def is = s2"""
   }
 
   def e2 = {
-    import IgluCoreCommon.Json4sAttachToSchema
+    import IgluCoreCommon.Json4SAttachSchemaKeySchema
 
     val schema: JValue = parse(
       """
@@ -142,7 +144,7 @@ class AttachToSpec extends Specification { def is = s2"""
   }
 
   def e3 = {
-    import IgluCoreCommon.Json4sAttachToSchemaComplex
+    import IgluCoreCommon.Json4SAttachSchemaMapComplex
 
     val schema: JValue = parse(
       """
@@ -158,8 +160,8 @@ class AttachToSpec extends Specification { def is = s2"""
         |}}
       """.stripMargin)
 
-    val key = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0))
-    val result = schema.attachSchemaKey(key)
-    result.getSchemaKey must beSome(key)
+    val key = SchemaMap("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
+    val result = schema.attachSchemaMap(key)
+    result.getSchemaMap must beSome(key)
   }
 }

@@ -12,25 +12,17 @@
  */
 package com.snowplowanalytics.iglu.core
 
+// specs2
 import org.specs2.Specification
 
-class SchemaVerSpec extends Specification { def is = s2"""
-  Specification for SchemaVer
-    validate SchemaVer $e1
-    extract correct SchemaVer $e2
-    fail to validate zero in MODEL $e3
-    fail to validate preceding zero in REVISION $e4
+class SchemaMapSpec extends Specification { def is = s2"""
+  Specification for parsing SchemaKey
+    parse simple correct schema map from Iglu path $e1
   """
 
-  def e1 =
-    SchemaVer.isValid("2-42-0") must beTrue
-
-  def e2 =
-    SchemaVer.parse("1-12-1") must beSome(SchemaVer(1,12,1))
-
-  def e3 =
-    SchemaVer.isValid("0-12-1") must beFalse
-
-  def e4 =
-    SchemaVer.isValid("1-02-1") must beFalse
+  def e1 = {
+    val path = "uk.edu.acme.sub-division/second-event_complex/jsonschema/2-10-32"
+    SchemaMap.fromPath(path) must beSome(
+      SchemaMap("uk.edu.acme.sub-division", "second-event_complex", "jsonschema", SchemaVer.Full(2, 10, 32)))
+  }
 }

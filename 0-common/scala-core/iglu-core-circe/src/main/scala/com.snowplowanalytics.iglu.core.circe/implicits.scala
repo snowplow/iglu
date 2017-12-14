@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -10,19 +10,7 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.core.circe
+package com.snowplowanalytics.iglu.core
+package circe
 
-// Circe
-import io.circe._
-
-// This library
-import com.snowplowanalytics.iglu.core.Containers._
-
-/**
- * Having this in implicit scope allow [[SelfDescribingSchema]] with [[Json]]
- * to be normalized into Self-describing JSON Schema
- */
-object NormalizeSchema extends NormalizeSchema[Json] {
-  def normalize(schema: SelfDescribingSchema[Json]): Json =
-    CirceIgluCodecs.encodeSchema(schema)
-}
+object implicits extends syntax with instances

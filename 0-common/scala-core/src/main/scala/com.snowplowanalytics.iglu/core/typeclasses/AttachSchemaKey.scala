@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -10,9 +10,11 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.core
+package com.snowplowanalytics.iglu.core.typeclasses
 
 // Scala
+import com.snowplowanalytics.iglu.core.SchemaKey
+
 import scala.language.implicitConversions
 
 /**
@@ -20,7 +22,7 @@ import scala.language.implicitConversions
  * attaching [[SchemaKey]] to it will remain same [[E]] (like Self-describing
  * JSON - same `JValue` before and after).
  *
- * Unlike [[ExtractFrom]] this type class makes possible also to attach
+ * Unlike [[ExtractSchemaKey]] this type class makes possible also to attach
  * description to entity, not just extract it.
  *
  * Instance of this type class also need to decide *how* to attach
@@ -38,7 +40,7 @@ import scala.language.implicitConversions
  *           but also can be anything that can bear reference to
  *           its description and at the same time remain same type
  */
-trait AttachTo[E] extends ExtractFrom[E] {
+trait AttachSchemaKey[E] extends ExtractSchemaKey[E] {
   /**
    * Attach (merge-in) [[SchemaKey]] into entity of type [[E]]
    *
@@ -47,25 +49,4 @@ trait AttachTo[E] extends ExtractFrom[E] {
    * @return updated entity with attached [[SchemaKey]]
    */
   def attachSchemaKey(schemaKey: SchemaKey, entity: E): E
-}
-
-object AttachTo {
-  /**
-   * Ops class, adding postfix `attachSchemaKey` method and its
-   * alias `makeSelfDescribing` to all types with instance of
-   * [[ExtractFrom]] type class
-   *
-   * @param entity original entity without Schema key
-   * @tparam E entity type supposed to be able to merge-in [[SchemaKey]]
-   */
-  implicit class AttachToOps[E: AttachTo](entity: E) {
-    def attachSchemaKey(schemaKey: SchemaKey): E =
-      implicitly[AttachTo[E]].attachSchemaKey(schemaKey, entity)
-
-    /**
-     * Alias for [[attachSchemaKey]]
-     */
-    def makeSelfDescribing(schemaKey: SchemaKey): E =
-      attachSchemaKey(schemaKey)
-  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -10,22 +10,18 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.core.json4s
-
-// json4s
-import org.json4s._
-
-// This library
-import com.snowplowanalytics.iglu.core.Containers._
+package com.snowplowanalytics.iglu.core
+package typeclasses
 
 /**
- * Having this in implicit scope allow [[SelfDescribingData]] with [[JValue]]
- * to be normalized into Self-describing data [[JValue]] instance
- */
-object NormalizeData extends NormalizeData[JValue] {
-
-  implicit val formats = Json4sIgluCodecs.formats
-
-  def normalize(instance: SelfDescribingData[JValue]): JValue =
-    Extraction.decompose(instance)
+  * Type class to render container with Schema to [[String]]
+  *
+  * @tparam S generic type in which Schema can be represented
+  */
+trait StringifySchema[S] {
+  /**
+    * Render Schema as [[String]]
+    */
+  def asString(container: SelfDescribingSchema[S]): String
 }
+

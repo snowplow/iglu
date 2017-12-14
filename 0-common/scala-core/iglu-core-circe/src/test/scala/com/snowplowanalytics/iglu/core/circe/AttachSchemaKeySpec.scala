@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -10,39 +10,42 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.core.json4s
+package com.snowplowanalytics.iglu.core.circe
 
 // specs2
 import org.specs2.Specification
 
-// json4s
-import org.json4s._
-import org.json4s.jackson.JsonMethods.parse
+// cats (for Scala 2.11)
+import cats.syntax.either._
+
+// Circe
+import io.circe._
+import io.circe.parser.parse
 
 // This library
 import com.snowplowanalytics.iglu.core._
 
-class AttachToSpec extends Specification { def is = s2"""
+class AttachSchemaKeySpec extends Specification { def is = s2"""
   Specification AttachTo type class for instances
-    add Schema reference to json4s data instance $e1
-    add description to json4s Schema $e2
+    add Schema reference to circe data instance $e1
+    add description to circe Schema $e2
     add and extract SchemaKey to Json $e3
   """
 
+  import implicits._
+
   def e1 = {
 
-    implicit val attachSchemaKey = AttachToData
-
-    val data: JValue = parse(
+    val data: Json = parse(
       """
         |{
         |  "latitude": 32.2,
         |  "longitude": 53.23,
         |  "speed": 40
         |}
-      """.stripMargin)
+      """.stripMargin).toOption.get
 
-    val expected: JValue = parse(
+    val expected: Json = parse(
       """
         |{
         | "schema": "iglu:com.snowplowanalytics.snowplow/geolocation_context/jsonschema/1-1-0",
@@ -52,7 +55,7 @@ class AttachToSpec extends Specification { def is = s2"""
         |  "speed": 40
         | }
         |}
-      """.stripMargin)
+      """.stripMargin).getOrElse(Json.Null)
 
     val result = data.attachSchemaKey(SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0)))
     result must beEqualTo(expected)
@@ -60,9 +63,7 @@ class AttachToSpec extends Specification { def is = s2"""
 
   def e2 = {
 
-    implicit val attachSchemaKey = AttachToSchema
-
-    val schema: JValue = parse(
+    val schema: Json = parse(
       """
         |{
         |  "type": "object",
@@ -95,10 +96,9 @@ class AttachToSpec extends Specification { def is = s2"""
         |  	"required": ["latitude", "longitude"],
         |  	"additionalProperties": false
         |}
-      """.stripMargin
-    )
+      """.stripMargin).getOrElse(Json.Null)
 
-    val expected: JValue = parse(
+    val expected: Json = parse(
       """
         |{
         |	"self": {
@@ -138,18 +138,15 @@ class AttachToSpec extends Specification { def is = s2"""
         |	"required": ["latitude", "longitude"],
         |	"additionalProperties": false
         |}
-      """.stripMargin
-    )
+      """.stripMargin).getOrElse(Json.Null)
 
-    val result = schema.attachSchemaKey(SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0)))
-    result must beEqualTo(expected)
+    val result = schema.attachSchemaMap(SchemaMap("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)))
+    result must beJson(expected)
   }
 
   def e3 = {
 
-    implicit val attachSchemaKey = AttachToSchema
-
-    val schema: JValue = parse(
+    val schema: Json = parse(
       """
         |{
         |  "type": "object",
@@ -161,10 +158,16 @@ class AttachToSpec extends Specification { def is = s2"""
         |  			"type": "number"
         |  		}
         |}}
-      """.stripMargin)
+      """.stripMargin).getOrElse(Json.Null)
 
     val key = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0))
     val result = schema.attachSchemaKey(key)
     result.getSchemaKey must beSome(key)
+  }
+
+  import org.specs2.matcher.Matcher
+
+  def beJson(expected: Json): Matcher[Json] = { actual: Json =>
+    (actual == expected, "actual:\n" + actual.spaces2 + "\n" + "expected:\n" + expected.spaces2 + "\n")
   }
 }
