@@ -24,8 +24,9 @@ object BuildSettings {
     scalaVersion       := "2.12.4",
     crossScalaVersions := Seq("2.10.6", "2.11.8", "2.12.4"),
     scalacOptions      := Seq("-deprecation", "-encoding", "utf8", "-Yrangepos",
-                              "-feature", "-unchecked", "-Xlog-reflective-calls",
-                              "-Xlint"),
+                              "-feature", "-unchecked",
+                              "-Xlint",
+                              "-Xlog-reflective-calls"),
     resolvers     ++= Dependencies.resolutionRepos
   )
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -27,11 +27,12 @@ class SchemaKeySpec extends Specification { def is = s2"""
     fail to parse with missing REVISION $e4
     fail to parse with invalid name $e5
     fail to parse with missing ADDITION $e8
-    parse complex correct key from path $e6
 
   Specification for SchemaKey
-    sort entities with SchemaKey $e7
+    sort entities with SchemaKey $e6
   """
+
+  import syntax._
 
   def e1 = {
     val uri = "iglu:com.snowplowanalytics.snowplow/mobile_context/jsonschema/1-0-0"
@@ -66,12 +67,6 @@ class SchemaKeySpec extends Specification { def is = s2"""
   }
   
   def e6 = {
-    val path = "uk.edu.acme.sub-division/second-event_complex/jsonschema/2-10-32"
-    SchemaKey.fromPath(path) must beSome(
-      SchemaKey("uk.edu.acme.sub-division", "second-event_complex", "jsonschema", SchemaVer(2,10,32)))
-  }
-
-  def e7 = {
 
     implicit val ordering = SchemaKey.ordering
     

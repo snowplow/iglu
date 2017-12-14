@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -13,29 +13,65 @@
 package com.snowplowanalytics.iglu.core
 
 /**
- * Class holding semantic version for Schema
- *
- * @param model Schema MODEL, representing independent Schema
- * @param revision Schema REVISION, representing backward-incompatible changes
- * @param addition Schema ADDITION, representing backward-compatible changes
- */
-case class SchemaVer(model: Int, revision: Int, addition: Int) {
-  def asString = s"$model-$revision-$addition"
+  * Class holding semantic version for Schema
+  *
+  * + `model` Schema MODEL, representing independent Schema
+  * + `revision` Schema REVISION, representing backward-incompatible changes
+  * + `addition` Schema ADDITION, representing backward-compatible changes
+  */
+sealed trait SchemaVer {
+  def asString: String
+
+  def getModel: Option[Int]
+  def getRevision: Option[Int]
+  def getAddition: Option[Int]
 }
 
 object SchemaVer {
+
+  def apply(model: Int, revision: Int, addition: Int): SchemaVer =
+    Full(model, revision, addition)
+
+  /** Explicit, fully known version. Can be attached to both data and schema */
+  case class Full(model: Int, revision: Int, addition: Int) extends SchemaVer {
+    def asString = s"$model-$revision-$addition"
+
+    def getModel = Some(model)
+    def getRevision = Some(revision)
+    def getAddition = Some(addition)
+  }
+
+  /** Partially known version. Can be attached only to data, schema need to be looked-up or inferenced */
+  case class Partial(model: Option[Int], revision: Option[Int], addition: Option[Int]) extends SchemaVer {
+    def asString = s"${model.getOrElse("?")}-${revision.getOrElse("?")}-${addition.getOrElse("?")}"
+
+    def getModel = model
+    def getRevision = revision
+    def getAddition = addition
+  }
+
   /**
-   * Regular expression to validate or extract MODEL, REVISION, ADDITION
+   * Regular expression to validate or extract `Full` SchemaVer,
+   * with known MODEL, REVISION, ADDITION
    * Disallow preceding zeros and MODEL to be equal 0
    */
-  val modelRevisionAdditionRegex = "^([1-9][0-9]*)-(0|[1-9][0-9]*)-(0|[1-9][0-9]*)$".r
+  val schemaVerFullRegex = "^([1-9][0-9]*)-(0|[1-9][0-9]*)-(0|[1-9][0-9]*)$".r
+
+  /**
+    * Regular expression to validate or extract `Partial` SchemaVer,
+    * with possible unknown MODEL, REVISION, ADDITION
+    */
+  val schemaVerPartialRegex = (
+      "^([1-9][0-9]*|\\?)-" +          // MODEL (cannot start with zero)
+      "((?:0|[1-9][0-9]*)|\\?)-" +    // REVISION
+      "((?:0|[1-9][0-9]*)|\\?)$").r   // ADDITION
 
   /**
    * Default [[Ordering]] instance for [[SchemaVer]]
    * making initial Schemas first and latest Schemas last
    */
   val ordering = Ordering.by { (schemaVer: SchemaVer) =>
-    (schemaVer.model, schemaVer.revision, schemaVer.addition)
+    (schemaVer.getModel, schemaVer.getRevision, schemaVer.getAddition)
   }
 
   /**
@@ -44,8 +80,12 @@ object SchemaVer {
    * @return some SchemaVer or None
    */
   def parse(version: String): Option[SchemaVer] = version match {
-    case modelRevisionAdditionRegex(m, r, a) => Some(SchemaVer(m.toInt, r.toInt, a.toInt))
-    case _ => None
+    case schemaVerFullRegex(m, r, a) =>
+      Some(SchemaVer.Full(m.toInt, r.toInt, a.toInt))
+    case schemaVerPartialRegex(IntString(m), IntString(r), IntString(a)) =>
+      Some(SchemaVer.Partial(m, r, a))
+    case _ =>
+      None
   }
 
   /**
@@ -55,5 +95,17 @@ object SchemaVer {
    * @return true if string is valid SchemaVer
    */
   def isValid(version: String): Boolean =
-    version.matches(modelRevisionAdditionRegex.toString)
+    version.matches(schemaVerFullRegex.toString)
+
+  private object IntString {
+    def unapply(arg: String): Option[Option[Int]] =
+      if (arg == "?") Some(None)
+      else {
+        try {
+          Some(Some(arg.toInt))
+        } catch {
+          case _: NumberFormatException => None
+        }
+      }
+  }
 }

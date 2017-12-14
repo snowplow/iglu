@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -10,20 +10,20 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.core.json4s
+package com.snowplowanalytics.iglu.core
+package typeclasses
 
-// Circe
-import org.json4s.JValue
-import org.json4s.jackson.JsonMethods.compact
-
-// This library
-import com.snowplowanalytics.iglu.core.Containers._
 
 /**
- * Having this in implicit scope allow [[SelfDescribingSchema]] with [[JValue]]
- * to be converted into compact [[String]]
- */
-object StringifySchema extends StringifySchema[JValue] {
-  def asString(container: SelfDescribingSchema[JValue]): String =
-    compact(container.normalize(NormalizeSchema))
+  * Type class to render data into it base type [[D]]
+  * and lowest-level ([[String]]) common for all aps
+  *
+  * @tparam D generic type in which instance can be represented
+  */
+trait NormalizeData[D] {
+  /**
+    * Render data instance to its base type [[D]]
+    */
+  def normalize(container: SelfDescribingData[D]): D
 }
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -10,19 +10,18 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.core.circe
-
-// Circe
-import io.circe._
-
-// This library
-import com.snowplowanalytics.iglu.core.Containers._
+package com.snowplowanalytics.iglu.core
+package typeclasses
 
 /**
- * Having this in implicit scope allow [[SelfDescribingData]] with [[Json]]
- * to be converted into compcat [[String]]
- */
-object StringifyData extends StringifyData[Json] {
-  def asString(container: SelfDescribingData[Json]): String =
-    container.normalize(NormalizeData).noSpaces
+  * Type class to render container with Schema to [[String]]
+  *
+  * @tparam D generic type in which data instance can be represented
+  */
+trait StringifyData[D] {
+  /**
+    * Render data instance as [[String]]
+    */
+  def asString(container: SelfDescribingData[D]): String
 }
+

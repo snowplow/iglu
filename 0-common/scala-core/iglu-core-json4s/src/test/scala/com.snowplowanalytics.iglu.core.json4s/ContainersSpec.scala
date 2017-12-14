@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -20,8 +20,8 @@ import org.json4s._
 import org.json4s.jackson.JsonMethods.parse
 
 // This library
+import implicits._
 import com.snowplowanalytics.iglu.core._
-import com.snowplowanalytics.iglu.core.Containers._
 
 class ContainersSpec extends Specification { def is = s2"""
   Specification for container types
@@ -35,8 +35,6 @@ class ContainersSpec extends Specification { def is = s2"""
 
   def e1 = {
 
-    implicit val attachSchemaKey = AttachToData
-
     val result: JValue = parse(
       """
         |{
@@ -49,7 +47,7 @@ class ContainersSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    val key = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0))
+    val key = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
     val data = parse(
       """
         |{
@@ -64,8 +62,6 @@ class ContainersSpec extends Specification { def is = s2"""
   }
 
   def e2 = {
-
-    implicit val attachSchemaKey = AttachToSchema
 
     val result: JValue = parse(
       """
@@ -84,7 +80,7 @@ class ContainersSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    val self = SchemaKey("com.acme", "keyvalue", "jsonschema", SchemaVer(1,1,0))
+    val self = SchemaMap("com.acme", "keyvalue", "jsonschema", SchemaVer.Full(1,1,0))
     val schema = parse(
       """
         |{
@@ -101,8 +97,6 @@ class ContainersSpec extends Specification { def is = s2"""
   }
 
   def e3 = {
-
-    implicit val normalize = NormalizeData
 
     val schema = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0))
     val data = parse(
@@ -133,9 +127,7 @@ class ContainersSpec extends Specification { def is = s2"""
 
   def e4 = {
 
-    implicit val normalize = NormalizeSchema
-
-    val self = SchemaKey("com.acme", "keyvalue", "jsonschema", SchemaVer(1,1,0))
+    val self = SchemaMap("com.acme", "keyvalue", "jsonschema", SchemaVer.Full(1,1,0))
     val schema = parse(
       """
         |{
@@ -170,8 +162,6 @@ class ContainersSpec extends Specification { def is = s2"""
 
   def e5 = {
 
-    implicit val stringify: StringifyData[JValue] = StringifyData
-
     val schema = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0))
     val data: JValue = parse(
       """
@@ -191,9 +181,7 @@ class ContainersSpec extends Specification { def is = s2"""
 
   def e6 = {
 
-    implicit val stringify: StringifySchema[JValue] = StringifySchema
-
-    val self = SchemaKey("com.acme", "keyvalue", "jsonschema", SchemaVer(1,1,0))
+    val self = SchemaMap("com.acme", "keyvalue", "jsonschema", SchemaVer.Full(1,1,0))
     val schema: JValue = parse(
       """
         |{
