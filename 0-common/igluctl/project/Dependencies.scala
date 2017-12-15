@@ -19,7 +19,7 @@ object Dependencies {
     val jsonValidator    = "2.2.6"
     val awsJava          = "1.11.228"
     // Scala
-    val schemaddl        = "0.6.0"
+    val schemaddl        = "0.6.0-M1"
     val scopt            = "3.5.0"
     val scalajHttp       = "2.3.0"
     val awscala          = "0.5.9"
