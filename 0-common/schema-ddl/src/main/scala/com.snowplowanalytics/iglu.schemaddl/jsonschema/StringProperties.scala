@@ -54,6 +54,7 @@ object StringProperties {
   case object DateTimeFormat extends Format { val asString = "date-time" }
   case object DateFormat extends Format { val asString = "date" }
   case object HostNameFormat extends Format { val asString = "hostname" }
+  case object UuidFormat extends Format { val asString = "uuid" }
 
   /**
    * Implementations MAY add custom format attributes
