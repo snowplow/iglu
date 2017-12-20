@@ -14,7 +14,6 @@
  */
 import sbt._
 import Keys._
-import com.typesafe.sbt.packager.archetypes._
 
 object IgluctlBuild extends Build {
 
@@ -45,5 +44,4 @@ object IgluctlBuild extends Build {
         Libraries.scalaCheck
       )
     )
-    .enablePlugins(JavaAppPackaging)
 }
