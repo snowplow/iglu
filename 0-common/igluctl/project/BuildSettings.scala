@@ -18,9 +18,6 @@ import bintray.BintrayPlugin._
 import bintray.BintrayKeys._
 import sbtassembly.AssemblyPlugin.autoImport._
 import sbtassembly.AssemblyPlugin.defaultShellScript
-import com.typesafe.sbt.packager.universal.UniversalPlugin.autoImport._
-import com.typesafe.sbt.packager.archetypes.JavaAppPackaging.autoImport._
-import com.typesafe.sbt.packager.SettingsHelper._
 import sbt._
 import Keys._
 
@@ -103,32 +100,11 @@ object BuildSettings {
     assemblyOption in assembly ~= { _.copy(prependShellScript = Some(defaultShellScript)) },
 
     // Name it as an executable
-    assemblyJarName in assembly := { s"${name.value}" },
+    assemblyJarName in assembly := { name.value + "-" + version.value + ".jar" },
 
     // Make this executable
     mainClass in assembly := Some("com.snowplowanalytics.iglu.ctl.Main")
   )
 
-  // Packaging (sbt-native-packager) settings
-  lazy val deploySettings = Seq(
-    // Don't publish MD5/SHA checksums
-    checksums := Nil,
-
-    // Assemble zip archive with fat jar
-    mappings in Universal := {
-      // Use fat jar built by sbt-assembly
-      val fatJar = (assembly in Compile).value
-
-      // We don't need anything except fat jar
-      val nativePackagerFiles = Nil
-
-      // Add the fat jar
-      nativePackagerFiles :+ (fatJar -> ("/" + fatJar.getName))
-    },
-
-    scriptClasspath := Seq((assemblyJarName in assembly).value)
-
-  ) ++ makeDeploymentSettings(Universal, packageBin in Universal, "zip")
-
-  lazy val buildSettings = basicSettings ++ scalifySettings ++ publishSettings ++ sbtAssemblySettings ++ deploySettings
+  lazy val buildSettings = basicSettings ++ scalifySettings ++ publishSettings ++ sbtAssemblySettings
 }
