@@ -17,8 +17,11 @@ import java.io.File
 import java.time.{ZoneOffset, ZonedDateTime}
 import java.time.format.DateTimeFormatter
 
+// Scala
+import scala.annotation.tailrec
+
 // Iglu Core
-import com.snowplowanalytics.iglu.core.SchemaMap
+import com.snowplowanalytics.iglu.core.{SchemaMap, SchemaVer}
 
 // Schema DDL
 import com.snowplowanalytics.iglu.schemaddl._
@@ -92,6 +95,14 @@ case class GenerateCommand(
     // Parse Self-describing Schemas
     val (schemaErrors, schemas) = splitValidations(files.map(_.extractSelfDescribingSchema))
 
+    val schemaVerValidation: Result = validateSchemaVersions(schemas)
+
+    val schemaVerMessages: List[String] = schemaVerValidation match {
+      case Warnings(lst) => lst
+      case Errors(lst) => lst
+      case VersionSuccess(_) => List.empty[String]
+    }
+
     // Build table definitions from JSON Schemas
     val validatedDdls = schemas.map(schema => selfDescSchemaToDdl(schema, dbSchemaStr).map(ddl => (schema.self, ddl)))
     val (ddlErrors, ddlPairs) = splitValidations(validatedDdls)
@@ -119,7 +130,75 @@ case class GenerateCommand(
       outputPair.map(_._1),
       migrations,
       outputPair.flatMap(_._2),
-      warnings = schemaErrors ++ ddlErrors ++ ddlWarnings)
+      warnings = schemaVerMessages ++ schemaErrors ++ ddlErrors ++ ddlWarnings)
+  }
+
+
+  /**
+    * Checks if there is any missing schema version in a directory of schemas
+    * or if a specific schema file doesn't have version 1-0-0
+    *
+    * @param schemas list of valid JSON Schemas including all Self-describing information
+    * @return (versionWarnings, versionErrors)
+    */
+  private[ctl] def validateSchemaVersions(schemas: List[IgluSchema]): Result = {
+
+    @tailrec
+    def existMissingSchemaVersion(schemaMaps: List[SchemaMap]): Boolean = {
+      val numOfMaps = schemaMaps.length
+
+      if (numOfMaps == 1){
+        false
+      } else {
+        val prevModel    = schemaMaps.head.version.model
+        val prevRevision = schemaMaps.head.version.revision
+        val prevAddition = schemaMaps.head.version.addition
+        val curModel     = schemaMaps.tail.head.version.model
+        val curRevision  = schemaMaps.tail.head.version.revision
+        val curAddition  = schemaMaps.tail.head.version.addition
+
+        if (curModel == prevModel && curRevision == prevRevision && curAddition == prevAddition + 1 ||
+            curModel == prevModel && curRevision == prevRevision + 1 && curAddition == 0 ||
+            curModel == prevModel + 1 && curRevision == 0 && curAddition == 0)
+          existMissingSchemaVersion(schemaMaps.tail) else true
+      }
+    }
+
+    if (schemas.empty) {
+      VersionSuccess(List.empty[String])
+    } else {
+      if (input.isFile) {
+        val schemaVerWarning = schemas.head.self.version match {
+          case SchemaVer.Full(1, 0, 0) => List.empty[String]
+          case _                       => List(s"Warning: File [${input.getAbsolutePath}] contains a schema whose version is NOT 1-0-0")
+        }
+        Warnings(schemaVerWarning)
+      } else {
+        val schemaMapsGroupByVendor: Map[String, List[SchemaMap]] = schemas.map(schema => schema.self).groupBy(_.vendor)
+
+        val versionErrors: List[List[String]] =
+          for ((vendor, schemaMapsOfVendor) <- schemaMapsGroupByVendor.toList) yield {
+            val schemaMapsGroupByName: Map[String, List[SchemaMap]] = schemaMapsOfVendor.groupBy(_.name)
+            val firstVersionNotFoundErrors: List[String] =
+              for {
+                (name, schemaMaps) <- schemaMapsGroupByName.toList
+                if !schemaMaps.exists(sm => sm.version == SchemaVer.Full(1, 0, 0)) && !force
+              } yield s"Error: Directory [${input.getAbsolutePath}] contains schemas of [$vendor/$name] without version 1-0-0." +
+                      " Use --force to switch off schema version check."
+            val schemaVerGapErrors: List[String] =
+              for {
+                (name, schemaMaps) <- schemaMapsGroupByName.toList
+                sortedSchemaMaps = schemaMaps.sortWith(_.version.asString < _.version.asString)
+                if sortedSchemaMaps.head.version == SchemaVer.Full(1, 0, 0) && existMissingSchemaVersion(sortedSchemaMaps) && !force
+              } yield s"Error: Directory [${input.getAbsolutePath}] contains schemas of [$vendor/$name] which has gaps between schema versions." +
+                      " Use --force to switch off schema version check."
+
+            firstVersionNotFoundErrors ::: schemaVerGapErrors
+          }
+
+        Errors(versionErrors.flatten)
+      }
+    }
   }
 
   /**
@@ -257,28 +336,56 @@ case class GenerateCommand(
    * Output end result
    */
   def outputResult(result: DdlOutput): Unit = {
-    result.ddls
-      .map(_.setBasePath("sql"))
-      .map(_.setBasePath(output.getAbsolutePath))
-      .map(_.write(force)).foreach(printMessage)
+    val missingSchemaVerErrors = result.warnings.filter(w => w.startsWith("Error: Directory"))
+    // refuse to do anything if input schemas have missing schema versions
+    if (missingSchemaVerErrors.nonEmpty) {
+      println(missingSchemaVerErrors.mkString("\n"))
+      sys.exit(1)
+    } else {
+      result.ddls
+        .map(_.setBasePath("sql"))
+        .map(_.setBasePath(output.getAbsolutePath))
+        .map(_.write(force)).foreach(printMessage)
 
-    result.jsonPaths
-      .map(_.setBasePath("jsonpaths"))
-      .map(_.setBasePath(output.getAbsolutePath))
-      .map(_.write(force)).foreach(printMessage)
+      result.jsonPaths
+        .map(_.setBasePath("jsonpaths"))
+        .map(_.setBasePath(output.getAbsolutePath))
+        .map(_.write(force)).foreach(printMessage)
 
-    result.migrations
-      .map(_.setBasePath("sql"))
-      .map(_.setBasePath(output.getAbsolutePath))
-      .map(_.write(force)).foreach(printMessage)
+      result.migrations
+        .map(_.setBasePath("sql"))
+        .map(_.setBasePath(output.getAbsolutePath))
+        .map(_.write(force)).foreach(printMessage)
 
-    result.warnings.foreach(printMessage)
+      result.warnings.foreach(printMessage)
 
-    if (result.warnings.exists(_.contains("Error"))) sys.exit(1)
+      if (result.warnings.exists(_.contains("Error"))) sys.exit(1)
+    }
+
   }
 }
 
 object GenerateCommand {
+
+  /**
+    * Common trait for all GenerateCommand results
+    */
+  sealed trait Result
+
+  /**
+    * Represents Error collection
+    */
+  case class Errors(messages: List[String]) extends Result
+
+  /**
+    * Represents Warning collection
+    */
+  case class Warnings(messages: List[String]) extends Result
+
+  /**
+    * Represents VersionSuccess collection, to be used for SchemaVer
+    */
+  case class VersionSuccess(messages: List[String]) extends Result
 
   /**
    * Class holding an aggregated output ready to be written

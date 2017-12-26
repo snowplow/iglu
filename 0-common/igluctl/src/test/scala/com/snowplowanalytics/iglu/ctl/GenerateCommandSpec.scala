@@ -16,11 +16,15 @@ import org.specs2.Specification
 import org.json4s.jackson.JsonMethods.parse
 import java.io.File
 
-import com.snowplowanalytics.iglu.ctl.GenerateCommand.DdlOutput
+import com.snowplowanalytics.iglu.ctl.GenerateCommand.{DdlOutput, Errors, VersionSuccess, Warnings}
 import com.snowplowanalytics.iglu.ctl.FileUtils.TextFile
-
-//
+import com.snowplowanalytics.iglu.ctl.Utils.splitValidations
 import com.snowplowanalytics.iglu.ctl.FileUtils.JsonFile
+
+// Scalaz
+import scalaz._
+import Scalaz._
+
 
 class GenerateCommandSpec extends Specification { def is = s2"""
   DDL-generation command (ddl) specification
@@ -29,6 +33,8 @@ class GenerateCommandSpec extends Specification { def is = s2"""
     correctly convert com.amazon.aws.ec2/instance_identity_1 with --no-header --schema snowplow $e3
     correctly produce JSONPaths file for com.amazon.aws.cloudfront/wd_access_log_1 $e4
     output correct warnings for DDL-generation process $e5
+    warn about missing schema versions (addition) $e6
+    warn about missing 1-0-0 schema version $e7
   """
 
   def e1 = {
@@ -36,29 +42,29 @@ class GenerateCommandSpec extends Specification { def is = s2"""
       """|CREATE SCHEMA IF NOT EXISTS atomic;
          |
          |CREATE TABLE IF NOT EXISTS atomic.com_amazon_aws_lambda_java_context_1 (
-         |    "schema_vendor"                          VARCHAR(128)  ENCODE RUNLENGTH NOT NULL,
-         |    "schema_name"                            VARCHAR(128)  ENCODE RUNLENGTH NOT NULL,
-         |    "schema_format"                          VARCHAR(128)  ENCODE RUNLENGTH NOT NULL,
-         |    "schema_version"                         VARCHAR(128)  ENCODE RUNLENGTH NOT NULL,
-         |    "root_id"                                CHAR(36)      ENCODE RAW       NOT NULL,
-         |    "root_tstamp"                            TIMESTAMP     ENCODE LZO       NOT NULL,
-         |    "ref_root"                               VARCHAR(255)  ENCODE RUNLENGTH NOT NULL,
-         |    "ref_tree"                               VARCHAR(1500) ENCODE RUNLENGTH NOT NULL,
-         |    "ref_parent"                             VARCHAR(255)  ENCODE RUNLENGTH NOT NULL,
-         |    "aws_request_id"                         VARCHAR(4096) ENCODE LZO,
-         |    "client_context.client.app_package_name" VARCHAR(4096) ENCODE LZO,
-         |    "client_context.client.app_title"        VARCHAR(4096) ENCODE LZO,
-         |    "client_context.client.app_version_code" VARCHAR(4096) ENCODE LZO,
-         |    "client_context.client.app_version_name" VARCHAR(4096) ENCODE LZO,
-         |    "client_context.custom"                  VARCHAR(4096) ENCODE LZO,
-         |    "client_context.environment"             VARCHAR(4096) ENCODE LZO,
-         |    "function_name"                          VARCHAR(4096) ENCODE LZO,
-         |    "identity.identity_id"                   VARCHAR(4096) ENCODE LZO,
-         |    "identity.identity_pool_id"              VARCHAR(4096) ENCODE LZO,
-         |    "log_group_name"                         VARCHAR(4096) ENCODE LZO,
-         |    "log_stream_name"                        VARCHAR(4096) ENCODE LZO,
-         |    "memory_limit_in_mb"                     BIGINT        ENCODE LZO,
-         |    "remaining_time_millis"                  BIGINT        ENCODE LZO,
+         |    "schema_vendor"                          VARCHAR(128)  ENCODE ZSTD NOT NULL,
+         |    "schema_name"                            VARCHAR(128)  ENCODE ZSTD NOT NULL,
+         |    "schema_format"                          VARCHAR(128)  ENCODE ZSTD NOT NULL,
+         |    "schema_version"                         VARCHAR(128)  ENCODE ZSTD NOT NULL,
+         |    "root_id"                                CHAR(36)      ENCODE RAW  NOT NULL,
+         |    "root_tstamp"                            TIMESTAMP     ENCODE ZSTD NOT NULL,
+         |    "ref_root"                               VARCHAR(255)  ENCODE ZSTD NOT NULL,
+         |    "ref_tree"                               VARCHAR(1500) ENCODE ZSTD NOT NULL,
+         |    "ref_parent"                             VARCHAR(255)  ENCODE ZSTD NOT NULL,
+         |    "aws_request_id"                         VARCHAR(4096) ENCODE ZSTD,
+         |    "client_context.client.app_package_name" VARCHAR(4096) ENCODE ZSTD,
+         |    "client_context.client.app_title"        VARCHAR(4096) ENCODE ZSTD,
+         |    "client_context.client.app_version_code" VARCHAR(4096) ENCODE ZSTD,
+         |    "client_context.client.app_version_name" VARCHAR(4096) ENCODE ZSTD,
+         |    "client_context.custom"                  VARCHAR(4096) ENCODE ZSTD,
+         |    "client_context.environment"             VARCHAR(4096) ENCODE ZSTD,
+         |    "function_name"                          VARCHAR(4096) ENCODE ZSTD,
+         |    "identity.identity_id"                   VARCHAR(4096) ENCODE ZSTD,
+         |    "identity.identity_pool_id"              VARCHAR(4096) ENCODE ZSTD,
+         |    "log_group_name"                         VARCHAR(4096) ENCODE ZSTD,
+         |    "log_stream_name"                        VARCHAR(4096) ENCODE ZSTD,
+         |    "memory_limit_in_mb"                     BIGINT        ENCODE ZSTD,
+         |    "remaining_time_millis"                  BIGINT        ENCODE ZSTD,
          |    FOREIGN KEY (root_id) REFERENCES atomic.events(event_id)
          |)
          |DISTSTYLE KEY
@@ -178,20 +184,20 @@ class GenerateCommandSpec extends Specification { def is = s2"""
   def e2 = {
     val resultContent =
       """|CREATE TABLE IF NOT EXISTS java_context (
-         |    "aws_request_id"                         VARCHAR(128) ENCODE LZO,
-         |    "client_context.client.app_package_name" VARCHAR(128) ENCODE LZO,
-         |    "client_context.client.app_title"        VARCHAR(128) ENCODE LZO,
-         |    "client_context.client.app_version_code" VARCHAR(128) ENCODE LZO,
-         |    "client_context.client.app_version_name" VARCHAR(128) ENCODE LZO,
-         |    "client_context.custom"                  VARCHAR(128) ENCODE LZO,
-         |    "client_context.environment"             VARCHAR(128) ENCODE LZO,
-         |    "function_name"                          VARCHAR(128) ENCODE LZO,
-         |    "identity.identity_id"                   VARCHAR(128) ENCODE LZO,
-         |    "identity.identity_pool_id"              VARCHAR(128) ENCODE LZO,
-         |    "log_group_name"                         VARCHAR(128) ENCODE LZO,
-         |    "log_stream_name"                        VARCHAR(128) ENCODE LZO,
-         |    "memory_limit_in_mb"                     BIGINT       ENCODE LZO,
-         |    "remaining_time_millis"                  BIGINT       ENCODE LZO
+         |    "aws_request_id"                         VARCHAR(128) ENCODE ZSTD,
+         |    "client_context.client.app_package_name" VARCHAR(128) ENCODE ZSTD,
+         |    "client_context.client.app_title"        VARCHAR(128) ENCODE ZSTD,
+         |    "client_context.client.app_version_code" VARCHAR(128) ENCODE ZSTD,
+         |    "client_context.client.app_version_name" VARCHAR(128) ENCODE ZSTD,
+         |    "client_context.custom"                  VARCHAR(128) ENCODE ZSTD,
+         |    "client_context.environment"             VARCHAR(128) ENCODE ZSTD,
+         |    "function_name"                          VARCHAR(128) ENCODE ZSTD,
+         |    "identity.identity_id"                   VARCHAR(128) ENCODE ZSTD,
+         |    "identity.identity_pool_id"              VARCHAR(128) ENCODE ZSTD,
+         |    "log_group_name"                         VARCHAR(128) ENCODE ZSTD,
+         |    "log_stream_name"                        VARCHAR(128) ENCODE ZSTD,
+         |    "memory_limit_in_mb"                     BIGINT       ENCODE ZSTD,
+         |    "remaining_time_millis"                  BIGINT       ENCODE ZSTD
          |);
          |
          |COMMENT ON TABLE java_context IS 'Source: java-context.json';""".stripMargin
@@ -295,29 +301,29 @@ class GenerateCommandSpec extends Specification { def is = s2"""
       """|CREATE SCHEMA IF NOT EXISTS snowplow;
          |
          |CREATE TABLE IF NOT EXISTS snowplow.com_amazon_aws_ec2_instance_identity_document_1 (
-         |    "schema_vendor"        VARCHAR(128)  ENCODE RUNLENGTH NOT NULL,
-         |    "schema_name"          VARCHAR(128)  ENCODE RUNLENGTH NOT NULL,
-         |    "schema_format"        VARCHAR(128)  ENCODE RUNLENGTH NOT NULL,
-         |    "schema_version"       VARCHAR(128)  ENCODE RUNLENGTH NOT NULL,
-         |    "root_id"              CHAR(36)      ENCODE RAW       NOT NULL,
-         |    "root_tstamp"          TIMESTAMP     ENCODE LZO       NOT NULL,
-         |    "ref_root"             VARCHAR(255)  ENCODE RUNLENGTH NOT NULL,
-         |    "ref_tree"             VARCHAR(1500) ENCODE RUNLENGTH NOT NULL,
-         |    "ref_parent"           VARCHAR(255)  ENCODE RUNLENGTH NOT NULL,
-         |    "account_id"           VARCHAR(4096) ENCODE LZO,
-         |    "architecture"         VARCHAR(4096) ENCODE LZO,
-         |    "availability_zone"    VARCHAR(4096) ENCODE LZO,
-         |    "billing_products"     VARCHAR(5000) ENCODE LZO,
-         |    "devpay_product_codes" VARCHAR(5000) ENCODE LZO,
-         |    "image_id"             CHAR(12)      ENCODE LZO,
-         |    "instance_id"          VARCHAR(19)   ENCODE LZO,
-         |    "instance_type"        VARCHAR(4096) ENCODE LZO,
-         |    "kernel_id"            CHAR(12)      ENCODE LZO,
-         |    "pending_time"         TIMESTAMP     ENCODE LZO,
-         |    "private_ip"           VARCHAR(15)   ENCODE LZO,
-         |    "ramdisk_id"           CHAR(12)      ENCODE LZO,
-         |    "region"               VARCHAR(4096) ENCODE LZO,
-         |    "version"              VARCHAR(4096) ENCODE LZO,
+         |    "schema_vendor"        VARCHAR(128)  ENCODE ZSTD NOT NULL,
+         |    "schema_name"          VARCHAR(128)  ENCODE ZSTD NOT NULL,
+         |    "schema_format"        VARCHAR(128)  ENCODE ZSTD NOT NULL,
+         |    "schema_version"       VARCHAR(128)  ENCODE ZSTD NOT NULL,
+         |    "root_id"              CHAR(36)      ENCODE RAW  NOT NULL,
+         |    "root_tstamp"          TIMESTAMP     ENCODE ZSTD NOT NULL,
+         |    "ref_root"             VARCHAR(255)  ENCODE ZSTD NOT NULL,
+         |    "ref_tree"             VARCHAR(1500) ENCODE ZSTD NOT NULL,
+         |    "ref_parent"           VARCHAR(255)  ENCODE ZSTD NOT NULL,
+         |    "account_id"           VARCHAR(4096) ENCODE ZSTD,
+         |    "architecture"         VARCHAR(4096) ENCODE ZSTD,
+         |    "availability_zone"    VARCHAR(4096) ENCODE ZSTD,
+         |    "billing_products"     VARCHAR(5000) ENCODE ZSTD,
+         |    "devpay_product_codes" VARCHAR(5000) ENCODE ZSTD,
+         |    "image_id"             CHAR(12)      ENCODE ZSTD,
+         |    "instance_id"          VARCHAR(19)   ENCODE ZSTD,
+         |    "instance_type"        VARCHAR(4096) ENCODE ZSTD,
+         |    "kernel_id"            CHAR(12)      ENCODE ZSTD,
+         |    "pending_time"         TIMESTAMP     ENCODE ZSTD,
+         |    "private_ip"           VARCHAR(15)   ENCODE ZSTD,
+         |    "ramdisk_id"           CHAR(12)      ENCODE ZSTD,
+         |    "region"               VARCHAR(4096) ENCODE ZSTD,
+         |    "version"              VARCHAR(4096) ENCODE ZSTD,
          |    FOREIGN KEY (root_id) REFERENCES snowplow.events(event_id)
          |)
          |DISTSTYLE KEY
@@ -611,6 +617,148 @@ class GenerateCommandSpec extends Specification { def is = s2"""
       "Warning: in JSON Schema [iglu:com.acme/some_event/jsonschema/1-0-0]: warning2",
       "Warning: in JSON Schema [iglu:com.acme/some_event/jsonschema/1-0-0]: warning3",
       "Warning: in generated DDL [com.acme/other_context_1]: another_warning"
+    ))
+  }
+
+  def e6 = {
+    val sourceSchema = parse(
+      """
+        |{
+        |  "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+        |  "description": "Schema for an example agency event",
+        |  "self": {
+        |    "vendor": "com.example-agency",
+        |    "name": "cast",
+        |    "format": "jsonschema",
+        |    "version": "1-0-0"
+        |  },
+        |  "type": "object",
+        |  "properties": {
+        |    "name": {
+        |      "type": "string"
+        |    },
+        |    "age": {
+        |      "type": "number"
+        |    }
+        |  },
+        |  "required":["name"]
+        |}
+      """.stripMargin
+    )
+    val sourceSchema2 = parse(
+      """
+        |{
+        |  "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+        |  "description": "Schema for an example agency event",
+        |  "self": {
+        |    "vendor": "com.example-agency",
+        |    "name": "cast",
+        |    "format": "jsonschema",
+        |    "version": "1-0-3"
+        |  },
+        |  "type": "object",
+        |  "properties": {
+        |    "name": {
+        |      "type": "string"
+        |    },
+        |    "surname": {
+        |      "type": "string"
+        |    },
+        |    "age": {
+        |      "type": "number"
+        |    }
+        |  },
+        |  "required":["name", "surname"]
+        |}
+      """.stripMargin
+    )
+    val jsonFile = JsonFile(sourceSchema, new File("1-0-0"))
+    val jsonFile2 = JsonFile(sourceSchema2, new File("1-0-3"))
+    val stubFile: File = new File(".")
+    val command = GenerateCommand(stubFile, stubFile)
+    val (_, schemas) = splitValidations(List(jsonFile, jsonFile2).map(_.extractSelfDescribingSchema))
+    val schemaVerValidation = command.validateSchemaVersions(schemas)
+
+    val schemaVerMessages: List[String] = schemaVerValidation match {
+      case Warnings(lst) => lst
+      case Errors(lst) => lst
+      case VersionSuccess(_) => List.empty[String]
+    }
+
+    schemaVerMessages must beEqualTo(List(
+      s"Error: Directory [${stubFile.getAbsolutePath}] contains schemas of [com.example-agency/cast] which has gaps between schema versions." +
+        " Use --force to switch off schema version check."
+    ))
+  }
+
+  def e7 = {
+    val sourceSchema = parse(
+      """
+        |{
+        |  "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+        |  "description": "Schema for an example agency event",
+        |  "self": {
+        |    "vendor": "com.example-agency",
+        |    "name": "cast",
+        |    "format": "jsonschema",
+        |    "version": "1-1-0"
+        |  },
+        |  "type": "object",
+        |  "properties": {
+        |    "name": {
+        |      "type": "string"
+        |    },
+        |    "age": {
+        |      "type": "number"
+        |    }
+        |  },
+        |  "required":["name"]
+        |}
+      """.stripMargin
+    )
+    val sourceSchema2 = parse(
+      """
+        |{
+        |  "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+        |  "description": "Schema for an example agency event",
+        |  "self": {
+        |    "vendor": "com.example-agency",
+        |    "name": "cast",
+        |    "format": "jsonschema",
+        |    "version": "1-1-1"
+        |  },
+        |  "type": "object",
+        |  "properties": {
+        |    "name": {
+        |      "type": "string"
+        |    },
+        |    "surname": {
+        |      "type": "string"
+        |    },
+        |    "age": {
+        |      "type": "number"
+        |    }
+        |  },
+        |  "required":["name", "surname"]
+        |}
+      """.stripMargin
+    )
+    val jsonFile = JsonFile(sourceSchema, new File("1-1-0"))
+    val jsonFile2 = JsonFile(sourceSchema2, new File("1-1-1"))
+    val stubFile: File = new File(".")
+    val command = GenerateCommand(stubFile, stubFile)
+    val (_, schemas) = splitValidations(List(jsonFile, jsonFile2).map(_.extractSelfDescribingSchema))
+    val schemaVerValidation = command.validateSchemaVersions(schemas)
+
+    val schemaVerMessages: List[String] = schemaVerValidation match {
+      case Warnings(lst) => lst
+      case Errors(lst) => lst
+      case VersionSuccess(_) => List.empty[String]
+    }
+
+    schemaVerMessages must beEqualTo(List(
+      s"Error: Directory [${stubFile.getAbsolutePath}] contains schemas of [com.example-agency/cast] without version 1-0-0." +
+        s" Use --force to switch off schema version check."
     ))
   }
 }
