@@ -76,7 +76,7 @@ object SanityLinter {
    */
   private implicit class SchemaOps(val value: Schema) {
     /**
-     * Check if Schema has no specifict type *OR* has no type at all
+     * Check if Schema has no specific type *OR* has no type at all
      */
     def withoutType(jsonType: Type): Boolean =
       value.`type` match {
@@ -115,45 +115,60 @@ object SanityLinter {
    * @return non-empty list of summed failures (all, including nested) or
    *         unit in case of success
    */
-  def lint(schema: Schema, severityLevel: SeverityLevel): LintSchema = {
+  def lint(schema: Schema, severityLevel: SeverityLevel, height: Int): LintSchema = {
     // Current level validations
     val validations = severityLevel.linters.map(linter => linter(schema))
       .foldMap(_.toValidationNel)
+
+    val rootTypeCheck =
+      if(severityLevel == SecondLevel || severityLevel == ThirdLevel)
+        (height match {
+          case 0 =>
+            (schema.`type`, schema.properties) match {
+              case (Some(Object), None) => "Object Schema doesn't have properties".failure
+              case (Some(Object), Some(Properties(_))) => propertySuccess
+              case (_, _) => "Schema doesn't begin with type object".failure
+            }
+          case _ => propertySuccess
+        }).toValidationNel
+      else
+        propertySuccess.toValidationNel
+
 
     // Validations of child nodes
     // In all following properties can be found child Schema
 
     val properties = schema.properties match {
       case Some(props) =>
-        props.value.values.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel))
+        props.value.values.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel, height+1))
       case None => schemaSuccess
     }
 
     val patternProperties = schema.patternProperties match {
       case Some(PatternProperties(props)) =>
-        props.values.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel))
+        props.values.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel, height+1))
       case _ => schemaSuccess
     }
 
     val additionalProperties = schema.additionalProperties match {
-      case Some(AdditionalPropertiesSchema(s)) => lint(s, severityLevel)
+      case Some(AdditionalPropertiesSchema(s)) => lint(s, severityLevel, height+1)
       case _ => schemaSuccess
     }
 
     val items = schema.items match {
-      case Some(ListItems(s)) => lint(s, severityLevel)
+      case Some(ListItems(s)) => lint(s, severityLevel, height+1)
       case Some(TupleItems(i)) =>
-        i.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel))
+        i.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel, height+1))
       case None => schemaSuccess
     }
 
     val additionalItems = schema.additionalItems match {
-      case Some(AdditionalItemsSchema(s)) => lint(s, severityLevel)
+      case Some(AdditionalItemsSchema(s)) => lint(s, severityLevel, height+1)
       case _ => schemaSuccess
     }
 
-    // summing current level validations and child nodes validations
-    validations |+| properties |+| items |+| additionalItems |+| additionalProperties |+| patternProperties
+    // summing current level validations, root type check and child nodes validations
+    validations |+| rootTypeCheck |+| properties |+| items |+| additionalItems |+| additionalProperties |+| patternProperties
   }
 
   // Linter functions
@@ -181,6 +196,20 @@ object SanityLinter {
         (max.value >= min.value).or(s"minLength property [${min.value}] is greater than maxLength [${max.value}]")
       case _ => propertySuccess
     }
+  }
+
+  /**
+    * Check that string's `maxLength` property isn't greater than Redshift VARCHAR(max), 65535
+    * See http://docs.aws.amazon.com/redshift/latest/dg/r_Character_types.html
+    */
+  val lintMaxLengthRange: Linter = (schema: Schema) => {
+    if (schema.withType(String)) {
+      schema.maxLength match {
+        case Some(max) if max.value > 65535 => s"maxLength [${max.value}] is greater than Redshift VARCHAR(max), 65535".failure
+        case _ => propertySuccess
+      }
+    }
+    else propertySuccess
   }
 
   /**
@@ -253,6 +282,16 @@ object SanityLinter {
     }
   }
 
+  /**
+    * Check that schema contains known formats
+    */
+  val lintUnknownFormats: Linter = (schema: Schema) => {
+    schema.format match {
+      case Some(CustomFormat(format)) => s"Format [$format] is not supported. Available options are: date-time, date, email, hostname, ipv4, ipv6, uri".failure
+      case _ => propertySuccess
+    }
+  }
+
   // Second Severity Level
 
   /**
@@ -287,6 +326,26 @@ object SanityLinter {
     }
   }
 
+  // Third Severity Level
+
+  /**
+    * Check that non-required properties have type null
+    */
+  val lintOptionalFields: Linter = (schema: Schema) => {
+    (schema.required, schema.properties) match {
+      case (Some(Required(required)), Some(Properties(properties))) =>
+        val allowedKeys = properties.keySet
+        val requiredKeys = required.toSet
+        val optionalKeys = allowedKeys -- requiredKeys
+        val optKeysWithoutTypeNull = for {
+          key <- optionalKeys
+          if !properties(key).withType(Null)
+        } yield key
+        optKeysWithoutTypeNull.isEmpty.or("It is recommended to express absence of property via nullable type")
+      case _ => propertySuccess
+    }
+  }
+
   trait SeverityLevel {
     def linters: List[Linter]
   }
@@ -298,12 +357,15 @@ object SanityLinter {
       // Check if type of Schema corresponds with its validation properties
       lintNumberProperties, lintStringProperties, lintObjectProperties, lintArrayProperties,
       // Other checks
-      lintPossibleKeys
+      lintPossibleKeys, lintUnknownFormats, lintMaxLengthRange
     )
   }
 
   case object SecondLevel extends SeverityLevel {
     val linters = FirstLevel.linters ++ List(lintMinMaxPresent, lintMaxLength)
   }
-}
 
+  case object ThirdLevel extends SeverityLevel {
+    val linters = FirstLevel.linters ++ SecondLevel.linters ++ List(lintOptionalFields)
+  }
+}

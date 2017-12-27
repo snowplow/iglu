@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -16,9 +16,6 @@ package com.snowplowanalytics.iglu.core
 import org.json4s._
 import org.json4s.JsonDSL._
 
-// This library
-import Containers.{ SelfDescribingData, SelfDescribingSchema }
-
 /**
  * Example of Json4s serializers for Iglu entities
  */
@@ -33,11 +30,12 @@ object IgluJson4sCodecs {
   /**
    * Extract SchemaVer (*-*-*) from JValue
    */
-  object SchemaVerSerializer extends CustomSerializer[SchemaVer](_ => (
+  object SchemaVerSerializer extends CustomSerializer[SchemaVer.Full](_ => (
     {
-      case JString(version) => SchemaVer.parse(version) match {
-        case Some(schemaVer) => schemaVer
-        case None => throw new MappingException("Can't convert " + version + " to SchemaVer")
+      case JString(version) =>
+        SchemaVer.parse(version) match {
+        case Some(schemaVer: SchemaVer.Full) => schemaVer
+        case _ => throw new MappingException("Can't convert " + version + " to SchemaVer")
       }
       case x => throw new MappingException("Can't convert " + x + " to SchemaVer")
     },
@@ -53,9 +51,9 @@ object IgluJson4sCodecs {
   object SchemaSerializer extends CustomSerializer[SelfDescribingSchema[JValue]](_ => (
     {
       case fullSchema: JObject =>
-        val schemaKey = (fullSchema \ "self").extract[SchemaKey]
+        val schemaMap = (fullSchema \ "self").extract[SchemaMap]
         val schema = IgluCoreCommon.removeSelf(fullSchema)
-        SelfDescribingSchema(schemaKey, schema)
+        SelfDescribingSchema(schemaMap, schema)
       case _ => throw new MappingException("Not an JSON object")
     },
 

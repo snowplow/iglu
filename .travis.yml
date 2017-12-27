@@ -2,28 +2,30 @@ language: scala
 scala:
 - 2.11.8
 jdk:
-- oraclejdk7
+- oraclejdk8
 script:
 - cd 2-repositories/scala-repo-server
 - ./scripts/create-test-user.bash
 - sbt test
 - cd ../..
+before_deploy:
+  - pip install --user release-manager==0.3.0
 deploy:
 - provider: script
   skip_cleanup: true
-  script: ./.travis/deploy.py
+  script: ./.travis/deploy_scala_core.sh $TRAVIS_TAG
   on:
     condition: '"$(.travis/is_core_release_tag.sh $TRAVIS_TAG)" == "" && $? == 0'
     tags: true
 - provider: script
   skip_cleanup: true
-  script: ./.travis/deploy.py
+  script: ./.travis/deploy_schema_ddl.sh $TRAVIS_TAG
   on:
     condition: '"$(.travis/is_schemaddl_release_tag.sh $TRAVIS_TAG)" == "" && $? == 0'
     tags: true
 - provider: script
   skip_cleanup: true
-  script: ./.travis/deploy.py
+  script: ./.travis/deploy_igluctl.sh $TRAVIS_TAG
   on:
     condition: '"$(.travis/is_igluctl_release_tag.sh $TRAVIS_TAG)" == "" && $? == 0'
     tags: true

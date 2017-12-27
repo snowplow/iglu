@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -18,7 +18,7 @@ import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods.compact
 
 // This library
-import Containers._
+import com.snowplowanalytics.iglu.core.typeclasses._
 
 /**
  * This module contains examples of common traits and type class instances
@@ -28,15 +28,17 @@ object IgluCoreCommon {
 
   implicit val formats = IgluJson4sCodecs.formats
 
+  import syntax._
+
   ////////////////////////
   // ExtractFrom Json4s //
   ////////////////////////
 
   /**
-   * Example common trait for [[ExtractFrom]] *data* objects
-   * It can also be instantiated or extended by [[AttachTo]]
+   * Example common trait for [[ExtractSchemaKey]] *data* objects
+   * It can also be instantiated or extended by [[AttachSchemaKey]]
    */
-  trait Json4sExtractFromData extends ExtractFrom[JValue] {
+  trait Json4SExtractSchemaKeyData extends ExtractSchemaKey[JValue] {
     def extractSchemaKey(entity: JValue): Option[SchemaKey] =
       entity \ "schema" match {
         case JString(schema) => SchemaKey.fromUri(schema)
@@ -45,15 +47,15 @@ object IgluCoreCommon {
   }
 
   /**
-   * Example of [[ExtractFrom]] instance for json4s JSON *data*
+   * Example of [[ExtractSchemaKey]] instance for json4s JSON *data*
    */
-  implicit object Json4sExtractFromData extends Json4sExtractFromData
+  implicit object Json4SExtractSchemaKeyData extends Json4SExtractSchemaKeyData
 
   /**
-   * Example common trait for [[ExtractFrom]] *Schemas* objects
-   * It can also be instantiated or extended by [[AttachTo]]
+   * Example common trait for [[ExtractSchemaKey]] *Schemas* objects
+   * It can also be instantiated or extended by [[AttachSchemaKey]]
    */
-  trait Json4sExtractFromSchema extends ExtractFrom[JValue] {
+  trait Json4SExtractSchemaKeySchema extends ExtractSchemaKey[JValue] {
     /**
      * Extract SchemaKey usning serialization formats defined at [[IgluJson4sCodecs]]
      */
@@ -62,9 +64,9 @@ object IgluCoreCommon {
   }
 
   /**
-   * Example of [[ExtractFrom]] instance for json4s JSON *Schemas*
+   * Example of [[ExtractSchemaKey]] instance for json4s JSON *Schemas*
    */
-  implicit object Json4sExtractFromSchema extends Json4sExtractFromSchema
+  implicit object Json4SExtractSchemaKeySchema extends Json4SExtractSchemaKeySchema
 
 
   /////////////////////
@@ -74,15 +76,15 @@ object IgluCoreCommon {
   // Schemas
 
   /**
-   * Example of simple [[AttachTo]] JSON *Schema* for json4s
+   * Example of simple [[AttachSchemaKey]] JSON *Schema* for json4s
    */
-  implicit object Json4sAttachToSchema extends AttachTo[JValue] {
+  implicit object Json4SAttachSchemaKeySchema extends AttachSchemaKey[JValue] {
     def attachSchemaKey(schemaKey: SchemaKey, schema: JValue): JValue =
       (("self", Extraction.decompose(schemaKey)): JObject).merge(schema)
 
     /**
      * Extract SchemaKey using serialization formats defined at [[IgluJson4sCodecs]]
-     * `extractSchemaKey` is also required to be implemented in [[AttachTo]] because it
+     * `extractSchemaKey` is also required to be implemented in [[AttachSchemaKey]] because it
      * is supreme type class
      */
     def extractSchemaKey(entity: JValue): Option[SchemaKey] =
@@ -90,46 +92,50 @@ object IgluCoreCommon {
   }
 
   /**
-   * Example of full-featured [[AttachTo]] JSON *Schema* for json4s
-   * Unlike almost identical [[Json4sAttachToSchema]] it also extends
+   * Example of full-featured [[AttachSchemaKey]] JSON *Schema* for json4s
+   * Unlike almost identical [[Json4SAttachSchemaKeySchema]] it also extends
    * [[ToSchema]] which makes possible to use `toSchema` method
    */
-  implicit object Json4sAttachToSchemaComplex extends AttachTo[JValue] with ToSchema[JValue] {
-    def attachSchemaKey(schemaKey: SchemaKey, schema: JValue): JValue = {
-      (("self", Extraction.decompose(schemaKey)): JObject).merge(schema)
+  implicit object Json4SAttachSchemaMapComplex extends AttachSchemaMap[JValue] with ToSchema[JValue] {
+    def attachSchemaMap(schemaMap: SchemaMap, schema: JValue): JValue = {
+      (("self", Extraction.decompose(schemaMap)): JObject).merge(schema)
     }
 
     /**
      * Extract SchemaKey using serialization formats defined at [[IgluJson4sCodecs]]
-     * `extractSchemaKey` is also required to be implemented in [[AttachTo]] because it
+     * `extractSchemaKey` is also required to be implemented in [[AttachSchemaKey]] because it
      * is supreme type class
      */
-    def extractSchemaKey(entity: JValue): Option[SchemaKey] =
-      (entity \ "self").extractOpt[SchemaKey]
+    def extractSchemaMap(entity: JValue): Option[SchemaMap] = {
+
+      implicit val formats = IgluJson4sCodecs.formats
+
+      (entity \ "self").extractOpt[SchemaMap]
+    }
 
     /**
      * Remove key with `self` description
      * `getContent` required to be implemented here because it extends [[ToSchema]]
      */
-    def getContent(json: JValue): Option[JValue] =
+    def getContent(json: JValue): JValue =
       removeSelf(json) match {
-        case JNothing => None
-        case content  => Some(content)
+        case content => content
+        case JNothing => JNothing
       }
   }
 
   // Data
 
   /**
-   * Example of full-featured [[AttachTo]] JSON *instance* for json4s
-   * Contains all available mixins
+   * Example of full-featured [[AttachSchemaKey]] JSON *instance* for json4s
+   * Contains all available mix-ins
    */
-  implicit object Json4sAttachToData extends AttachTo[JValue] with ToData[JValue] with Json4sExtractFromData {
+  implicit object Json4SAttachSchemaKeyData extends AttachSchemaKey[JValue] with ToData[JValue] with Json4SExtractSchemaKeyData {
 
-    def getContent(json: JValue): Option[JValue] =
+    def getContent(json: JValue): JValue =
       json \ "data" match {
-        case JNothing     => None
-        case data: JValue => Some(data)
+        case data: JValue => data
+        case JNothing => JNothing
       }
 
     def attachSchemaKey(schemaKey: SchemaKey, instance: JValue): JValue =
@@ -153,9 +159,9 @@ object IgluCoreCommon {
     data: String)
 
   /**
-   * Example of [[ExtractFrom]] instance for usual case class
+   * Example of [[ExtractSchemaKey]] instance for usual case class
    */
-  implicit object DescribingStringInstance extends ExtractFrom[DescribedString] {
+  implicit object DescribingStringInstance extends ExtractSchemaKey[DescribedString] {
     def extractSchemaKey(entity: DescribedString): Option[SchemaKey] =
       Some(
         SchemaKey(

@@ -1,25 +1,25 @@
 # Igluctl
 
-[ ![Build Status] [travis-image] ] [travis] [ ![License] [license-image] ] [license]
+[![Build Status][travis-image]][travis] [![License][license-image]][license]
 
-Igluctl is command-line tool, that enables you to perform the most common tasks with **[Iglu] [iglu]** schema registries, i.e.:
+Igluctl is command-line tool, that enables you to perform the most common tasks with **[Iglu][iglu]** schema registries, i.e.:
 
 * Linting (validating) JSON Schemas
 * Generating corresponding Redshift tables definition and JSON path files for JSON Schemas
 * Publish JSON Schemas stored locally to Iglu schema registries
 * Publish JSON Schemas (or any other files) stored locally to AWS S3
 
-For complete documenation on Igluctl please refer to the [technical documentation] [technical-documentation].
+For complete documenation on Igluctl please refer to the [technical documentation][technical-documentation].
 
 ## User Quickstart
 
 You can download igluctl archive from our Bintray, using following link:
 
 ```
-http://dl.bintray.com/snowplow/snowplow-generic/igluctl_0.2.0.zip
+http://dl.bintray.com/snowplow/snowplow-generic/igluctl_0.3.0.zip
 ```
 
-Before running it - make sure you have [Oracle JRE 7] [jre] installed.
+Before running it - make sure you have [Oracle JRE 8][jre] installed.
 
 ### Windows
 
@@ -28,7 +28,7 @@ After downloading and unzipping archive you'll find file `igluctl` which is sing
 To run it you can use following format (executable file should be in current directory):
 
 ```bash
-$ java -jar igluctl lint {{input}}
+$ java -jar igluctl lint $SCHEMAS_DIR
 ```
 
 Below and everywhere in documentation you'll find example commands without `java -jar` prefix, which is Windows-specific.
@@ -38,8 +38,8 @@ Below and everywhere in documentation you'll find example commands without `java
 You can extract and run archive using following commands:
 
 ```bash
-$ unzip -j igluctl_0.2.0.zip
-$ ./igluctl lint {{input}}
+$ unzip -j igluctl_0.3.0.zip
+$ ./igluctl lint $SCHEMAS_DIR
 ```
 
 ## CLI
@@ -47,13 +47,13 @@ $ ./igluctl lint {{input}}
 ### Generate DDL
 
 You can transform JSON Schema into Redshift (other storages are coming) DDL, using `igluctl static generate` command.
-This functionality was previously implemented as **[Schema Guru] [schema-guru]** (pre-0.7.0) `ddl` subcommand
+This functionality was previously implemented as **[Schema Guru][schema-guru]** (pre-0.7.0) `ddl` subcommand
 
 ```bash
-$ ./igluctl static generate {{input}}
+$ ./igluctl static generate $SCHEMAS_DIR
 ```
 
-`{{input}}` should be the path to the JSON Schemas stored locally that are to be validated.
+`$SCHEMAS_DIR` should be the path to the JSON Schemas stored locally that are to be validated.
 
 ### Publish JSON Schemas to a remote Iglu Schema Registry
 
@@ -61,24 +61,16 @@ You can publish your JSON Schemas from local filesystem to Iglu Scala Registry u
 
 
 ```bash
-$ ./igluctl static push {{input}} {{registry_host}} {{apikey}}
+$ ./igluctl static push $SCHEMAS_DIR $IGLU_HOST $APIKEY
 ```
 
 If you are running an s3 backed Iglu Static Server Registry you can publish schemas as follows:
 
 ```
-$ ./igluctl static s3cp {{input}} {{bucketname}} --accessKeyId {{ACCESS_KEY_ID}} --secretAccessKey {{SECRET_ACCESS_KEY}} --region {{AWS_REGION}}
+$ ./igluctl static s3cp $SCHEMAS_DIR $S3BUCKET --accessKeyId $ACCESS_KEY_ID --secretAccessKey $SECRET_ACCESS_KEY --region $AWS_REGION
 ```
 
-### Copy JSON Schemas to AWS S3
-
-You also can copy your JSON Schemas (JSON Path files or any other files) to Amazon S3 storage using `igluctl static s3cp` command.
-
-```bash
-$ ./igluctl static s3cp {{input}} {{bucketname}} --accessKeyId {{ACCESS_KEY_ID}} --secretAccessKey {{SECRET_ACCESS_KEY}} --region {{AWS_REGION}}
-```
-
-Igluctl will closely follow [AWS CLI] [aws-cli] tools behavior while looking for credentials, which means you can omit `accessKeyId` and `secretKeyId` options
+Igluctl will closely follow [AWS CLI][aws-cli] tools behavior while looking for credentials, which means you can omit `accessKeyId` and `secretKeyId` options
 if you have AWS `default` profile or appropriate environment variables.
 
 ### Linting
@@ -86,7 +78,7 @@ if you have AWS `default` profile or appropriate environment variables.
 You can check your JSON Schema for vairous common mistakes using `igluctl lint` command.
 
 ```bash
-$ ./igluctl_0.2.0 lint {{input}}
+$ ./igluctl_0.3.0 lint $SCHEMAS_DIR
 ```
 
 This check will include JSON Syntax validation (`required` is not empty, `maximum` is integer etc)
@@ -95,9 +87,9 @@ and also "sanity check", which checks that particular JSON Schema can always val
 
 ## Copyright and License
 
-Igluctl is copyright 2016 Snowplow Analytics Ltd.
+Igluctl is copyright 2016-2017 Snowplow Analytics Ltd.
 
-Licensed under the **[Apache License, Version 2.0] [license]** (the "License");
+Licensed under the **[Apache License, Version 2.0][license]** (the "License");
 you may not use this software except in compliance with the License.
 
 Unless required by applicable law or agreed to in writing, software

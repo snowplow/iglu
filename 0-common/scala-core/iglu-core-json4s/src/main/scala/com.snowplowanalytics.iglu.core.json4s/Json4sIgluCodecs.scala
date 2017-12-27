@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -10,15 +10,12 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.core.json4s
+package com.snowplowanalytics.iglu.core
+package json4s
 
 // json4s
 import org.json4s._
 import org.json4s.JsonDSL._
-
-// This library
-import com.snowplowanalytics.iglu.core.{ SchemaVer, SchemaKey }
-import com.snowplowanalytics.iglu.core.Containers.{ SelfDescribingSchema, SelfDescribingData }
 
 /**
  * Example of serializers for JSON Schema
@@ -34,11 +31,11 @@ object Json4sIgluCodecs {
   /**
    * Extract SchemaVer (*-*-*) from JValue
    */
-  object SchemaVerSerializer extends CustomSerializer[SchemaVer](_ => (
+  object SchemaVerSerializer extends CustomSerializer[SchemaVer.Full](_ => (
     {
       case JString(version) => SchemaVer.parse(version) match {
-        case Some(schemaVer) => schemaVer
-        case None => throw new MappingException("Can't convert " + version + " to SchemaVer")
+        case Some(schemaVer: SchemaVer.Full) => schemaVer
+        case _ => throw new MappingException("Can't convert " + version + " to SchemaVer")
       }
       case x => throw new MappingException("Can't convert " + x + " to SchemaVer")
     },
@@ -54,9 +51,9 @@ object Json4sIgluCodecs {
   object SchemaSerializer extends CustomSerializer[SelfDescribingSchema[JValue]](_ => (
     {
       case fullSchema: JObject =>
-        val schemaKey = (fullSchema \ "self").extract[SchemaKey]
+        val schemaMap = (fullSchema \ "self").extract[SchemaMap]
         val schema = removeSelf(fullSchema)
-        SelfDescribingSchema(schemaKey, schema)
+        SelfDescribingSchema(schemaMap, schema)
       case _ => throw new MappingException("Not an JSON object")
     },
 

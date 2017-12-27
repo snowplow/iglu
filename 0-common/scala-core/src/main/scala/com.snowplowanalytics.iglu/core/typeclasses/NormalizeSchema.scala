@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -10,19 +10,19 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.core.circe
-
-// Circe
-import io.circe._
-
-// This library
-import com.snowplowanalytics.iglu.core.Containers._
+package com.snowplowanalytics.iglu.core
+package typeclasses
 
 /**
- * Having this in implicit scope allow [[SelfDescribingSchema]] with [[Json]]
- * to be converted into [[String]]
- */
-object StringifySchema extends StringifySchema[Json] {
-  def asString(container: SelfDescribingSchema[Json]): String =
-    container.normalize(NormalizeSchema).noSpaces
+  * Type class to render Schema into its base type [[S]]
+  * and lowest-level ([[String]]) common for all aps
+  *
+  * @tparam S generic type in which Schema can be represented
+  */
+trait NormalizeSchema[S] {
+  /**
+    * Render Schema to its base type [[S]]
+    */
+  def normalize(container: SelfDescribingSchema[S]): S
 }
+

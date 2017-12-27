@@ -20,7 +20,7 @@ import scalaz._
 import Scalaz._
 
 // Iglu core
-import com.snowplowanalytics.iglu.core.{ SchemaKey, SchemaVer }
+import com.snowplowanalytics.iglu.core.{ SchemaMap, SchemaVer }
 
 // This project
 import FlatSchema.flattenJsonSchema
@@ -38,8 +38,8 @@ import FlatSchema.flattenJsonSchema
 case class Migration(
   vendor: String,
   name: String,
-  from: SchemaVer,
-  to: SchemaVer,
+  from: SchemaVer.Full,
+  to: SchemaVer.Full,
   diff: Migration.SchemaDiff)
 
 // When our Migrations will be precise enough, so they could handle
@@ -255,9 +255,9 @@ object Migration {
   /**
    * Extract tuple of four Schema attributes to group Schemas by revision
    *
-   * @param schemaKey Schema description
+   * @param schemaMap Schema description
    * @return tuple of vendor, name, model, revision
    */
-  private def revisionCriterion(schemaKey: SchemaKey): RevisionGroup =
-    (schemaKey.vendor, schemaKey.name, schemaKey.version.model, schemaKey.version.revision)
+  private def revisionCriterion(schemaMap: SchemaMap): RevisionGroup =
+    (schemaMap.vendor, schemaMap.name, schemaMap.version.model, schemaMap.version.revision)
 }

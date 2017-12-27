@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -10,7 +10,7 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.core
+package com.snowplowanalytics.iglu.core.json4s
 
 // specs2
 import org.specs2.Specification
@@ -19,7 +19,11 @@ import org.specs2.Specification
 import org.json4s._
 import org.json4s.jackson.JsonMethods.parse
 
-class ExtractFromSpec extends Specification { def is = s2"""
+// This library
+import implicits._
+import com.snowplowanalytics.iglu.core._
+
+class ExtractSchemaKeySpec extends Specification { def is = s2"""
   Specification ExtractFrom type class for instances
     extract SchemaKey using postfix method $e1
     extract SchemaKey using unsafe postfix method $e2
@@ -33,7 +37,6 @@ class ExtractFromSpec extends Specification { def is = s2"""
   """
 
   def e1 = {
-    import IgluCoreCommon.Json4sExtractFromData
 
     val json: JValue = parse(
       """
@@ -49,7 +52,6 @@ class ExtractFromSpec extends Specification { def is = s2"""
   }
 
   def e2 = {
-    import IgluCoreCommon.Json4sExtractFromData
 
     val json: JValue = parse(
       """
@@ -63,7 +65,6 @@ class ExtractFromSpec extends Specification { def is = s2"""
   }
 
   def e3 = {
-    import IgluCoreCommon.Json4sAttachToData
 
     val json: JValue = parse(
       """
@@ -79,7 +80,6 @@ class ExtractFromSpec extends Specification { def is = s2"""
   }
 
   def e4 = {
-    import IgluCoreCommon.Json4sExtractFromData
 
     val json: JValue = parse(
       """
@@ -92,7 +92,6 @@ class ExtractFromSpec extends Specification { def is = s2"""
   }
 
   def e5 = {
-    import IgluCoreCommon.Json4sExtractFromSchema
 
     val json: JValue = parse(
       """
@@ -111,13 +110,12 @@ class ExtractFromSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    json.getSchemaKey must beSome(
-      SchemaKey("com.acme", "keyvalue", "jsonschema", SchemaVer(1,1,0))
+    json.getSchemaMap must beSome(
+      SchemaMap("com.acme", "keyvalue", "jsonschema", SchemaVer.Full(1,1,0))
     )
   }
 
   def e6 = {
-    import IgluCoreCommon.Json4sExtractFromSchema
 
     // SchemaVer cannot have 0 as MODEL
     val json: JValue = parse(
@@ -141,7 +139,6 @@ class ExtractFromSpec extends Specification { def is = s2"""
   }
 
   def e7 = {
-    import IgluCoreCommon.Json4sExtractFromData
 
     // SchemaVer cannot have preceding 0 in REVISION
     val json: JValue = parse(

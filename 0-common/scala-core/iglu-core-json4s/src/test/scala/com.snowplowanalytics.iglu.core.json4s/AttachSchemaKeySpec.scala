@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -20,9 +20,10 @@ import org.json4s._
 import org.json4s.jackson.JsonMethods.parse
 
 // This library
+import implicits._
 import com.snowplowanalytics.iglu.core._
 
-class AttachToSpec extends Specification { def is = s2"""
+class AttachSchemaKeySpec extends Specification { def is = s2"""
   Specification AttachTo type class for instances
     add Schema reference to json4s data instance $e1
     add description to json4s Schema $e2
@@ -30,8 +31,6 @@ class AttachToSpec extends Specification { def is = s2"""
   """
 
   def e1 = {
-
-    implicit val attachSchemaKey = AttachToData
 
     val data: JValue = parse(
       """
@@ -59,8 +58,6 @@ class AttachToSpec extends Specification { def is = s2"""
   }
 
   def e2 = {
-
-    implicit val attachSchemaKey = AttachToSchema
 
     val schema: JValue = parse(
       """
@@ -141,13 +138,12 @@ class AttachToSpec extends Specification { def is = s2"""
       """.stripMargin
     )
 
-    val result = schema.attachSchemaKey(SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0)))
+    val result = schema.attachSchemaMap(SchemaMap("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)))
+
     result must beEqualTo(expected)
   }
 
   def e3 = {
-
-    implicit val attachSchemaKey = AttachToSchema
 
     val schema: JValue = parse(
       """
@@ -163,7 +159,7 @@ class AttachToSpec extends Specification { def is = s2"""
         |}}
       """.stripMargin)
 
-    val key = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0))
+    val key = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
     val result = schema.attachSchemaKey(key)
     result.getSchemaKey must beSome(key)
   }

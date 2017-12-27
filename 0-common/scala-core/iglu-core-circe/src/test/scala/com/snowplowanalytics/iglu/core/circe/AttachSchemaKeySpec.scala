@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -15,6 +15,9 @@ package com.snowplowanalytics.iglu.core.circe
 // specs2
 import org.specs2.Specification
 
+// cats (for Scala 2.11)
+import cats.syntax.either._
+
 // Circe
 import io.circe._
 import io.circe.parser.parse
@@ -22,16 +25,16 @@ import io.circe.parser.parse
 // This library
 import com.snowplowanalytics.iglu.core._
 
-class AttachToSpec extends Specification { def is = s2"""
+class AttachSchemaKeySpec extends Specification { def is = s2"""
   Specification AttachTo type class for instances
     add Schema reference to circe data instance $e1
-    add description to json4s Schema $e2
+    add description to circe Schema $e2
     add and extract SchemaKey to Json $e3
   """
 
-  def e1 = {
+  import implicits._
 
-    implicit val attachSchemaKey = AttachToData
+  def e1 = {
 
     val data: Json = parse(
       """
@@ -59,8 +62,6 @@ class AttachToSpec extends Specification { def is = s2"""
   }
 
   def e2 = {
-
-    implicit val attachSchemaKey = AttachToSchema
 
     val schema: Json = parse(
       """
@@ -139,13 +140,11 @@ class AttachToSpec extends Specification { def is = s2"""
         |}
       """.stripMargin).getOrElse(Json.Null)
 
-    val result = schema.attachSchemaKey(SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0)))
+    val result = schema.attachSchemaMap(SchemaMap("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)))
     result must beJson(expected)
   }
 
   def e3 = {
-
-    implicit val attachSchemaKey = AttachToSchema
 
     val schema: Json = parse(
       """

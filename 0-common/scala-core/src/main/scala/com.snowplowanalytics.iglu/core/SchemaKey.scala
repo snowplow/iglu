@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -13,10 +13,12 @@
 package com.snowplowanalytics.iglu
 package core
 
+import scala.util.matching.Regex
+
 /**
- * The four elements of any Iglu-compatible schema
- * SchemaKey can be used both for Self-describing instances
- * and Self-describing Schemas
+ * Entity describing schema of data.
+ * Can have known or unknown `SchemaVer`. Extracted from `schema` key.
+ * Duality of `SchemaMap`
  */
 case class SchemaKey(
   vendor: String,
@@ -25,22 +27,12 @@ case class SchemaKey(
   version: SchemaVer) {
 
   /**
-   * Converts a SchemaKey into a path which is compatible
-   * with most local and remote Iglu schema repositories.
-   *
-   * @return a path usable for addressing local and remote
-   *         Iglu schema lookups
-   */
-  def toPath: String =
-    s"$vendor/$name/$format/${version.asString}"
-
-  /**
    * Converts the SchemaKey back to an Iglu-format schema URI
    *
    * @return the SchemaKey as a Iglu-format schema URI
    */
   def toSchemaUri: String =
-    s"iglu:$toPath"
+    s"iglu:$vendor/$name/$format/${version.asString}"
 }
 
 /**
@@ -49,10 +41,8 @@ case class SchemaKey(
  */
 object SchemaKey {
 
-  /**
-   * Canonical regular expression for SchemaKey
-   */
-  val schemaUriRegex = (
+  /** Canonical regular expression for SchemaKey */
+  val schemaUriRegex: Regex = (
     "^iglu:" +                          // Protocol
     "([a-zA-Z0-9-_.]+)/" +              // Vendor
     "([a-zA-Z0-9-_]+)/" +               // Name
@@ -60,16 +50,6 @@ object SchemaKey {
     "([1-9][0-9]*" +                    // MODEL (cannot start with 0)
     "(?:-(?:0|[1-9][0-9]*)){2})$").r    // REVISION and ADDITION
                                         // Extract whole SchemaVer within single group
-
-  /**
-   * Regular expression to extract SchemaKey from path
-   */
-  val schemaPathRegex = (
-    "^([a-zA-Z0-9-_.]+)/" +
-    "([a-zA-Z0-9-_]+)/" +
-    "([a-zA-Z0-9-_]+)/" +
-    "([1-9][0-9]*" +
-    "(?:-(?:0|[1-9][0-9]*)){2})$").r
 
   implicit val versionOrdering: Ordering[SchemaVer] = SchemaVer.ordering
 
@@ -85,9 +65,10 @@ object SchemaKey {
    *   keys.sorted
    * }}}
    */
-  val ordering = Ordering.by { (key: SchemaKey) =>
-    (key.vendor, key.name, key.format, key.version)
-  }
+  val ordering: Ordering[SchemaKey] =
+    Ordering.by { (key: SchemaKey) =>
+      (key.vendor, key.name, key.format, key.version)
+    }
 
   /**
    * Custom constructor for an Iglu SchemaKey from
@@ -101,22 +82,6 @@ object SchemaKey {
    */
   def fromUri(schemaUri: String): Option[SchemaKey] = schemaUri match {
     case schemaUriRegex(vnd, n, f, ver) =>
-      SchemaVer.parse(ver).map(SchemaKey(vnd, n, f, _))
-    case _ => None
-  }
-
-  /**
-   * Custom constructor for an Iglu SchemaKey from
-   * an Iglu-format Schema path, which looks like:
-   * com.snowplowanalytics.snowplow/mobile_context/jsonschema/1-0-0
-   * Can be used get Schema key by path on file system
-   *
-   * @param schemaPath an Iglu-format Schema path
-   * @return a Validation-boxed SchemaKey for
-   *         Success, and an error String on Failure
-   */
-  def fromPath(schemaPath: String): Option[SchemaKey] = schemaPath match {
-    case schemaPathRegex(vnd, n, f, ver) =>
       SchemaVer.parse(ver).map(SchemaKey(vnd, n, f, _))
     case _ => None
   }

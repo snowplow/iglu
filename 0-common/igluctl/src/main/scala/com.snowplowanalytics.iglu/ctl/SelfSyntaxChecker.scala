@@ -36,7 +36,7 @@ import org.json4s._
 import org.json4s.jackson.JsonMethods.fromJsonNode
 
 // Iglu Core
-import com.snowplowanalytics.iglu.core.SchemaKey
+import com.snowplowanalytics.iglu.core.SchemaMap
 import com.snowplowanalytics.iglu.core.json4s.Json4sIgluCodecs.SchemaVerSerializer
 
 /**
@@ -44,7 +44,7 @@ import com.snowplowanalytics.iglu.core.json4s.Json4sIgluCodecs.SchemaVerSerializ
  * Must be used with `com.github.fge.jsonschema` `Library` to declare that
  * `self` is valid and expected object for all Schemas with
  * `http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#`
- * URI in `$schema` keyword
+ * URI in `\$schema` keyword
  */
 object SelfSyntaxChecker extends AbstractSyntaxChecker("self", NodeType.OBJECT) {
 
@@ -67,9 +67,9 @@ object SelfSyntaxChecker extends AbstractSyntaxChecker("self", NodeType.OBJECT) 
       tree: SchemaTree): Unit = {
 
     val value = fromJsonNode(getNode(tree))
-    value.extractOpt[SchemaKey] match {
+    value.extractOpt[SchemaMap] match {
       case Some(_) => ()
-      case None => report.error(newMsg(tree, bundle, "iglu.invalidSchemaKey").putArgument("value", value))
+      case None => report.error(newMsg(tree, bundle, "iglu.invalidSchemaMap").putArgument("value", value))
     }
   }
 
@@ -119,4 +119,3 @@ object SelfSyntaxChecker extends AbstractSyntaxChecker("self", NodeType.OBJECT) 
       .getSyntaxValidator
   }
 }
-

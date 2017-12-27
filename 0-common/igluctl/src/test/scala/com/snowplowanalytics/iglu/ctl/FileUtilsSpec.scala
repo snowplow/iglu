@@ -22,8 +22,7 @@ import scalaz.Success
 import org.json4s.jackson.JsonMethods.parse
 
 // Iglu
-import com.snowplowanalytics.iglu.core.{ SchemaKey, SchemaVer }
-import com.snowplowanalytics.iglu.core.Containers.SelfDescribingSchema
+import com.snowplowanalytics.iglu.core.{ SchemaMap, SchemaVer, SelfDescribingSchema }
 
 // specs2
 import org.specs2.Specification
@@ -73,7 +72,7 @@ class FileUtilsSpec extends Specification { def is = s2"""
     val schemaFile = FileUtils.JsonFile(schema, new File("1-0-0"))
 
     // result
-    val schemaKey = SchemaKey("org.ietf", "http_cookie", "jsonschema", SchemaVer(1,0,0))
+    val schemaKey = SchemaMap("org.ietf", "http_cookie", "jsonschema", SchemaVer.Full(1,0,0))
     val body = parse(
       """
         |{

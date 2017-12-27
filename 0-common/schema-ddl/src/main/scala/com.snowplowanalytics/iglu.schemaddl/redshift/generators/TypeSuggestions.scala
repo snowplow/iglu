@@ -54,6 +54,13 @@ object TypeSuggestions {
       case _ => None
     }
 
+  val dateSuggestion: DataTypeSuggestion = (properties, columnName) =>
+    (properties.get("type"), properties.get("format")) match {
+      case(Some(types), Some("date")) if types.contains("string") =>
+        Some(RedshiftDate)
+      case _ => None
+    }
+
   val arraySuggestion: DataTypeSuggestion = (properties, columnName) =>
     properties.get("type") match {
       case Some(types) if types.contains("array") =>
@@ -117,6 +124,8 @@ object TypeSuggestions {
         Some(RedshiftVarchar(39))
       case (Some(types),     _,                           _,                      Some("ipv4")) if types.contains("string") =>
         Some(RedshiftVarchar(15))
+      case (Some(types),     _,                           _,                      Some("email")) if types.contains("string") =>
+        Some(RedshiftVarchar(255))
       case (Some(types),     Some(IntegerAsString(maxLength)), _,              _) if types.contains("string") =>
         Some(RedshiftVarchar(maxLength))
       case (_,              _,                            Some(enum),             _) => {

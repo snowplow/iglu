@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -12,6 +12,9 @@
  */
 package com.snowplowanalytics.iglu
 package core
+
+import typeclasses.ExtractSchemaKey
+import syntax._
 
 /**
  * Class to filter Schemas by [[SchemaKey]]
@@ -50,10 +53,10 @@ case class SchemaCriterion(
    *
    * @param entities list of Self-describing instances (or Schemas)
    * @tparam E type of Self-describing entity, having
-   *           an [[ExtractFrom]] instance in scope
+   *           an [[ExtractSchemaKey]] instance in scope
    * @return list of matching entities
    */
-  def pickFrom[E: ExtractFrom](entities: Seq[E]): Seq[E] =
+  def pickFrom[E: ExtractSchemaKey](entities: Seq[E]): Seq[E] =
     entities.foldLeft(Seq.empty[E]) { (acc, cur) =>
       cur.getSchemaKey match {
         case Some(key) if this.matches(key) => cur +: acc
@@ -67,12 +70,13 @@ case class SchemaCriterion(
    *
    * @return the String representation of this criterion
    */
-  def asString = s"iglu:$vendor/$name/$format/$versionString"
+  def asString: String =
+    s"iglu:$vendor/$name/$format/$versionString"
 
   /**
    * Stringify version part of criterion
    */
-  def versionString =
+  def versionString: String =
     "%s-%s-%s".format(model.getOrElse("*"), revision.getOrElse("*"), addition.getOrElse("*"))
 
   /**
@@ -90,10 +94,11 @@ case class SchemaCriterion(
    * @param ver SchemaVer of some other [[SchemaKey]]
    * @return true if all specified groups matched
    */
-  private[this] def verMatch(ver: SchemaVer): Boolean =
-    groupMatch(ver.model, model) &&
-    groupMatch(ver.revision, revision) &&
-    groupMatch(ver.addition, addition)
+  private[this] def verMatch(ver: SchemaVer): Boolean = {
+    groupMatch(ver.getModel, model) &&
+      groupMatch(ver.getRevision, revision) &&
+      groupMatch(ver.getAddition, addition)
+  }
 
   /**
    * Helper function for [[verMatch]]. Compares two numbers for same group
@@ -102,10 +107,11 @@ case class SchemaCriterion(
    * @param crit this Criterion's corresponding group
    * @return true if groups match or criterion not specific about it
    */
-  private[this] def groupMatch(other: Int, crit: Option[Int]): Boolean = crit match {
-    case Some(c) if c == other => true
-    case None                  => true
-    case _                     => false
+  private[this] def groupMatch(other: Option[Int], crit: Option[Int]): Boolean = crit match {
+    case Some(c) if other == Some(c) => true
+    case Some(_) if other.isEmpty => true
+    case None => true
+    case _ => false
   }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -10,19 +10,16 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.core.circe
+package com.snowplowanalytics.iglu.core
 
 // specs2
 import org.specs2.Specification
 
-// circe
-import io.circe._
-import io.circe.parser.parse
+// json4s
+import org.json4s._
+import org.json4s.jackson.JsonMethods.parse
 
-// This library
-import com.snowplowanalytics.iglu.core._
-
-class ExtractFromSpec extends Specification { def is = s2"""
+class ExtractSchemaKeySpec extends Specification { def is = s2"""
   Specification ExtractFrom type class for instances
     extract SchemaKey using postfix method $e1
     extract SchemaKey using unsafe postfix method $e2
@@ -35,19 +32,18 @@ class ExtractFromSpec extends Specification { def is = s2"""
     fail to extract SchemaKey with invalid SchemaVer $e6
   """
 
+  import syntax._
+
   def e1 = {
+    import IgluCoreCommon.Json4SExtractSchemaKeyData
 
-    implicit val extractSchemaKey = ExtractFromData
-
-    val json: Json = parse(
+    val json: JValue = parse(
       """
         |{
         |  "schema": "iglu:com.acme.useless/null/jsonschema/2-0-3",
         |  "data": null
         |}
-      """.stripMargin).getOrElse(Json.Null)
-
-    json.getSchemaKeyUnsafe
+      """.stripMargin)
 
     json.getSchemaKey must beSome(
       SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer(2,0,3))
@@ -55,31 +51,29 @@ class ExtractFromSpec extends Specification { def is = s2"""
   }
 
   def e2 = {
+    import IgluCoreCommon.Json4SExtractSchemaKeyData
 
-    implicit val extractSchemaKey = ExtractFromData
-
-    val json: Json = parse(
+    val json: JValue = parse(
       """
         |{
         |  "schema": "iglu:com.acme.useless/null/jsonschema/2-0-3",
         |  "data": null
         |}
-      """.stripMargin).getOrElse(Json.Null)
+      """.stripMargin)
 
     json.getSchemaKeyUnsafe must beEqualTo(SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer(2,0,3)))
   }
 
   def e3 = {
+    import IgluCoreCommon.Json4SAttachSchemaKeyData
 
-    implicit val attachSchemaKey = AttachToData
-
-    val json: Json = parse(
+    val json: JValue = parse(
       """
         |{
         |  "schema": "iglu:com.acme.useless/null/jsonschema/2-0-3",
         |  "data": null
         |}
-      """.stripMargin).getOrElse(Json.Null)
+      """.stripMargin)
 
     json.getSchemaKey must beSome(
       SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer(2,0,3))
@@ -87,24 +81,23 @@ class ExtractFromSpec extends Specification { def is = s2"""
   }
 
   def e4 = {
+    import IgluCoreCommon.Json4SExtractSchemaKeyData
 
-    implicit val extractSchemaKey = ExtractFromData
-
-    val json: Json = parse(
+    val json: JValue = parse(
       """
         |{ "data": null }
-      """.stripMargin).getOrElse(Json.Null)
+      """.stripMargin)
 
     json.getSchemaKeyUnsafe must throwA[RuntimeException].like {
-      case e => e.getMessage must startingWith("Cannot extract SchemaKey from object ")
+      case e => e.getMessage must beEqualTo("Cannot extract SchemaKey from object [JObject(List((data,JNull)))]")
     }
   }
 
   def e5 = {
 
-    implicit val extractSchemaKey = ExtractFromSchema
+    import IgluCoreCommon.Json4SAttachSchemaMapComplex
 
-    val json: Json = parse(
+    val json: JValue = parse(
       """
         |{
         |	"self": {
@@ -119,19 +112,18 @@ class ExtractFromSpec extends Specification { def is = s2"""
         |		"value": { "type": "string" }
         |	}
         |}
-      """.stripMargin).toOption.get
+      """.stripMargin)
 
-    json.getSchemaKey must beSome(
-      SchemaKey("com.acme", "keyvalue", "jsonschema", SchemaVer(1,1,0))
+    json.getSchemaMap must beSome(
+      SchemaMap("com.acme", "keyvalue", "jsonschema", SchemaVer.Full(1,1,0))
     )
   }
 
   def e6 = {
-
-    implicit val extractSchemaKey = ExtractFromSchema
+    import IgluCoreCommon.Json4SExtractSchemaKeySchema
 
     // SchemaVer cannot have 0 as MODEL
-    val json: Json = parse(
+    val json: JValue = parse(
       """
         |{
         |	"self": {
@@ -146,23 +138,22 @@ class ExtractFromSpec extends Specification { def is = s2"""
         |		"value": { "type": "string" }
         |	}
         |}
-      """.stripMargin).getOrElse(Json.Null)
+      """.stripMargin)
 
     json.getSchemaKey must beNone
   }
 
   def e7 = {
-
-    implicit val extractSchemaKey = ExtractFromData
+    import IgluCoreCommon.Json4SExtractSchemaKeyData
 
     // SchemaVer cannot have preceding 0 in REVISION
-    val json: Json = parse(
+    val json: JValue = parse(
       """
         |{
         |  "schema": "iglu:com.acme.useless/null/jsonschema/2-01-3",
         |  "data": null
         |}
-      """.stripMargin).getOrElse(Json.Null)
+      """.stripMargin)
 
     json.getSchemaKey must beNone
   }

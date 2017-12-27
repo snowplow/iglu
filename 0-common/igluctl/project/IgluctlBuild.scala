@@ -14,7 +14,6 @@
  */
 import sbt._
 import Keys._
-import com.typesafe.sbt.packager.archetypes._
 
 object IgluctlBuild extends Build {
 
@@ -34,19 +33,15 @@ object IgluctlBuild extends Build {
       libraryDependencies ++= Seq(
         // Java
         Libraries.jsonValidator,
+        Libraries.awsJava,
         // Scala
-        Libraries.igluCoreJson4s,
         Libraries.schemaddl,
         Libraries.scopt,
-        Libraries.scalaz7,
-        Libraries.json4sJackson,
         Libraries.scalajHttp,
         Libraries.awscala,
         // Scala (test only)
         Libraries.specs2,
-        Libraries.scalazSpecs2,
         Libraries.scalaCheck
       )
     )
-    .enablePlugins(JavaAppPackaging)
 }

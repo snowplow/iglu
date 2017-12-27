@@ -23,13 +23,25 @@ object BuildSettings {
   // Basic settings for our app
   lazy val basicSettings = Seq[Setting[_]](
     organization          :=  "com.snowplowanalytics",
-    version               :=  "0.5.0",
+    version               :=  "0.6.0",
     description           :=  "Set of Abstract Syntax Trees for various DDL and Schema formats",
-    scalaVersion          :=  "2.10.6",
-    crossScalaVersions    :=  Seq("2.10.6", "2.11.8"),
-    scalacOptions         :=  Seq("-deprecation", "-encoding", "utf8",
-                                  "-unchecked", "-feature",
-                                  "-target:jvm-1.7"),
+    scalaVersion          :=  "2.12.4",
+    crossScalaVersions    :=  Seq("2.11.12", "2.12.4"),
+    scalacOptions         :=  Seq(
+      "-deprecation",
+      "-encoding", "UTF-8",
+      "-feature",
+      "-unchecked",
+      "-Ywarn-unused-import",
+      "-Ywarn-nullary-unit",
+      "-Xfatal-warnings",
+      "-Xlint",
+      "-language:higherKinds",
+      "-Ypartial-unification",
+      "-Xfuture"),
+    scalacOptions in (Compile, doc) ++= Seq(
+      "-no-link-warnings" // Suppresses problems with Scaladoc @throws links
+    ),
     scalacOptions in Test :=  Seq("-Yrangepos")
   )
 

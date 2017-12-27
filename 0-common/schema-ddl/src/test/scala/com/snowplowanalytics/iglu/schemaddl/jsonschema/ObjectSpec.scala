@@ -18,12 +18,12 @@ import org.json4s.jackson.JsonMethods.parse
 
 // specs2
 import org.specs2.Specification
-import org.specs2.scalaz.ValidationMatchers
+
 
 import ObjectProperties._
 import json4s.Json4sToSchema._
 
-class ObjectSpec extends Specification with ValidationMatchers { def is = s2"""
+class ObjectSpec extends Specification { def is = s2"""
   Check JSON Schema object specification
     parse object with empty properties $e1
     parse object with one property $e2

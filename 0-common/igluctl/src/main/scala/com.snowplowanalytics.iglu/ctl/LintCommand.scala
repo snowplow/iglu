@@ -13,7 +13,7 @@
 package com.snowplowanalytics.iglu.ctl
 
 // Scala
-import scala.collection.JavaConversions.asScalaIterator
+import scala.collection.JavaConverters._
 
 // scalaz
 import scalaz._
@@ -46,9 +46,9 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean, severityLevel: Sev
    */
   def process(): Unit = {
     val jsons = getJsonFilesStream(inputDir, Some(filterJsonSchemas))
-    val reports = jsons.map { file => 
+    val reports = jsons.map { file =>
       val report = file.map(check)
-      flattenReport(report) 
+      flattenReport(report)
     }
     reports.foldLeft(Total(0, 0, 0))((acc, cur) => acc.add(cur)).exit()
   }
@@ -63,7 +63,7 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean, severityLevel: Sev
     val pathCheck = extractSchema(jsonFile).map(_ => ()).validation.toValidationNel
     val syntaxCheck = validateSchema(jsonFile.content, skipWarnings)
 
-    val lintCheck = Schema.parse(jsonFile.content).map { schema => SanityLinter.lint(schema, severityLevel) }
+    val lintCheck = Schema.parse(jsonFile.content).map { schema => SanityLinter.lint(schema, severityLevel, 0) }
 
     val fullValidation = syntaxCheck |+| pathCheck |+| lintCheck.getOrElse("Doesn't contain JSON Schema".failureNel)
 
@@ -177,7 +177,7 @@ object LintCommand {
     val report = validator.validateSchema(jsonNode)
                           .asInstanceOf[ListProcessingReport]
 
-    report.iterator.toList.filter(filterMessages(skipWarnings)).map(_.toString) match {
+    report.iterator.asScala.toList.filter(filterMessages(skipWarnings)).map(_.toString) match {
       case Nil => ().success
       case h :: t => NonEmptyList(h, t: _*).failure
     }

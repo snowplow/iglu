@@ -18,7 +18,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 
 // Iglu Core
-import com.snowplowanalytics.iglu.core.SchemaKey
+import com.snowplowanalytics.iglu.core.SchemaMap
 
 // Schema DDL
 import com.snowplowanalytics.iglu.schemaddl._
@@ -153,16 +153,16 @@ case class GenerateCommand(
    * Produce table from flattened Schema and valid JSON Schema description
    *
    * @param flatSchema ordered map of flatten JSON properties
-   * @param schemaKey JSON Schema description
+   * @param schemaMap JSON Schema description
    * @param dbSchema DB schema name ("atomic")
    * @return table definition
    */
-  private def produceTable(flatSchema: FlatSchema, schemaKey: SchemaKey, dbSchema: String): TableDefinition = {
-    val (path, filename) = getFileName(schemaKey)
-    val tableName = StringUtils.getTableName(schemaKey)
+  private def produceTable(flatSchema: FlatSchema, schemaMap: SchemaMap, dbSchema: String): TableDefinition = {
+    val (path, filename) = getFileName(schemaMap)
+    val tableName = StringUtils.getTableName(schemaMap)
     val schemaCreate = CreateSchema(dbSchema)
     val table = DdlGenerator.generateTableDdl(flatSchema, tableName, Some(dbSchema), varcharSize, rawMode)
-    val commentOn = DdlGenerator.getTableComment(tableName, Some(dbSchema), schemaKey)
+    val commentOn = DdlGenerator.getTableComment(tableName, Some(dbSchema), schemaMap)
     val ddlFile = DdlFile(header ++ List(schemaCreate, Empty, table, Empty, commentOn))
     TableDefinition(path, filename, ddlFile)
   }
@@ -309,7 +309,7 @@ object GenerateCommand {
      * append them to the end of original create table statemtnt, leaving not
      * listed in `order` on their places
      *
-     * @todo this logic should be contained in DDL AST as pair of DdlFile 
+     * @todo this logic should be contained in DDL AST as pair of DdlFile
      *       and JSONPaths file because they're really tightly coupled
      *       Redshift output
      * @param order sublist of column names in right order that should be
@@ -361,10 +361,14 @@ object GenerateCommand {
    * @param flatSelfElems all information from Self-describing schema
    * @return pair of relative filepath and filename
    */
-  def getFileName(flatSelfElems: SchemaKey): (String, String) = {
+  def getFileName(flatSelfElems: SchemaMap): (String, String) = {
     // Make the file name
     val version = "_".concat(flatSelfElems.version.asString.replaceAll("-[0-9]+-[0-9]+", ""))
-    val file = flatSelfElems.name.replaceAll("([^A-Z_])([A-Z])", "$1_$2").toLowerCase.concat(version)
+    val file = flatSelfElems.name
+                            .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
+                            .replaceAll("([a-z\\d])([A-Z])", "$1_$2")
+                            .replaceAll("-", "_")
+                            .toLowerCase.concat(version)
 
     // Return the vendor and the file name together
     (flatSelfElems.vendor, file)
@@ -389,8 +393,8 @@ object GenerateCommand {
    * @param ddls list of pairs
    * @return Map with latest table definition for each Schema addition
    */
-  private def groupWithLast(ddls: List[(SchemaKey, TableDefinition)]) = {
-    val aggregated = ddls.foldLeft(Map.empty[ModelGroup, (SchemaKey, TableDefinition)]) {
+  private def groupWithLast(ddls: List[(SchemaMap, TableDefinition)]) = {
+    val aggregated = ddls.foldLeft(Map.empty[ModelGroup, (SchemaMap, TableDefinition)]) {
       case (acc, (description, definition)) =>
         acc.get(modelGroup(description)) match {
           case Some((desc, defn)) if desc.version.revision < description.version.revision =>
