@@ -100,7 +100,7 @@ object BuildSettings {
     assemblyOption in assembly ~= { _.copy(prependShellScript = Some(defaultShellScript)) },
 
     // Name it as an executable
-    assemblyJarName in assembly := { name.value + "-" + version.value + ".jar" },
+    assemblyJarName in assembly := { name.value },
 
     // Make this executable
     mainClass in assembly := Some("com.snowplowanalytics.iglu.ctl.Main")
