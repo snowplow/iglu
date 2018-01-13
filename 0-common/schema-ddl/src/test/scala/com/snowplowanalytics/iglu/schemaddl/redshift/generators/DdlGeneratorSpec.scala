@@ -46,8 +46,8 @@ class DdlGeneratorSpec extends Specification { def is = s2"""
       DdlGenerator.selfDescSchemaColumns ++
       DdlGenerator.parentageColumns ++
       List(
-        Column("foo",RedshiftVarchar(30),Set(CompressionEncoding(LzoEncoding)),Set(Nullability(NotNull))),
-        Column("bar",RedshiftVarchar(5),Set(CompressionEncoding(LzoEncoding)),Set())
+        Column("foo",RedshiftVarchar(30),Set(CompressionEncoding(ZstdEncoding)),Set(Nullability(NotNull))),
+        Column("bar",RedshiftVarchar(5),Set(CompressionEncoding(ZstdEncoding)),Set())
       ),
       Set(ForeignKeyTable(NonEmptyList("root_id"),RefTable("atomic.events",Some("event_id")))),
       Set(Diststyle(Key), DistKeyTable("root_id"),SortKeyTable(None,NonEmptyList("root_tstamp")))
@@ -74,7 +74,7 @@ class DdlGeneratorSpec extends Specification { def is = s2"""
       DdlGenerator.parentageColumns ++
       List(
         Column("foo",RedshiftBoolean,Set(CompressionEncoding(RunLengthEncoding)),Set(Nullability(NotNull))),
-        Column("bar",RedshiftVarchar(5),Set(CompressionEncoding(LzoEncoding)),Set()),
+        Column("bar",RedshiftVarchar(5),Set(CompressionEncoding(ZstdEncoding)),Set()),
         Column("baz",RedshiftBoolean,Set(CompressionEncoding(RunLengthEncoding)),Set())
       ),
       Set(ForeignKeyTable(NonEmptyList("root_id"),RefTable("atomic.events",Some("event_id")))),
