@@ -52,7 +52,8 @@ case class GenerateCommand(
   varcharSize: Int = 4096,
   splitProduct: Boolean = false,
   noHeader: Boolean = false,
-  force: Boolean = false) extends Command.CtlCommand {
+  force: Boolean = false,
+  owner: Option[String] = None) extends Command.CtlCommand {
 
   import GenerateCommand._
 
@@ -211,7 +212,7 @@ case class GenerateCommand(
   private[ctl] def selfDescSchemaToDdl(schema: IgluSchema, dbSchema: String): Validation[String, TableDefinition] = {
     val ddl = for {
       flatSchema <- FlatSchema.flattenJsonSchema(schema.schema, splitProduct)
-    } yield produceTable(flatSchema, schema.self, dbSchema)
+    } yield produceTable(flatSchema, schema.self, dbSchema, owner)
     ddl match {
       case Failure(fail) => (fail + s" in [${schema.self.toPath}] Schema").failure
       case success => success
@@ -236,13 +237,18 @@ case class GenerateCommand(
    * @param dbSchema DB schema name ("atomic")
    * @return table definition
    */
-  private def produceTable(flatSchema: FlatSchema, schemaMap: SchemaMap, dbSchema: String): TableDefinition = {
+  private def produceTable(flatSchema: FlatSchema, schemaMap: SchemaMap, dbSchema: String, owner: Option[String]): TableDefinition = {
     val (path, filename) = getFileName(schemaMap)
     val tableName = StringUtils.getTableName(schemaMap)
     val schemaCreate = CreateSchema(dbSchema)
     val table = DdlGenerator.generateTableDdl(flatSchema, tableName, Some(dbSchema), varcharSize, rawMode)
     val commentOn = DdlGenerator.getTableComment(tableName, Some(dbSchema), schemaMap)
-    val ddlFile = DdlFile(header ++ List(schemaCreate, Empty, table, Empty, commentOn))
+    val ddlFile = owner match {
+      case Some(ownerStr) =>
+        val owner = AlterTable(dbSchema + "." + tableName, OwnerTo(ownerStr))
+        DdlFile(header ++ List(schemaCreate, Empty, table, Empty, commentOn, Empty, owner))
+      case None => DdlFile(header ++ List(schemaCreate, Empty, table, Empty, commentOn))
+    }
     TableDefinition(path, filename, ddlFile)
   }
 
@@ -275,7 +281,7 @@ case class GenerateCommand(
    */
   private def jsonToRawTable(json: JsonFile): Validation[String, TableDefinition] = {
     val ddl = FlatSchema.flattenJsonSchema(json.content, splitProduct).map { flatSchema =>
-      produceRawTable(flatSchema, json.fileName)
+      produceRawTable(flatSchema, json.fileName, owner)
     }
     ddl match {
       case Failure(fail) => (fail + s" in [${json.fileName}] file").failure
@@ -293,7 +299,7 @@ case class GenerateCommand(
    * @param fileName JSON file, containing filename and content
    * @return DDL File object with all required information to output it
    */
-  private def produceRawTable(flatSchema: FlatSchema, fileName: String): TableDefinition = {
+  private def produceRawTable(flatSchema: FlatSchema, fileName: String, owner: Option[String]): TableDefinition = {
     val name = StringUtils.getTableName(fileName)
     val schemaCreate = dbSchema.map(CreateSchema(_)) match {
       case Some(sc) => List(sc, Empty)
@@ -301,7 +307,15 @@ case class GenerateCommand(
     }
     val table = DdlGenerator.generateTableDdl(flatSchema, name, dbSchema, varcharSize, rawMode)
     val comment = DdlGenerator.getTableComment(name, dbSchema, fileName)
-    val ddlFile = DdlFile(header ++ schemaCreate ++ List(table, Empty, comment))
+    val ddlFile = owner match {
+      case Some(ownerStr) =>
+        val owner = dbSchema match {
+          case Some(sc) if sc.length > 0 => AlterTable(sc + "." + name, OwnerTo(ownerStr))
+          case _ => AlterTable(name, OwnerTo(ownerStr))
+        }
+        DdlFile(header ++ schemaCreate ++ List(table, Empty, comment, Empty, owner))
+      case None => DdlFile(header ++ schemaCreate ++ List(table, Empty, comment))
+    }
     TableDefinition(".", name, ddlFile)
   }
 

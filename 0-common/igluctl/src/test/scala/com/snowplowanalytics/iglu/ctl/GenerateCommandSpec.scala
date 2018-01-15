@@ -35,6 +35,7 @@ class GenerateCommandSpec extends Specification { def is = s2"""
     output correct warnings for DDL-generation process $e5
     warn about missing schema versions (addition) $e6
     warn about missing 1-0-0 schema version $e7
+    correctly setup table ownership $e8
   """
 
   def e1 = {
@@ -760,5 +761,46 @@ class GenerateCommandSpec extends Specification { def is = s2"""
       s"Error: Directory [${stubFile.getAbsolutePath}] contains schemas of [com.example-agency/cast] without version 1-0-0." +
         s" Use --force to switch off schema version check."
     ))
+  }
+
+  def e8 = {
+    val sourceSchema = parse(
+      """
+        |{
+        |      "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+        |      "description": "Schema for custom contexts",
+        |      "type": "object",
+        |      "properties": {
+        |                      "name": {
+        |                      "type": "string"
+        |                      },
+        |                      "age": {
+        |                      "type": "number"
+        |                      }
+        |      },
+        |      "required":["name"]
+        |}
+      """.stripMargin)
+
+    val resultContent =
+      """|CREATE TABLE IF NOT EXISTS 1_0_0 (
+         |    "name" VARCHAR(4096)    ENCODE ZSTD NOT NULL,
+         |    "age"  DOUBLE PRECISION ENCODE RAW
+         |);
+         |
+         |COMMENT ON TABLE 1_0_0 IS 'Source: 1-0-0';
+         |
+         |ALTER TABLE 1_0_0 OWNER TO storageloader;""".stripMargin
+
+    val jsonFile = JsonFile(sourceSchema, new File("1-0-0"))
+    val stubFile: File = new File(".")
+    val command = GenerateCommand(stubFile, stubFile, rawMode = true, noHeader = true, owner = Some("storageloader"))
+    val ddl = command.transformRaw(List(jsonFile))
+
+    val expected = GenerateCommand.DdlOutput(
+      List(TextFile(new File("./1_0_0.sql"), resultContent))
+    )
+
+    ddl must beEqualTo(expected)
   }
 }
