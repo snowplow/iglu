@@ -46,6 +46,7 @@ case class Command(
   splitProduct:    Boolean         = false,
   noHeader:        Boolean         = false,
   force:           Boolean         = false,
+  owner:           Option[String]  = None,
 
   // sync
   registryRoot:    Option[HttpUrl] = None,
@@ -66,7 +67,7 @@ case class Command(
 ) {
   def toCommand: Option[Command.CtlCommand] = command match {
     case Some("static generate") => Some(
-      GenerateCommand(input.get, output.getOrElse(new File(".")), db,withJsonPaths, rawMode, schema, varcharSize, splitProduct, noHeader, force))
+      GenerateCommand(input.get, output.getOrElse(new File(".")), db, withJsonPaths, rawMode, schema, varcharSize, splitProduct, noHeader, force, owner))
     case Some("static push") =>
       Some(PushCommand(registryRoot.get, apiKey.get, input.get, isPublic))
     case Some("static s3cp") =>
@@ -143,6 +144,11 @@ object Command {
               action { (x, c) => c.copy(schema = Some(x)) }
               valueName "<name>"
               text "Redshift schema name\t\t\t\tDefault: atomic",
+
+            opt[String]("set-owner")
+              action { (x, c) => c.copy(owner = Some(x)) }
+              valueName "<owner>"
+              text "Redshift table owner\t\t\t\tDefault: None",
 
             opt[String]("db")
               action { (x, c) => c.copy(db = x) }
