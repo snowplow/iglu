@@ -35,8 +35,9 @@ import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.SeverityLeve
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s.Json4sToSchema._
 
 // This library
+import GenerateCommand.{Result, Errors, VersionSuccess, Warnings}
 import FileUtils.{ getJsonFilesStream, JsonFile, filterJsonSchemas }
-import Utils.extractSchema
+import Utils.{ extractSchema, splitValidations }
 
 case class LintCommand(inputDir: File, skipWarnings: Boolean, severityLevel: SeverityLevel) extends Command.CtlCommand {
   import LintCommand._
@@ -46,11 +47,31 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean, severityLevel: Sev
    */
   def process(): Unit = {
     val jsons = getJsonFilesStream(inputDir, Some(filterJsonSchemas))
+
+    val (failures, validatedJsons) = splitValidations(jsons.toList)
+    if (failures.nonEmpty) {
+      println("JSON Parsing errors:")
+      println(failures.mkString("\n"))
+    }
+
+    // lint schema versions
+    val stubFile: File = new File(inputDir.getAbsolutePath)
+    val stubCommand = GenerateCommand(stubFile, stubFile)
+    val (_, schemas) = splitValidations(validatedJsons.map(_.extractSelfDescribingSchema))
+    val schemaVerValidation: Result = stubCommand.validateSchemaVersions(schemas)
+    // strip GenerateCommand related parts off & prepare LintCommand failure messages
+    val lintSchemaVerMessages: List[String] = schemaVerValidation match {
+      case Warnings(lst) => lst.map(w => "FAILURE" + w.stripPrefix("Warning"))
+      case Errors(lst) => lst.map(e => "FAILURE" + e.stripPrefix("Error").stripSuffix(" Use --force to switch off schema version check."))
+      case VersionSuccess(_) => List.empty[String]
+    }
+    lintSchemaVerMessages.foreach(println)
+
     val reports = jsons.map { file =>
       val report = file.map(check)
       flattenReport(report)
     }
-    reports.foldLeft(Total(0, 0, 0))((acc, cur) => acc.add(cur)).exit()
+    reports.foldLeft(Total(0, 0, lintSchemaVerMessages.size))((acc, cur) => acc.add(cur)).exit()
   }
 
   /**
