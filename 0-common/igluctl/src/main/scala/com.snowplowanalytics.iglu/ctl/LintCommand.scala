@@ -36,7 +36,7 @@ import com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s.Json4sToSchema._
 
 // This library
 import FileUtils.{ getJsonFilesStream, JsonFile, filterJsonSchemas }
-import Utils.extractSchema
+import Utils.{ extractSchema, splitValidations }
 
 case class LintCommand(inputDir: File, skipWarnings: Boolean, severityLevel: SeverityLevel) extends Command.CtlCommand {
   import LintCommand._
@@ -46,11 +46,41 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean, severityLevel: Sev
    */
   def process(): Unit = {
     val jsons = getJsonFilesStream(inputDir, Some(filterJsonSchemas))
-    val reports = jsons.map { file =>
-      val report = file.map(check)
-      flattenReport(report)
+
+    val (failures, validatedJsons) = splitValidations(jsons.toList)
+    if (failures.nonEmpty) {
+      println("JSON Parsing errors:")
+      println(failures.mkString("\n"))
     }
-    reports.foldLeft(Total(0, 0, 0))((acc, cur) => acc.add(cur)).exit()
+
+    // lint schema versions
+    val stubFile: File = new File(inputDir.getAbsolutePath)
+    val stubCommand = GenerateCommand(stubFile, stubFile)
+    val (_, schemas) = splitValidations(validatedJsons.map(_.extractSelfDescribingSchema))
+    val (schemaVerWarnings, schemaVerErrors) = stubCommand.validateSchemaVersions(schemas)
+    val lintSchemaVer: Boolean = (schemaVerWarnings.messages, schemaVerErrors.messages) match {
+      case (Nil, Nil) => true
+      case (warnings, Nil) =>
+        println(warnings.mkString("\n"))
+        true
+      case (Nil, errors) =>
+        println(errors.mkString("\n"))
+        false
+      case _ =>
+        // this case is here only to trick compiler,
+        // GenerateCommand.validateSchemaVersions doesn't return warnings together with errors
+        true
+    }
+
+    if (!lintSchemaVer) {
+      sys.exit(1)
+    } else {
+      val reports = jsons.map { file =>
+        val report = file.map(check)
+        flattenReport(report)
+      }
+      reports.foldLeft(Total(0, 0, 0))((acc, cur) => acc.add(cur)).exit()
+    }
   }
 
   /**
