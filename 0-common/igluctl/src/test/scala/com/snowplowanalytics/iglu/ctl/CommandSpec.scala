@@ -17,7 +17,7 @@ import java.io.File
 import java.util.UUID
 
 // Schema DDL
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter._
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.allLinters
 
 // specs2
 import org.specs2.Specification
@@ -33,10 +33,10 @@ class CommandSpec extends Specification { def is = s2"""
   def e1 = {
     val lint = Command
       .cliParser
-      .parse("lint . --severityLevel 2".split(" "), Command())
+      .parse("lint .".split(" "), Command())
       .flatMap(_.toCommand)
 
-    lint must beSome(LintCommand(new File("."), false, SecondLevel))
+    lint must beSome(LintCommand(new File("."), false, allLinters.values.toList))
   }
 
   def e2 = {

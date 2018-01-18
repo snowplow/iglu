@@ -166,20 +166,13 @@ class GenerateCommandSpec extends Specification { def is = s2"""
 
     val jsonFile = JsonFile(sourceSchema, new File("1-0-0"))
     val stubFile: File = new File(".")
-    val command = GenerateCommand(stubFile, stubFile)
+    val command = GenerateCommand(stubFile, stubFile, noHeader = true)
 
     val output = command.transformSelfDescribing(List(jsonFile))
 
     val expected = GenerateCommand.DdlOutput(List(TextFile(new File("com.amazon.aws.lambda/java_context_1.sql"), resultContent)))
 
-    def dropHeader(o: DdlOutput): DdlOutput = {
-      val textFile = o.ddls.head.file
-      val shortDdl = o.ddls.head.content.split("\n").toList.drop(4).mkString("\n")
-      val shortTextFiles = List(TextFile(textFile, shortDdl))
-      o.copy(ddls = shortTextFiles)
-    }
-
-    dropHeader(output) must beEqualTo(expected)
+    output must beEqualTo(expected)
   }
 
   def e2 = {
