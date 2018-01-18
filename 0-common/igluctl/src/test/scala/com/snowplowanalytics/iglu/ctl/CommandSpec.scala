@@ -17,7 +17,7 @@ import java.io.File
 import java.util.UUID
 
 // Schema DDL
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter._
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.{ allLinters, lintUnknownFormats, lintRootObject }
 
 // specs2
 import org.specs2.Specification
@@ -28,15 +28,16 @@ class CommandSpec extends Specification { def is = s2"""
     correctly extract lint command class $e1
     correctly extract static push command class $e2
     correctly extract static s3cp command class $e3
+    correctly extract lint command class (--skip-checks) $e4
   """
 
   def e1 = {
     val lint = Command
       .cliParser
-      .parse("lint . --severityLevel 2".split(" "), Command())
+      .parse("lint .".split(" "), Command())
       .flatMap(_.toCommand)
 
-    lint must beSome(LintCommand(new File("."), false, SecondLevel))
+    lint must beSome(LintCommand(new File("."), false, allLinters.values.toList))
   }
 
   def e2 = {
@@ -56,5 +57,16 @@ class CommandSpec extends Specification { def is = s2"""
       .flatMap(_.toCommand)
 
     staticS3cp must beSome(S3cpCommand(new File(".."), "anton-enrichment-test", Some("schemas"), None, None, None, Some("us-east-1")))
+  }
+
+  def e4 = {
+    val lint = Command
+      .cliParser
+      .parse("lint . --skip-checks unknownFormats,rootObject".split(" "), Command())
+      .flatMap(_.toCommand)
+
+    val skippedChecks = List(lintUnknownFormats, lintRootObject)
+
+    lint must beSome(LintCommand(new File("."), false, allLinters.values.toList.diff(skippedChecks)))
   }
 }
