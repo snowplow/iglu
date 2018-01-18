@@ -30,15 +30,15 @@ import java.io.File
 import com.github.fge.jsonschema.core.report.{ ListProcessingReport, ProcessingMessage }
 
 // Schema DDL
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.{ Schema, SanityLinter }
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.SeverityLevel
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.{ allLinters, Linter, lint}
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s.Json4sToSchema._
 
 // This library
 import FileUtils.{ getJsonFilesStream, JsonFile, filterJsonSchemas }
 import Utils.{ extractSchema, splitValidations }
 
-case class LintCommand(inputDir: File, skipWarnings: Boolean, severityLevel: SeverityLevel) extends Command.CtlCommand {
+case class LintCommand(inputDir: File, skipWarnings: Boolean, linters: List[Linter]) extends Command.CtlCommand {
   import LintCommand._
 
   /**
@@ -51,6 +51,7 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean, severityLevel: Sev
     if (failures.nonEmpty) {
       println("JSON Parsing errors:")
       println(failures.mkString("\n"))
+      sys.exit(1)
     }
 
     // lint schema versions
@@ -76,7 +77,7 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean, severityLevel: Sev
       sys.exit(1)
     } else {
       val reports = jsons.map { file =>
-        val report = file.map(check)
+      val report = file.map(check)
         flattenReport(report)
       }
       reports.foldLeft(Total(0, 0, 0))((acc, cur) => acc.add(cur)).exit()
@@ -93,7 +94,7 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean, severityLevel: Sev
     val pathCheck = extractSchema(jsonFile).map(_ => ()).validation.toValidationNel
     val syntaxCheck = validateSchema(jsonFile.content, skipWarnings)
 
-    val lintCheck = Schema.parse(jsonFile.content).map { schema => SanityLinter.lint(schema, severityLevel, 0) }
+    val lintCheck = Schema.parse(jsonFile.content).map { schema => lint(schema, 0, linters) }
 
     val fullValidation = syntaxCheck |+| pathCheck |+| lintCheck.getOrElse("Doesn't contain JSON Schema".failureNel)
 
@@ -228,4 +229,28 @@ object LintCommand {
       case _ => true
     }
     else true
+
+  /**
+    * Validates if user provided --skip-checks with a valid string
+    * @param skipChecks command line input for --skip-checks
+    * @return Either error concatenated error messages or valid list of linters
+    */
+  def validateSkippedLinters(skipChecks: String): Either[String, List[Linter]] = {
+    val skippedLinters = skipChecks.split(",")
+
+    val linterValidationErrors = skippedLinters.filterNot(allLinters.isDefinedAt).map(l => s"Unknown linter $l")
+
+    if (linterValidationErrors.nonEmpty) {
+      Left(linterValidationErrors.mkString("\n"))
+    } else {
+      val lintersToUse = skippedLinters.foldLeft(allLinters.values.toList) { (linters, cur) =>
+        (linters, allLinters.get(cur)) match {
+          case (l: List[Linter], Some(linter)) => l.diff(List(linter))
+          case (l: List[Linter], None)         => l
+          case (l: List[_], _)                 => throw new IllegalArgumentException(s"$l is NOT a list of linters")
+        }
+      }
+      Right(lintersToUse)
+    }
+  }
 }

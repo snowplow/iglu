@@ -106,22 +106,28 @@ object SanityLinter {
   }
 
   /**
-   * Main working function, traversing JSON Schema
-   * It lints all properties on current level, then tries to extract all
-   * subschemas from properties like `items`, `additionalItems` etc and
-   * recursively lint them as well
-   *
-   * @param schema parsed JSON AST
-   * @return non-empty list of summed failures (all, including nested) or
-   *         unit in case of success
-   */
-  def lint(schema: Schema, severityLevel: SeverityLevel, height: Int): LintSchema = {
+    *
+    * Main working function, traversing JSON Schema
+    * It lints all properties on current level, then tries to extract all
+    * subschemas from properties like `items`, `additionalItems` etc and
+    * recursively lint them as well
+    *
+    * @param schema parsed JSON AST
+    * @param height depth of linting
+    * @param linters of linters to be used
+    * @return non-empty list of summed failures (all, including nested) or
+    *         unit in case of success
+    */
+  def lint(schema: Schema, height: Int, linters: List[Linter]): LintSchema = {
+
+    val lintersToUse = if (linters.contains(lintRootType)) linters.diff(List(lintRootType)) else linters
+
     // Current level validations
-    val validations = severityLevel.linters.map(linter => linter(schema))
+    val validations = lintersToUse.map(linter => linter(schema))
       .foldMap(_.toValidationNel)
 
     val rootTypeCheck =
-      if(severityLevel == SecondLevel || severityLevel == ThirdLevel)
+      if (linters.contains(lintRootType))
         (height match {
           case 0 =>
             (schema.`type`, schema.properties) match {
@@ -140,30 +146,30 @@ object SanityLinter {
 
     val properties = schema.properties match {
       case Some(props) =>
-        props.value.values.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel, height+1))
+        props.value.values.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, height+1, linters))
       case None => schemaSuccess
     }
 
     val patternProperties = schema.patternProperties match {
       case Some(PatternProperties(props)) =>
-        props.values.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel, height+1))
+        props.values.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, height+1, linters))
       case _ => schemaSuccess
     }
 
     val additionalProperties = schema.additionalProperties match {
-      case Some(AdditionalPropertiesSchema(s)) => lint(s, severityLevel, height+1)
+      case Some(AdditionalPropertiesSchema(s)) => lint(s, height+1, linters)
       case _ => schemaSuccess
     }
 
     val items = schema.items match {
-      case Some(ListItems(s)) => lint(s, severityLevel, height+1)
+      case Some(ListItems(s)) => lint(s, height+1, linters)
       case Some(TupleItems(i)) =>
-        i.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, severityLevel, height+1))
+        i.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, height+1, linters))
       case None => schemaSuccess
     }
 
     val additionalItems = schema.additionalItems match {
-      case Some(AdditionalItemsSchema(s)) => lint(s, severityLevel, height+1)
+      case Some(AdditionalItemsSchema(s)) => lint(s, height+1, linters)
       case _ => schemaSuccess
     }
 
@@ -171,9 +177,15 @@ object SanityLinter {
     validations |+| rootTypeCheck |+| properties |+| items |+| additionalItems |+| additionalProperties |+| patternProperties
   }
 
-  // Linter functions
+  // Linters
 
-  // First Severity Level
+  /**
+    * Placeholder linter to be understood through --skip-checks,
+    * SanityLinter.lint() contains its logic
+    */
+  val lintRootType: Linter = (_: Schema) => {
+    throw new IllegalStateException("Illegal use of lintRootType")
+  }
 
   /**
    * Check that number's `minimum` property isn't greater than `maximum`
@@ -292,8 +304,6 @@ object SanityLinter {
     }
   }
 
-  // Second Severity Level
-
   /**
    * Check that schema with type `number` or `integer` contains both minimum
    * and maximum properties
@@ -326,8 +336,6 @@ object SanityLinter {
     }
   }
 
-  // Third Severity Level
-
   /**
     * Check that non-required properties have type null
     */
@@ -359,26 +367,21 @@ object SanityLinter {
     }
   }
 
-  trait SeverityLevel {
-    def linters: List[Linter]
-  }
-
-  case object FirstLevel extends SeverityLevel {
-    val linters = List(
-      // Check if some min cannot be greater than corresponding max
-      lintMinimumMaximum, lintMinMaxLength, lintMinMaxItems,
-      // Check if type of Schema corresponds with its validation properties
-      lintNumberProperties, lintStringProperties, lintObjectProperties, lintArrayProperties,
-      // Other checks
-      lintPossibleKeys, lintUnknownFormats, lintMaxLengthRange
-    )
-  }
-
-  case object SecondLevel extends SeverityLevel {
-    val linters = FirstLevel.linters ++ List(lintMinMaxPresent, lintMaxLength)
-  }
-
-  case object ThirdLevel extends SeverityLevel {
-    val linters = FirstLevel.linters ++ SecondLevel.linters ++ List(lintDescriptionPresent, lintOptionalFields)
-  }
+  val allLinters: Map[String, Linter] = Map(
+    "rootType" -> lintRootType,
+    "minimumMaximum" -> lintMinimumMaximum,
+    "minMaxLength" -> lintMinMaxLength,
+    "maxLengthRange" -> lintMaxLengthRange,
+    "minMaxItems" -> lintMinMaxItems,
+    "numberProperties" -> lintNumberProperties,
+    "stringProperties" -> lintStringProperties,
+    "objectProperties" -> lintObjectProperties,
+    "arrayProperties" -> lintArrayProperties,
+    "possibleKeys" -> lintPossibleKeys,
+    "unknownFormats" -> lintUnknownFormats,
+    "minMaxPresent" -> lintMinMaxPresent,
+    "maxLength" -> lintMaxLength,
+    "optionalFields" -> lintOptionalFields,
+    "descriptionPresent" -> lintDescriptionPresent
+  )
 }
