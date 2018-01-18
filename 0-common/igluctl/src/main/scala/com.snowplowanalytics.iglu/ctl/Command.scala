@@ -22,11 +22,11 @@ import java.util.UUID
 // scopt
 import scopt.OptionParser
 
-// Schema DDL
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.{ SeverityLevel, FirstLevel, SecondLevel, ThirdLevel }
-
 // This library
 import PushCommand._
+
+// Schema DDL
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.{ Linter, allLinters }
 
 /**
  * Common command container
@@ -55,7 +55,7 @@ case class Command(
 
   // lint
   skipWarnings:    Boolean         = false,
-  severityLevel:   SeverityLevel   = FirstLevel,
+  linters:         List[Linter]    = allLinters.values.toList,
 
   // s3
   bucket:          Option[String]  = None,
@@ -73,7 +73,7 @@ case class Command(
     case Some("static s3cp") =>
       Some(S3cpCommand(input.get, bucket.get, s3path, accessKeyId, secretAccessKey, profile, region))
     case Some("lint") =>
-      Some(LintCommand(input.get, skipWarnings, severityLevel))
+      Some(LintCommand(input.get, skipWarnings, linters))
     case _ =>
       None
   }
@@ -91,11 +91,11 @@ object Command {
     }
   }
 
-  implicit val severityLevelRead: scopt.Read[SeverityLevel] = scopt.Read.reads {
-    case "1" => FirstLevel
-    case "2" => SecondLevel
-    case "3" => ThirdLevel
-    case l => throw new IllegalArgumentException(s"Error: $l is invalid severity level")
+  implicit val lintersRead: scopt.Read[List[Linter]] = scopt.Read.reads { s =>
+    LintCommand.validateSkippedLinters(s) match {
+      case Left(err) => throw new IllegalArgumentException(err)
+      case Right(linters) => linters
+    }
   }
 
   private def subcommand(sub: String)(unit: Unit, root: Command): Command =
@@ -138,27 +138,27 @@ object Command {
             opt[File]("output")
               action { (x, c) => c.copy(output = Some(x)) }
               valueName "<path>"
-              text "Directory to put generated data\t\tDefault: current dir",
+              text "Directory to put generated data\t\t\t\tDefault: current dir",
 
             opt[String]("dbschema")
               action { (x, c) => c.copy(schema = Some(x)) }
               valueName "<name>"
-              text "Redshift schema name\t\t\t\tDefault: atomic",
+              text "Redshift schema name\t\t\t\t\t\tDefault: atomic",
 
             opt[String]("set-owner")
               action { (x, c) => c.copy(owner = Some(x)) }
               valueName "<owner>"
-              text "Redshift table owner\t\t\t\tDefault: None",
+              text "Redshift table owner\t\t\t\t\t\tDefault: None",
 
             opt[String]("db")
               action { (x, c) => c.copy(db = x) }
               valueName "<name>"
-              text "DB to which we need to generate DDL\t\tDefault: redshift",
+              text "DB to which we need to generate DDL\t\t\t\tDefault: redshift",
 
             opt[Int]("varchar-size")
               action { (x, c) => c.copy(varcharSize = x) }
               valueName "<n>"
-              text "Default size for varchar data type\t\tDefault: 4096",
+              text "Default size for varchar data type\t\t\t\tDefault: 4096",
 
             opt[Unit]("with-json-paths")
               action { (_, c) => c.copy(withJsonPaths = true) }
@@ -225,7 +225,7 @@ object Command {
 
             opt[String]("s3path")
               action { (x, c) => c.copy(s3path = Some(x))}
-              text "Path in the bucket to upload Schemas\t\tDefault: bucket root",
+              text "Path in the bucket to upload Schemas\t\t\t\tDefault: bucket root",
 
             opt[String]("accessKeyId") optional()
               action { (x, c) => c.copy(accessKeyId = Some(x))}
@@ -245,7 +245,7 @@ object Command {
             opt[String]("region")
               action { (x, c) => c.copy(region = Some(x))}
               valueName "<name>"
-              text "AWS S3 region\t\t\t\tDefault: us-west-2\n",
+              text "AWS S3 region\t\t\t\t\t\tDefault: us-west-2\n",
 
             checkConfig { (c: Command) =>
               (c.secretAccessKey, c.accessKeyId, c.profile) match {
@@ -270,10 +270,26 @@ object Command {
           action { (_, c) => c.copy(skipWarnings = true) }
           text "Don't output messages with log level less than ERROR",
 
-        opt[SeverityLevel]("severityLevel")
-          action { (x, c) => c.copy(severityLevel = x) }
-          text "Severity level\t\t\t\tDefault: 1"
-
+        opt[List[Linter]]("skip-checks")
+          action { (x, c) => c.copy(linters = x) }
+          valueName "<linters>"
+          text "Lint without specified linters, given comma separated\tDefault: None\n" +
+                "\t\t\t   All linters and their explanations are below.\n" +
+                "\t\t\t   rootType           : Check that root of schema has `type` object or `properties`\n" +
+                "\t\t\t   minimumMaximum     : Check that number's `minimum` property isn't greater than `maximum`\n" +
+                "\t\t\t   minMaxLength       : Check that string's `minLength` property isn't greater than `maxLength`\n" +
+                "\t\t\t   maxLengthRange     : Check that string's `maxLength` property isn't greater than Redshift VARCHAR(max), 65535\n" +
+                "\t\t\t   minMaxItems        : Check that array's `minItems` property isn't greater than `maxItems`\n" +
+                "\t\t\t   numberProperties   : Check that Schema with non-numeric type doesn't contain numeric properties\n" +
+                "\t\t\t   stringProperties   : Check that Schema with non-string type doesn't contain string properties\n" +
+                "\t\t\t   objectProperties   : Check that Schema with non-object type doesn't contain object properties\n" +
+                "\t\t\t   arrayProperties    : Check that Schema with non-object type doesn't contain object properties\n" +
+                "\t\t\t   possibleKeys       : Check that all required keys listed in properties\n" +
+                "\t\t\t   unknownFormats     : Check that schema contains known formats\n" +
+                "\t\t\t   minMaxPresent      : Check that schema with type `number` or `integer` contains both minimum and maximum properties\n" +
+                "\t\t\t   maxLength          : Check that schema with type `string` contains `maxLength` property or has other possibility to extract length\n" +
+                "\t\t\t   optionalFields     : Check that non-required properties have type null\n" +
+                "\t\t\t   descriptionPresent : Check that each field contains a description property"
       )
   }
 }
