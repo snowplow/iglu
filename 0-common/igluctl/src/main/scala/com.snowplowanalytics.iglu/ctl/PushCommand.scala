@@ -231,8 +231,9 @@ object PushCommand {
    * @param message human-readable message
    * @param location optional URI available for successful upload
    */
-  case class ServerMessage(status: Int, message: String, location: Option[String]) {
-    def asString: String =
+  case class ServerMessage(status: Int, message: String, location: Option[String])
+  object ServerMessage {
+    def asString(status: Int, message: String, location: Option[String]): String =
       s"$message ${location.map("at " + _ + " ").getOrElse("")} ($status)"
   }
 
@@ -256,7 +257,7 @@ object PushCommand {
   case class Result(serverMessage: Either[String, ServerMessage], status: Status) {
     def asString: String =
       serverMessage match {
-        case Right(message) => message.asString
+        case Right(message) => ServerMessage.asString(message.status, message.message, message.location)
         case Left(responseBody) => responseBody
       }
   }
