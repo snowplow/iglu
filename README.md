@@ -33,7 +33,7 @@ All support for Iglu is handled through the standard Snowplow Analytics channels
 
 ## Copyright and license
 
-Iglu is copyright 2014-2017 Snowplow Analytics Ltd.
+Iglu is copyright 2014-2018 Snowplow Analytics Ltd.
 
 Licensed under the **[Apache License, Version 2.0][license]** (the "License");
 you may not use this software except in compliance with the License.
@@ -47,7 +47,7 @@ limitations under the License.
 [travis-image]: https://travis-ci.org/snowplow/iglu.png?branch=master
 [travis]: http://travis-ci.org/snowplow/iglu
 
-[release-image]: https://img.shields.io/badge/release-7_Treskilling_Yellow-orange.svg?style=flat
+[release-image]: https://img.shields.io/badge/release-8_Basel_Dove-orange.svg?style=flat
 [releases]: https://github.com/snowplow/snowplow/releases
 
 [license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
