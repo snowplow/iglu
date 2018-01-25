@@ -1,3 +1,15 @@
+Release 8 Basel Dove (2018-02-02)
+----------------------------------
+igluctl: fix false failure message in push command (#313)
+igluctl: switch severity level to skip checks (#232)
+Schema DDL: add linter for missing schema versions (#307)
+igluctl: table ownership setup as part of DDL (#225)
+igluctl: warn user if he tries to generate DDL not for 1-0-0 (#221)
+igluctl: drop version and extension from executable filename (#308)
+Schema DDL: add support for ZSTD encoding (#237)
+igluctl: add linter for "description" fields of properties (#264)
+igluctl: use UTC in header generation of Redshift DDL files (#223)
+
 Release 7 Treskilling Yellow (2017-12-27)
 ------------------------------------------
 Common: bump OracleJDK to 8 in .travis.yml (#281)
