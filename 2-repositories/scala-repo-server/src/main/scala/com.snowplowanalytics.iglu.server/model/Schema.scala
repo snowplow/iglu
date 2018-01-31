@@ -564,7 +564,7 @@ class SchemaDAO(val db: Database) extends DAO {
   def add(vendor: String, name: String, format: String, version: String,
     schema: String, owner: String, permission: String,
     isPublic: Boolean = false): (StatusCode, String) =
-      if (permission == "write" &&( (vendor startsWith owner) || owner == "*")) {
+      if ((permission == "write" || permission == "super") && (vendor.startsWith(owner) || owner == "*")) {
         db withDynSession {
           get(List(vendor), List(name), List(format), List(version), owner,
             permission) match {
