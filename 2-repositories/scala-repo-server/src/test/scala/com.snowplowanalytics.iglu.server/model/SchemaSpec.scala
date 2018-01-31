@@ -35,13 +35,16 @@ class SchemaSpec extends Specification with SetupAndDestroy {
   val tableName = "schemas"
   val owner = "com.snowplowanalytics"
   val otherOwner = "com.unit"
+  val otherOwner2 = "com.tdd"
   val faultyOwner = "com.benfradet"
   val permission = "write"
+  val superPermission = "super"
   val isPublic = false
   val vendor = "com.snowplowanalytics.snowplow"
   val vendors = List(vendor)
   val otherVendor = "com.unittest"
-  val otherVendors = List(otherVendor)
+  val otherVendor2 = "com.tdd.tdd"
+  val otherVendors = List(otherVendor, otherVendor2)
   val faultyVendor = "com.snowplow"
   val faultyVendors = List(faultyVendor)
   val name = "ad_click"
@@ -66,6 +69,15 @@ class SchemaSpec extends Specification with SetupAndDestroy {
   """{
     "self": {
       "vendor": "com.snowplowanalytics.snowplow",
+      "name": "ad_click",
+      "format": "jsonschema",
+      "version": "1-0-0"
+    }
+  }"""
+  val validSchema2 =
+    """{
+    "self": {
+      "vendor": "com.tdd.tdd",
       "name": "ad_click",
       "format": "jsonschema",
       "version": "1-0-0"
@@ -154,6 +166,24 @@ class SchemaSpec extends Specification with SetupAndDestroy {
               name = '${name}' and
               format = '${format}' and
               version = '${version}';""").first === 1
+        }
+      }
+
+      "add a private schema properly with super permission" in {
+        val (status, res) = schema.add(otherVendor2, name, format, version,
+          validSchema2, otherOwner2, superPermission, isPublic)
+        status === Created
+        res must contain("Schema successfully added") and contain(vendor)
+
+        database withDynSession {
+          Q.queryNA[Int](
+            s"""select count(*)
+            from $tableName
+            where vendor = '$otherVendor2' and
+              name = '$name' and
+              format = '$format' and
+              version = '$version' and
+              ispublic = false;""").first === 1
         }
       }
     }
