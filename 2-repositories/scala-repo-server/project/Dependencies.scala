@@ -29,10 +29,10 @@ object Dependencies {
     val jsonValidator = "2.2.5"
     val postgres = "9.1-901-1.jdbc4"
     val slf4j = "1.6.4"
-    val slick = "2.0.2"
-    val slickpg = "0.6.0-R1"
+    val slick = "2.1.0"
+    val slickpg = "0.6.0"
     val spray = "1.3.1"
-    val swagger = "0.4.3"
+    val swagger = "0.4.6"
 
     // Scala (test only)
     val specs2    = "2.3.13"
@@ -52,13 +52,13 @@ object Dependencies {
     val slickpg       = "com.github.tminglei"  %% "slick-pg"              % V.slickpg
     val slickpgJoda   = "com.github.tminglei"  %% "slick-pg_joda-time"    % V.slickpg
     val slf4j         = "org.slf4j"            %  "slf4j-nop"             % V.slf4j
-    val sprayCan      = "io.spray"             %  "spray-can"             % V.spray
-    val sprayRouting  = "io.spray"             %  "spray-routing"         % V.spray
+    val sprayCan      = "io.spray"             %% "spray-can"             % V.spray
+    val sprayRouting  = "io.spray"             %% "spray-routing"         % V.spray
     val swagger       = "com.gettyimages"      %% "spray-swagger"         % V.swagger
 
     // Scala (test only)
-    val akkaTestKit   = "com.typesafe.akka"  %% "akka-testkit"  % V.akka   % "test"
-    val specs2        = "org.specs2"         %% "specs2-core"   % V.specs2 % "test"
-    val sprayTestKit  = "io.spray"           %  "spray-testkit" % V.spray  % "test"
+    val akkaTestKit   = "com.typesafe.akka"  %%  "akka-testkit"  % V.akka   % "test"
+    val specs2        = "org.specs2"         %%  "specs2-core"   % V.specs2 % "test"
+    val sprayTestKit  = "io.spray"           %%  "spray-testkit" % V.spray  % "test"
   }
 }
