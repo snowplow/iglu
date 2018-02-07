@@ -28,7 +28,7 @@ object BuildSettings {
   lazy val basicSettings = Seq[Setting[_]](
     name                  :=  "igluctl",
     organization          :=  "com.snowplowanalytics",
-    version               :=  "0.3.0",
+    version               :=  "0.4.0",
     description           :=  "Iglu Command Line Interface",
     scalaVersion          :=  "2.12.4",
     scalacOptions         :=  Seq(
@@ -100,7 +100,7 @@ object BuildSettings {
     assemblyOption in assembly ~= { _.copy(prependShellScript = Some(defaultShellScript)) },
 
     // Name it as an executable
-    assemblyJarName in assembly := { name.value + "-" + version.value + ".jar" },
+    assemblyJarName in assembly := { name.value },
 
     // Make this executable
     mainClass in assembly := Some("com.snowplowanalytics.iglu.ctl.Main")

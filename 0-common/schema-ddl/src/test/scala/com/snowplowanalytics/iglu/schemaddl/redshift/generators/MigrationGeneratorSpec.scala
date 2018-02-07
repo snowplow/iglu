@@ -51,7 +51,7 @@ class MigrationGeneratorSpec extends Specification { def is = s2"""
          |BEGIN TRANSACTION;
          |
          |  ALTER TABLE atomic.com_acme_launch_missles_1
-         |    ADD COLUMN "status" VARCHAR(4096) ENCODE LZO;
+         |    ADD COLUMN "status" VARCHAR(4096) ENCODE ZSTD;
          |
          |  COMMENT ON TABLE atomic.com_acme_launch_missles_1 IS 'iglu:com.acme/launch_missles/jsonschema/1-0-1';
          |
@@ -108,9 +108,9 @@ class MigrationGeneratorSpec extends Specification { def is = s2"""
          |BEGIN TRANSACTION;
          |
          |  ALTER TABLE atomic.com_acme_launch_missles_1
-         |    ADD COLUMN "status" VARCHAR(4096) ENCODE LZO;
+         |    ADD COLUMN "status" VARCHAR(4096) ENCODE ZSTD;
          |  ALTER TABLE atomic.com_acme_launch_missles_1
-         |    ADD COLUMN "launch_time" TIMESTAMP ENCODE LZO;
+         |    ADD COLUMN "launch_time" TIMESTAMP ENCODE ZSTD;
          |  ALTER TABLE atomic.com_acme_launch_missles_1
          |    ADD COLUMN "latitude" DOUBLE PRECISION ENCODE RAW;
          |  ALTER TABLE atomic.com_acme_launch_missles_1

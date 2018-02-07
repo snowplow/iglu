@@ -14,11 +14,14 @@ package com.snowplowanalytics.iglu.ctl
 
 // Java
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Calendar
+import java.time.{ZoneOffset, ZonedDateTime}
+import java.time.format.DateTimeFormatter
+
+// Scala
+import scala.annotation.tailrec
 
 // Iglu Core
-import com.snowplowanalytics.iglu.core.SchemaMap
+import com.snowplowanalytics.iglu.core.{SchemaMap, SchemaVer}
 
 // Schema DDL
 import com.snowplowanalytics.iglu.schemaddl._
@@ -49,7 +52,8 @@ case class GenerateCommand(
   varcharSize: Int = 4096,
   splitProduct: Boolean = false,
   noHeader: Boolean = false,
-  force: Boolean = false) extends Command.CtlCommand {
+  force: Boolean = false,
+  owner: Option[String] = None) extends Command.CtlCommand {
 
   import GenerateCommand._
 
@@ -92,6 +96,14 @@ case class GenerateCommand(
     // Parse Self-describing Schemas
     val (schemaErrors, schemas) = splitValidations(files.map(_.extractSelfDescribingSchema))
 
+    val schemaVerValidation: Result = validateSchemaVersions(schemas)
+
+    val schemaVerMessages: List[String] = schemaVerValidation match {
+      case Warnings(lst) => lst
+      case Errors(lst) => lst
+      case VersionSuccess(_) => List.empty[String]
+    }
+
     // Build table definitions from JSON Schemas
     val validatedDdls = schemas.map(schema => selfDescSchemaToDdl(schema, dbSchemaStr).map(ddl => (schema.self, ddl)))
     val (ddlErrors, ddlPairs) = splitValidations(validatedDdls)
@@ -119,7 +131,75 @@ case class GenerateCommand(
       outputPair.map(_._1),
       migrations,
       outputPair.flatMap(_._2),
-      warnings = schemaErrors ++ ddlErrors ++ ddlWarnings)
+      warnings = schemaVerMessages ++ schemaErrors ++ ddlErrors ++ ddlWarnings)
+  }
+
+
+  /**
+    * Checks if there is any missing schema version in a directory of schemas
+    * or if a specific schema file doesn't have version 1-0-0
+    *
+    * @param schemas list of valid JSON Schemas including all Self-describing information
+    * @return (versionWarnings, versionErrors)
+    */
+  private[ctl] def validateSchemaVersions(schemas: List[IgluSchema]): Result = {
+
+    @tailrec
+    def existMissingSchemaVersion(schemaMaps: List[SchemaMap]): Boolean = {
+      val numOfMaps = schemaMaps.length
+
+      if (numOfMaps == 1){
+        false
+      } else {
+        val prevModel    = schemaMaps.head.version.model
+        val prevRevision = schemaMaps.head.version.revision
+        val prevAddition = schemaMaps.head.version.addition
+        val curModel     = schemaMaps.tail.head.version.model
+        val curRevision  = schemaMaps.tail.head.version.revision
+        val curAddition  = schemaMaps.tail.head.version.addition
+
+        if (curModel == prevModel && curRevision == prevRevision && curAddition == prevAddition + 1 ||
+            curModel == prevModel && curRevision == prevRevision + 1 && curAddition == 0 ||
+            curModel == prevModel + 1 && curRevision == 0 && curAddition == 0)
+          existMissingSchemaVersion(schemaMaps.tail) else true
+      }
+    }
+
+    if (schemas.empty) {
+      VersionSuccess(List.empty[String])
+    } else {
+      if (input.isFile) {
+        val schemaVerWarning = schemas.head.self.version match {
+          case SchemaVer.Full(1, 0, 0) => List.empty[String]
+          case _                       => List(s"Warning: File [${input.getAbsolutePath}] contains a schema whose version is NOT 1-0-0")
+        }
+        Warnings(schemaVerWarning)
+      } else {
+        val schemaMapsGroupByVendor: Map[String, List[SchemaMap]] = schemas.map(schema => schema.self).groupBy(_.vendor)
+
+        val versionErrors: List[List[String]] =
+          for ((vendor, schemaMapsOfVendor) <- schemaMapsGroupByVendor.toList) yield {
+            val schemaMapsGroupByName: Map[String, List[SchemaMap]] = schemaMapsOfVendor.groupBy(_.name)
+            val firstVersionNotFoundErrors: List[String] =
+              for {
+                (name, schemaMaps) <- schemaMapsGroupByName.toList
+                if !schemaMaps.exists(sm => sm.version == SchemaVer.Full(1, 0, 0)) && !force
+              } yield s"Error: Directory [${input.getAbsolutePath}] contains schemas of [$vendor/$name] without version 1-0-0." +
+                      " Use --force to switch off schema version check."
+            val schemaVerGapErrors: List[String] =
+              for {
+                (name, schemaMaps) <- schemaMapsGroupByName.toList
+                sortedSchemaMaps = schemaMaps.sortWith(_.version.asString < _.version.asString)
+                if sortedSchemaMaps.head.version == SchemaVer.Full(1, 0, 0) && existMissingSchemaVersion(sortedSchemaMaps) && !force
+              } yield s"Error: Directory [${input.getAbsolutePath}] contains schemas of [$vendor/$name] which has gaps between schema versions." +
+                      " Use --force to switch off schema version check."
+
+            firstVersionNotFoundErrors ::: schemaVerGapErrors
+          }
+
+        Errors(versionErrors.flatten)
+      }
+    }
   }
 
   /**
@@ -132,7 +212,7 @@ case class GenerateCommand(
   private[ctl] def selfDescSchemaToDdl(schema: IgluSchema, dbSchema: String): Validation[String, TableDefinition] = {
     val ddl = for {
       flatSchema <- FlatSchema.flattenJsonSchema(schema.schema, splitProduct)
-    } yield produceTable(flatSchema, schema.self, dbSchema)
+    } yield produceTable(flatSchema, schema.self, dbSchema, owner)
     ddl match {
       case Failure(fail) => (fail + s" in [${schema.self.toPath}] Schema").failure
       case success => success
@@ -143,7 +223,7 @@ case class GenerateCommand(
   def redshiftDdlHeader = CommentBlock(Vector(
     s"AUTO-GENERATED BY ${generated.ProjectSettings.name} DO NOT EDIT",
     s"Generator: ${generated.ProjectSettings.name} ${generated.ProjectSettings.version}",
-    s"Generated: ${new SimpleDateFormat("YYYY-MM-dd HH:mm").format(Calendar.getInstance.getTime)}"
+    s"Generated: ${ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))} UTC"
   ))
 
   // Header section with additional space
@@ -157,13 +237,18 @@ case class GenerateCommand(
    * @param dbSchema DB schema name ("atomic")
    * @return table definition
    */
-  private def produceTable(flatSchema: FlatSchema, schemaMap: SchemaMap, dbSchema: String): TableDefinition = {
+  private def produceTable(flatSchema: FlatSchema, schemaMap: SchemaMap, dbSchema: String, owner: Option[String]): TableDefinition = {
     val (path, filename) = getFileName(schemaMap)
     val tableName = StringUtils.getTableName(schemaMap)
     val schemaCreate = CreateSchema(dbSchema)
     val table = DdlGenerator.generateTableDdl(flatSchema, tableName, Some(dbSchema), varcharSize, rawMode)
     val commentOn = DdlGenerator.getTableComment(tableName, Some(dbSchema), schemaMap)
-    val ddlFile = DdlFile(header ++ List(schemaCreate, Empty, table, Empty, commentOn))
+    val ddlFile = owner match {
+      case Some(ownerStr) =>
+        val owner = AlterTable(dbSchema + "." + tableName, OwnerTo(ownerStr))
+        DdlFile(header ++ List(schemaCreate, Empty, table, Empty, commentOn, Empty, owner))
+      case None => DdlFile(header ++ List(schemaCreate, Empty, table, Empty, commentOn))
+    }
     TableDefinition(path, filename, ddlFile)
   }
 
@@ -196,7 +281,7 @@ case class GenerateCommand(
    */
   private def jsonToRawTable(json: JsonFile): Validation[String, TableDefinition] = {
     val ddl = FlatSchema.flattenJsonSchema(json.content, splitProduct).map { flatSchema =>
-      produceRawTable(flatSchema, json.fileName)
+      produceRawTable(flatSchema, json.fileName, owner)
     }
     ddl match {
       case Failure(fail) => (fail + s" in [${json.fileName}] file").failure
@@ -214,7 +299,7 @@ case class GenerateCommand(
    * @param fileName JSON file, containing filename and content
    * @return DDL File object with all required information to output it
    */
-  private def produceRawTable(flatSchema: FlatSchema, fileName: String): TableDefinition = {
+  private def produceRawTable(flatSchema: FlatSchema, fileName: String, owner: Option[String]): TableDefinition = {
     val name = StringUtils.getTableName(fileName)
     val schemaCreate = dbSchema.map(CreateSchema(_)) match {
       case Some(sc) => List(sc, Empty)
@@ -222,7 +307,15 @@ case class GenerateCommand(
     }
     val table = DdlGenerator.generateTableDdl(flatSchema, name, dbSchema, varcharSize, rawMode)
     val comment = DdlGenerator.getTableComment(name, dbSchema, fileName)
-    val ddlFile = DdlFile(header ++ schemaCreate ++ List(table, Empty, comment))
+    val ddlFile = owner match {
+      case Some(ownerStr) =>
+        val owner = dbSchema match {
+          case Some(sc) if sc.length > 0 => AlterTable(sc + "." + name, OwnerTo(ownerStr))
+          case _ => AlterTable(name, OwnerTo(ownerStr))
+        }
+        DdlFile(header ++ schemaCreate ++ List(table, Empty, comment, Empty, owner))
+      case None => DdlFile(header ++ schemaCreate ++ List(table, Empty, comment))
+    }
     TableDefinition(".", name, ddlFile)
   }
 
@@ -257,28 +350,56 @@ case class GenerateCommand(
    * Output end result
    */
   def outputResult(result: DdlOutput): Unit = {
-    result.ddls
-      .map(_.setBasePath("sql"))
-      .map(_.setBasePath(output.getAbsolutePath))
-      .map(_.write(force)).foreach(printMessage)
+    val missingSchemaVerErrors = result.warnings.filter(w => w.startsWith("Error: Directory"))
+    // refuse to do anything if input schemas have missing schema versions
+    if (missingSchemaVerErrors.nonEmpty) {
+      println(missingSchemaVerErrors.mkString("\n"))
+      sys.exit(1)
+    } else {
+      result.ddls
+        .map(_.setBasePath("sql"))
+        .map(_.setBasePath(output.getAbsolutePath))
+        .map(_.write(force)).foreach(printMessage)
 
-    result.jsonPaths
-      .map(_.setBasePath("jsonpaths"))
-      .map(_.setBasePath(output.getAbsolutePath))
-      .map(_.write(force)).foreach(printMessage)
+      result.jsonPaths
+        .map(_.setBasePath("jsonpaths"))
+        .map(_.setBasePath(output.getAbsolutePath))
+        .map(_.write(force)).foreach(printMessage)
 
-    result.migrations
-      .map(_.setBasePath("sql"))
-      .map(_.setBasePath(output.getAbsolutePath))
-      .map(_.write(force)).foreach(printMessage)
+      result.migrations
+        .map(_.setBasePath("sql"))
+        .map(_.setBasePath(output.getAbsolutePath))
+        .map(_.write(force)).foreach(printMessage)
 
-    result.warnings.foreach(printMessage)
+      result.warnings.foreach(printMessage)
 
-    if (result.warnings.exists(_.contains("Error"))) sys.exit(1)
+      if (result.warnings.exists(_.contains("Error"))) sys.exit(1)
+    }
+
   }
 }
 
 object GenerateCommand {
+
+  /**
+    * Common trait for all GenerateCommand results
+    */
+  sealed trait Result
+
+  /**
+    * Represents Error collection
+    */
+  case class Errors(messages: List[String]) extends Result
+
+  /**
+    * Represents Warning collection
+    */
+  case class Warnings(messages: List[String]) extends Result
+
+  /**
+    * Represents VersionSuccess collection, to be used for SchemaVer
+    */
+  case class VersionSuccess(messages: List[String]) extends Result
 
   /**
    * Class holding an aggregated output ready to be written
