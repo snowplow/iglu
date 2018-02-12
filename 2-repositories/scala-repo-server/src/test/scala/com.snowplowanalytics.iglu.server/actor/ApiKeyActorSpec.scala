@@ -33,23 +33,17 @@ import org.json4s.DefaultFormats
 import org.json4s.jackson.JsonMethods._
 
 // Scala
-import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.Success
 
-// Specs2
-import org.specs2.mutable.SpecificationLike
-import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
-
-// Spray
-import spray.http.StatusCode
-import spray.http.StatusCodes._
+// Akka Http
+import akka.http.scaladsl.model.StatusCode
+import akka.http.scaladsl.model.StatusCodes._
 
 class ApiKeyActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
-  with ImplicitSender with NoTimeConversions {
+  with ImplicitSender {
 
-  implicit val timeout = Timeout(20.seconds)
+  implicit val timeout = Timeout(20 seconds)
 
   val key = TestActorRef(new ApiKeyActor)
 
