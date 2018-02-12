@@ -26,7 +26,7 @@ object BuildSettings {
     scalaVersion            := "2.11.12",
     scalacOptions           := Seq("-deprecation", "-encoding", "utf8",
                                "-unchecked", "-feature", "-Xcheckinit"),
-    scalacOptions in Test   := Seq("-Yrangepos"),
+    scalacOptions in Test   := Seq("-Yrangepos", "-deprecation"),
     maxErrors               := 5,
     // http://www.scala-sbt.org/0.13.0/docs/Detailed-Topics/Forking.html
     fork in run             := true,

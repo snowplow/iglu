@@ -33,8 +33,8 @@ import scala.slick.jdbc.{ StaticQuery => Q }
 // Specs2
 import org.specs2.mutable.Specification
 
-// Spray
-import spray.http.StatusCodes._
+// Akka Http
+import akka.http.scaladsl.model.StatusCodes._
 
 class ApiKeySpec extends Specification with SetupAndDestroy {
 
