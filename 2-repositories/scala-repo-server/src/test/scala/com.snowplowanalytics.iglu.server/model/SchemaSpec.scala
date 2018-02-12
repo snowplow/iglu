@@ -25,8 +25,8 @@ import scala.slick.jdbc.{ StaticQuery => Q }
 // Specs2
 import org.specs2.mutable.Specification
 
-// Spray
-import spray.http.StatusCodes._
+// Akka Http
+import akka.http.scaladsl.model.StatusCodes._
 
 class SchemaSpec extends Specification with SetupAndDestroy {
 
@@ -173,7 +173,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         val (status, res) = schema.add(otherVendor2, name, format, version,
           validSchema2, otherOwner2, superPermission, isPublic)
         status === Created
-        res must contain("Schema successfully added") and contain(vendor)
+        res must contain("Schema successfully added") and contain(otherVendor2)
 
         database withDynSession {
           Q.queryNA[Int](
@@ -314,7 +314,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         val (status, res) = schema.getMetadata(otherVendors, name2s,
           formats, versions, faultyOwner, permission)
         status === OK
-        res must contain(vendor) and contain(name2) and contain(format) and
+        res must contain(otherVendor) and contain(name2) and contain(format) and
           contain(version)
 
         database withDynSession {
@@ -472,7 +472,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         val (status, res) = schema.getMetadataFromFormat(otherVendors,
           name2s, formats, faultyOwner, permission)
         status === OK
-        res must contain(vendor) and contain(name2) and contain(format)
+        res must contain(otherVendor) and contain(name2) and contain(format)
 
         database withDynSession {
           Q.queryNA[Int](
