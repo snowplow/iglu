@@ -18,17 +18,18 @@ package service
 // Scala
 import scala.concurrent.duration._
 
+// Akka Http
+import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
+import akka.http.scaladsl.model.StatusCodes._
+
 // Specs2
 import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
 
-// Spray
-import spray.http._
-import StatusCodes._
-import spray.testkit.Specs2RouteTest
 
 class ValidationServiceSpec extends Specification
-  with Api with Specs2RouteTest with NoTimeConversions with SetupAndDestroy {
+  with Api with Specs2RouteTest with SetupAndDestroy {
+
+  override def afterAll() = super.afterAll()
 
   def actorRefFactory = system
 
@@ -47,7 +48,7 @@ class ValidationServiceSpec extends Specification
       "self": {
         "vendor": "vendor",
         "name": "name",
-        "format": "${format}",
+        "format": "$format",
         "version": "1-0-0"
         }
     }"""
