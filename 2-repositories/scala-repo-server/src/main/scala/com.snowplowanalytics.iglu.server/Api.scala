@@ -15,86 +15,66 @@
 package com.snowplowanalytics.iglu.server
 
 // This project
-import service.{ ApiKeyGenService, SchemaService, ValidationService }
+import service.{ApiKeyGenService, SchemaService, ValidationService}
 
 // Scala
 import scala.concurrent.ExecutionContext.Implicits.global
 
-// Spray
-import spray.routing.HttpService
-import spray.http.{
-  HttpRequest,
-  HttpResponse,
-  HttpEntity,
-  HttpCookie,
-  SomeOrigins,
-  AllOrigins
-}
-import spray.http.HttpHeaders.{
-  `Remote-Address`,
-  `Raw-Request-URI`,
-  `Origin`,
-  `Access-Control-Allow-Origin`,
+// Akka Http
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.model.HttpMethods._
+import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.model.headers.{
   `Access-Control-Allow-Credentials`,
-  `Access-Control-Allow-Headers`
+  `Access-Control-Allow-Headers`,
+  `Access-Control-Allow-Methods`,
+  `Access-Control-Allow-Origin`
 }
 
 /**
- * Api trait regroups the routes from all the different services.
- */
-trait Api extends HttpService with CoreActors with Core {
-
-  lazy val routes =
-    pathPrefix("api") {
-      pathPrefix("auth") {
-        new ApiKeyGenService(apiKeyActor).routes
-      } ~
-      pathPrefix("schemas") {
-        pathPrefix("validate") {
-          new ValidationService(schemaActor, apiKeyActor).routes
+  * Api trait regroups the routes from all the different services.
+  */
+trait Api extends CoreActors with Core {
+  val routes: Route =
+    corsHandler(
+      pathPrefix("api") {
+        pathPrefix("auth") {
+          new ApiKeyGenService(apiKeyActor).routes
         } ~
-        new SchemaService(schemaActor, apiKeyActor).routes
-      }
-    } ~
-    get {
-      pathPrefix("") {
-        pathEndOrSingleSlash {
-          getFromResource("swagger-ui/index.html")
-        }
+          pathPrefix("schemas") {
+            pathPrefix("validate") {
+              new ValidationService(schemaActor, apiKeyActor).routes
+            } ~
+              new SchemaService(schemaActor, apiKeyActor).routes
+          }
       } ~
-      getFromResourceDirectory("swagger-ui")
-    } ~
-    options {
-      requestInstance { request =>
-        complete(preflightResponse(request))
-      }
+        pathPrefix("") {
+          pathEndOrSingleSlash {
+            get {
+              getFromResource("swagger-ui-dist/index.html")
+            }
+          } ~
+            getFromResourceDirectory("swagger-ui-dist")
+        } ~
+        SwaggerDocService.routes
+    )
+
+
+  /** Add CORS support by setting required HTTP headers and handling prelight OPTIONS requests
+    *
+    * @param routes Actual Iglu routes
+    * @return A response with CORS headers added
+    */
+  def corsHandler(routes: Route): Route =
+    respondWithHeaders(List(
+      `Access-Control-Allow-Origin`.*,
+      `Access-Control-Allow-Credentials`(true),
+      `Access-Control-Allow-Headers`("Content-Type", "apikey")
+    )) {
+      options {
+        complete(HttpResponse().withHeaders(`Access-Control-Allow-Methods`(List(GET, POST, PUT, OPTIONS, DELETE))))
+      }  ~ routes
     }
-
-  /**
-   * Creates a response to the CORS preflight Options request
-   *
-   * @param request Incoming preflight Options request
-   * @return Response granting permissions to make the actual request
-   */
-  def preflightResponse(request: HttpRequest) = HttpResponse().withHeaders(List(
-    getAccesssControlAllowOriginHeader(request),
-    `Access-Control-Allow-Credentials`(true),
-    `Access-Control-Allow-Headers`( "Content-Type")))
-
-  /**
-   * Creates an Access-Control-Allow-Origin header which specifically
-   * allows the domain which made the request
-   *
-   * @param request Incoming request
-   * @return Header
-   */
-  def getAccesssControlAllowOriginHeader(request: HttpRequest) =
-    `Access-Control-Allow-Origin`(request.headers.find(_ match {
-      case `Origin`(origin) => true
-      case _ => false
-    }) match {
-      case Some(`Origin`(origin)) => SomeOrigins(origin)
-      case _ => AllOrigins
-    })
 
 }
