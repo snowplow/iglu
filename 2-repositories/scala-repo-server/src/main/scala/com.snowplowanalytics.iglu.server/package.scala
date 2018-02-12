@@ -17,15 +17,17 @@ package com.snowplowanalytics.iglu
 // Json schema
 import com.github.fge.jsonschema.core.report.ProcessingMessage
 
+// Scala
+import scala.util.matching.Regex
+
 // Scalaz
 import scalaz._
-import Scalaz._
 
 package object server {
   type ValidatedNel[A] = ValidationNel[ProcessingMessage, A]
 
-  val VendorPattern = "[a-zA-Z0-9-_.]+".r
-  val NamePattern = "[a-zA-Z0-9-_]+".r
-  val FormatPattern = "[a-zA-Z0-9-_]+".r
-  val VersionPattern = "[0-9]+-[0-9]+-[0-9]+".r
+  val VendorPattern: Regex = "[a-zA-Z0-9-_.]+".r
+  val NamePattern: Regex = "[a-zA-Z0-9-_]+".r
+  val FormatPattern: Regex = "[a-zA-Z0-9-_]+".r
+  val VersionPattern: Regex = "([1-9][0-9]*(?:-(?:0|[1-9][0-9]*)){2})".r
 }
