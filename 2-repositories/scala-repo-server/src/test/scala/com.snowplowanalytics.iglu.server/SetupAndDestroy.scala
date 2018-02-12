@@ -18,7 +18,7 @@ package com.snowplowanalytics.iglu.server
 import util.ServerConfig
 
 // Slick
-import slick.driver.JdbcDriver.backend.Database
+import slick.driver.JdbcDriver.backend.{ Database, DatabaseDef }
 import Database.dynamicSession
 import slick.jdbc.{ StaticQuery => Q }
 
@@ -278,8 +278,8 @@ trait SetupAndDestroy extends BeforeAndAfterAll {
 
   def beforeAll() {
     db withDynSession {
-      Q.updateNA(s"drop database if exists ${dbName};").execute
-      Q.updateNA(s"create database ${dbName};").execute
+      Q.updateNA(s"drop database if exists $dbName;").execute
+      Q.updateNA(s"create database $dbName;").execute
       TableInitialization.initializeTables()
       Q.updateNA(initializationQuery).execute
     }
@@ -296,9 +296,9 @@ trait SetupAndDestroy extends BeforeAndAfterAll {
     }
   }
 
-  val database = Database.forURL(
+  val database: DatabaseDef = Database.forURL(
     url = s"jdbc:postgresql://${ServerConfig.pgHost}:${ServerConfig.pgPort}/" +
-      s"${dbName}",
+      s"$dbName",
     user = ServerConfig.pgUsername,
     password = ServerConfig.pgPassword,
     driver = ServerConfig.pgDriver

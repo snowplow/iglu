@@ -15,6 +15,7 @@
 package com.snowplowanalytics.iglu.server
 package util
 
+// Slick
 import slick.driver.PostgresDriver
 import com.github.tminglei.slickpg._
 //import org.json4s.JValue
