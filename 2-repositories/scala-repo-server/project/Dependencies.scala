@@ -16,26 +16,25 @@ import sbt._
 
 object Dependencies {
   val resolutionRepos = Seq(
-    "Spray repo"            at "http://repo.spray.io",
     "Typesafe repository"   at "http://repo.typesafe.com/typesafe/releases"
   )
 
   object V {
     // Scala
-    val akka  = "2.3.4"
+    val akka  = "2.4.20"
     val joda = "1.6"
     val jodaTime = "2.3"
     val json4s = "3.2.11"
     val jsonValidator = "2.2.5"
     val postgres = "9.1-901-1.jdbc4"
-    val slf4j = "1.6.4"
+    val slf4j = "1.7.25"
     val slick = "2.1.0"
     val slickpg = "0.6.0"
-    val spray = "1.3.1"
-    val swagger = "0.4.6"
+    val akkaHttp = "10.0.11"
+    val swaggerAkkaHttp = "0.13.0"
 
     // Scala (test only)
-    val specs2    = "2.3.13"
+    val specs2    = "4.0.2"
   }
 
   object Libraries {
@@ -51,14 +50,14 @@ object Dependencies {
     val slick         = "com.typesafe.slick"   %% "slick"                 % V.slick
     val slickpg       = "com.github.tminglei"  %% "slick-pg"              % V.slickpg
     val slickpgJoda   = "com.github.tminglei"  %% "slick-pg_joda-time"    % V.slickpg
-    val slf4j         = "org.slf4j"            %  "slf4j-nop"             % V.slf4j
-    val sprayCan      = "io.spray"             %% "spray-can"             % V.spray
-    val sprayRouting  = "io.spray"             %% "spray-routing"         % V.spray
-    val swagger       = "com.gettyimages"      %% "spray-swagger"         % V.swagger
+    val slf4j         = "org.slf4j"            %  "slf4j-simple"          % V.slf4j
+    val akkaHttp      = "com.typesafe.akka"    %% "akka-http"             % V.akkaHttp
+    val swaggerAkkaHttp = "com.github.swagger-akka-http" %% "swagger-akka-http" % V.swaggerAkkaHttp
 
     // Scala (test only)
     val akkaTestKit   = "com.typesafe.akka"  %%  "akka-testkit"  % V.akka   % "test"
     val specs2        = "org.specs2"         %%  "specs2-core"   % V.specs2 % "test"
-    val sprayTestKit  = "io.spray"           %%  "spray-testkit" % V.spray  % "test"
+    val akkaHttpTestKit = "com.typesafe.akka" %% "akka-http-testkit" % V.akkaHttp % Test
+
   }
 }

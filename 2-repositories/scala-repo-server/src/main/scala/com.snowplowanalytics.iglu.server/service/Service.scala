@@ -22,5 +22,5 @@ import akka.util.Timeout
 import scala.concurrent.duration._
 
 trait Service {
-  implicit val timeout = Timeout(10.seconds)
+  implicit val timeout: Timeout = Timeout(10.seconds)
 }

@@ -23,8 +23,6 @@ import util.ServerConfig
 // Akka
 import akka.actor.Actor
 
-// Java
-import java.util.UUID
 
 /**
  * Object regrouping every message the ``ApiKeyActor`` can receive.
