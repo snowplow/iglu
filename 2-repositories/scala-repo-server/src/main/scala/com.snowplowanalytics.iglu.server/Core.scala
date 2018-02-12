@@ -16,73 +16,59 @@
 package com.snowplowanalytics.iglu.server
 
 // Scala
-import scala.util.control.NonFatal
+import scala.concurrent.ExecutionContextExecutor
 
 //This project
 import actor.{ SchemaActor, ApiKeyActor }
 import model.{ SchemaDAO, ApiKeyDAO }
-import service.RoutedHttpService
-import util.ServerConfig
+import util.ServerConfig._
 
 // Akka
-import akka.actor.{ ActorSystem, Props }
-import akka.io.IO
+import akka.actor.{ ActorSystem, ActorRef, Props }
+import akka.stream.ActorMaterializer
 
-// Spray
-import spray.can.Http
+// Akka Http
+import akka.http.scaladsl.Http
 
 // Slick
 import slick.driver.JdbcDriver.backend.Database.dynamicSession
 import slick.jdbc.meta.MTable
 
-/**
- * This trait implements ``Core`` and starts the ``ActorSystem``
- * and starts a new ``RoutedHttpService`` with the routes defined in the
- * ``Api`` trait.
- * It also creates the necessary tables if they are not present in the
- * database.
- * It registers the termination handler to stop the actor system when the
- * JVM shuts down as well.
- */
-trait BootedCore extends Core with Api {
+import org.slf4j.{Logger, LoggerFactory}
 
-  // Creates a new ActorSystem
-  def system = ActorSystem("iglu-server")
-  def actorRefFactory = system
 
-  try {
-    // Starts a new http service
-    val rootService = system.actorOf(Props(new RoutedHttpService(routes)))
+trait BootedCore extends Core with CoreActors with Api {
 
-    // Creates the necessary table is they are not already present in the
-    // database
-    TableInitialization.initializeTables()
+  implicit val system: ActorSystem = ActorSystem("iglu-server")
+  implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-    // Starts the server
-    IO(Http)(system) !
-      Http.Bind(rootService, ServerConfig.interface, port = ServerConfig.port)
+  val log: Logger = LoggerFactory.getLogger(getClass)
 
-    // Register the termination handler for when the JVM shuts down
-    sys.addShutdownHook(system.shutdown())
-  } catch {
-    case NonFatal(nf) =>
-      nf.printStackTrace()
-      // Necessary to stop app from hanging indefinitely
-      System.exit(1)
-  }
+  // Creates the necessary table if they are not already present in the database
+  TableInitialization.initializeTables()
+
+  // Starts the server
+  Http().bindAndHandle(routes, interface, port)
+      .map { binding =>
+        log.info(s"REST interface bound to ${binding.localAddress}")
+      } recover { case ex =>
+        log.error("REST interface could not be bound to " +
+          s"$interface:$port", ex.getMessage)
+      }
 }
 
 object TableInitialization {
   // Creates the necessary table is they are not already present in the
   // database
   def initializeTables(): Unit = {
-    ServerConfig.db withDynSession {
+    db withDynSession {
       if (MTable.getTables("schemas").list.isEmpty) {
-        new SchemaDAO(ServerConfig.db).createTable()
+        new SchemaDAO(db).createTable()
       }
-      new SchemaDAO(ServerConfig.db).bootstrapSelfDescSchema()
+      new SchemaDAO(db).bootstrapSelfDescSchema()
       if (MTable.getTables("apikeys").list.isEmpty) {
-        new ApiKeyDAO(ServerConfig.db).createTable
+        new ApiKeyDAO(db).createTable
       }
     }
   }
@@ -93,11 +79,10 @@ trait Core {
 }
 
 /**
- * Core actors maintains a reference to the different actors
- */
+  * Core actors maintains a reference to the different actors
+  */
 trait CoreActors {
   this: Core =>
-
-  lazy val schemaActor = system.actorOf(Props[SchemaActor])
-  lazy val apiKeyActor = system.actorOf(Props[ApiKeyActor])
+    lazy val schemaActor: ActorRef = system.actorOf(Props[SchemaActor], "schemaActor")
+    lazy val apiKeyActor: ActorRef = system.actorOf(Props[ApiKeyActor], "apiKeyActor")
 }

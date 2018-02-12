@@ -70,7 +70,7 @@ object SchemaActor {
    * @param version schema's version
    * @param owner the owner of the API key the request was made with
    * @param permission API key's permission
-   * @param isPublic wheter or not the schema is publicly available
+   * @param isPublic whether or not the schema is publicly available
    */
   case class DeleteSchema(vendor: String, name: String, format: String,
     version: String, owner: String, permission: String, isPublic: Boolean = false)

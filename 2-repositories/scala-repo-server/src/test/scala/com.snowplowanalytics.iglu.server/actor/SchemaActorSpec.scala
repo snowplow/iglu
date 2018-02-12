@@ -25,23 +25,17 @@ import akka.testkit.{ ImplicitSender, TestActorRef, TestKit }
 import akka.util.Timeout
 
 // Scala
-import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.Success
 
-// Specs2
-import org.specs2.mutable.SpecificationLike
-import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
-
-// Spray
-import spray.http.StatusCode
-import spray.http.StatusCodes._
+// Akka Http
+import akka.http.scaladsl.model.StatusCode
+import akka.http.scaladsl.model.StatusCodes._
 
 class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
-  with ImplicitSender with NoTimeConversions {
+  with ImplicitSender {
 
-  implicit val timeout = Timeout(20.seconds)
+  implicit val timeout = Timeout(20 seconds)
 
   val schema = TestActorRef(new SchemaActor)
 
@@ -448,8 +442,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
       val name = "ad_click"
 
       "return a 200 if the instance is valid against the schema" in {
-        val future = schema ? Validate(vendor, name, format, version,
-          validInstance)
+        val future = schema ? Validate(vendor, name, format, version, validInstance)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain("The instance provided is valid against the schema")
