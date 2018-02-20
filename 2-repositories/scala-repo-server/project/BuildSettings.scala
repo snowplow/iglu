@@ -15,6 +15,7 @@
 */
 import sbt._
 import Keys._
+import sbt.testing.TaskDef
 
 object BuildSettings {
   //Basic settings for our app
@@ -36,30 +37,27 @@ object BuildSettings {
   )
 
   // Makes our SBT app settings available from within the app
-  lazy val scalifySettings = Seq(sourceGenerators in Compile <+=
-    (sourceManaged in Compile, version, name, organization) map {
-      (d, v, n, o) =>
-        val file = d / "settings.scala"
-        IO.write(file, s"""
-          |package com.snowplowanalytics.iglu.server.generated
-          |object Settings {
-          |  val organization = "$o"
-          |  val version = "$v"
-          |  val name = "$n"
-          |  val shortName = "srp"
-          |}
-          |""".stripMargin)
-        Seq(file)
-    })
+  lazy val scalifySettings = Seq(sourceGenerators in Compile += task[Seq[File]] {
+    val file = (sourceManaged in Compile).value / "settings.scala"
+    IO.write(file, s"""
+                      |package com.snowplowanalytics.iglu.server.generated
+                      |object Settings {
+                      |  val organization = "${organization.value}"
+                      |  val version = "${version.value}"
+                      |  val name = "${name.value}"
+                      |  val shortName = "sr"
+                      |}
+                      |""".stripMargin)
+    Seq(file)
+  })
 
   // sbt-assembly settings for building an executable
-  import sbtassembly.Plugin._
-  import AssemblyKeys._
+  import sbtassembly.AssemblyKeys._
+  import sbtassembly.AssemblyPlugin._
 
   lazy val sbtAssemblySettings = assemblySettings ++ Seq(
     // Simple name
-    jarName in assembly := { s"${name.value}-${version.value}.jar" },
-    test in assembly := {}
+    assemblyJarName in assembly := { s"${name.value}-${version.value}.jar" }
   )
 
   lazy val buildSettings = basicSettings ++ scalifySettings ++
