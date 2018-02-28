@@ -60,19 +60,24 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean, linters: List[Lint
     val stubCommand = GenerateCommand(stubFile, stubFile)
     val (_, schemas) = splitValidations(validatedJsons.map(_.extractSelfDescribingSchema))
     val schemaVerValidation: Result = stubCommand.validateSchemaVersions(schemas)
-    // strip GenerateCommand related parts off & prepare LintCommand failure messages
-    val lintSchemaVerMessages: List[String] = schemaVerValidation match {
-      case Warnings(lst) => lst.map(w => "FAILURE" + w.stripPrefix("Warning"))
-      case Errors(lst) => lst.map(e => "FAILURE" + e.stripPrefix("Error").stripSuffix(" Use --force to switch off schema version check."))
-      case VersionSuccess(_) => List.empty[String]
-    }
-    lintSchemaVerMessages.foreach(println)
 
     val reports = jsons.map { file =>
       val report = file.map(check)
       flattenReport(report)
     }
-    reports.foldLeft(Total(0, 0, lintSchemaVerMessages.size))((acc, cur) => acc.add(cur)).exit()
+
+    // strip GenerateCommand related parts off & prepare LintCommand messages & create a Total per schema version check
+    schemaVerValidation match {
+      case Warnings(lst) =>
+        lst.map(w => "WARNING" + w.stripPrefix("Warning")).foreach(println)
+        reports.foldLeft(Total(0, 0, 0, lst.size))((acc, cur) => acc.add(cur)).exit()
+      case Errors(lst) =>
+        lst.map(e => "FAILURE" +
+              e.stripPrefix("Error").stripSuffix(" Use --force to switch off schema version check.")).foreach(println)
+        reports.foldLeft(Total(0, 0, lst.size, 0))((acc, cur) => acc.add(cur)).exit()
+      case VersionSuccess(_) =>
+        reports.foldLeft(Total(0, 0, 0, 0))((acc, cur) => acc.add(cur)).exit()
+    }
   }
 
   /**
@@ -111,7 +116,7 @@ object LintCommand {
    * @param successes number of successfully validated schemas
    * @param failedSchemas number of schemas with errors
    */
-  case class Total(successes: Int, failedSchemas: Int, totalFailures: Int) {
+  case class Total(successes: Int, failedSchemas: Int, totalFailures: Int, totalWarnings: Int) {
     /**
      * Exit from app with error status if invalid schemas were found
      */
@@ -119,6 +124,7 @@ object LintCommand {
       println(s"TOTAL: $successes Schemas were successfully validated")
       println(s"TOTAL: $failedSchemas invalid Schemas were encountered")
       println(s"TOTAL: $totalFailures errors were encountered")
+      println(s"TOTAL: $totalWarnings warnings were encountered")
 
       if (failedSchemas + totalFailures > 0) sys.exit(1)
       else sys.exit(0)
