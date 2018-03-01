@@ -18,6 +18,12 @@ object Dependencies {
     // Java
     val jsonValidator    = "2.2.6"
     val awsJava          = "1.11.250"
+    // JAXB APIs aren't resolved by default as of Java 9
+    // https://docs.oracle.com/javase/9/migrate/#GUID-F640FA9D-FB66-4D85-AD2B-D931174C09A3
+    val javaxXmlBind     = "2.3.0"
+    val jaxbCore         = "2.3.0"
+    val jaxbImpl         = "2.3.0"
+    val activation       = "1.1.1"
     // Scala
     val schemaddl        = "0.7.0"
     val scopt            = "3.5.0"
@@ -33,6 +39,11 @@ object Dependencies {
     // Java
     val jsonValidator    = "com.github.fge"             %  "json-schema-validator"     % V.jsonValidator
     val awsJava          = "com.amazonaws"              %  "aws-java-sdk-s3"           % V.awsJava
+    // JAXB APIs
+    val javaxXmlBind     = "javax.xml.bind"             %  "jaxb-api"                  % V.javaxXmlBind
+    val jaxbCore         = "com.sun.xml.bind"           %  "jaxb-core"                 % V.jaxbCore
+    val jaxbImpl         = "com.sun.xml.bind"           %  "jaxb-impl"                 % V.jaxbImpl
+    val activation       = "javax.activation"           %  "activation"                % V.activation
     // Scala
     val schemaddl        = "com.snowplowanalytics"      %% "schema-ddl"                % V.schemaddl
     val scopt            = "com.github.scopt"           %% "scopt"                     % V.scopt
