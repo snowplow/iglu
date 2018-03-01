@@ -34,6 +34,11 @@ object IgluctlBuild extends Build {
         // Java
         Libraries.jsonValidator,
         Libraries.awsJava,
+        // JAXB APIs
+        Libraries.javaxXmlBind,
+        Libraries.jaxbCore,
+        Libraries.jaxbImpl,
+        Libraries.activation,
         // Scala
         Libraries.schemaddl,
         Libraries.scopt,
