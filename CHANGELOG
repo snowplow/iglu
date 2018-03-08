@@ -1,5 +1,5 @@
 Release 8 Basel Dove (2018-02-07)
-----------------------------------
+---------------------------------
 igluctl: fix false failure message in push command (#313)
 igluctl: switch severity level to skip checks (#232)
 Schema DDL: add linter for missing schema versions (#307)
@@ -14,7 +14,7 @@ igluctl: bump Schema DDL to 0.7.0 (#333)
 Schema DDL: bump to 0.7.0 (#331)
 
 Release 7 Treskilling Yellow (2017-12-27)
-------------------------------------------
+-----------------------------------------
 Common: bump OracleJDK to 8 in .travis.yml (#281)
 Common: add Ruby client (#230)
 Common: update READMEs markdown in according with CommonMark (#267)
