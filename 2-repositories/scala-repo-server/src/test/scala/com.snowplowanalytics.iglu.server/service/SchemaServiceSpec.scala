@@ -140,6 +140,8 @@ class SchemaServiceSpec extends Specification
   val otherNameUrl = s"${start}com.benfradet.project/${name}"
   val otherFormatUrl = s"${start}com.benfradet.project/${name}/${format}"
 
+  val metadataIncludedUrl = s"$url?metadata=1"
+
   //post urls
   val postUrl1 = s"$start$vendor/unit_test1/$format/$version"
   val postUrl2 = s"$start$vendor/unit_test2/$format/$version" +
@@ -213,6 +215,24 @@ class SchemaServiceSpec extends Specification
             status === OK
             responseAs[String] must contain(vendor) and contain(name) and
               contain(format) and contain(version)
+          }
+        }
+
+        "return schema without metadata for GET " +
+        s"($url)" in {
+          Get(url) ~> addHeader("apikey", readKey) ~> routes ~> check {
+            status === OK
+            responseAs[String] must contain(vendor) and contain(name) and
+              contain(format) and contain(version) and not contain("metadata")
+          }
+        }
+
+        "return schema with metadata for GET " +
+        s"($metadataIncludedUrl)" in {
+          Get(metadataIncludedUrl) ~> addHeader("apikey", readKey) ~> routes ~> check {
+            status === OK
+            responseAs[String] must contain(vendor) and contain(name) and
+              contain(format) and contain(version) and contain("metadata")
           }
         }
 
