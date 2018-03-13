@@ -155,7 +155,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     new ApiImplicitParam(name = "body", value = "Schema to be added",
       required = true, dataType = "string", paramType = "body"),
     new ApiImplicitParam(name = "isPublic",
-      value = "Do you want your schema to be publicly available? Assumed false",
+      value = "Do you want your schema to be publicly available?",
       required = false, defaultValue = "false", allowableValues = "true,false",
       dataType = "boolean", paramType = "query")
   ))
@@ -207,7 +207,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     new ApiImplicitParam(name = "body", value = "Schema to be updated",
       required = true, dataType = "string", paramType = "body"),
     new ApiImplicitParam(name = "isPublic",
-      value = "Do you want your schema to be publicly available? Assumed false",
+      value = "Do you want your schema to be publicly available?",
       required = false, defaultValue = "false", allowableValues = "true,false",
       dataType = "boolean", paramType = "query")
   ))
@@ -267,12 +267,12 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
   @ApiOperation(value = "Retrieves every schema belonging to a vendor",
     notes = "Returns a collection of schemas", httpMethod = "GET", response = classOf[Schema])
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "vendor",
-      value = "Comma-separated list of schema vendors",
-      required = true, dataType = "string", paramType = "path"),
-    new ApiImplicitParam(name = "filter", value = "Metadata filter",
-      required = false, dataType = "string", paramType = "query",
-      allowableValues = "metadata")
+    new ApiImplicitParam(name = "vendor", value = "Comma-separated list of schema vendors",
+      required = true, dataType = "string", paramType = "path", allowMultiple = true),
+    new ApiImplicitParam(name = "filter", value = "Get only schema or only metadata",
+      required = false, dataType = "string", paramType = "query", allowableValues = "metadata"),
+    new ApiImplicitParam(name = "metadata", value = "Include/exclude metadata, choose 1 to include metadata in schemas",
+      required = false, dataType = "string", paramType = "query", allowableValues = "1")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "{...}"),
@@ -290,10 +290,19 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
           (schemaActor ? GetMetadataFromVendor(v, o, p))
             .mapTo[(StatusCode, String)]
         }
-        case _ => complete {
-          (schemaActor ? GetSchemasFromVendor(v, o, p))
-            .mapTo[(StatusCode, String)]
-        }
+        case _ =>
+          (parameter('metadata.?) | formField('metadata.?)) { metadata =>
+            metadata match {
+              case Some("1") => complete {
+                (schemaActor ? GetSchemasFromVendor(v, o, p, includeMetadata = true))
+                  .mapTo[(StatusCode, String)]
+              }
+              case _ => complete {
+                (schemaActor ? GetSchemasFromVendor(v, o, p))
+                  .mapTo[(StatusCode, String)]
+              }
+            }
+          }
       }
     }
 
@@ -308,16 +317,14 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
   @ApiOperation(value = "Retrieves every version of every format of a schema",
     notes = "Returns a collection of schemas", httpMethod = "GET", response = classOf[Schema])
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "vendor",
-      value = "Comma-separated list of schema vendors",
-      required = true, dataType = "string", paramType = "path"),
-    new ApiImplicitParam(name = "name",
-      value = "Comma-separated list of schema names",
-      required = true, dataType = "string", paramType = "path",
-      allowMultiple = true),
-    new ApiImplicitParam(name = "filter", value = "Metadata filter",
-      required = false, dataType = "string", paramType = "query",
-      allowableValues = "metadata")
+    new ApiImplicitParam(name = "vendor", value = "Comma-separated list of schema vendors",
+      required = true, dataType = "string", paramType = "path", allowMultiple = true),
+    new ApiImplicitParam(name = "name", value = "Comma-separated list of schema names",
+      required = true, dataType = "string", paramType = "path", allowMultiple = true),
+    new ApiImplicitParam(name = "filter", value = "Get only schema or only metadata",
+      required = false, dataType = "string", paramType = "query", allowableValues = "metadata"),
+    new ApiImplicitParam(name = "metadata", value = "Include/exclude metadata, choose 1 to include metadata in schemas",
+      required = false, dataType = "string", paramType = "query", allowableValues = "1")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "{...}"),
@@ -336,10 +343,19 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
           (schemaActor ? GetMetadataFromName(v, n, o, p))
             .mapTo[(StatusCode, String)]
         }
-        case _ => complete {
-          (schemaActor ? GetSchemasFromName(v, n, o, p))
-            .mapTo[(StatusCode, String)]
-        }
+        case _ =>
+          (parameter('metadata.?) | formField('metadata.?)) { metadata =>
+            metadata match {
+              case Some("1") => complete {
+                (schemaActor ? GetSchemasFromName(v, n, o, p, includeMetadata = true))
+                  .mapTo[(StatusCode, String)]
+              }
+              case _ => complete {
+                (schemaActor ? GetSchemasFromName(v, n, o, p))
+                  .mapTo[(StatusCode, String)]
+              }
+            }
+          }
       }
     }
 
@@ -361,8 +377,10 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       required = true, dataType = "string", paramType = "path", allowMultiple = true),
     new ApiImplicitParam(name = "schemaFormat", value = "Comma-separated list of schema formats",
       required = true, dataType = "string", paramType = "path", allowMultiple = true),
-    new ApiImplicitParam(name = "filter", value = "Metadata filter",
-      required = false, dataType = "string", paramType = "query", allowableValues = "metadata")
+    new ApiImplicitParam(name = "filter", value = "Get only schema or only metadata",
+      required = false, dataType = "string", paramType = "query", allowableValues = "metadata"),
+    new ApiImplicitParam(name = "metadata", value = "Include/exclude metadata, choose 1 to include metadata in schemas",
+      required = false, dataType = "string", paramType = "query", allowableValues = "1")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "{...}"),
@@ -382,10 +400,19 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
           (schemaActor ? GetMetadataFromFormat(v, n, f, o, p))
             .mapTo[(StatusCode, String)]
         }
-        case _ => complete {
-          (schemaActor ? GetSchemasFromFormat(v, n, f, o, p))
-            .mapTo[(StatusCode, String)]
-        }
+        case _ =>
+          (parameter('metadata.?) | formField('metadata.?)) { metadata =>
+            metadata match {
+              case Some("1") => complete {
+                (schemaActor ? GetSchemasFromFormat(v, n, f, o, p, includeMetadata = true))
+                  .mapTo[(StatusCode, String)]
+              }
+              case _ => complete {
+                (schemaActor ? GetSchemasFromFormat(v, n, f, o, p))
+                  .mapTo[(StatusCode, String)]
+              }
+            }
+          }
       }
     }
 
@@ -402,21 +429,18 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
   @ApiOperation(value = """Retrieves a schema based on its (vendor, name, format, version)""",
     notes = "Returns a schema", httpMethod = "GET", response = classOf[Schema])
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "vendor",
-      value = "Comma-separated list of schema vendors", required = true, dataType = "string", paramType = "path",
-      allowMultiple = true),
+    new ApiImplicitParam(name = "vendor", value = "Comma-separated list of schema vendors", required = true,
+      dataType = "string", paramType = "path", allowMultiple = true),
     new ApiImplicitParam(name = "name", value = "Comma-separated list of schema names",
-      required = true, dataType = "string", paramType = "path",
-      allowMultiple = true),
+      required = true, dataType = "string", paramType = "path", allowMultiple = true),
     new ApiImplicitParam(name = "schemaFormat", value = "Comma-separated list of schema formats",
-      required = true, dataType = "string", paramType = "path",
-      allowMultiple = true),
+      required = true, dataType = "string", paramType = "path", allowMultiple = true),
     new ApiImplicitParam(name = "version", value = "Comma-separated list of schema versions",
-      required = true, dataType = "string", paramType = "path",
-      allowMultiple = true),
-    new ApiImplicitParam(name = "filter", value = "Metadata filter",
-      required = false, dataType = "string", paramType = "query",
-      allowableValues = "metadata")
+      required = true, dataType = "string", paramType = "path", allowMultiple = true),
+    new ApiImplicitParam(name = "filter", value = "Get only schema or only metadata",
+      required = false, dataType = "string", paramType = "query", allowableValues = "metadata"),
+    new ApiImplicitParam(name = "metadata", value = "Include/exclude metadata, choose 1 to include metadata in schemas",
+      required = false, dataType = "string", paramType = "query", allowableValues = "1")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "{...}"),
@@ -437,10 +461,19 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
           (schemaActor ? GetMetadata(v, n, f, vs, o, p))
             .mapTo[(StatusCode, String)]
         }
-        case _ => complete {
-          (schemaActor ? GetSchema(v, n, f, vs, o, p))
-            .mapTo[(StatusCode, String)]
-        }
+        case _ =>
+          (parameter('metadata.?) | formField('metadata.?)) { metadata =>
+            metadata match {
+              case Some("1") => complete {
+                (schemaActor ? GetSchema(v, n, f, vs, o, p, includeMetadata = true))
+                  .mapTo[(StatusCode, String)]
+              }
+              case _ => complete {
+                (schemaActor ? GetSchema(v, n, f, vs, o, p))
+                  .mapTo[(StatusCode, String)]
+              }
+            }
+          }
       }
     }
 
@@ -453,8 +486,10 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
   @ApiOperation(value = "Retrieves every public schema",
     notes = "Returns a collection of schemas", httpMethod = "GET", response = classOf[List[Schema]])
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "filter", value = "Metadata filter", required = false,
-      dataType = "string", paramType = "query", allowableValues = "metadata")
+    new ApiImplicitParam(name = "filter", value = "Get only schema or only metadata",
+      required = false, dataType = "string", paramType = "query", allowableValues = "metadata"),
+    new ApiImplicitParam(name = "metadata", value = "Include/exclude metadata, choose 1 to include metadata in schemas",
+      required = false, dataType = "string", paramType = "query", allowableValues = "1")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "{...}", response = classOf[Schema]),
@@ -472,10 +507,19 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
           (schemaActor ? GetPublicMetadata(owner, permission))
             .mapTo[(StatusCode, String)]
         }
-        case _ => complete {
-          (schemaActor ? GetPublicSchemas(owner, permission))
-            .mapTo[(StatusCode, String)]
-        }
+        case _ =>
+          (parameter('metadata.?) | formField('metadata.?)) { metadata =>
+            metadata match {
+              case Some("1") => complete {
+                (schemaActor ? GetPublicSchemas(owner, permission, includeMetadata = true))
+                  .mapTo[(StatusCode, String)]
+              }
+              case _ => complete {
+                (schemaActor ? GetPublicSchemas(owner, permission))
+                  .mapTo[(StatusCode, String)]
+              }
+            }
+          }
       }
     }
 }
