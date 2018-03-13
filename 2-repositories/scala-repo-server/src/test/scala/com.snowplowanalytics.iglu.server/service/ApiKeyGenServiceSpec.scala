@@ -70,10 +70,10 @@ class ApiKeyGenServiceSpec extends Specification
   val faultyVendorPrefix3 = "com.no"
 
   //postUrl
-  val postUrl1 = s"${start}keygen?vendor_prefix=${vendorPrefix}"
+  val postUrl1 = s"${start}keygen?vendorPrefix=${vendorPrefix}"
   val postUrl2 = s"${start}keygen"
   val conflictingPostUrl1 =
-    s"${start}keygen?vendor_prefix=${faultyVendorPrefix}"
+    s"${start}keygen?vendorPrefix=${faultyVendorPrefix}"
 
   sequential
 
@@ -91,7 +91,7 @@ class ApiKeyGenServiceSpec extends Specification
       }
 
       "return a 401 if the key provided is not super with form data" in {
-        Post(postUrl2, FormData(Map("vendor_prefix" -> HttpEntity(`application/json`, vendorPrefix2)))) ~>
+        Post(postUrl2, FormData(Map("vendorPrefix" -> HttpEntity(`application/json`, vendorPrefix2)))) ~>
         addHeader("apikey", notSuperKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
@@ -118,7 +118,7 @@ class ApiKeyGenServiceSpec extends Specification
       }
 
       "return a 401 if the key provided is not an uuid with form data" in {
-        Post(postUrl2, FormData(Map("vendor_prefix" -> HttpEntity(`application/json`, vendorPrefix2)))) ~>
+        Post(postUrl2, FormData(Map("vendorPrefix" -> HttpEntity(`application/json`, vendorPrefix2)))) ~>
         addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
@@ -153,7 +153,7 @@ class ApiKeyGenServiceSpec extends Specification
       //to manually delete
       """return a 200 with the keys if the vendor prefix is not colliding with
       anyone with form data""" in {
-        Post(postUrl2, FormData(Map("vendor_prefix" -> HttpEntity(`application/json`, vendorPrefix2)))) ~>
+        Post(postUrl2, FormData(Map("vendorPrefix" -> HttpEntity(`application/json`, vendorPrefix2)))) ~>
         addHeader("apikey", superKey) ~> Route.seal(routes) ~> check {
           status === Created
           responseAs[String] must contain("read") and contain("write")
@@ -180,7 +180,7 @@ class ApiKeyGenServiceSpec extends Specification
       }
 
       "return a 401 if the vendor prefix already exists with form data" in {
-        Post(postUrl2, FormData(Map("vendor_prefix" -> HttpEntity(`application/json`, vendorPrefix2)))) ~>
+        Post(postUrl2, FormData(Map("vendorPrefix" -> HttpEntity(`application/json`, vendorPrefix2)))) ~>
         addHeader("apikey", superKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
           responseAs[String] must
@@ -209,7 +209,7 @@ class ApiKeyGenServiceSpec extends Specification
 
       """return a 401 if the new vendor prefix is conflicting with an existing
       one with form data""" in {
-        Post(postUrl2, FormData(Map("vendor_prefix" -> HttpEntity(`application/json`, faultyVendorPrefix2)))) ~>
+        Post(postUrl2, FormData(Map("vendorPrefix" -> HttpEntity(`application/json`, faultyVendorPrefix2)))) ~>
         addHeader("apikey", superKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
           responseAs[String] must

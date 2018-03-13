@@ -114,7 +114,7 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
   @ApiOperation(value = "Generates a pair of read/write API keys", notes = "Returns a pair of API keys",
     httpMethod = "POST")
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "vendor_prefix",
+    new ApiImplicitParam(name = "vendorPrefix",
       value = "Vendor prefix of the API keys", required = true,
       dataType = "string", paramType = "query")
   ))
@@ -131,7 +131,7 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
   def keygen(): Route =
-    (parameter('vendor_prefix) | formField('vendor_prefix) | entity(as[String])) { vendorPrefix =>
+    (parameter('vendorPrefix) | formField('vendorPrefix) | entity(as[String])) { vendorPrefix =>
       complete {
         (apiKeyActor ? AddBothKey(vendorPrefix)).mapTo[(StatusCode, String)]
       }
@@ -144,7 +144,7 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
   @ApiOperation(value = "Deletes every API key having this vendor prefix", httpMethod = "DELETE",
                 response = classOf[ApiKey])
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "vendor_prefix",
+    new ApiImplicitParam(name = "vendorPrefix",
       value = "API keys' vendor prefix", required = true, dataType = "string",
       paramType = "query")
   ))
@@ -160,7 +160,7 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
     new ApiResponse(code = 404, message = "Vendor prefix not found")
   ))
   def deleteKeys(): Route =
-    (parameter('vendor_prefix) | formField('vendor_prefix)) { owner =>
+    (parameter('vendorPrefix) | formField('vendorPrefix)) { owner =>
       complete {
         (apiKeyActor ? DeleteKeys(owner)).mapTo[(StatusCode, String)]
       }
