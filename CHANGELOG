@@ -1,3 +1,23 @@
+Release 9 Bull's Eye (2018-04-11)
+---------------------------------
+Server: add HTTPS scheme to Swagger UI (#363)
+Server: add baseURL to configuration (#362)
+Common: add Gitter badge (#358)
+Server: rename from Scala Repo Server (#131)
+Server: use scopt for CLI parameters (#356)
+Server: migrate CI/CD to release-manager (#355)
+Server: extend copyright notice to 2018 (#352)
+Server: only add metadata to schema JSON if ?metadata=1 (#86)
+Server: port to Akka HTTP (#318)
+Documentation: fix incorrect hyphen underlining for R7 and R8 (#335)
+Server: allow super user to upload schemas (#83)
+Server: bump SBT to 1.1.1 (#322)
+Server: bump Scala to 2.11.12 (#321)
+igluctl: add support for Java 9 (#300)
+igluctl: fix interpreting SchemaVer warnings as failures (#340)
+igluctl: bump to 0.4.1 (#345)
+Server: bump to 0.3.0 (#338)
+
 Release 8 Basel Dove (2018-02-07)
 ---------------------------------
 igluctl: fix false failure message in push command (#313)
