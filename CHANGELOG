@@ -1,3 +1,19 @@
+Release 9 Bull's Eye (2018-03-17)
+---------------------------------
+Schema Registry: use scopt for CLI parameters (#356)
+Schema Registry: migrate CI/CD to release-manager (#355)
+Schema Registry: extend copyright notice to 2018 (#352)
+Schema Registry: only add metadata to schema JSON if ?metadata=1 (#86)
+Schema Registry: port to Akka HTTP (#318)
+Documentation: fix incorrect hyphen underlining for R7 and R8 (#335)
+Schema Registry: allow super user to upload schemas (#83)
+Schema Registry: bump SBT to 1.1.1 (#322)
+Schema Registry: bump Scala to 2.11.12 (#321)
+igluctl: add support for Java 9 (#300)
+igluctl: fix interpreting SchemaVer warnings as failures (#340)
+igluctl: bump to 0.4.1 (#345)
+Schema Registry: bump to 0.3.0 (#338)
+
 Release 8 Basel Dove (2018-02-07)
 ---------------------------------
 igluctl: fix false failure message in push command (#313)
