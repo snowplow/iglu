@@ -114,7 +114,7 @@ case class PushCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File
   def buildRequest(schema: IgluSchema, writeKey: String): HttpRequest @@ PostSchema = {
     val request = Http(s"$registryRoot/api/schemas/${schema.self.toPath}")
       .header("apikey", writeKey)
-      .param("isPublic", isPublic.toString)
+      .param("is_public", isPublic.toString)
       .put(schema.asString)
     Tag.of[PostSchema](request)
   }

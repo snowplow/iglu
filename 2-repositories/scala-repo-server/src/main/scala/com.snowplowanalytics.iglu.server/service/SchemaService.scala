@@ -154,7 +154,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "body", value = "Schema to be added",
       required = true, dataType = "string", paramType = "body"),
-    new ApiImplicitParam(name = "isPublic",
+    new ApiImplicitParam(name = "is_public",
       value = "Do you want your schema to be publicly available? Assumed false",
       required = false, defaultValue = "false", allowableValues = "true,false",
       dataType = "boolean", paramType = "query")
@@ -177,7 +177,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
   def addRoute(@ApiParam(hidden = true) owner: String,
                @ApiParam(hidden = true) permission: String): Route =
       path(VendorPattern / NamePattern / FormatPattern / VersionPattern) { (v, n, f, vs) =>
-        (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
+        (parameter('is_public.?) | formField('is_public.?)) { isPublic =>
             validateSchema(f) { schema =>
               complete {
                 (schemaActor ? AddSchema(v, n, f, vs, schema, owner, permission,
@@ -207,7 +207,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "body", value = "Schema to be updated",
       required = true, dataType = "string", paramType = "body"),
-    new ApiImplicitParam(name = "isPublic",
+    new ApiImplicitParam(name = "is_public",
       value = "Do you want your schema to be publicly available? Assumed false",
       required = false, defaultValue = "false", allowableValues = "true,false",
       dataType = "boolean", paramType = "query")
@@ -229,7 +229,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
   def updateRoute(@ApiParam(hidden = true) owner: String,
                   @ApiParam(hidden = true) permission: String): Route =
       path(VendorPattern / NamePattern / FormatPattern / VersionPattern) { (v, n, f, vs) =>
-        (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
+        (parameter('is_public.?) | formField('is_public.?)) { isPublic =>
             validateSchema(f) { schema =>
               complete {
                 (schemaActor ? UpdateSchema(v, n, f, vs, schema, owner,
@@ -248,7 +248,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
   def deleteRoute(@ApiParam(hidden = true) owner: String,
                   @ApiParam(hidden = true) permission: String): Route =
       path(VendorPattern / NamePattern / FormatPattern / VersionPattern) { (v, n, f, vs) =>
-        (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
+        (parameter('is_public.?) | formField('is_public.?)) { isPublic =>
             complete {
               (schemaActor ? DeleteSchema(v, n, f, vs, owner,
                 permission, isPublic == Some("true")))

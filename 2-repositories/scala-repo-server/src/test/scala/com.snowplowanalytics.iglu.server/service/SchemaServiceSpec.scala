@@ -154,7 +154,7 @@ class SchemaServiceSpec extends Specification
   val postUrl8 = s"$start$vendor/unit_test8/$format/$version" +
     s"?schema=$notJson"
   val postUrl9 = s"${start}${vendor}/unit_test9/${format}/${version}" +
-    s"?isPublic=true"
+    s"?is_public=true"
   val postUrl10 = s"${start}${vendor}/unit_test10/${format}/${version}" +
     s"?schema=${validSchemaUri}&isPublic=true"
   val postUrl11 = s"${start}${vendor}/unit_test11/${format}/${version}"
