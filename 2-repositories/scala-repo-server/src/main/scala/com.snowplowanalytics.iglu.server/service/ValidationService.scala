@@ -51,7 +51,7 @@ import io.swagger.annotations._
     authorizations = Array(new Authorization(value = "APIKeyHeader")), produces = "text/plain")
 @Path("/api/schemas/validate")
 class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
-                       (implicit executionContext: ExecutionContext, routingSettings: RoutingSettings)
+                       (implicit executionContext: ExecutionContext)
                        extends Directives with Service {
 
   /**

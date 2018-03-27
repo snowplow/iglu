@@ -22,19 +22,15 @@ import IgluPostgresDriver.simple._
 import scala.collection.JavaConverters._
 
 // Config
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.Config
 
-/**
- * Config object getting the information stored in application.conf
- */
-object ServerConfig {
 
-  val config = ConfigFactory.load
+case class ServerConfig(config: Config) {
 
   val env = System.getenv.asScala.lift
 
   //Interface on which the server will be running
-  val interface = config.getString("repo-server.interface")
+  val interface = env("IGLU_INTERFACE") getOrElse config.getString("repo-server.interface")
   //Port on which the server will be running
   val port = env("IGLU_PORT").map(_.toInt) getOrElse config.getInt("repo-server.port")
 
@@ -46,8 +42,8 @@ object ServerConfig {
   val pgDriver = config.getString("postgres.driver")
 
   //Reference to the database
-  val db = Database.forURL(
-    url = s"jdbc:postgresql://${pgHost}:${pgPort}/${pgDbName}",
+  val db: Database = Database.forURL(
+    url = s"jdbc:postgresql://$pgHost:$pgPort/$pgDbName",
     user = pgUsername,
     password = pgPassword,
     driver = pgDriver

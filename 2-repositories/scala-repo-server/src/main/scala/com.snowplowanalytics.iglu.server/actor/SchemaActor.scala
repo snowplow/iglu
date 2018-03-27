@@ -205,12 +205,12 @@ object SchemaActor {
 /**
  * Schema actor interfacing the services and the schema model.
  */
-class SchemaActor extends Actor {
+class SchemaActor(serverConfig: ServerConfig) extends Actor {
 
   import SchemaActor._
 
   // Schema model
-  private val schema = new SchemaDAO(ServerConfig.db)
+  private val schema = new SchemaDAO(serverConfig.db)
 
   /**
    * Method specifying how the actor should handle the incoming messages.
