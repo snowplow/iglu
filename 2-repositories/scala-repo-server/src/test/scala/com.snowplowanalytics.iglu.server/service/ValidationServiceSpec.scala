@@ -18,6 +18,12 @@ package service
 // Scala
 import scala.concurrent.duration._
 
+// Akka
+import akka.actor.{ActorRef, Props}
+
+// This project
+import com.snowplowanalytics.iglu.server.actor.{ApiKeyActor, SchemaActor}
+
 // Akka Http
 import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
 import akka.http.scaladsl.model.StatusCodes._
@@ -30,8 +36,8 @@ class ValidationServiceSpec extends Specification
   with Api with Specs2RouteTest with SetupAndDestroy {
 
   override def afterAll() = super.afterAll()
-
-  def actorRefFactory = system
+  val schemaActor: ActorRef = system.actorOf(Props(classOf[SchemaActor], config), "schemaActor3")
+  val apiKeyActor: ActorRef = system.actorOf(Props(classOf[ApiKeyActor], config), "apiKeyActor3")
 
   implicit val routeTestTimeout = RouteTestTimeout(20 seconds)
 

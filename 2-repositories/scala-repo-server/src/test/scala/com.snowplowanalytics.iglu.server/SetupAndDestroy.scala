@@ -22,15 +22,21 @@ import slick.driver.JdbcDriver.backend.{ Database, DatabaseDef }
 import Database.dynamicSession
 import slick.jdbc.{ StaticQuery => Q }
 
+// config
+import com.typesafe.config.ConfigFactory
+
+
 trait SetupAndDestroy extends BeforeAndAfterAll {
   private val dbName = getClass.getSimpleName.toLowerCase
 
-  private val db = Database.forURL(
-    url =  s"jdbc:postgresql://${ServerConfig.pgHost}:${ServerConfig.pgPort}/" +
-      s"${ServerConfig.pgDbName}",
-    user = ServerConfig.pgUsername,
-    password = ServerConfig.pgPassword,
-    driver = ServerConfig.pgDriver
+  val config = ServerConfig(ConfigFactory.load)
+
+  val db = Database.forURL(
+    url =  s"jdbc:postgresql://${config.pgHost}:${config.pgPort}/" +
+      s"${config.pgDbName}",
+    user = config.pgUsername,
+    password = config.pgPassword,
+    driver = config.pgDriver
   )
 
   val initializationQuery = """
@@ -280,7 +286,7 @@ trait SetupAndDestroy extends BeforeAndAfterAll {
     db withDynSession {
       Q.updateNA(s"drop database if exists $dbName;").execute
       Q.updateNA(s"create database $dbName;").execute
-      TableInitialization.initializeTables()
+      TableInitialization.initializeTables(db)
       Q.updateNA(initializationQuery).execute
     }
   }
@@ -297,10 +303,10 @@ trait SetupAndDestroy extends BeforeAndAfterAll {
   }
 
   val database: DatabaseDef = Database.forURL(
-    url = s"jdbc:postgresql://${ServerConfig.pgHost}:${ServerConfig.pgPort}/" +
-      s"$dbName",
-    user = ServerConfig.pgUsername,
-    password = ServerConfig.pgPassword,
-    driver = ServerConfig.pgDriver
+    url = s"jdbc:postgresql://${config.pgHost}:${config.pgPort}/" +
+      s"${dbName}",
+    user = config.pgUsername,
+    password = config.pgPassword,
+    driver = config.pgDriver
   )
 }
