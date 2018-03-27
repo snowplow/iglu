@@ -52,7 +52,7 @@ import javax.ws.rs.Path
 @Api(value = "/api/schemas", tags = Array("schema"), produces = "text/plain")
 @Path("/api/schemas")
 class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
-                   (implicit executionContext: ExecutionContext, routingSettings: RoutingSettings)
+                   (implicit executionContext: ExecutionContext)
                    extends Directives with Service {
 
   /**

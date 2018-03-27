@@ -25,6 +25,7 @@ lazy val project = Project("iglu-server", file("."))
   .settings(
     libraryDependencies ++= Seq(
       // Scala
+      Libraries.scopt,
       Libraries.akkaActor,
       Libraries.akkaSlf4j,
       Libraries.joda,
