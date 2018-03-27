@@ -37,7 +37,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
   implicit val timeout = Timeout(20 seconds)
 
-  val schema = TestActorRef(new SchemaActor)
+  val schema = TestActorRef(new SchemaActor(config))
 
   val owner = "com.unittest"
   val otherOwner = "com.benfradet"

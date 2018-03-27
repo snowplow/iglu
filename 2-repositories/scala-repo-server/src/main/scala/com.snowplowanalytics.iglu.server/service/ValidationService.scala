@@ -50,7 +50,7 @@ import io.swagger.annotations._
 @Api(value = "/api/schemas/validate", tags = Array("validation"), produces = "text/plain")
 @Path("/api/schemas/validate")
 class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
-                       (implicit executionContext: ExecutionContext, routingSettings: RoutingSettings)
+                       (implicit executionContext: ExecutionContext)
                        extends Directives with Service {
 
   /**

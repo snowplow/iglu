@@ -23,16 +23,16 @@ import com.github.swagger.akka.model.{Contact, Info, License}
 
 // This project
 import service.{ApiKeyGenService, SchemaService, ValidationService}
-import util.ServerConfig._
+import util.ServerConfig
 
 
-object SwaggerDocService extends SwaggerHttpService {
+class SwaggerDocService(serverConfig: ServerConfig) extends SwaggerHttpService {
   override val apiClasses: Set[Class[_]] = Set(
     classOf[ApiKeyGenService],
     classOf[SchemaService],
     classOf[ValidationService]
   )
-  override val host = s"$interface:$port"
+  override val host = s"${serverConfig.interface}:${serverConfig.port}"
   override val unwantedDefinitions = Seq("Function1", "Function1RequestContextFutureRouteResult")
   override def securitySchemeDefinitions = Map("APIKeyHeader" -> new ApiKeyAuthDefinition("apikey", In.HEADER) )
   override def info = Info(

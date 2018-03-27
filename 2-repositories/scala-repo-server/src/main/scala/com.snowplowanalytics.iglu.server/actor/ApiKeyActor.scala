@@ -61,12 +61,12 @@ object ApiKeyActor {
 /**
  * ApiKey actor interfacing between the services and the API key model.
  */
-class ApiKeyActor extends Actor {
+class ApiKeyActor(serverConfig: ServerConfig) extends Actor {
 
   import ApiKeyActor._
 
   // ApiKey model
-  val apiKey = new ApiKeyDAO(ServerConfig.db)
+  val apiKey = new ApiKeyDAO(serverConfig.db)
 
   /**
    * Method specifying how the actor should handle the incoming messages.

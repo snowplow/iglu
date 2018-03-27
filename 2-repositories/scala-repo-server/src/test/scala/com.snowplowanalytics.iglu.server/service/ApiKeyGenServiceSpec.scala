@@ -18,6 +18,12 @@ package service
 // Java
 import java.util.UUID
 
+// Akka
+import akka.actor.{ActorRef, Props}
+
+// this project
+import actor.{ApiKeyActor, SchemaActor}
+
 // Akka Http
 import akka.http.scaladsl.model.HttpEntity
 import akka.http.scaladsl.model.Multipart.FormData
@@ -42,8 +48,8 @@ class ApiKeyGenServiceSpec extends Specification
   with Api with Specs2RouteTest with SetupAndDestroy {
 
   override def afterAll() = super.afterAll()
-
-  def actorRefFactory = system
+  val schemaActor: ActorRef = system.actorOf(Props(classOf[SchemaActor], config), "schemaActor1")
+  val apiKeyActor: ActorRef = system.actorOf(Props(classOf[ApiKeyActor], config), "apiKeyActor1")
 
   implicit val routeTestTimeout = RouteTestTimeout(30 seconds)
 
