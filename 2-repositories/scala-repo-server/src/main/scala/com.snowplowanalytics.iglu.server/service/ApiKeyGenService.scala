@@ -24,15 +24,18 @@ import akka.actor.ActorRef
 import akka.pattern.ask
 
 // Scala
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{Future, ExecutionContext}
 
 // Akka Http
 import akka.http.scaladsl.model.StatusCode
 import akka.http.scaladsl.model.StatusCodes._
+import akka.http.scaladsl.model.MediaTypes.`application/json`
+import akka.http.scaladsl.model.headers.Accept
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
+import akka.http.scaladsl.server.{ContentNegotiator, UnacceptedResponseContentTypeRejection}
 import akka.http.scaladsl.server.Directive1
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.settings.RoutingSettings
 import akka.http.scaladsl.model.headers.HttpChallenges
 import akka.http.scaladsl.server.AuthenticationFailedRejection
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
@@ -50,11 +53,10 @@ import io.swagger.annotations._
   * @param apiKeyActor a reference to a ``ApiKeyActor``
   */
 @Path("/api/auth")
-@Api(value = "/api/auth", tags = Array("key"), authorizations = Array(new Authorization(value = "APIKeyHeader")),
-    produces = "text/plain")
+@Api(value = "/api/auth", tags = Array("key"), authorizations = Array(new Authorization(value = "APIKeyHeader")))
 @Tag(name = "key", description = "Service to interact with API keys")
 class ApiKeyGenService(apiKeyActor: ActorRef)
-                      (implicit executionContext: ExecutionContext, routingSettings: RoutingSettings)
+                      (implicit executionContext: ExecutionContext)
                       extends Directives with Service {
 
   /**
@@ -63,11 +65,23 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
   def auth(key: String): Directive1[(String, String)] = {
     val credentialsRequest = (apiKeyActor ? GetKey(key)).mapTo[Option[(String, String)]].map {
       case Some(t) => Right(t)
-      case None => Left(AuthenticationFailedRejection(CredentialsRejected, HttpChallenges.basic("")))
+      case None => Left(AuthenticationFailedRejection(CredentialsRejected, HttpChallenges.basic("Iglu Server")))
     }
     onSuccess(credentialsRequest).flatMap {
       case Right(user) => provide(user)
       case Left(rejection) => reject(rejection)
+    }
+  }
+
+  /**
+    * Negotiate Content-Type header
+    */
+  def contentTypeNegotiator(routes: Route): Route = {
+    optionalHeaderValueByType[Accept]() {
+      case Some(x) =>
+        if (x.acceptsAll() || x.mediaRanges.exists(_.matches(`application/json`))) routes
+        else reject(UnacceptedResponseContentTypeRejection(Set(ContentNegotiator.Alternative(`application/json`))))
+      case None => routes
     }
   }
 
@@ -77,27 +91,29 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
   lazy val routes: Route =
     rejectEmptyResponse {
       (post | delete) {
-        headerValueByName("apikey") { apikey =>
-          auth(apikey) { case (owner, permission) =>
-            if (permission == "super") {
-              path("keygen") {
-                post {
-                  keygen()
+        contentTypeNegotiator(
+          headerValueByName("apikey") { apikey =>
+            auth(apikey) { case (_, permission) =>
+              if (permission == "super") {
+                path("keygen") {
+                  post {
+                    keygen()
+                  } ~
+                    delete {
+                      deleteKey()
+                    }
                 } ~
-                  delete {
-                    deleteKey()
+                  path("vendor") {
+                    delete {
+                      deleteKeys()
+                    }
                   }
-              } ~
-                path("vendor") {
-                  delete {
-                    deleteKeys()
-                  }
-                }
-            } else {
-              complete(Unauthorized, "You do not have sufficient privileges")
+              } else {
+                complete(Unauthorized, "You do not have sufficient privileges")
+              }
             }
           }
-        }
+        )
       }
     }
 
@@ -106,14 +122,13 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
     */
   @Path("/keygen")
   @ApiOperation(value = "Generates a pair of read/write API keys", notes = "Returns a pair of API keys",
-    httpMethod = "POST")
+    httpMethod = "POST", produces = "application/json", code = 201)
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor_prefix",
       value = "Vendor prefix of the API keys", required = true,
       dataType = "string", paramType = "query")
   ))
   @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Placeholder response, look at 201"),
     new ApiResponse(code = 201, message = "{\n" +
                                           "  read : readKey\n" +
                                           "  write : writeKey\n" +
@@ -121,14 +136,14 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
     new ApiResponse(code = 401, message = "This vendor prefix is conflicting with an existing one"),
     new ApiResponse(code = 401, message = "You do not have sufficient privileges"),
     new ApiResponse(code = 401, message = "The supplied authentication is invalid"),
-    new ApiResponse(code = 401, message = "The resource requires authentication," +
-                                          "which was not supplied with the request"),
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
   def keygen(): Route =
     (parameter('vendor_prefix) | formField('vendor_prefix) | entity(as[String])) { vendorPrefix =>
-      complete {
+      val keyCreated: Future[(StatusCode, String)] =
         (apiKeyActor ? AddBothKey(vendorPrefix)).mapTo[(StatusCode, String)]
+      onSuccess(keyCreated) { (status, performed) =>
+        complete(status, HttpEntity(ContentTypes.`application/json`, performed))
       }
     }
 
@@ -137,7 +152,7 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
     */
   @Path("/vendor")
   @ApiOperation(value = "Deletes every API key having this vendor prefix", httpMethod = "DELETE",
-                response = classOf[ApiKey])
+                response = classOf[ApiKey], produces = "application/json")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor_prefix",
       value = "API keys' vendor prefix", required = true, dataType = "string",
@@ -156,8 +171,10 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
   ))
   def deleteKeys(): Route =
     (parameter('vendor_prefix) | formField('vendor_prefix)) { owner =>
-      complete {
+      val keysDeleted: Future[(StatusCode, String)] =
         (apiKeyActor ? DeleteKeys(owner)).mapTo[(StatusCode, String)]
+      onSuccess(keysDeleted) { (status, performed) =>
+        complete(status, HttpEntity(ContentTypes.`application/json`, performed))
       }
     }
 
@@ -165,7 +182,8 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
     * Route to delete a single API key.
     */
   @Path("/keygen")
-  @ApiOperation(value = "Deletes a single API key", httpMethod = "DELETE", response = classOf[ApiKey])
+  @ApiOperation(value = "Deletes a single API key", httpMethod = "DELETE",
+    response = classOf[ApiKey], produces = "application/json")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "key", value = "API key to be deleted",
       required = true, dataType = "string", paramType = "query")
@@ -185,8 +203,10 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
   ))
   def deleteKey(): Route =
     (parameter('key) | formField('key)) { key =>
-      complete {
+      val keyDeleted: Future[(StatusCode, String)] =
         (apiKeyActor ? DeleteKey(key)).mapTo[(StatusCode, String)]
+      onSuccess(keyDeleted) { (status, performed) =>
+        complete(status, HttpEntity(ContentTypes.`application/json`, performed))
       }
     }
 }

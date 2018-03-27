@@ -18,9 +18,16 @@ package service
 // Scala
 import scala.concurrent.duration._
 
+// Akka
+import akka.actor.{ActorRef, Props}
+
+// This project
+import com.snowplowanalytics.iglu.server.actor.{ApiKeyActor, SchemaActor}
+
 // Akka Http
 import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
 import akka.http.scaladsl.model.StatusCodes._
+import akka.http.scaladsl.model.ContentTypes._
 
 // Specs2
 import org.specs2.mutable.Specification
@@ -30,8 +37,8 @@ class ValidationServiceSpec extends Specification
   with Api with Specs2RouteTest with SetupAndDestroy {
 
   override def afterAll() = super.afterAll()
-
-  def actorRefFactory = system
+  val schemaActor: ActorRef = system.actorOf(Props(classOf[SchemaActor], config), "schemaActor3")
+  val apiKeyActor: ActorRef = system.actorOf(Props(classOf[ApiKeyActor], config), "apiKeyActor3")
 
   implicit val routeTestTimeout = RouteTestTimeout(20 seconds)
 
@@ -66,19 +73,19 @@ class ValidationServiceSpec extends Specification
 
   val start = "/api/schemas/validate/"
 
-  val validUrl = s"${start}${format}?schema=${validSchemaUri}"
-  val invalidUrl = s"${start}${format}?schema=${invalidSchemaUri}"
-  val notSchemaUrl = s"${start}${format}?schema=${notJson}"
-  val invalidFormatUrl = s"${start}${invalidFormat}?schema=${validSchemaUri}"
+  val validUrl = s"${start}${format}?schema=$validSchemaUri"
+  val invalidUrl = s"${start}${format}?schema=$invalidSchemaUri"
+  val notSchemaUrl = s"${start}${format}?schema=$notJson"
+  val invalidFormatUrl = s"${start}${invalidFormat}?schema=$validSchemaUri"
 
   val validInstanceUrl = s"${start}${vendor}/${name}/${format}/${version}" +
-    s"?instance=${validInstanceUri}"
+    s"?instance=$validInstanceUri"
   val invalidInstanceUrl = s"${start}${vendor}/${name}/${format}/${version}" +
-    s"?instance=${invalidSchemaUri}"
+    s"?instance=$invalidSchemaUri"
   val notInstanceUrl = s"${start}${vendor}/${name}/${format}/${version}" +
-    s"?instance=${notJson}"
+    s"?instance=$notJson"
   val notFoundInstanceUrl = s"${start}${vendor}/${name}/${format}/1-0-100" +
-    s"?instance=${validInstanceUri}"
+    s"?instance=$validInstanceUri"
 
   sequential
 
@@ -89,6 +96,7 @@ class ValidationServiceSpec extends Specification
       "return a 200 if the schema provided is self-describing" in {
         Get(validUrl) ~> addHeader("apikey", key) ~> routes ~> check {
           status === OK
+          contentType === `application/json`
           responseAs[String] must
             contain("The schema provided is a valid self-describing schema")
         }
@@ -97,6 +105,7 @@ class ValidationServiceSpec extends Specification
       "return a 400 if the schema provided is not self-describing" in {
         Get(invalidUrl) ~> addHeader("apikey", key) ~> routes ~> check {
           status === BadRequest
+          contentType === `application/json`
           responseAs[String] must contain(
             "The schema provided is not a valid self-describing schema") and
             contain("report")
@@ -106,6 +115,7 @@ class ValidationServiceSpec extends Specification
       "return a 400 if the schema provided is not valid" in {
         Get(notSchemaUrl) ~> addHeader("apikey", key) ~> routes ~> check {
           status === BadRequest
+          contentType === `application/json`
           responseAs[String] must contain("The schema provided is not valid")
         }
       }
@@ -113,6 +123,7 @@ class ValidationServiceSpec extends Specification
       "return a 400 if the format provided is not supported" in {
         Get(invalidFormatUrl) ~> addHeader("apikey", key) ~> routes ~> check {
           status === BadRequest
+          contentType === `application/json`
           responseAs[String] must
             contain("The schema format provided is not supported")
         }
@@ -124,6 +135,7 @@ class ValidationServiceSpec extends Specification
       "return a 200 if the instance is valid against the schema" in {
         Get(validInstanceUrl) ~> addHeader("apikey", key) ~> routes ~> check {
           status === OK
+          contentType === `application/json`
           responseAs[String] must
             contain("The instance provided is valid against the schema")
         }
@@ -133,6 +145,7 @@ class ValidationServiceSpec extends Specification
         Get(invalidInstanceUrl) ~> addHeader("apikey", key) ~> routes ~>
         check {
           status === BadRequest
+          contentType === `application/json`
           responseAs[String] must
             contain("The instance provided is not valid against the schema")
         }
@@ -141,6 +154,7 @@ class ValidationServiceSpec extends Specification
       "return a 400 if the instance provided is not valid" in {
         Get(notInstanceUrl) ~> addHeader("apikey", key) ~> routes ~> check {
           status === BadRequest
+          contentType === `application/json`
           responseAs[String] must contain("The instance provided is not valid")
         }
       }
@@ -149,6 +163,7 @@ class ValidationServiceSpec extends Specification
         Get(notFoundInstanceUrl) ~> addHeader("apikey", key) ~> routes ~>
         check {
           status === NotFound
+          contentType === `application/json`
           responseAs[String] must
             contain("The schema to validate against was not found")
         }

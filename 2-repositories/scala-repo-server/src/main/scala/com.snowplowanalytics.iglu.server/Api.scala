@@ -20,6 +20,9 @@ import service.{ApiKeyGenService, SchemaService, ValidationService}
 // Scala
 import scala.concurrent.ExecutionContext.Implicits.global
 
+// Akka
+import akka.actor.ActorRef
+
 // Akka Http
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -35,7 +38,25 @@ import akka.http.scaladsl.model.headers.{
 /**
   * Api trait regroups the routes from all the different services.
   */
-trait Api extends CoreActors with Core {
+trait Api {
+
+  /**
+    * Abstract actor for schema operations
+    *
+    * Receive a message per HTTP request & send back response content to its service
+    */
+  val schemaActor: ActorRef
+
+  /**
+    * Abstract actor for api key operations
+    *
+    * Receive a message per HTTP request & send back response content to its service
+    */
+  val apiKeyActor: ActorRef
+
+  /**
+    * Concatenated route definitions for all endpoints
+    */
   val routes: Route =
     corsHandler(
       pathPrefix("api") {
@@ -56,10 +77,8 @@ trait Api extends CoreActors with Core {
             }
           } ~
             getFromResourceDirectory("swagger-ui-dist")
-        } ~
-        SwaggerDocService.routes
+        }
     )
-
 
   /** Add CORS support by setting required HTTP headers and handling prelight OPTIONS requests
     *
@@ -70,7 +89,7 @@ trait Api extends CoreActors with Core {
     respondWithHeaders(List(
       `Access-Control-Allow-Origin`.*,
       `Access-Control-Allow-Credentials`(true),
-      `Access-Control-Allow-Headers`("Content-Type", "apikey")
+      `Access-Control-Allow-Headers`("apikey")
     )) {
       options {
         complete(HttpResponse().withHeaders(`Access-Control-Allow-Methods`(List(GET, POST, PUT, OPTIONS, DELETE))))

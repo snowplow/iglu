@@ -17,25 +17,24 @@ package service
 
 // This project
 import actor.SchemaActor._
-import actor.ApiKeyActor._
 
 // Akka
 import akka.actor.ActorRef
 import akka.pattern.ask
 
 // Akka Http
-import akka.http.scaladsl.model.StatusCode
-import akka.http.scaladsl.server.{Directive1, Directives}
-import akka.http.scaladsl.model.headers.HttpChallenges
-import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
-import akka.http.scaladsl.server.{AuthenticationFailedRejection, Route}
-import akka.http.scaladsl.settings.RoutingSettings
+import akka.http.scaladsl.model.MediaTypes.`application/json`
+import akka.http.scaladsl.model.headers.Accept
+import akka.http.scaladsl.server.{ContentNegotiator, UnacceptedResponseContentTypeRejection}
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCode}
+import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.server.Route
 
 // javax
 import javax.ws.rs.Path
 
 //Scala
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 // Swagger
 import io.swagger.annotations._
@@ -50,8 +49,21 @@ import io.swagger.annotations._
 @Api(value = "/api/schemas/validate", tags = Array("validation"), produces = "text/plain")
 @Path("/api/schemas/validate")
 class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
-                       (implicit executionContext: ExecutionContext, routingSettings: RoutingSettings)
+                       (implicit executionContext: ExecutionContext)
                        extends Directives with Service {
+
+
+  /**
+    * Negotiate Content-Type header
+    */
+  def contentTypeNegotiator(routes: Route): Route = {
+    optionalHeaderValueByType[Accept]() {
+      case Some(x) =>
+        if (x.acceptsAll() || x.mediaRanges.exists(_.matches(`application/json`))) routes
+        else reject(UnacceptedResponseContentTypeRejection(Set(ContentNegotiator.Alternative(`application/json`))))
+      case None => routes
+    }
+  }
 
   /**
     * Validation service's route
@@ -59,12 +71,14 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
   lazy val routes: Route =
     rejectEmptyResponse {
       get {
-        path(FormatPattern) { format =>
-          validateSchemaRoute(format)
-        } ~
+        contentTypeNegotiator(
+          path(FormatPattern) { format =>
+            validateSchemaRoute(format)
+          } ~
           path(VendorPattern / NamePattern / FormatPattern / VersionPattern) { (v, n, f, vs) =>
             validateRoute(v, n, f, vs)
           }
+        )
       }
     }
 
@@ -74,7 +88,7 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     */
   @Path("/{schemaFormat}")
   @ApiOperation(value = "Validates that a schema is self-describing",
-    notes = "Returns a validation message", httpMethod = "GET")
+    notes = "Returns a validation message", httpMethod = "GET", produces = "application/json")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "schemaFormat", value = "Schema's format",
       required = true, dataType = "string", paramType = "path"),
@@ -92,9 +106,11 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
   ))
   def validateSchemaRoute(@ApiParam(hidden = true) schemaFormat: String): Route =
     parameter('schema) { schema =>
-      complete {
-        (schemaActor ?
-          ValidateSchema(schema, schemaFormat, provideSchema = false)).mapTo[(StatusCode, String)]
+      val selfDescSchemaValidated: Future[(StatusCode, String)] =
+        (schemaActor ? ValidateSchema(schema, schemaFormat, provideSchema = false))
+          .mapTo[(StatusCode, String)]
+      onSuccess(selfDescSchemaValidated) { (status, performed) =>
+        complete(status, HttpEntity(ContentTypes.`application/json` , performed))
       }
     }
 
@@ -107,7 +123,7 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     */
   @Path("/{vendor}/{name}/{schemaFormat}/{version}")
   @ApiOperation(value = "Validates an instance against its schema",
-    notes = "Returns a validation message", httpMethod = "GET")
+    notes = "Returns a validation message", httpMethod = "GET", produces = "application/json")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
       required = true, dataType = "string", paramType = "path"),
@@ -136,9 +152,10 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                     @ApiParam(hidden = true) f: String,
                     @ApiParam(hidden = true) vs: String): Route =
     parameter('instance) { instance =>
-      complete {
-        (schemaActor ?
-          Validate(v, n, f, vs, instance)).mapTo[(StatusCode, String)]
+      val schemaValidated: Future[(StatusCode, String)] =
+        (schemaActor ? Validate(v, n, f, vs, instance)).mapTo[(StatusCode, String)]
+      onSuccess(schemaValidated) { (status, performed) =>
+        complete(status, HttpEntity(ContentTypes.`application/json` , performed))
       }
     }
 }

@@ -165,8 +165,8 @@ class SchemaDAO(val db: Database) extends DAO {
     * @return a status code and json pair containing the list of all schemas
     * of this vendor
     */
-  def getFromVendor(vendors: List[String], owner: String, permission: String, includeMetadata: Boolean):
-    (StatusCode, String) =
+  def getFromVendor(vendors: List[String], owner: String,
+                    permission: String, includeMetadata: Boolean): (StatusCode, String) =
       db withDynSession {
         val preliminaryList = (for {
           s <- schemas if s.vendor inSet vendors
@@ -175,7 +175,7 @@ class SchemaDAO(val db: Database) extends DAO {
         if (preliminaryList.isEmpty) {
           (NotFound, result(404, "There are no schemas for this vendor"))
         } else {
-          val l: List[JValue] =
+          val jsonSchemas: List[JValue] =
             preliminaryList
               .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
               .map(s =>
@@ -188,12 +188,10 @@ class SchemaDAO(val db: Database) extends DAO {
                         getPermission(s.vendor, owner, permission, s.isPublic))))
                 } else parse(s.schema))
 
-          if (l.length == 1) {
-            (OK, writePretty(l(0)))
-          } else if (l.length > 1) {
-            (OK, writePretty(l))
-          } else {
-            (Unauthorized, result(401, "You do not have sufficient privileges"))
+          jsonSchemas match {
+            case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+            case single :: Nil => (OK, writePretty(single))
+            case multiple => (OK, writePretty(multiple))
           }
         }
       }
@@ -216,7 +214,7 @@ class SchemaDAO(val db: Database) extends DAO {
       if(preliminaryList.isEmpty) {
         (NotFound, result(404, "There are no schemas for this vendor"))
       } else {
-        val l: List[ResMetadata] =
+        val metadata: List[ResMetadata] =
           preliminaryList
             .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
             .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
@@ -225,12 +223,10 @@ class SchemaDAO(val db: Database) extends DAO {
                 s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
                 getPermission(s.vendor, owner, permission, s.isPublic))))
 
-        if (l.length == 1) {
-          (OK, writePretty(l(0)))
-        } else if (l.length > 1) {
-          (OK, writePretty(l))
-        } else {
-          (Unauthorized, result(401, "You do not have sufficient privileges"))
+        metadata match {
+          case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+          case single :: Nil => (OK, writePretty(single))
+          case multiple => (OK, writePretty(multiple))
         }
       }
     }
@@ -256,7 +252,7 @@ class SchemaDAO(val db: Database) extends DAO {
         (NotFound, result(404,
           "There are no schemas for this vendor, name combination"))
       } else {
-        val l: List[JValue] =
+        val jsonSchemas: List[JValue] =
           preliminaryList
             .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
             .map(s =>
@@ -269,12 +265,10 @@ class SchemaDAO(val db: Database) extends DAO {
                       getPermission(s.vendor, owner, permission, s.isPublic))))
               } else parse(s.schema))
 
-        if (l.length == 1) {
-          (OK, writePretty(l(0)))
-        } else if (l.length > 1) {
-          (OK, writePretty(l))
-        } else {
-          (Unauthorized, result(401, "You do not have sufficient privileges"))
+        jsonSchemas match {
+          case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+          case single :: Nil => (OK, writePretty(single))
+          case multiple => (OK, writePretty(multiple))
         }
       }
     }
@@ -300,7 +294,7 @@ class SchemaDAO(val db: Database) extends DAO {
         (NotFound, result(404,
           "There are no schemas for this vendor, name combination"))
       } else {
-        val l: List[ResMetadata] =
+        val metadata: List[ResMetadata] =
           preliminaryList
             .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
             .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
@@ -309,12 +303,10 @@ class SchemaDAO(val db: Database) extends DAO {
                 s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
                 getPermission(s.vendor, owner, permission, s.isPublic))))
 
-        if (l.length == 1) {
-          (OK, writePretty(l(0)))
-        } else if (l.length > 1) {
-          (OK, writePretty(l))
-        } else {
-          (Unauthorized, result(401, "You do not have sufficient privileges"))
+        metadata match {
+          case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+          case single :: Nil => (OK, writePretty(single))
+          case multiple => (OK, writePretty(multiple))
         }
       }
     }
@@ -344,7 +336,7 @@ class SchemaDAO(val db: Database) extends DAO {
           (NotFound, result(404,
             "There are no schemas for this vendor, name, format combination"))
         } else {
-          val l: List[JValue] =
+          val jsonSchemas: List[JValue] =
             preliminaryList
               .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
               .map(s =>
@@ -357,12 +349,10 @@ class SchemaDAO(val db: Database) extends DAO {
                         getPermission(s.vendor, owner, permission, s.isPublic))))
                 } else parse(s.schema))
 
-          if (l.length == 1) {
-            (OK, writePretty(l(0)))
-          } else if (l.length > 1) {
-            (OK, writePretty(l))
-          } else {
-            (Unauthorized, result(401, "You do not have sufficient privileges"))
+          jsonSchemas match {
+            case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+            case single :: Nil => (OK, writePretty(single))
+            case multiple => (OK, writePretty(multiple))
           }
         }
       }
@@ -391,7 +381,7 @@ class SchemaDAO(val db: Database) extends DAO {
           (NotFound, result(404,
             "There are no schemas for this vendor, name, format combination"))
         } else {
-          val l: List[ResMetadata] =
+          val metadata: List[ResMetadata] =
             preliminaryList
               .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
               .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
@@ -400,12 +390,10 @@ class SchemaDAO(val db: Database) extends DAO {
                   s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
                   getPermission(s.vendor, owner, permission, s.isPublic))))
 
-          if (l.length == 1) {
-            (OK, writePretty(l(0)))
-          } else if (l.length > 1) {
-            (OK, writePretty(l))
-          } else {
-            (Unauthorized, result(401, "You do not have sufficient privileges"))
+          metadata match {
+            case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+            case single :: Nil => (OK, writePretty(single))
+            case multiple => (OK, writePretty(multiple))
           }
         }
       }
@@ -434,7 +422,7 @@ class SchemaDAO(val db: Database) extends DAO {
       if (preliminaryList.isEmpty) {
         (NotFound, result(404, "There are no schemas available here"))
       } else {
-        val l: List[JValue] =
+        val jsonSchemas: List[JValue] =
           preliminaryList
             .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
             .map(s =>
@@ -447,12 +435,10 @@ class SchemaDAO(val db: Database) extends DAO {
                       getPermission(s.vendor, owner, permission, s.isPublic))))
               } else parse(s.schema))
 
-        if (l.length == 1) {
-          (OK, writePretty(l(0)))
-        } else if (l.length > 1) {
-          (OK, writePretty(l))
-        } else {
-          (Unauthorized, result(401, "You do not have sufficient privileges"))
+        jsonSchemas match {
+          case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+          case single :: Nil => (OK, writePretty(single))
+          case multiple => (OK, writePretty(multiple))
         }
       }
     }
@@ -481,7 +467,7 @@ class SchemaDAO(val db: Database) extends DAO {
       if (preliminaryList.isEmpty) {
         (NotFound, result(404, "There are no schemas available here"))
       } else {
-        val l: List[ResMetadata] =
+        val metadata: List[ResMetadata] =
           preliminaryList
             .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
             .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
@@ -490,12 +476,10 @@ class SchemaDAO(val db: Database) extends DAO {
                 s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
                 getPermission(s.vendor, owner, permission, s.isPublic))))
 
-        if (l.length == 1) {
-          (OK, writePretty(l(0)))
-        } else if (l.length > 1) {
-          (OK, writePretty(l))
-        } else {
-          (Unauthorized, result(401, "You do not have sufficient privileges"))
+        metadata match {
+          case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+          case single :: Nil => (OK, writePretty(single))
+          case multiple => (OK, writePretty(multiple))
         }
       }
     }
@@ -509,7 +493,7 @@ class SchemaDAO(val db: Database) extends DAO {
   def getPublicSchemas(owner: String, permission: String, includeMetadata: Boolean):
     (StatusCode, String) =
       db withDynSession {
-        val l: List[JValue] = (for {
+        val jsonSchemas: List[JValue] = (for {
           s <- schemas if s.isPublic
         } yield s)
           .list
@@ -523,12 +507,10 @@ class SchemaDAO(val db: Database) extends DAO {
                           getPermission(s.vendor, owner, permission, s.isPublic))))
                   } else parse(s.schema))
 
-        if (l.length == 1) {
-          (OK, writePretty(l(0)))
-        } else if (l.length > 1) {
-          (OK, writePretty(l))
-        } else {
-          (NotFound, result(404, "There are no public schemas available"))
+        jsonSchemas match {
+          case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+          case single :: Nil => (OK, writePretty(single))
+          case multiple => (OK, writePretty(multiple))
         }
       }
 
@@ -541,7 +523,7 @@ class SchemaDAO(val db: Database) extends DAO {
   def getPublicMetadata(owner: String, permission: String):
     (StatusCode, String) =
       db withDynSession {
-        val l: List[ResMetadata] = (for {
+        val metadata: List[ResMetadata] = (for {
           s <- schemas if s.isPublic
         } yield s)
           .list
@@ -551,12 +533,10 @@ class SchemaDAO(val db: Database) extends DAO {
               s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
               getPermission(s.vendor, owner, permission, s.isPublic))))
 
-        if (l.length == 1) {
-          (OK, writePretty(l(0)))
-        } else if (l.length > 1) {
-          (OK, writePretty(l))
-        } else {
-          (NotFound, result(404, "There are no public schemas avilable"))
+        metadata match {
+          case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+          case single :: Nil => (OK, writePretty(single))
+          case multiple => (OK, writePretty(multiple))
         }
       }
 
@@ -577,19 +557,14 @@ class SchemaDAO(val db: Database) extends DAO {
           isPublic: Boolean = false): (StatusCode, String) =
     if ((permission == "write" || permission == "super") && (vendor.startsWith(owner) || owner == "*")) {
       db withDynSession {
-        get(List(vendor), List(name), List(format), List(version), owner,
-          permission, includeMetadata = false) match {
-          case (OK, j) => (Unauthorized,
-            result(401, "This schema already exists"))
+        get(List(vendor), List(name), List(format), List(version), owner, permission, includeMetadata = false) match {
+          case (OK, j) => (Unauthorized, result(401, "This schema already exists"))
           case _ => {
             val now = new LocalDateTime()
-            schemas.insert(
-              Schema(0, vendor, name, format, version, schema,
-                now, now, isPublic))
+            schemas.insert(Schema(0, vendor, name, format, version, schema, now, now, isPublic))
           } match {
-            case 0 => (InternalServerError,
-              result(500, "Something went wrong"))
-            case n => (Created, result(201, "Schema successfully added",
+            case 0 => (InternalServerError, result(500, "Something went wrong"))
+            case _ => (Created, result(201, "Schema successfully added",
               buildLoc(vendor, name, format, version)))
           }
         }
@@ -615,8 +590,7 @@ class SchemaDAO(val db: Database) extends DAO {
              isPublic: Boolean = false): (StatusCode, String) = {
     if (permission == "write" &&( (vendor startsWith owner) || owner == "*")) {
       db withDynSession {
-        get(List(vendor), List(name), List(format), List(version), owner,
-          permission, includeMetadata = false) match {
+        get(List(vendor), List(name), List(format), List(version), owner, permission, includeMetadata = false) match {
           case (OK, j) =>
             schemas
               .filter(s => s.vendor === vendor &&
@@ -625,26 +599,20 @@ class SchemaDAO(val db: Database) extends DAO {
                 s.version === version)
               .map(s => (s.schema, s.isPublic, s.updatedAt))
               .update(schema, isPublic, new LocalDateTime()) match {
-              case 1 => (OK, result(200, "Schema successfully updated",
-                buildLoc(vendor, name, format, version)))
-              case _ => (InternalServerError,
-                result(500, "Something went wrong"))
+                case 1 => (OK, result(200, "Schema successfully updated",
+                  buildLoc(vendor, name, format, version)))
+                case _ => (InternalServerError,
+                  result(500, "Something went wrong"))
             }
-          case (NotFound, j) => {
+          case (NotFound, _) => {
             val now = new LocalDateTime()
-            schemas
-              .insert(
-                Schema(0, vendor, name, format, version, schema,
-                  now, now,
-                  isPublic))
+            schemas.insert(Schema(0, vendor, name, format, version, schema, now, now, isPublic))
           } match {
-            case 0 => (InternalServerError,
-              result(500, "Something went wrong"))
-            case n => (Created,
-              result(201, "Schema successfully added",
+              case 0 => (InternalServerError, result(500, "Something went wrong"))
+              case _ => (Created, result(201, "Schema successfully added",
                 buildLoc(vendor, name, format, version)))
-          }
-          case we => we
+            }
+          case rest => rest
         }
       }
     } else {
@@ -662,9 +630,9 @@ class SchemaDAO(val db: Database) extends DAO {
             s.format === format &&
             s.version === version)
           .delete match {
-          case 0 => (404, "Schema not found")
-          case 1 => (OK, "Schema successfully deleted")
-          case n => (OK, s"$n schemas successfully deleted")
+          case 0 => (404, result(404, "Schema not found"))
+          case 1 => (OK, result(200, "Schema successfully deleted"))
+          case n => (OK, result(200, s"$n schemas successfully deleted"))
         }
       }
     } else {
@@ -692,8 +660,7 @@ class SchemaDAO(val db: Database) extends DAO {
 
           validateAgainstSchema(jsonNode, schemaNode) match {
             case scalaz.Success(_) =>
-              (OK, result(200,
-                "The instance provided is valid against the schema"))
+              (OK, result(200, "The instance provided is valid against the schema"))
             case Failure(l) => (BadRequest, result(400,
               "The instance provided is not valid against the schema",
               fromJsonNode(l.head.asJson)))
@@ -713,34 +680,23 @@ class SchemaDAO(val db: Database) extends DAO {
   def validateSchema(schema: String, format: String,
                      provideSchema: Boolean = true): (StatusCode, String) =
     format match {
-      case "jsonschema" => {
+      case "jsonschema" =>
         parseOpt(schema) match {
-          case Some(jvalue) => {
+          case Some(jvalue) =>
             val jsonNode = asJsonNode(jvalue)
             val schemaNode =
-              asJsonNode(parse(getNoMetadata(selfDescVendor, selfDescName,
-                selfDescFormat, selfDescVersion)))
+              asJsonNode(parse(getNoMetadata(selfDescVendor, selfDescName, selfDescFormat, selfDescVersion)))
 
             validateAgainstSchema(jsonNode, schemaNode) match {
               case scalaz.Success(j) =>
-                if (provideSchema) {
-                  (OK, schema)
-                } else {
-                  (OK, result(200,
-                    "The schema provided is a valid self-describing schema"))
-                }
-              case Failure(l) => (BadRequest,
-                result(400,
-                  "The schema provided is not a valid self-describing schema",
-                  fromJsonNode(l.head.asJson)))
+                if (provideSchema) (OK, schema)
+                else (OK, result(200, "The schema provided is a valid self-describing schema"))
+              case Failure(l) => (BadRequest, result(400,
+                "The schema provided is not a valid self-describing schema", fromJsonNode(l.head.asJson)))
             }
-          }
-          case None =>
-            (BadRequest, result(400, "The schema provided is not valid"))
+          case None => (BadRequest, result(400, "The schema provided is not valid"))
         }
-      }
-      case _ => (BadRequest,
-        result(400, "The schema format provided is not supported"))
+      case _ => (BadRequest, result(400, "The schema format provided is not supported"))
     }
 
   /**
@@ -751,20 +707,18 @@ class SchemaDAO(val db: Database) extends DAO {
     * @param version the schema's version
     * @return the schema without metadata
     */
-  private def getNoMetadata(vendor: String, name: String, format: String,
-                            version: String): String =
+  private def getNoMetadata(vendor: String, name: String, format: String, version: String): String =
     db withDynSession {
-      val l: List[String] = schemas.filter(s =>
+      val schema: List[String] = schemas.filter(s =>
         s.vendor === vendor &&
           s.name === name &&
           s.format === format &&
           s.version === version).
         map(_.schema).list
 
-      if (l.length == 1) {
-        l(0)
-      } else {
-        "not found"
+      schema match {
+        case single :: Nil => single
+        case _ => "not found"
       }
     }
 
@@ -776,8 +730,7 @@ class SchemaDAO(val db: Database) extends DAO {
     * @param version schema's version
     * @return the location of the schema
     */
-  private def buildLoc(vendor: String, name: String, format: String,
-                       version: String): String =
+  private def buildLoc(vendor: String, name: String, format: String, version: String): String =
     List("", "api", "schemas", vendor, name, format, version).mkString("/")
 
   /**
@@ -788,17 +741,9 @@ class SchemaDAO(val db: Database) extends DAO {
     * @param isPublic whether or not the schema is public
     * @return an appropriate Permission object
     */
-  private def getPermission(vendor: String, owner: String, permission: String,
-                            isPublic: Boolean): Permission =
+  private def getPermission(vendor: String, owner: String, permission: String, isPublic: Boolean): Permission =
     Permission(
-      if (isPublic) {
-        "public"
-      } else {
-        "private"
-      },
-      if( ((vendor startsWith owner) || owner == "*") && permission == "write") {
-        "private"
-      } else {
-        "none"
-      })
+      if (isPublic) "public" else "private",
+      if ( ((vendor startsWith owner) || owner == "*") && permission == "write") "private" else "none"
+    )
 }
