@@ -16,11 +16,13 @@ import sbt._
 
 object Dependencies {
   val resolutionRepos = Seq(
-    "Typesafe repository"   at "http://repo.typesafe.com/typesafe/releases"
+    Resolver.typesafeRepo("releases"),
+    Resolver.typesafeIvyRepo("releases")
   )
 
   object V {
     // Scala
+    val scopt = "3.7.0"
     val akka  = "2.4.20"
     val joda = "1.6"
     val jodaTime = "2.3"
@@ -39,6 +41,7 @@ object Dependencies {
 
   object Libraries {
     // Scala
+    val scopt         = "com.github.scopt"     %% "scopt"                 % V.scopt
     val akkaActor     = "com.typesafe.akka"    %% "akka-actor"            % V.akka
     val akkaSlf4j     = "com.typesafe.akka"    %% "akka-slf4j"            % V.akka
     val joda          = "org.joda"             %  "joda-convert"          % V.joda

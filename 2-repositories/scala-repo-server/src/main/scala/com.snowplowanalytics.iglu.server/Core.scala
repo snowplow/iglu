@@ -23,54 +23,60 @@ import scala.util.control.NonFatal
 //This project
 import actor.{ SchemaActor, ApiKeyActor }
 import model.{ SchemaDAO, ApiKeyDAO }
-import util.ServerConfig._
+import util.ServerConfig
+import util.IgluPostgresDriver.simple._
 
 // Akka
-import akka.event.Logging
 import akka.actor.{ ActorSystem, ActorRef, Props }
 import akka.stream.ActorMaterializer
 
 // Akka Http
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.server.Directives._
 
 // Slick
 import slick.driver.JdbcDriver.backend.Database.dynamicSession
 import slick.jdbc.meta.MTable
 
 
-trait BootedCore extends Core with CoreActors with Api {
+class IgluServer(serverConfig: ServerConfig) extends Api {
 
   implicit val system: ActorSystem = ActorSystem("iglu-server")
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
   implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  val logger = Logging(system, getClass)
+  // create root-level actors with provided config
+  val schemaActor: ActorRef = system.actorOf(Props(classOf[SchemaActor], serverConfig), "schemaActor")
+  val apiKeyActor: ActorRef = system.actorOf(Props(classOf[ApiKeyActor], serverConfig), "apiKeyActor")
 
-  try {
-    // Creates the necessary table if they are not already present in the database
-    TableInitialization.initializeTables()
+  def start(): Unit = {
+    try {
+      // Creates the necessary table if they are not already present in the database
+      TableInitialization.initializeTables(serverConfig.db)
 
-    // Starts the server
-    val bindingFuture = Http().bindAndHandle(routes, interface, port)
+      // Starts the server
+      val bindingFuture = Http().bindAndHandle(routes ~ new SwaggerDocService(serverConfig).routes,
+                                              serverConfig.interface, serverConfig.port)
 
-    println(s"Server online at http://$interface:$port/\nPress RETURN to stop...")
-    StdIn.readLine()
+      println(s"Server online at http://${serverConfig.interface}:${serverConfig.port}/\nPress RETURN to stop...")
+      StdIn.readLine()
 
-    bindingFuture
-      .flatMap(_.unbind())
-      .onComplete(_ => system.terminate())
-  } catch {
-    case NonFatal(nf) =>
-      nf.printStackTrace()
-      // Necessary to stop app from hanging indefinitely
-      System.exit(1)
+      bindingFuture
+        .flatMap(_.unbind())
+        .onComplete(_ => system.terminate())
+    } catch {
+      case NonFatal(nf) =>
+        nf.printStackTrace()
+        // Necessary to stop app from hanging indefinitely
+        System.exit(1)
+    }
   }
+
 }
 
 object TableInitialization {
-  // Creates the necessary table is they are not already present in the
-  // database
-  def initializeTables(): Unit = {
+  // Creates the necessary table if they are not already present in the database
+  def initializeTables(db: Database): Unit = {
     db withDynSession {
       if (MTable.getTables("schemas").list.isEmpty) {
         new SchemaDAO(db).createTable()
@@ -83,15 +89,3 @@ object TableInitialization {
   }
 }
 
-trait Core {
-  protected implicit def system: ActorSystem
-}
-
-/**
-  * Core actors maintains a reference to the different actors
-  */
-trait CoreActors {
-  this: Core =>
-    lazy val schemaActor: ActorRef = system.actorOf(Props[SchemaActor], "schemaActor")
-    lazy val apiKeyActor: ActorRef = system.actorOf(Props[ApiKeyActor], "apiKeyActor")
-}

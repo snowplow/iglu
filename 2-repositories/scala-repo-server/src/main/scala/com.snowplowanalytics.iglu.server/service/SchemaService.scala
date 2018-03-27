@@ -53,7 +53,7 @@ import javax.ws.rs.Path
     authorizations = Array(new Authorization(value = "APIKeyHeader")), produces = "text/plain")
 @Path("/api/schemas")
 class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
-                   (implicit executionContext: ExecutionContext, routingSettings: RoutingSettings)
+                   (implicit executionContext: ExecutionContext)
                    extends Directives with Service {
 
   /**
