@@ -45,7 +45,7 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
   implicit val timeout = Timeout(20 seconds)
 
-  val key = TestActorRef(new ApiKeyActor)
+  val key = TestActorRef(new ApiKeyActor(config))
 
   implicit val formats = DefaultFormats
 

@@ -32,7 +32,6 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directive1
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.settings.RoutingSettings
 import akka.http.scaladsl.model.headers.HttpChallenges
 import akka.http.scaladsl.server.AuthenticationFailedRejection
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
@@ -54,7 +53,7 @@ import io.swagger.annotations._
     produces = "text/plain")
 @Tag(name = "key", description = "Service to interact with API keys")
 class ApiKeyGenService(apiKeyActor: ActorRef)
-                      (implicit executionContext: ExecutionContext, routingSettings: RoutingSettings)
+                      (implicit executionContext: ExecutionContext)
                       extends Directives with Service {
 
   /**

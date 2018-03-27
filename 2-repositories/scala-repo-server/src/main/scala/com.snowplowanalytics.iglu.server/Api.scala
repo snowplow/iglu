@@ -20,6 +20,9 @@ import service.{ApiKeyGenService, SchemaService, ValidationService}
 // Scala
 import scala.concurrent.ExecutionContext.Implicits.global
 
+// Akka
+import akka.actor.ActorRef
+
 // Akka Http
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -36,7 +39,25 @@ import akka.http.scaladsl.model.headers.{
 /**
   * Api trait regroups the routes from all the different services.
   */
-trait Api extends CoreActors with Core {
+trait Api {
+
+  /**
+    * Abstract actor for schema operations
+    *
+    * Receive a message per HTTP request & send back response content to its service
+    */
+  val schemaActor: ActorRef
+
+  /**
+    * Abstract actor for api key operations
+    *
+    * Receive a message per HTTP request & send back response content to its service
+    */
+  val apiKeyActor: ActorRef
+
+  /**
+    * Concatenated route definitions for all endpoints
+    */
   val routes: Route =
     pathPrefix("api") {
       pathPrefix("auth") {
@@ -57,7 +78,6 @@ trait Api extends CoreActors with Core {
         } ~
           getFromResourceDirectory("swagger-ui-dist")
       } ~
-      SwaggerDocService.routes ~
       options {
         extractRequest { request =>
           complete(preflightResponse(request))
