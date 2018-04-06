@@ -1,6 +1,6 @@
-# Scala repo server
+# Iglu Server
 
-A Scala-based repository server for Iglu, allowing users to publish, test and serve schemas via an easy-to-use RESTful interface.
+Iglu Server is a RESTful schema registry, allowing users to publish, test and serve schemas via an easy-to-use RESTful interface.
 
 ## Find out more
 
@@ -10,7 +10,7 @@ A Scala-based repository server for Iglu, allowing users to publish, test and se
 
 ## Copyright and license
 
-Scala Repo Server is copyright 2014-2017 Snowplow Analytics Ltd.
+Iglu Server is copyright 2014-2018 Snowplow Analytics Ltd.
 
 Licensed under the **[Apache License, Version 2.0][license]** (the "License");
 you may not use this software except in compliance with the License.
