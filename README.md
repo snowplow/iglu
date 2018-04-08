@@ -1,5 +1,6 @@
 # Iglu Schema Repository
 
+[![Join the chat at https://gitter.im/snowplow/iglu](https://badges.gitter.im/snowplow/iglu.svg)](https://gitter.im/snowplow/iglu?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [ ![Build Status][travis-image] ][travis]
 [ ![Release][release-image] ][releases]
 [ ![License][license-image] ][license]
