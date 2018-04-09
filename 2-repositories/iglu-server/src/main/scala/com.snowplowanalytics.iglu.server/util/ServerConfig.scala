@@ -31,6 +31,8 @@ case class ServerConfig(config: Config) {
 
   //Interface on which the server will be running
   val interface = env("IGLU_INTERFACE") getOrElse config.getString("repo-server.interface")
+  // baseUrl of Swagger UI
+  val baseHost = env("IGLU_SWAGGER_UI_BASE_HOST") getOrElse config.getString("repo-server.baseHost")
   //Port on which the server will be running
   val port = env("IGLU_PORT").map(_.toInt) getOrElse config.getInt("repo-server.port")
 
