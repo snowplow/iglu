@@ -15,6 +15,7 @@
 package com.snowplowanalytics.iglu.server
 
 // swagger
+import io.swagger.models.Scheme
 import io.swagger.models.auth.{ApiKeyAuthDefinition, In}
 
 // swagger-akka-http
@@ -33,6 +34,7 @@ class SwaggerDocService(serverConfig: ServerConfig) extends SwaggerHttpService {
     classOf[ValidationService]
   )
   override val host = s"${serverConfig.baseURL}"
+  override def schemes: List[Scheme] = List()
   override val unwantedDefinitions = Seq("Function1", "Function1RequestContextFutureRouteResult")
   override def securitySchemeDefinitions = Map("APIKeyHeader" -> new ApiKeyAuthDefinition("apikey", In.HEADER) )
   override def info = Info(
