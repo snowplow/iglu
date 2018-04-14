@@ -89,7 +89,7 @@ trait Api {
     respondWithHeaders(List(
       `Access-Control-Allow-Origin`.*,
       `Access-Control-Allow-Credentials`(true),
-      `Access-Control-Allow-Headers`("Content-Type", "apikey")
+      `Access-Control-Allow-Headers`("apikey")
     )) {
       options {
         complete(HttpResponse().withHeaders(`Access-Control-Allow-Methods`(List(GET, POST, PUT, OPTIONS, DELETE))))
