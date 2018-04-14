@@ -109,15 +109,14 @@ class ApiKeyDAO(val db: Database) extends DAO {
     if (uid matches uidRegex) {
       val uuid = UUID.fromString(uid)
       db withDynSession {
-        val l: List[(String, String)] =
+        val tupleList: List[(String, String)] =
           apiKeys
             .filter(_.uid === uuid)
             .map(k => (k.vendorPrefix, k.permission))
             .list
-        if (l.length == 1) {
-          Some(l(0))
-        } else {
-          Some("-" -> "-")
+        tupleList match {
+          case single :: Nil => Some(single)
+          case _ => Some("-" -> "-")
         }
       }
     } else {
@@ -134,12 +133,10 @@ class ApiKeyDAO(val db: Database) extends DAO {
     */
   private def validate(vendorPrefix: String): Boolean =
     db withDynSession {
-      apiKeys
+      !apiKeys
         .map(_.vendorPrefix)
         .list
-        .filter(o => (o.startsWith(vendorPrefix) || vendorPrefix.startsWith(o) ||
-          o == vendorPrefix) && o != "*")
-        .length == 0
+        .exists(o => (o.startsWith(vendorPrefix) || vendorPrefix.startsWith(o) || o == vendorPrefix) && o != "*")
     }
 
   /**
@@ -148,14 +145,13 @@ class ApiKeyDAO(val db: Database) extends DAO {
     * @param permission permission of the new API key
     * @return a status code and a json response pair
     */
-  private def add(vendorPrefix: String, permission: String):
-  (StatusCode, String) =
+  private def add(vendorPrefix: String, permission: String): (StatusCode, String) =
     db withDynSession {
       val uid = UUID.randomUUID()
       apiKeys.insert(
         ApiKey(uid, vendorPrefix, permission, new LocalDateTime())) match {
         case 0 => (InternalServerError, "Something went wrong")
-        case n => (OK, uid.toString)
+        case _ => (OK, uid.toString)
       }
     }
 
@@ -170,8 +166,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
         val (statusRead, keyRead) = add(vendorPrefix, "read")
         val (statusWrite, keyWrite) = add(vendorPrefix, "write")
 
-        if(statusRead == InternalServerError ||
-          statusWrite == InternalServerError) {
+        if(statusRead == InternalServerError || statusWrite == InternalServerError) {
           delete(keyRead)
           delete(keyWrite)
           (InternalServerError, result(500, "Something went wrong"))
@@ -179,7 +174,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
           (Created, writePretty(Map("read" -> keyRead, "write" -> keyWrite)))
         }
       } else {
-        (Unauthorized, "This vendor prefix is conflicting with an existing one")
+        (Unauthorized, result(401, "This vendor prefix is conflicting with an existing one"))
       }
     }
 
@@ -211,7 +206,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
       apiKeys.filter(_.vendorPrefix === vendorPrefix).delete match {
         case 0 => (NotFound, result(404, "Vendor prefix not found"))
         case 1 => (OK, result(200, "API key deleted for " + vendorPrefix))
-        case n => (OK, result(200, "API keys deleted for " + vendorPrefix))
+        case _ => (OK, result(200, "API keys deleted for " + vendorPrefix))
       }
     }
 }

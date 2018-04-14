@@ -94,6 +94,7 @@ class ApiKeyGenServiceSpec extends Specification
         Post(postUrl1) ~> addHeader("apikey", notSuperKey) ~>
         Route.seal(routes) ~> check {
           status === Unauthorized
+          contentType === `text/plain(UTF-8)`
           responseAs[String] must
             contain("You do not have sufficient privileges")
         }
@@ -103,6 +104,7 @@ class ApiKeyGenServiceSpec extends Specification
         Post(postUrl2, FormData(Map("vendor_prefix" -> HttpEntity(`application/json`, vendorPrefix2)))) ~>
         addHeader("apikey", notSuperKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
+          contentType === `text/plain(UTF-8)`
           responseAs[String] must
             contain("You do not have sufficient privileges")
         }
@@ -112,6 +114,7 @@ class ApiKeyGenServiceSpec extends Specification
         Post(postUrl2, HttpEntity(`application/json`, vendorPrefix3)) ~>
         addHeader("apikey", notSuperKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
+          contentType === `text/plain(UTF-8)`
           responseAs[String] must
             contain("You do not have sufficient privileges")
         }
@@ -121,6 +124,7 @@ class ApiKeyGenServiceSpec extends Specification
         Post(postUrl1) ~> addHeader("apikey", notUuidKey) ~>
         Route.seal(routes) ~> check {
           status === Unauthorized
+          contentType === `text/plain(UTF-8)`
           responseAs[String] must
             contain("You do not have sufficient privileges")
         }
@@ -130,6 +134,7 @@ class ApiKeyGenServiceSpec extends Specification
         Post(postUrl2, FormData(Map("vendor_prefix" -> HttpEntity(`application/json`, vendorPrefix2)))) ~>
         addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
+          contentType === `text/plain(UTF-8)`
           responseAs[String] must
             contain("You do not have sufficient privileges")
         }
@@ -139,6 +144,7 @@ class ApiKeyGenServiceSpec extends Specification
         Post(postUrl2, HttpEntity(`application/json`, vendorPrefix3)) ~>
         addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
+          contentType === `text/plain(UTF-8)`
           responseAs[String] must
             contain("You do not have sufficient privileges")
         }
@@ -149,6 +155,7 @@ class ApiKeyGenServiceSpec extends Specification
         Post(postUrl1) ~> addHeader("apikey", superKey) ~>
         Route.seal(routes) ~> check {
           status === Created
+          contentType === `application/json`
           val response = responseAs[String]
           response must contain("read") and contain("write")
           val map = parse(response).extract[Map[String, String]]
@@ -159,22 +166,22 @@ class ApiKeyGenServiceSpec extends Specification
         }
       }
 
-      //to manually delete
       """return a 200 with the keys if the vendor prefix is not colliding with
       anyone with form data""" in {
         Post(postUrl2, FormData(Map("vendor_prefix" -> HttpEntity(`application/json`, vendorPrefix2)))) ~>
         addHeader("apikey", superKey) ~> Route.seal(routes) ~> check {
           status === Created
+          contentType === `application/json`
           responseAs[String] must contain("read") and contain("write")
         }
       }
 
-      //to manually delete
       """return a 200 with the keys if the vendor prefix is not colliding with
       anyone with body request""" in {
         Post(postUrl2, HttpEntity(`application/json`, vendorPrefix3)) ~>
         addHeader("apikey", superKey) ~> Route.seal(routes) ~> check {
           status === Created
+          contentType === `application/json`
           responseAs[String] must contain("read") and contain("write")
         }
       }
@@ -183,6 +190,7 @@ class ApiKeyGenServiceSpec extends Specification
         Post(postUrl1) ~> addHeader("apikey", superKey) ~>
         Route.seal(routes) ~> check {
           status === Unauthorized
+          contentType === `application/json`
           responseAs[String] must
             contain("This vendor prefix is conflicting with an existing one")
         }
@@ -192,6 +200,7 @@ class ApiKeyGenServiceSpec extends Specification
         Post(postUrl2, FormData(Map("vendor_prefix" -> HttpEntity(`application/json`, vendorPrefix2)))) ~>
         addHeader("apikey", superKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
+          contentType === `application/json`
           responseAs[String] must
             contain("This vendor prefix is conflicting with an existing one")
         }
@@ -201,6 +210,7 @@ class ApiKeyGenServiceSpec extends Specification
         Post(postUrl2, HttpEntity(`application/json`, vendorPrefix3)) ~>
         addHeader("apikey", superKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
+          contentType === `application/json`
           responseAs[String] must
             contain("This vendor prefix is conflicting with an existing one")
         }
@@ -211,6 +221,7 @@ class ApiKeyGenServiceSpec extends Specification
         Post(conflictingPostUrl1) ~> addHeader("apikey", superKey) ~>
         Route.seal(routes) ~> check {
           status === Unauthorized
+          contentType === `application/json`
           responseAs[String] must
             contain("This vendor prefix is conflicting with an existing one")
         }
@@ -221,6 +232,7 @@ class ApiKeyGenServiceSpec extends Specification
         Post(postUrl2, FormData(Map("vendor_prefix" -> HttpEntity(`application/json`, faultyVendorPrefix2)))) ~>
         addHeader("apikey", superKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
+          contentType === `application/json`
           responseAs[String] must
             contain("This vendor prefix is conflicting with an existing one")
         }
@@ -231,6 +243,7 @@ class ApiKeyGenServiceSpec extends Specification
         Post(postUrl2, HttpEntity(`application/json`, faultyVendorPrefix3)) ~>
         addHeader("apikey", superKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
+          contentType === `application/json`
           responseAs[String] must
             contain("This vendor prefix is conflicting with an existing one")
         }
@@ -243,6 +256,7 @@ class ApiKeyGenServiceSpec extends Specification
         Delete(deleteUrl + readKey) ~> addHeader("apikey", notSuperKey) ~>
         Route.seal(routes) ~> check {
           status === Unauthorized
+          contentType === `text/plain(UTF-8)`
           responseAs[String] must contain("You do not have sufficient privileg")
         }
       }
@@ -251,6 +265,7 @@ class ApiKeyGenServiceSpec extends Specification
         Delete(deleteUrl + UUID.randomUUID().toString) ~>
         addHeader("apikey", superKey) ~> Route.seal(routes) ~> check {
           status === NotFound
+          contentType === `application/json`
           responseAs[String] must contain("API key not found")
         }
       }
@@ -259,6 +274,7 @@ class ApiKeyGenServiceSpec extends Specification
         Delete(deleteUrl + readKey) ~> addHeader("apikey", superKey) ~>
         Route.seal(routes) ~> check {
           status === OK
+          contentType === `application/json`
           responseAs[String] must contain("API key successfully deleted")
         }
       }
@@ -270,6 +286,7 @@ class ApiKeyGenServiceSpec extends Specification
         Delete(deleteUrl + notSuperKey) ~> addHeader("apikey", notSuperKey) ~>
         Route.seal(routes) ~> check {
           status === Unauthorized
+          contentType === `text/plain(UTF-8)`
           responseAs[String] must contain("You do not have sufficient privileg")
         }
       }
@@ -278,6 +295,7 @@ class ApiKeyGenServiceSpec extends Specification
         Delete(deleteVendorUrl) ~> addHeader("apikey", superKey) ~>
         Route.seal(routes) ~> check {
           status === OK
+          contentType === `application/json`
           responseAs[String] must contain(s"API key deleted for $vendorPrefix")
         }
       }
@@ -287,6 +305,7 @@ class ApiKeyGenServiceSpec extends Specification
         Delete(deleteVendorUrl) ~> addHeader("apikey", superKey) ~>
         Route.seal(routes) ~> check {
           status === NotFound
+          contentType === `application/json`
           responseAs[String] must contain("Vendor prefix not found")
         }
       }
