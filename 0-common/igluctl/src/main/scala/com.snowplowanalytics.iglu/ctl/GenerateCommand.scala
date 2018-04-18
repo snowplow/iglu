@@ -171,7 +171,8 @@ case class GenerateCommand(
       if (input.isFile) {
         val schemaVerWarning = schemas.head.self.version match {
           case SchemaVer.Full(1, 0, 0) => List.empty[String]
-          case _                       => List(s"Warning: File [${input.getAbsolutePath}] contains a schema whose version is NOT 1-0-0")
+          case _                       => List(s"Warning: File [${input.getAbsolutePath}] contains a schema " +
+                                                s"whose version is NOT 1-0-0. Migrations can be inconsistent.")
         }
         Warnings(schemaVerWarning)
       } else {
@@ -185,14 +186,14 @@ case class GenerateCommand(
                 (name, schemaMaps) <- schemaMapsGroupByName.toList
                 if !schemaMaps.exists(sm => sm.version == SchemaVer.Full(1, 0, 0)) && !force
               } yield s"Error: Directory [${input.getAbsolutePath}] contains schemas of [$vendor/$name] without version 1-0-0." +
-                      " Use --force to switch off schema version check."
+                      " Migrations can be inconsistent." + " Use --force to switch off schema version check."
             val schemaVerGapErrors: List[String] =
               for {
                 (name, schemaMaps) <- schemaMapsGroupByName.toList
                 sortedSchemaMaps = schemaMaps.sortWith(_.version.asString < _.version.asString)
                 if sortedSchemaMaps.head.version == SchemaVer.Full(1, 0, 0) && existMissingSchemaVersion(sortedSchemaMaps) && !force
               } yield s"Error: Directory [${input.getAbsolutePath}] contains schemas of [$vendor/$name] which has gaps between schema versions." +
-                      " Use --force to switch off schema version check."
+                      " Migrations can be inconsistent." + " Use --force to switch off schema version check."
 
             firstVersionNotFoundErrors ::: schemaVerGapErrors
           }
@@ -356,6 +357,8 @@ case class GenerateCommand(
       println(missingSchemaVerErrors.mkString("\n"))
       sys.exit(1)
     } else {
+      result.warnings.foreach(printMessage)
+
       result.ddls
         .map(_.setBasePath("sql"))
         .map(_.setBasePath(output.getAbsolutePath))
@@ -370,12 +373,7 @@ case class GenerateCommand(
         .map(_.setBasePath("sql"))
         .map(_.setBasePath(output.getAbsolutePath))
         .map(_.write(force)).foreach(printMessage)
-
-      result.warnings.foreach(printMessage)
-
-      if (result.warnings.exists(_.contains("Error"))) sys.exit(1)
     }
-
   }
 }
 

@@ -681,7 +681,7 @@ class GenerateCommandSpec extends Specification { def is = s2"""
 
     schemaVerMessages must beEqualTo(List(
       s"Error: Directory [${stubFile.getAbsolutePath}] contains schemas of [com.example-agency/cast] which has gaps between schema versions." +
-        " Use --force to switch off schema version check."
+        " Migrations can be inconsistent." + " Use --force to switch off schema version check."
     ))
   }
 
@@ -752,7 +752,7 @@ class GenerateCommandSpec extends Specification { def is = s2"""
 
     schemaVerMessages must beEqualTo(List(
       s"Error: Directory [${stubFile.getAbsolutePath}] contains schemas of [com.example-agency/cast] without version 1-0-0." +
-        s" Use --force to switch off schema version check."
+        " Migrations can be inconsistent." + " Use --force to switch off schema version check."
     ))
   }
 
