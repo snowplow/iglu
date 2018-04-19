@@ -4,7 +4,7 @@ scala:
 jdk:
 - oraclejdk8
 script:
-- cd 2-repositories/scala-repo-server
+- cd 2-repositories/iglu-server
 - ./scripts/create-test-user.bash
 - sbt test
 - cd ../..
@@ -28,6 +28,12 @@ deploy:
   script: ./.travis/deploy_igluctl.sh $TRAVIS_TAG
   on:
     condition: '"$(.travis/is_igluctl_release_tag.sh $TRAVIS_TAG)" == "" && $? == 0'
+    tags: true
+- provider: script
+  skip_cleanup: true
+  script: ./.travis/deploy_iglu_server.sh $TRAVIS_TAG
+  on:
+    condition: '"$(.travis/is_iglu_server_release_tag.sh $TRAVIS_TAG)" == "" && $? == 0'
     tags: true
 env:
   global:

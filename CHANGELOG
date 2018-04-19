@@ -1,5 +1,25 @@
+Release 9 Bull's Eye (2018-04-19)
+---------------------------------
+Common: add Gitter badge (#358)
+Documentation: fix incorrect hyphen underlining for R7 and R8 (#335)
+Server: add HTTPS scheme to Swagger UI (#363)
+Server: add baseURL to configuration (#362)
+Server: rename from Scala Repo Server (#131)
+Server: use scopt for CLI parameters (#356)
+Server: migrate CI/CD to release-manager (#355)
+Server: extend copyright notice to 2018 (#352)
+Server: only add metadata to schema JSON if ?metadata=1 (#86)
+Server: port to Akka HTTP (#318)
+Server: allow super user to upload schemas (#83)
+Server: bump SBT to 1.1.1 (#322)
+Server: bump Scala to 2.11.12 (#321)
+Server: bump to 0.3.0 (#338)
+igluctl: add support for Java 9 (#300)
+igluctl: fix interpreting SchemaVer warnings as failures (#340)
+igluctl: bump to 0.4.1 (#345)
+
 Release 8 Basel Dove (2018-02-07)
-----------------------------------
+---------------------------------
 igluctl: fix false failure message in push command (#313)
 igluctl: switch severity level to skip checks (#232)
 Schema DDL: add linter for missing schema versions (#307)
@@ -14,7 +34,7 @@ igluctl: bump Schema DDL to 0.7.0 (#333)
 Schema DDL: bump to 0.7.0 (#331)
 
 Release 7 Treskilling Yellow (2017-12-27)
-------------------------------------------
+-----------------------------------------
 Common: bump OracleJDK to 8 in .travis.yml (#281)
 Common: add Ruby client (#230)
 Common: update READMEs markdown in according with CommonMark (#267)

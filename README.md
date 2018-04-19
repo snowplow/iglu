@@ -1,5 +1,6 @@
 # Iglu Schema Repository
 
+[![Join the chat at https://gitter.im/snowplow/iglu](https://badges.gitter.im/snowplow/iglu.svg)](https://gitter.im/snowplow/iglu?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [ ![Build Status][travis-image] ][travis]
 [ ![Release][release-image] ][releases]
 [ ![License][license-image] ][license]
@@ -47,7 +48,7 @@ limitations under the License.
 [travis-image]: https://travis-ci.org/snowplow/iglu.png?branch=master
 [travis]: http://travis-ci.org/snowplow/iglu
 
-[release-image]: https://img.shields.io/badge/release-8_Basel_Dove-orange.svg?style=flat
+[release-image]: https://img.shields.io/badge/release-9_Bull's_Eye-orange.svg?style=flat
 [releases]: https://github.com/snowplow/snowplow/releases
 
 [license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
