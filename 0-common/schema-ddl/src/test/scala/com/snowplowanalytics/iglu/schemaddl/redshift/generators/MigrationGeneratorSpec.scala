@@ -24,6 +24,8 @@ import com.snowplowanalytics.iglu.core.SchemaVer
 
 // This library
 import com.snowplowanalytics.iglu.schemaddl.Migration
+import com.snowplowanalytics.iglu.schemaddl.sql.generators.MigrationGenerator
+
 
 class MigrationGeneratorSpec extends Specification { def is = s2"""
   Check Redshift migrations generation

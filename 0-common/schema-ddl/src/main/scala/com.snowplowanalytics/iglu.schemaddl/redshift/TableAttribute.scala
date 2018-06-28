@@ -15,20 +15,22 @@ package com.snowplowanalytics.iglu.schemaddl.redshift
 // Scalaz
 import scalaz.NonEmptyList
 
+// This project
+import com.snowplowanalytics.iglu.schemaddl.sql.TableAttribute
+
 /**
  * table_attributes are:
  * [ DISTSTYLE { EVEN | KEY | ALL } ]
  * [ DISTKEY ( column_name ) ]
  * [ [COMPOUND | INTERLEAVED ] SORTKEY ( column_name [, ...] ) ]
  */
-sealed trait TableAttribute extends Ddl
 
-sealed trait DiststyleValue extends Ddl
+sealed trait DiststyleValue extends RedShiftDdl
 case object Even extends DiststyleValue { def toDdl = "EVEN" }
 case object Key extends DiststyleValue { def toDdl = "KEY" }
 case object All extends DiststyleValue { def toDdl = "ALL" }
 
-sealed trait Sortstyle extends Ddl
+sealed trait Sortstyle extends RedShiftDdl
 
 case object CompoundSortstyle extends Sortstyle {
   def toDdl = "COMPOUND"
@@ -38,16 +40,16 @@ case object InterleavedSortstyle extends Sortstyle {
   def toDdl = "INTERLEAVED"
 }
 
-case class Diststyle(diststyle: DiststyleValue) extends TableAttribute {
+case class Diststyle(diststyle: DiststyleValue) extends TableAttribute[RedShiftDdl] {
   def toDdl = "DISTSTYLE " + diststyle.toDdl
 }
 
 // Don't confuse with redshift.DistKey which is applicable for columns
-case class DistKeyTable(columnName: String) extends TableAttribute {
+case class DistKeyTable(columnName: String) extends TableAttribute[RedShiftDdl] {
   def toDdl = s"DISTKEY ($columnName)"
 }
 
 // Don't confuse with redshift.SortKey which is applicable for columns
-case class SortKeyTable(sortstyle: Option[Sortstyle], columns: NonEmptyList[String]) extends TableAttribute {
+case class SortKeyTable(sortstyle: Option[Sortstyle], columns: NonEmptyList[String]) extends TableAttribute[RedShiftDdl] {
   def toDdl = sortstyle.map(_.toDdl + " ").getOrElse("") + "SORTKEY (" + columns.list.mkString(",") + ")"
 }

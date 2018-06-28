@@ -10,7 +10,7 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.schemaddl.redshift
+package com.snowplowanalytics.iglu.schemaddl.sql
 
 /**
  * Trait for *independent* SQL DDL statements.
@@ -18,6 +18,7 @@ package com.snowplowanalytics.iglu.schemaddl.redshift
  * commands and be content of file.
  * We're always using semicolon in the end of statements
  */
+
 trait Statement extends Ddl with Product with Serializable {
   /**
    * Symbol used to separate statement from other.

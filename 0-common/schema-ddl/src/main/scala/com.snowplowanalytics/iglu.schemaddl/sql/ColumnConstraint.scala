@@ -10,7 +10,7 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.schemaddl.redshift
+package com.snowplowanalytics.iglu.schemaddl.sql
 
 /**
  * column_constraints are:
@@ -18,13 +18,13 @@ package com.snowplowanalytics.iglu.schemaddl.redshift
  * [ { UNIQUE  |  PRIMARY KEY } ]
  * [ REFERENCES reftable [ ( refcolumn ) ] ]
  */
-sealed trait ColumnConstraint extends Ddl
+sealed trait ColumnConstraint[T <: Ddl] extends Ddl
 
 sealed trait NullabilityValue extends Ddl
 case object Null extends NullabilityValue { def toDdl = "NULL" }
 case object NotNull extends NullabilityValue { def toDdl = "NOT NULL" }
 
-case class Nullability(value: NullabilityValue) extends ColumnConstraint {
+case class Nullability[T <: Ddl](value: NullabilityValue) extends ColumnConstraint[T] {
   def toDdl = value.toDdl
 }
 
@@ -32,7 +32,7 @@ sealed trait KeyConstraintValue extends Ddl
 case object Unique extends KeyConstraintValue { def toDdl = "UNIQUE" }
 case object PrimaryKey extends KeyConstraintValue { def toDdl = "PRIMARY KEY" }
 
-case class KeyConstaint(value: KeyConstraintValue) extends ColumnConstraint {
+case class KeyConstaint[T <: Ddl](value: KeyConstraintValue) extends ColumnConstraint[T] {
   def toDdl = value.toDdl
 }
 

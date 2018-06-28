@@ -17,7 +17,6 @@ import scala.collection.immutable.ListMap
 
 // scalaz
 import scalaz._
-import Scalaz._
 
 // Iglu Core
 import com.snowplowanalytics.iglu.core.{ SchemaMap, SchemaVer }

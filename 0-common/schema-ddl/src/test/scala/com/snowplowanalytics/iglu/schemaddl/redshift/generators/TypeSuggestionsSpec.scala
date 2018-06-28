@@ -16,6 +16,9 @@ package generators
 // specs2
 import org.specs2.Specification
 
+//this project
+import com.snowplowanalytics.iglu.schemaddl.sql._
+
 class TypeSuggestionsSpec extends Specification { def is = s2"""
   Check type suggestions
     suggest decimal for multipleOf == 0.01 $e1
@@ -30,41 +33,41 @@ class TypeSuggestionsSpec extends Specification { def is = s2"""
 
   def e1 = {
     val props = Map("type" -> "number", "multipleOf" -> "0.01")
-    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftDecimal(Some(36), Some(2)))
+    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(SqlDecimal(Some(36), Some(2)))
   }
 
   def e2 = {
     val props = Map("type" -> "number", "multipleOf" -> "1")
-    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftInteger)
+    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(SqlInteger)
   }
 
   def e3 = {
     val props = Map("type" -> "integer", "multipleOf" -> "1", "enum" -> "2,3,5,\"hello\",32")
-    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftVarchar(7))
+    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(SqlVarchar(7))
   }
 
   def e4 = {
     val props = Map("type" -> "string,null", "minLength" -> "12", "maxLength" -> "12")
-    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftChar(12))
+    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(SqlChar(12))
   }
 
   def e5 = {
     val props = Map("type" -> "number,null")
-    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftDouble)
+    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(SqlDouble)
   }
 
   def e6 = {
     val props = Map("type" -> "integer,null")
-    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftBigInt)
+    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(SqlBigInt)
   }
 
   def e7 = {
     val props = Map("type" -> "string", "format" -> "date-time")
-    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftTimestamp)
+    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(SqlTimestamp)
   }
 
   def e8 = {
     val props = Map("type" -> "string", "format" -> "date")
-    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftDate)
+    DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(SqlDate)
   }
 }

@@ -24,7 +24,7 @@ import scalaz.NonEmptyList
 
 // This library
 import com.snowplowanalytics.iglu.schemaddl.FlatSchema
-
+import com.snowplowanalytics.iglu.schemaddl.sql._
 
 class DdlGeneratorSpec extends Specification { def is = s2"""
   Check DDL generation specification
@@ -46,8 +46,8 @@ class DdlGeneratorSpec extends Specification { def is = s2"""
       DdlGenerator.selfDescSchemaColumns ++
       DdlGenerator.parentageColumns ++
       List(
-        Column("foo",RedshiftVarchar(30),Set(CompressionEncoding(ZstdEncoding)),Set(Nullability(NotNull))),
-        Column("bar",RedshiftVarchar(5),Set(CompressionEncoding(ZstdEncoding)),Set())
+        Column("foo",SqlVarchar(30),Set(CompressionEncoding(ZstdEncoding)),Set(Nullability(NotNull))),
+        Column("bar",SqlVarchar(5),Set(CompressionEncoding(ZstdEncoding)),Set())
       ),
       Set(ForeignKeyTable(NonEmptyList("root_id"),RefTable("atomic.events",Some("event_id")))),
       Set(Diststyle(Key), DistKeyTable("root_id"),SortKeyTable(None,NonEmptyList("root_tstamp")))
@@ -73,9 +73,9 @@ class DdlGeneratorSpec extends Specification { def is = s2"""
       DdlGenerator.selfDescSchemaColumns ++
       DdlGenerator.parentageColumns ++
       List(
-        Column("foo",RedshiftBoolean,Set(CompressionEncoding(RunLengthEncoding)),Set(Nullability(NotNull))),
-        Column("bar",RedshiftVarchar(5),Set(CompressionEncoding(ZstdEncoding)),Set()),
-        Column("baz",RedshiftBoolean,Set(CompressionEncoding(RunLengthEncoding)),Set())
+        Column("foo",SqlBoolean,Set(CompressionEncoding(RunLengthEncoding)),Set(Nullability(NotNull))),
+        Column("bar",SqlVarchar(5),Set(CompressionEncoding(ZstdEncoding)),Set()),
+        Column("baz",SqlBoolean,Set(CompressionEncoding(RunLengthEncoding)),Set())
       ),
       Set(ForeignKeyTable(NonEmptyList("root_id"),RefTable("atomic.events",Some("event_id")))),
       Set(Diststyle(Key), DistKeyTable("root_id"),SortKeyTable(None,NonEmptyList("root_tstamp")))

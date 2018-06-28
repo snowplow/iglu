@@ -10,24 +10,20 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.schemaddl.redshift
-
-import com.snowplowanalytics.iglu.schemaddl.sql.{ColumnAttribute, ColumnConstraint, DataType, Ddl}
+package com.snowplowanalytics.iglu.schemaddl.sql
 
 /**
  * Class holding all information about Redshift's column
  *
  * @param columnName column_name
  * @param dataType data_type such as INTEGER, VARCHAR, etc
- * @param columnAttributes set of column_attributes such as ENCODE
  * @param columnConstraints set of column_constraints such as NOT NULL
  */
-private[redshift] case class Column[T <: RedShiftDdl](
+case class Column[T <: Ddl](
   columnName: String,
-  dataType: DataType[Ddl],
-  columnAttributes: Set[ColumnAttribute[T]] = Set.empty[ColumnAttribute[T]],
+  dataType: DataType[T],
   columnConstraints: Set[ColumnConstraint[T]] = Set.empty[ColumnConstraint[T]]
-) extends RedShiftDdl {
+) extends Ddl {
 
   /**
    * Formatted column's DDL
@@ -36,19 +32,18 @@ private[redshift] case class Column[T <: RedShiftDdl](
    * @param tabs tuple of lengths (prepend, table_name, data_type, etc)
    * @return formatted DDL
    */
-  def toFormattedDdl(tabs: (Int, Int, Int, Int, Int)): String =
+  def toFormattedDdl(tabs: (Int, Int, Int, Int)): String =
     withTabs(tabs._1, " ") +
       withTabs(tabs._2, nameDdl) +
       withTabs(tabs._3, dataTypeDdl) +
-      withTabs(tabs._4, attributesDdl) +
-      withTabs(tabs._5, constraintsDdl)
+      withTabs(tabs._4, constraintsDdl)
 
   /**
    * Compact way to output column
    *
    * @return string representing column without formatting
    */
-  override def toDdl = toFormattedDdl((1, 1, 1, 1, 1))
+  def toDdl = toFormattedDdl((1, 1, 1, 1))
 
   // Get warnings only from data types suggestions
   override val warnings = dataType.warnings
@@ -63,11 +58,6 @@ private[redshift] case class Column[T <: RedShiftDdl](
    * data_type ready to output
    */
   val dataTypeDdl = dataType.toDdl
-
-  /**
-   * column_attributes ready to output if exists
-   */
-  val attributesDdl = columnAttributes.map(" " + _.toDdl).mkString(" ")
 
   /**
    * column_constraints ready to output if exists

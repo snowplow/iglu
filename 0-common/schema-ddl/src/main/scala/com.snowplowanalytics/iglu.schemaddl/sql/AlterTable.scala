@@ -10,9 +10,7 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.schemaddl.redshift
-
-import com.snowplowanalytics.iglu.schemaddl.sql.{AlterTableStatement, ColumnAttribute, DataType, Ddl, Default, Nullability}
+package com.snowplowanalytics.iglu.schemaddl.sql
 
 /**
  * Class holding data to alter some table with single [[AlterTableStatement]]
@@ -40,18 +38,55 @@ import com.snowplowanalytics.iglu.schemaddl.sql.{AlterTableStatement, ColumnAttr
  * FOREIGN KEY (column_name [, ... ] )
  * REFERENCES  reftable [ ( refcolumn ) ]}
  */
-sealed trait RedShiftAlterTableStatement extends RedShiftDdl
+case class AlterTable(tableName: String, statement: AlterTableStatement) extends Statement {
+  def toDdl = s"ALTER TABLE $tableName ${statement.toDdl}"
+}
 
+/**
+ * Sum-type to represent some statement
+ */
+private[schemaddl] trait AlterTableStatement extends Ddl
 
-private[redshift] case class AddColumn[T <: RedShiftDdl](
+sealed trait DropModeValue extends Ddl
+case object CascadeDrop extends DropModeValue { def toDdl = "CASCADE" }
+case object RestrictDrop extends DropModeValue { def toDdl = "RESTRICT" }
+
+case class DropMode(value: DropModeValue) extends Ddl {
+  def toDdl = value.toDdl
+}
+
+case class AddConstraint(tableConstraint: TableConstraint) extends AlterTableStatement {
+  def toDdl = s"ADD ${tableConstraint.toDdl}"
+}
+
+case class DropConstraint(constraintName: String, mode: Option[DropMode]) extends AlterTableStatement {
+  def toDdl = s"DROP $constraintName${mode.map(" " + _.toDdl).getOrElse("")}"
+}
+
+case class OwnerTo(newOwner: String) extends AlterTableStatement {
+  def toDdl = s"OWNER TO $newOwner"
+}
+
+case class RenameTo(newName: String) extends AlterTableStatement {
+  def toDdl = s"RENAME TO $newName"
+}
+
+case class RenameColumn(columnName: String, newName: String) extends AlterTableStatement {
+  def toDdl = s"RENAME COLUMN $columnName TO $newName"
+}
+
+case class AddColumn[T <: Ddl](
   columnName: String,
   columnType: DataType[Ddl],
   default: Option[Default[T]],
-  encode: Option[ColumnAttribute[T]],
   nullability: Option[Nullability[T]]
 ) extends AlterTableStatement {
   def toDdl = {
-    val attrs = List(nullability, encode, default).flatten.map(_.toDdl).mkString(" ")
+    val attrs = List(nullability, default).flatten.map(_.toDdl).mkString(" ")
     s"""ADD COLUMN "$columnName" ${columnType.toDdl} $attrs"""
   }
+}
+
+case class DropColumn(columnName: String, mode: Option[DropMode]) extends Ddl {
+  def toDdl = s"DROP COLUMN $columnName${mode.map(" " + _.toDdl).getOrElse("")}"
 }

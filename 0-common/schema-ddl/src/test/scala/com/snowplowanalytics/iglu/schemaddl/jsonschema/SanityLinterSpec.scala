@@ -12,7 +12,7 @@
  */
 package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
-import scalaz.{Failure, Success, NonEmptyList}
+import scalaz.{Failure, NonEmptyList}
 
 // json4s
 import org.json4s._

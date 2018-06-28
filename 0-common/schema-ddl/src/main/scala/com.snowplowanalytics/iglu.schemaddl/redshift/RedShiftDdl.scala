@@ -12,26 +12,9 @@
  */
 package com.snowplowanalytics.iglu.schemaddl.redshift
 
-// Scalaz
-import scalaz.NonEmptyList
+import com.snowplowanalytics.iglu.schemaddl.sql.Ddl
 
 /**
- * table_constraints  are:
- * [ UNIQUE ( column_name [, ... ] ) ]
- * [ PRIMARY KEY ( column_name [, ... ] )  ]
- * [ FOREIGN KEY (column_name [, ... ] ) REFERENCES reftable [ ( refcolumn ) ]
+ * Base class for everything that can be represented as Redshift DDL
  */
-sealed trait TableConstraint extends Ddl
-
-case class UniqueKeyTable(columns: NonEmptyList[String]) extends TableConstraint {
-  def toDdl = s"UNIQUE (${columns.list.map(_.mkString(", "))})"
-}
-
-case class PrimaryKeyTable(columns: NonEmptyList[String]) extends TableConstraint {
-  def toDdl = s"PRIMARY KEY (${columns.list.map(_.mkString(", "))})"
-}
-
-case class ForeignKeyTable(columns: NonEmptyList[String], reftable: RefTable) extends TableConstraint {
-  def toDdl = s"FOREIGN KEY (${columns.list.mkString(",")}) ${reftable.toDdl}"
-}
-
+trait RedShiftDdl extends Ddl

@@ -10,16 +10,14 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.schemaddl.redshift
+package com.snowplowanalytics.iglu.schemaddl.sql
 package generators
 
-// This project
-import DdlGenerator._
 
 /**
  * Converts lists of keys into a JsonPath file.
  */
-object JsonPathGenerator {
+trait SqlJsonPathGenerator {
 
   private object JsonPathPrefix {
     val Schema    = "$.schema."
@@ -61,12 +59,12 @@ object JsonPathGenerator {
    * @param rawMode decide whether snowplow-specific columns expected
    * @return a JsonPath String containing all of the relevant fields
    */
-  def getJsonPathsFile(columns: List[Column], rawMode: Boolean = false): String = {
+  def getJsonPathsFile(columns: List[Column[Ddl]], rawMode: Boolean = false): String = {
     val columnNames: List[String] =
       if (rawMode) { columns.map(JsonPathPrefix.Data + _.columnName) }    // everything is data in raw mode
       else {                                                              // add schema and hierarchy otherwise
-        val dataColumns = columns.filterNot(selfDescSchemaColumns.contains(_))
-                                 .filterNot(parentageColumns.contains(_))
+        val dataColumns = columns.filterNot(SqlDdlGenerator.selfDescSchemaColumns.contains(_))
+                                 .filterNot(SqlDdlGenerator.parentageColumns.contains(_))
                                  .map(_.columnName)
 
         val schemaFieldList    = JsonPathSchemaFields.map(JsonPathPrefix.Schema + _)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -10,9 +10,18 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.schemaddl.redshift
+package com.snowplowanalytics.iglu.schemaddl.sql
 
-case object Empty extends Statement {
-  override val separator = ""
-  def toDdl = ""
+/**
+ * column_attributes are:
+ * [ DEFAULT default_expr ]
+ * [ IDENTITY ( seed, step ) ]
+ * [ ENCODE encoding ]
+ * [ DISTKEY ]
+ * [ SORTKEY ]
+ */
+trait ColumnAttribute[T <: Ddl] extends Ddl
+
+case class Default[T <: Ddl](value: String) extends ColumnAttribute[T] {
+  def toDdl = s"DEFAULT $value"
 }

@@ -10,17 +10,9 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.schemaddl.redshift
+package com.snowplowanalytics.iglu.schemaddl.sql
 
-/**
- * COMMENT ON
- * { TABLE object_name | COLUMN object_name.column_name |
- * CONSTRAINT constraint_name ON table_name |
- * DATABASE object_name |
- * VIEW object_name }
- * IS 'text'
- */
-case class CommentOn(tableName: String, comment: String) extends Statement {
-  override val separator = ";"
-  def toDdl = s"COMMENT ON TABLE $tableName IS '$comment'"
+case object Empty extends Statement {
+  override val separator = ""
+  def toDdl = ""
 }
