@@ -12,7 +12,7 @@
  */
 package com.snowplowanalytics.iglu.core
 
-import typeclasses.{ NormalizeData, StringifyData }
+import typeclasses.{ NormalizeData, StringifyData, ToData }
 
 /**
   * Container for Self-describing data
@@ -36,3 +36,7 @@ case class SelfDescribingData[D](schema: SchemaKey, data: D) {
   def asString(implicit ev: StringifyData[D]): String = ev.asString(this)
 }
 
+object SelfDescribingData {
+  def parse[D](data: D)(implicit ev: ToData[D]): Option[SelfDescribingData[D]] =
+    ev.toData(data)
+}
