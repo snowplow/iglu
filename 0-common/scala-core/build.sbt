@@ -56,9 +56,10 @@ lazy val igluCoreCirce = (project in file("iglu-core-circe"))
     name := "iglu-core-circe",
     libraryDependencies ++= Dependencies.onVersion(
       all = Seq(
-      // Scala
-      Libraries.circe,
-      Libraries.circeParser),
+        // Scala
+        Libraries.circe,
+        Libraries.circeParser,
+        Libraries.cats),
       // Scala (test only)
       on210 = Seq(Libraries.specs2._210),
       on211 = Seq(Libraries.specs2._211),

@@ -75,29 +75,30 @@ trait instances {
 
   // Container-specific instances
 
-  final implicit val igluNormalizeDataJValue: NormalizeData[Json] =
+  final implicit val igluNormalizeDataJson: NormalizeData[Json] =
     new NormalizeData[Json] {
       override def normalize(container: SelfDescribingData[Json]): Json =
         CirceIgluCodecs.encodeData(container)
     }
 
-  final implicit val igluNormalizeSchemaJValue: NormalizeSchema[Json] =
+  final implicit val igluNormalizeSchemaJson: NormalizeSchema[Json] =
     new NormalizeSchema[Json] {
       override def normalize(container: SelfDescribingSchema[Json]): Json =
         CirceIgluCodecs.encodeSchema(container)
     }
 
-  final implicit val igluStringifyDataJValue: StringifyData[Json] =
+  final implicit val igluStringifyDataJson: StringifyData[Json] =
     new StringifyData[Json] {
       override def asString(container: SelfDescribingData[Json]): String =
-        container.normalize(igluNormalizeDataJValue).noSpaces
+        container.normalize(igluNormalizeDataJson).noSpaces
     }
 
-  final implicit val igluStringifySchemaJValue: StringifySchema[Json] =
+  final implicit val igluStringifySchemaJson: StringifySchema[Json] =
     new StringifySchema[Json] {
       override def asString(container: SelfDescribingSchema[Json]): String =
-        container.normalize(igluNormalizeSchemaJValue).noSpaces
+        container.normalize(igluNormalizeSchemaJson).noSpaces
     }
+
 }
 
 object instances extends instances
