@@ -14,7 +14,7 @@ package com.snowplowanalytics.iglu.core.circe
 
 // Cats
 import cats.syntax.either._
-import cats.syntax.cartesian._
+import cats.syntax.apply._
 import cats.instances.option._
 
 // Circe
@@ -86,7 +86,7 @@ object CirceIgluCodecs {
     } yield schemaKey
 
   private[circe] def selfMapToSchemaMap(selfMap: Map[String, Json], hCursor: HCursor): Either[DecodingFailure, SchemaMap] = {
-    val self = (selfMap.get("vendor") |@| selfMap.get("name") |@| selfMap.get("format") |@| selfMap.get("version")).map {
+    val self = (selfMap.get("vendor"), selfMap.get("name"), selfMap.get("format"), selfMap.get("version")).mapN {
       (v, n, f, ver) =>
         for {
           vendor  <- v.asString
