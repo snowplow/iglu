@@ -98,7 +98,6 @@ trait instances {
       override def asString(container: SelfDescribingSchema[Json]): String =
         container.normalize(igluNormalizeSchemaJson).noSpaces
     }
-
 }
 
-object instances extends instances
+object instances extends instances with CirceIgluCodecs
