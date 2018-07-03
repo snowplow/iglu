@@ -263,12 +263,12 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      """return a 401 if the owner is not a prefix of the vendor and the schema
+      """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) =
           schema.get(vendors, names, formats, versions, faultyOwner, permission, includeMetadata = false)
-        status === Unauthorized
-        res must contain("You do not have sufficient privileges")
+        status === NotFound
+        res must contain("There are no schemas available here")
       }
 
       "return a 404 if the schema is not in the db" in {
@@ -329,12 +329,12 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      """return a 401 if the owner is not a prefix of the vendor and the schema
+      """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) = schema.getMetadata(vendors, names, formats,
           versions, faultyOwner, permission)
-        status === Unauthorized
-        res must contain("You do not have sufficient privileges")
+        status === NotFound
+        res must contain("There are no schemas available here")
       }
 
       "return a 404 if the schema is not in the db" in {
@@ -424,19 +424,19 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      """return a 401 if the owner is not a prefix of the vendor and the schema
+      """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) =
           schema.getFromFormat(vendors, names, formats, faultyOwner, permission, includeMetadata = false)
-        status === Unauthorized
-        res must contain("You do not have sufficient privileges")
+        status === NotFound
+        res must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas matching the query" in {
         val (status, res) =
           schema.getFromFormat(vendors, faultyNames, formats, owner, permission, includeMetadata = false)
         status === NotFound
-        res must contain("There are no schemas for this vendor, name, format")
+        res must contain("There are no schemas available here")
 
         database withDynSession {
           Q.queryNA[Int](
@@ -485,19 +485,19 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      """return a 401 if the owner is not a prefix of the vendor and the schema
+      """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) = schema.getMetadataFromFormat(vendors, names,
           formats, faultyOwner, permission)
-        status === Unauthorized
-        res must contain("You do not have sufficient privileges")
+        status === NotFound
+        res must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas matching the query" in {
         val (status, res) = schema.getMetadataFromFormat(vendors, faultyNames,
           formats, owner, permission)
         status === NotFound
-        res must contain ("There are no schemas for this vendor, name, format")
+        res must contain ("There are no schemas available here")
 
         database withDynSession {
           Q.queryNA[Int](
@@ -544,19 +544,19 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      """return a 401 if the owner is not a prefix of the vendor and the schema
+      """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) =
           schema.getFromName(vendors, names, faultyOwner, permission, includeMetadata = false)
-        status === Unauthorized
-        res must contain("You do not have sufficient privileges")
+        status === NotFound
+        res must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas matching the query" in {
         val (status, res) =
           schema.getFromName(vendors, faultyNames, owner, permission, includeMetadata = false)
         status === NotFound
-        res must contain("There are no schemas for this vendor, name")
+        res must contain("There are no schemas available here")
 
         database withDynSession {
           Q.queryNA[Int](
@@ -602,19 +602,19 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      """return a 401 if the owner is not a prefix of the vendor and the schema
+      """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) =
           schema.getMetadataFromName(vendors, names, faultyOwner, permission)
-        status === Unauthorized
-        res must contain("You do not have sufficient privileges")
+        status === NotFound
+        res must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas matching the query" in {
         val (status, res) =
           schema.getMetadataFromName(vendors, faultyNames, owner, permission)
         status === NotFound
-        res must contain("There are no schemas for this vendor, name")
+        res must contain("There are no schemas available here")
 
         database withDynSession {
           Q.queryNA[Int](
@@ -657,19 +657,19 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      """return a 401 if the owner is not a prefix of the vendor and the schema
+      """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) =
           schema.getFromVendor(vendors, faultyOwner, permission, includeMetadata = false)
-        status === Unauthorized
-        res must contain("You do not have sufficient privileges")
+        status === NotFound
+        res must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas matching the query" in {
         val (status, res) =
           schema.getFromVendor(faultyVendors, owner, permission, includeMetadata = false)
         status === NotFound
-        res must contain("There are no schemas for this vendor")
+        res must contain("There are no schemas available here")
 
         database withDynSession {
           Q.queryNA[Int](
@@ -712,19 +712,19 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         }
       }
 
-      """return a 401 if the owner is not a prefix of the vendor and the schema
+      """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) =
           schema.getMetadataFromVendor(vendors, faultyOwner, permission)
-        status === Unauthorized
-        res must contain("You do not have sufficient privileges")
+        status === NotFound
+        res must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas matching the query" in {
         val (status, res) =
           schema.getMetadataFromVendor(faultyVendors, owner, permission)
         status === NotFound
-        res must contain("There are no schemas for this vendor")
+        res must contain("There are no schemas available here")
 
         database withDynSession {
           Q.queryNA[Int](

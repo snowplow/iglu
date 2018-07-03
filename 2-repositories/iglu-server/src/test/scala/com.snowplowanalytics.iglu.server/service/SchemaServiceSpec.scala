@@ -249,7 +249,7 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        s"return proper metadata for a public schema ${metaPublicUrl}" in {
+        s"return proper metadata for a public schema $metaPublicUrl" in {
           Get(metaPublicUrl) ~> addHeader("apikey", wrongVendorKey) ~> routes ~>
           check {
             status === OK
@@ -269,44 +269,60 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return a 401 if no apikey is found in the db" in {
+        "return a 404 if no apikey is found in the db" in {
           Get(url) ~> addHeader("apikey", faultyKey) ~> Route.seal(routes) ~>
             check {
-              status === Unauthorized
+              status === NotFound
               contentType === `application/json`
               responseAs[String] must
-                contain("You do not have sufficient privileges")
+                contain("There are no schemas available here")
             }
         }
 
-        "return a 401 if the API key provided is not an uuid" in {
+        "return a 404 if the API key provided is not an uuid" in {
           Get(url) ~> addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~>
             check {
-              status === Unauthorized
+              status === NotFound
               contentType === `application/json`
               responseAs[String] must
-                contain("You do not have sufficient privileges")
+                contain("There are no schemas available here")
             }
         }
 
-        "return a 400 if no apikey is provided" in {
+        "return a 404 if no apikey is provided" in {
           Get(url) ~> Route.seal(routes) ~> check {
-            status === BadRequest
-            contentType === `text/plain(UTF-8)`
+            status === NotFound
+            contentType === `application/json`
             responseAs[String] must
-              contain("Request is missing required HTTP header 'apikey'")
+              contain("There are no schemas available here")
           }
         }
 
-        """return a 401 if the owner of the API key is not a prefix of the
+        """return a 404 if the owner of the API key is not a prefix of the
           schema's vendor""" in {
             Get(url) ~> addHeader("apikey", wrongVendorKey) ~>
               Route.seal(routes) ~> check {
-                status === Unauthorized
+                status === NotFound
               contentType === `application/json`
                 responseAs[String] must
-                  contain("You do not have sufficient privileges")
+                  contain("There are no schemas available here")
               }
+        }
+
+        "return a 200 if schema is public and no apikey is provided" in {
+          Get(s"$start$otherVendor/$name2/$format/$version") ~> Route.seal(routes) ~> check {
+            status === OK
+            contentType === `application/json`
+          }
+        }
+
+        "return a 404 if schema is private and no apikey is provided" in {
+          Get(s"$start$otherVendor/$name/$format/$version") ~> Route.seal(routes) ~> check {
+            status === NotFound
+            contentType === `application/json`
+            responseAs[String] must
+              contain("There are no schemas available here")
+          }
         }
 
         "leave GET requests to other paths unhandled" in {
@@ -384,21 +400,37 @@ class SchemaServiceSpec extends Specification
             status === NotFound
             contentType === `application/json`
             responseAs[String] must
-            contain("There are no schemas for this vendor")
+            contain("There are no schemas available here")
           }
         }
 
-        "return a 401 if the owner is not a prefix of the vendor" in {
+        "return a 404 if the owner is not a prefix of the vendor" in {
           Get(vendorUrl) ~> addHeader("apikey", wrongVendorKey) ~> routes ~>
           check {
-            status === Unauthorized
+            status === NotFound
             contentType === `application/json`
-            responseAs[String] must contain("You do not have sufficient privil")
+            responseAs[String] must contain("There are no schemas available here")
           }
         }
       }
 
       "for name based urls" should {
+
+        "return a 200 if schema is public and no apikey is provided" in {
+          Get(s"$start$otherVendor/$name2") ~> Route.seal(routes) ~> check {
+            status === OK
+            contentType === `application/json`
+          }
+        }
+
+        "return a 404 if schema is private and no apikey is provided" in {
+          Get(s"$start$otherVendor/$name") ~> Route.seal(routes) ~> check {
+            status === NotFound
+            contentType === `application/json`
+            responseAs[String] must
+              contain("There are no schemas available here")
+          }
+        }
 
         "return the catalog of available schemas for this name" +
         s"(${nameUrl})" in {
@@ -466,18 +498,20 @@ class SchemaServiceSpec extends Specification
             status === NotFound
             contentType === `application/json`
             responseAs[String] must
-              contain("There are no schemas for this vendor, name combination")
+              contain("There are no schemas available here")
           }
         }
 
-        "return a 401 if the owner is not a prefix of the vendor" in {
+        "return a 404 if the owner is not a prefix of the vendor" in {
           Get(nameUrl) ~> addHeader("apikey", wrongVendorKey) ~> routes ~>
           check {
-            status === Unauthorized
+            status === NotFound
             contentType === `application/json`
-            responseAs[String] must contain("You do not have sufficient privil")
+            responseAs[String] must contain("There are no schemas available here")
           }
         }
+
+
       }
 
       "for format based urls" should {
@@ -498,16 +532,16 @@ class SchemaServiceSpec extends Specification
             status === NotFound
             contentType === `application/json`
             responseAs[String] must
-            contain("There are no schemas for this vendor, name, format ")
+            contain("There are no schemas available here")
           }
         }
 
-        "return a 401 if the owner is not a prefix of the vendor" in {
+        "return a 404 if the owner is not a prefix of the vendor" in {
           Get(formatUrl) ~> addHeader("apikey", wrongVendorKey) ~> routes ~>
           check {
-            status === Unauthorized
+            status === NotFound
             contentType === `application/json`
-            responseAs[String] must contain("You do not have sufficient privil")
+            responseAs[String] must contain("There are no schemas available here")
           }
         }
       }
