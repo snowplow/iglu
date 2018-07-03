@@ -166,13 +166,13 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
         result must contain(innerSchema)
       }
 
-      """return a 401 if the owner is not a prefix of the vendor and the schema
+      """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val future = schema ?
           GetSchema(vendors, names, formats, versions, otherOwner, permission, includeMetadata = false)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status === Unauthorized
-        result must contain("You do not have sufficient privileges")
+        status === NotFound
+        result must contain("There are no schemas available here")
       }
 
       "return a 404 if the schema doesnt exist" in {
@@ -209,8 +209,8 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
         val future = schema ?
           GetSchema(vendors, names, formats, versions, otherOwner, permission, includeMetadata = false)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status === Unauthorized
-        result must contain("You do not have sufficient privileges")
+        status === NotFound
+        result must contain("There are no schemas available here")
       }
 
       "return a 404 if the schema doesnt exist" in {
@@ -240,13 +240,13 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
         result must contain(innerSchema)
       }
 
-      """return a 401 if the owner is not a prefix of the vendor and the schemas
+      """return a 404 if the owner is not a prefix of the vendor and the schemas
       are private""" in {
         val future = schema ?
           GetSchemasFromFormat(vendors, names, formats, otherOwner, permission, includeMetadata = false)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status === Unauthorized
-        result must contain("You do not have sufficient privileges")
+        status === NotFound
+        result must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas available" in {
@@ -254,7 +254,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
           GetSchemasFromFormat(vendors, faultyNames, formats, owner, permission, includeMetadata = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
-        result must contain("There are no schemas for this vendor, name")
+        result must contain("There are no schemas available here")
       }
     }
 
@@ -277,13 +277,13 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
           contain(format)
       }
 
-      """return a 401 if the owner is not a prefix of the vendor and the schemas
+      """return a 404 if the owner is not a prefix of the vendor and the schemas
       are private""" in {
         val future = schema ?
           GetMetadataFromFormat(vendors, names, formats, otherOwner, permission)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status === Unauthorized
-        result must contain("You do not have sufficient privileges")
+        status === NotFound
+        result must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas available" in {
@@ -291,7 +291,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
           formats, owner, permission)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
-        result must contain("There are no schemas for this vendor, name")
+        result must contain("There are no schemas available here")
       }
     }
 
@@ -313,13 +313,13 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
         result must contain(innerSchema)
       }
 
-      """return a 401 if the owner is not a prefix of the vendor and the schemas
+      """return a 404 if the owner is not a prefix of the vendor and the schemas
       are private""" in {
         val future = schema ?
           GetSchemasFromName(vendors, names, otherOwner, permission, includeMetadata = false)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status === Unauthorized
-        result must contain("You do not have sufficient privileges")
+        status === NotFound
+        result must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas available" in {
@@ -327,7 +327,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
           GetSchemasFromName(vendors, faultyNames, owner, permission, includeMetadata = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
-        result must contain("There are no schemas for this vendor, name")
+        result must contain("There are no schemas available here")
       }
     }
 
@@ -349,13 +349,13 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
         result must contain(otherVendor) and contain(otherName)
       }
 
-      """return a 401 if the owner is not a prefix of the vendor and the schemas
+      """return a 404 if the owner is not a prefix of the vendor and the schemas
       are private""" in {
         val future = schema ?
           GetMetadataFromName(vendors, names, otherOwner, permission)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status === Unauthorized
-        result must contain("You do not have sufficient privileges")
+        status === NotFound
+        result must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas available" in {
@@ -363,7 +363,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
           GetMetadataFromName(vendors, faultyNames, owner, permission)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
-        result must contain("There are no schemas for this vendor, name")
+        result must contain("There are no schemas available here")
       }
     }
 
@@ -384,13 +384,13 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
         result must contain(innerSchema)
       }
 
-      """return a 401 if the owner is not a prefix of the vendor and the schemas
+      """return a 404 if the owner is not a prefix of the vendor and the schemas
       are private""" in {
         val future = schema ?
           GetSchemasFromVendor(vendors,  otherOwner, permission, includeMetadata = false)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status === Unauthorized
-        result must contain("You do not have sufficient privileges")
+        status === NotFound
+        result must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas available" in {
@@ -398,7 +398,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
           GetSchemasFromVendor(faultyVendors, owner, permission, includeMetadata = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
-        result must contain("There are no schemas for this vendor")
+        result must contain("There are no schemas available here")
       }
     }
 
@@ -419,13 +419,13 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
         result must contain(otherVendor)
       }
 
-      """return a 401 if the owner is not a prefix of the vendor and the schemas
+      """return a 404 if the owner is not a prefix of the vendor and the schemas
       are private""" in {
         val future = schema ?
           GetMetadataFromVendor(vendors, otherOwner, permission)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status === Unauthorized
-        result must contain("You do not have sufficient privileges")
+        status === NotFound
+        result must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas available" in {
@@ -433,7 +433,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
           GetMetadataFromVendor(faultyVendors, owner, permission)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
-        result must contain("There are no schemas for this vendor")
+        result must contain("There are no schemas available here")
       }
     }
 

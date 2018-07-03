@@ -158,7 +158,7 @@ class SchemaDAO(val db: Database) extends DAO {
     }
 
   /**
-    * Gets every schema belongig to a specific vendor.
+    * Gets every schema belonging to a specific vendor.
     * @param vendors schemas' vendors
     * @param owner the owner of the API key the request was made with
     * @param permission API key's permission
@@ -173,7 +173,7 @@ class SchemaDAO(val db: Database) extends DAO {
         } yield s).list
 
         if (preliminaryList.isEmpty) {
-          (NotFound, result(404, "There are no schemas for this vendor"))
+          (NotFound, result(404, "There are no schemas available here"))
         } else {
           val jsonSchemas: List[JValue] =
             preliminaryList
@@ -189,7 +189,7 @@ class SchemaDAO(val db: Database) extends DAO {
                 } else parse(s.schema))
 
           jsonSchemas match {
-            case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+            case Nil => (NotFound, result(404, "There are no schemas available here"))
             case single :: Nil => (OK, writePretty(single))
             case multiple => (OK, writePretty(multiple))
           }
@@ -212,7 +212,7 @@ class SchemaDAO(val db: Database) extends DAO {
       } yield s).list
 
       if(preliminaryList.isEmpty) {
-        (NotFound, result(404, "There are no schemas for this vendor"))
+        (NotFound, result(404, "There are no schemas available here"))
       } else {
         val metadata: List[ResMetadata] =
           preliminaryList
@@ -224,7 +224,7 @@ class SchemaDAO(val db: Database) extends DAO {
                 getPermission(s.vendor, owner, permission, s.isPublic))))
 
         metadata match {
-          case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+          case Nil => (NotFound, result(404, "There are no schemas available here"))
           case single :: Nil => (OK, writePretty(single))
           case multiple => (OK, writePretty(multiple))
         }
@@ -250,7 +250,7 @@ class SchemaDAO(val db: Database) extends DAO {
 
       if (preliminaryList.isEmpty) {
         (NotFound, result(404,
-          "There are no schemas for this vendor, name combination"))
+          "There are no schemas available here"))
       } else {
         val jsonSchemas: List[JValue] =
           preliminaryList
@@ -266,7 +266,7 @@ class SchemaDAO(val db: Database) extends DAO {
               } else parse(s.schema))
 
         jsonSchemas match {
-          case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+          case Nil => (NotFound, result(404, "There are no schemas available here"))
           case single :: Nil => (OK, writePretty(single))
           case multiple => (OK, writePretty(multiple))
         }
@@ -292,7 +292,7 @@ class SchemaDAO(val db: Database) extends DAO {
 
       if (preliminaryList.isEmpty) {
         (NotFound, result(404,
-          "There are no schemas for this vendor, name combination"))
+          "There are no schemas available here"))
       } else {
         val metadata: List[ResMetadata] =
           preliminaryList
@@ -304,7 +304,7 @@ class SchemaDAO(val db: Database) extends DAO {
                 getPermission(s.vendor, owner, permission, s.isPublic))))
 
         metadata match {
-          case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+          case Nil => (NotFound, result(404, "There are no schemas available here"))
           case single :: Nil => (OK, writePretty(single))
           case multiple => (OK, writePretty(multiple))
         }
@@ -334,7 +334,7 @@ class SchemaDAO(val db: Database) extends DAO {
 
         if (preliminaryList.isEmpty) {
           (NotFound, result(404,
-            "There are no schemas for this vendor, name, format combination"))
+            "There are no schemas available here"))
         } else {
           val jsonSchemas: List[JValue] =
             preliminaryList
@@ -350,7 +350,7 @@ class SchemaDAO(val db: Database) extends DAO {
                 } else parse(s.schema))
 
           jsonSchemas match {
-            case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+            case Nil => (NotFound, result(404, "There are no schemas available here"))
             case single :: Nil => (OK, writePretty(single))
             case multiple => (OK, writePretty(multiple))
           }
@@ -379,7 +379,7 @@ class SchemaDAO(val db: Database) extends DAO {
 
         if (preliminaryList.isEmpty) {
           (NotFound, result(404,
-            "There are no schemas for this vendor, name, format combination"))
+            "There are no schemas available here"))
         } else {
           val metadata: List[ResMetadata] =
             preliminaryList
@@ -391,7 +391,7 @@ class SchemaDAO(val db: Database) extends DAO {
                   getPermission(s.vendor, owner, permission, s.isPublic))))
 
           metadata match {
-            case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+            case Nil => (NotFound, result(404, "There are no schemas available here"))
             case single :: Nil => (OK, writePretty(single))
             case multiple => (OK, writePretty(multiple))
           }
@@ -436,7 +436,7 @@ class SchemaDAO(val db: Database) extends DAO {
               } else parse(s.schema))
 
         jsonSchemas match {
-          case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+          case Nil => (NotFound, result(404, "There are no schemas available here"))
           case single :: Nil => (OK, writePretty(single))
           case multiple => (OK, writePretty(multiple))
         }
@@ -477,7 +477,7 @@ class SchemaDAO(val db: Database) extends DAO {
                 getPermission(s.vendor, owner, permission, s.isPublic))))
 
         metadata match {
-          case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+          case Nil => (NotFound, result(404, "There are no schemas available here"))
           case single :: Nil => (OK, writePretty(single))
           case multiple => (OK, writePretty(multiple))
         }
@@ -508,7 +508,7 @@ class SchemaDAO(val db: Database) extends DAO {
                   } else parse(s.schema))
 
         jsonSchemas match {
-          case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+          case Nil => (NotFound, result(404, "There are no schemas available here"))
           case single :: Nil => (OK, writePretty(single))
           case multiple => (OK, writePretty(multiple))
         }
@@ -534,7 +534,7 @@ class SchemaDAO(val db: Database) extends DAO {
               getPermission(s.vendor, owner, permission, s.isPublic))))
 
         metadata match {
-          case Nil => (Unauthorized, result(401, "You do not have sufficient privileges"))
+          case Nil => (NotFound, result(404, "There are no schemas available here"))
           case single :: Nil => (OK, writePretty(single))
           case multiple => (OK, writePretty(multiple))
         }
