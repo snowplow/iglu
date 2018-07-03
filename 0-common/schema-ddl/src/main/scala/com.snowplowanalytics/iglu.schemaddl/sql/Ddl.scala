@@ -10,17 +10,35 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.schemaddl.redshift
+package com.snowplowanalytics.iglu.schemaddl
+package sql
 
 /**
- * Reference table. Used in foreign key and table constraint
- *
- * @param reftable name of table
- * @param refcolumn optional column
+ * Base class for everything that can be represented as SQL DDL
  */
-case class RefTable(reftable: String, refcolumn: Option[String]) extends Ddl {
-  def toDdl = {
-    val column = refcolumn.map("(" + _ + ")").getOrElse("")
-    s"REFERENCES $reftable$column"
-  }
+trait Ddl {
+  /**
+   * Output actual DDL as string
+   *
+   * @return valid DDL
+   */
+  def toDdl: String
+
+  /**
+   * Aggregates all warnings from child elements
+   */
+  val warnings: List[String] = Nil
+
+  /**
+   * Append specified amount of ``spaces`` to the string to produce formatted DDL
+   *
+   * @param spaces amount of spaces
+   * @param str string itself
+   * @return string with spaces
+   */
+  def withTabs(spaces: Int, str: String): String =
+    if (str.length == 0) " " * spaces
+    else if (spaces <= str.length) str
+    else str + (" " * (spaces - str.length))
 }
+

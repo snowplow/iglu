@@ -16,6 +16,9 @@ package generators
 // specs2
 import org.specs2.Specification
 
+import com.snowplowanalytics.iglu.schemaddl.sql._
+import com.snowplowanalytics.iglu.schemaddl.sql.generators.DdlFile
+
 class DdlFileSpec extends Specification { def is = s2"""
   Check DDL File specification
     render correct table definition $e1
@@ -32,12 +35,12 @@ class DdlFileSpec extends Specification { def is = s2"""
     val createTable = CreateTable(
      "launch_missles_1",
       List(
-        Column("status", RedshiftVarchar(64), Set(DistKey), Set(Nullability(NotNull))),
-        Column("missionName", RedshiftVarchar(128), Set(), Set(Nullability(NotNull))),
-        Column("geo_longitude", RedshiftDouble, Set(), Set()),
-        Column("geo_latitude", RedshiftDouble, Set(), Set()),
-        Column("rocket.model", RedshiftInteger, Set(), Set(Nullability(NotNull))),
-        Column("rocket.series", RedshiftInteger, Set(), Set(Nullability(Null)))
+        Column("status", SqlVarchar(64), Set(DistKey), Set(Nullability(NotNull))),
+        Column("missionName", SqlVarchar(128), Set(), Set(Nullability(NotNull))),
+        Column("geo_longitude", SqlDouble, Set(), Set()),
+        Column("geo_latitude", SqlDouble, Set(), Set()),
+        Column("rocket.model", SqlInteger, Set(), Set(Nullability(NotNull))),
+        Column("rocket.series", SqlInteger, Set(), Set(Nullability(Null)))
       )
     )
     val commentOn = DdlGenerator.getTableComment(

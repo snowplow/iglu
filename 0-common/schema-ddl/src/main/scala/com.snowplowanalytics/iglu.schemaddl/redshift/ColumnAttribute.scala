@@ -10,31 +10,20 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.schemaddl.redshift
+package com.snowplowanalytics.iglu.schemaddl
+package redshift
 
-/**
- * column_attributes are:
- * [ DEFAULT default_expr ]
- * [ IDENTITY ( seed, step ) ]
- * [ ENCODE encoding ]
- * [ DISTKEY ]
- * [ SORTKEY ]
- */
-sealed trait ColumnAttribute extends Ddl
+import com.snowplowanalytics.iglu.schemaddl.sql.ColumnAttribute
 
-case class Default(value: String) extends ColumnAttribute {
-  def toDdl = s"DEFAULT $value"
-}
-
-case class Identity(seed: Int, step: Int) extends ColumnAttribute {
+case class Identity(seed: Int, step: Int) extends ColumnAttribute[RedShiftDdl] {
   def toDdl = s"IDENTITY ($seed, $step)"
 }
 
-case object DistKey extends ColumnAttribute {
+case object DistKey extends ColumnAttribute[RedShiftDdl] {
   def toDdl = "DISTKEY"
 }
 
-case object SortKey extends ColumnAttribute {
+case object SortKey extends ColumnAttribute[RedShiftDdl] {
   def toDdl = "SORTKEY"
 }
 
@@ -42,11 +31,11 @@ case object SortKey extends ColumnAttribute {
  * Compression encodings
  * http://docs.aws.amazon.com/redshift/latest/dg/c_Compression_encodings.html
  */
-case class CompressionEncoding(value: CompressionEncodingValue) extends ColumnAttribute {
+case class CompressionEncoding(value: CompressionEncodingValue) extends ColumnAttribute[RedShiftDdl] {
   def toDdl = s"ENCODE ${value.toDdl}"
 }
 
-sealed trait CompressionEncodingValue extends Ddl
+sealed trait CompressionEncodingValue extends RedShiftDdl
 
 case object RawEncoding extends CompressionEncodingValue { def toDdl = "RAW" }
 

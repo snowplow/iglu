@@ -10,35 +10,17 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.schemaddl
-package redshift
+package com.snowplowanalytics.iglu.schemaddl.sql
 
 /**
- * Base class for everything that can be represented as Redshift DDL
+ * COMMENT ON
+ * { TABLE object_name | COLUMN object_name.column_name |
+ * CONSTRAINT constraint_name ON table_name |
+ * DATABASE object_name |
+ * VIEW object_name }
+ * IS 'text'
  */
-trait Ddl {
-  /**
-   * Output actual DDL as string
-   *
-   * @return valid DDL
-   */
-  def toDdl: String
-
-  /**
-   * Aggregates all warnings from child elements
-   */
-  val warnings: List[String] = Nil
-
-  /**
-   * Append specified amount of ``spaces`` to the string to produce formatted DDL
-   *
-   * @param spaces amount of spaces
-   * @param str string itself
-   * @return string with spaces
-   */
-  def withTabs(spaces: Int, str: String): String =
-    if (str.length == 0) " " * spaces
-    else if (spaces <= str.length) str
-    else str + (" " * (spaces - str.length))
+case class CommentOn(tableName: String, comment: String) extends Statement {
+  override val separator = ";"
+  def toDdl = s"COMMENT ON TABLE $tableName IS '$comment'"
 }
-
