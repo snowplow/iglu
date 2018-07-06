@@ -29,7 +29,7 @@ lazy val igluCore = (project in file("."))
       Libraries.json4sTest),
       on210 = Seq(Libraries.specs2._210),
       on211 = Seq(Libraries.specs2._211),
-      on212 = Seq(Libraries.specs2._212)
+      on212 = Seq(Libraries.specs2._211)
     ).value
   )
 
@@ -45,7 +45,7 @@ lazy val igluCoreJson4s = (project in file("iglu-core-json4s"))
       // Scala (test only)
       on210 = Seq(Libraries.specs2._210),
       on211 = Seq(Libraries.specs2._211),
-      on212 = Seq(Libraries.specs2._212)
+      on212 = Seq(Libraries.specs2._211)
     ).value
   )
 
@@ -63,6 +63,6 @@ lazy val igluCoreCirce = (project in file("iglu-core-circe"))
       // Scala (test only)
       on210 = Seq(Libraries.specs2._210),
       on211 = Seq(Libraries.specs2._211),
-      on212 = Seq(Libraries.specs2._212)
+      on212 = Seq(Libraries.specs2._211)
     ).value
   )

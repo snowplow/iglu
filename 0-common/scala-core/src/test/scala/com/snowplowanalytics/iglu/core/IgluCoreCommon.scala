@@ -28,8 +28,6 @@ object IgluCoreCommon {
 
   implicit val formats = IgluJson4sCodecs.formats
 
-  import syntax._
-
   ////////////////////////
   // ExtractFrom Json4s //
   ////////////////////////

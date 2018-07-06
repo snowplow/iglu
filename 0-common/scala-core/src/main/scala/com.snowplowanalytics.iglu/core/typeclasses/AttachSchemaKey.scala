@@ -10,12 +10,8 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.core.typeclasses
-
-// Scala
-import com.snowplowanalytics.iglu.core.SchemaKey
-
-import scala.language.implicitConversions
+package com.snowplowanalytics.iglu.core
+package typeclasses
 
 /**
  * This type class can be instantiated for any type [[E]] which after

@@ -13,11 +13,6 @@
 package com.snowplowanalytics.iglu.core
 package typeclasses
 
-// Scala
-import com.snowplowanalytics.iglu.core.SchemaKey
-
-import scala.language.implicitConversions
-
 /**
  * This type class can be instantiated for any type [[E]] which after
  * attaching [[SchemaKey]] to it will remain same [[E]] (like Self-describing

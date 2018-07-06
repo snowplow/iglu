@@ -182,7 +182,7 @@ object SchemaCriterion {
     try {
       Some(number.toInt)
     } catch {
-      case e: NumberFormatException => None
+      case _: NumberFormatException => None
     }
   }
 }
