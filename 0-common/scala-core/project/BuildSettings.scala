@@ -26,8 +26,7 @@ object BuildSettings {
     scalacOptions      := Seq("-deprecation", "-encoding", "utf8", "-Yrangepos",
                               "-feature", "-unchecked",
                               "-Xlint",
-                              "-Xlog-reflective-calls"),
-    resolvers     ++= Dependencies.resolutionRepos
+                              "-Xlog-reflective-calls")
   )
 
   // Basic settings only for Iglu Core
