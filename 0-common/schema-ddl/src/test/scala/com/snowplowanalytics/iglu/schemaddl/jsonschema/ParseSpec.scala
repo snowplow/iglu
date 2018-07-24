@@ -19,8 +19,8 @@ import org.json4s.jackson.JsonMethods.parse
 // specs2
 import org.specs2.Specification
 
-// This libary
-import json4s.Json4sToSchema._
+// This library
+import json4s.implicits._
 
 class ParseSpec extends Specification { def is = s2"""
   Check JSON Schema string specification
@@ -187,6 +187,7 @@ class ParseSpec extends Specification { def is = s2"""
     import ArrayProperties._
     import StringProperties._
     import CommonProperties._
+    import json4s.Formats._
 
     implicit def optconv[A](a: A): Option[A] = Some(a)
 
@@ -254,7 +255,6 @@ class ParseSpec extends Specification { def is = s2"""
       )),
       additionalProperties = AdditionalPropertiesAllowed(false)
     )
-
 
     val resultSchema = parse(
       """
