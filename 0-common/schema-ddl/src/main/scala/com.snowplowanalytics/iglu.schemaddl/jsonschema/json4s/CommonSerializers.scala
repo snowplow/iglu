@@ -23,8 +23,7 @@ import CommonProperties._
 
 object CommonSerializers {
 
-  import Json4sFromSchema._
-  import Json4sToSchema._
+  import implicits._
 
   private def stringToType(json: JValue): Option[Type] = json match {
     case JString("null")    => Some(Null)

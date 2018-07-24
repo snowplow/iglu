@@ -26,8 +26,7 @@ import jsonschema.ObjectProperties._
 
 object ObjectSerializers {
   import ArraySerializers._
-  import Json4sToSchema._
-  import Json4sFromSchema._
+  import implicits._
 
   @tailrec private def allString(keys: List[JValue], acc: List[String] = Nil): Option[List[String]] = {
     keys match {
