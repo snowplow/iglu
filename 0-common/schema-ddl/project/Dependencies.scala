@@ -16,21 +16,25 @@ import sbt._
 object Dependencies {
   object V {
     // Scala
-    val igluCoreJson4s   = "0.3.0"
+    val igluCore         = "0.3.0"
     val scalaz7          = "7.0.9"
+    val circe            = "0.9.3"
 
     // Scala (test only)
-    val specs2           = "4.0.1"
+    val specs2           = "4.3.2"
     val scalaCheck       = "1.13.5"
   }
 
   object Libraries {
     // Scala
-    // Scala
-    val igluCoreJson4s   = "com.snowplowanalytics"      %% "iglu-core-json4s"       % V.igluCoreJson4s
+    val igluCoreJson4s   = "com.snowplowanalytics"      %% "iglu-core-json4s"       % V.igluCore
+    val igluCoreCirce    = "com.snowplowanalytics"      %% "iglu-core-circe"        % V.igluCore
     val scalaz7          = "org.scalaz"                 %% "scalaz-core"            % V.scalaz7
     // Scala (test only)
     val specs2           = "org.specs2"                 %% "specs2-core"            % V.specs2     % "test"
+    val specs2Cats       = "org.specs2"                 %% "specs2-cats"            % V.specs2     % "test"
     val scalaCheck       = "org.scalacheck"             %% "scalacheck"             % V.scalaCheck % "test"
+    val circeLiteral     = "io.circe"                   %% "circe-literal"          % V.circe      % "test"
+    val circeParser      = "io.circe"                   %% "circe-parser"           % V.circe      % "test"
   }
 }

@@ -11,26 +11,25 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 
-lazy val dependencies = Seq(
-  Dependencies.Libraries.igluCoreJson4s,
-  Dependencies.Libraries.scalaz7,
-  // Scala (test only)
-  Dependencies.Libraries.specs2
-)
-
-lazy val basicSettings = Seq(
-  organization          := "com.snowplowanalytics",
-  name                  := "schema-ddl",
-  version               := "0.8.0",
-  description           := "Set of Abstract Syntax Trees for various DDL and Schema formats",
-  scalaVersion          := "2.12.4",
-  crossScalaVersions    :=  Seq("2.11.12", "2.12.4"),
-  scalacOptions         := BuildSettings.compilerOptions,
-  javacOptions          := BuildSettings.javaCompilerOptions,
-  resolvers             += Resolver.jcenterRepo,
-  shellPrompt           := { _ => "schema-ddl> " }
-)
-
 lazy val root = project.in(file("."))
-  .settings(basicSettings ++ BuildSettings.buildSettings)
-  .settings(libraryDependencies ++= dependencies)
+  .settings(
+    organization       := "com.snowplowanalytics",
+    name               := "schema-ddl",
+    version            := "0.8.0",
+    description        := "Set of Abstract Syntax Trees for various DDL and Schema formats",
+    scalaVersion       := "2.12.4",
+    crossScalaVersions := Seq("2.11.12", "2.12.4"),
+    scalacOptions      := BuildSettings.compilerOptions,
+    javacOptions       := BuildSettings.javaCompilerOptions
+  )
+  .settings(BuildSettings.buildSettings)
+  .settings(libraryDependencies ++= Seq(
+    Dependencies.Libraries.igluCoreJson4s,
+    Dependencies.Libraries.igluCoreCirce,
+    Dependencies.Libraries.scalaz7,
+    Dependencies.Libraries.circeLiteral,
+    Dependencies.Libraries.circeParser,
+    // Scala (test only)
+    Dependencies.Libraries.specs2,
+    Dependencies.Libraries.specs2Cats
+  ))

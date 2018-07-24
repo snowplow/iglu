@@ -98,6 +98,6 @@ object MigrationGenerator {
         val nullable =
           if (checkNullability(properties, required = false)) None
           else Some(Nullability(NotNull))
-        AlterTable(tableName, AddColumn(toSnakeCase(columnName), dataType, None, Some(encoding), nullable))
+        AlterTable(tableName, AddColumn(snakeCase(columnName), dataType, None, Some(encoding), nullable))
     }
 }

@@ -32,7 +32,7 @@ object StringUtils {
     val snakeCaseOrganization = schemaMap.vendor.replaceAll( """\.""", "_").replaceAll("-", "_").toLowerCase
 
     // Change the name from PascalCase to snake_case if necessary
-    val snakeCaseName = toSnakeCase(schemaMap.name)
+    val snakeCaseName = snakeCase(schemaMap.name)
 
     s"${snakeCaseOrganization}_${snakeCaseName}_${schemaMap.version.model}"
   }
@@ -49,7 +49,7 @@ object StringUtils {
     val fileNameWithoutExtension =
       if (fileName.endsWith(".json")) fileName.dropRight(5)
       else fileName
-    toSnakeCase(fileNameWithoutExtension)
+    snakeCase(fileNameWithoutExtension)
   }
 
   /**
@@ -59,7 +59,7 @@ object StringUtils {
    * @param str string to transform
    * @return the underscored string
    */
-  def toSnakeCase(str: String): String =
+  def snakeCase(str: String): String =
     str.replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
        .replaceAll("([a-z\\d])([A-Z])", "$1_$2")
        .replaceAll("-", "_")

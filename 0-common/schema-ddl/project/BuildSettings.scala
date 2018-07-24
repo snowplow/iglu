@@ -18,6 +18,11 @@ import Keys._
 
 object BuildSettings {
 
+  lazy val basicSettigns = Seq(
+    shellPrompt := { _ => "schema-ddl> " },
+    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.7")
+  )
+
   lazy val compilerOptions = Seq(
     "-deprecation",
     "-encoding", "UTF-8",
@@ -48,7 +53,7 @@ object BuildSettings {
 
   // Maven Central publishing settings
   lazy val mavenCentralExtras = Seq[Setting[_]](
-    pomIncludeRepository := { x => false },
+    pomIncludeRepository := { _ => false },
     homepage := Some(url("http://snowplowanalytics.com")),
     scmInfo := Some(ScmInfo(url("https://github.com/snowplow/iglu"), "scm:git@github.com:snowplow/iglu.git")),
     pomExtra := (
@@ -62,5 +67,5 @@ object BuildSettings {
       </developers>)
   )
 
-  lazy val buildSettings =  publishSettings ++ mavenCentralExtras
+  lazy val buildSettings = basicSettigns ++ publishSettings ++ mavenCentralExtras
 }

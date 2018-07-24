@@ -21,7 +21,7 @@ import org.specs2.Specification
 
 
 import ObjectProperties._
-import json4s.Json4sToSchema._
+import json4s.implicits._
 
 class ObjectSpec extends Specification { def is = s2"""
   Check JSON Schema object specification

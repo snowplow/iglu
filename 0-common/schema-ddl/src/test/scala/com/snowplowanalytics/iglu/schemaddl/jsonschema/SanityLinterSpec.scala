@@ -12,7 +12,7 @@
  */
 package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
-import scalaz.{Failure, Success, NonEmptyList}
+import scalaz.{Failure, NonEmptyList}
 
 // json4s
 import org.json4s._
@@ -22,7 +22,7 @@ import org.json4s.jackson.JsonMethods.parse
 import org.specs2.Specification
 
 // This libary
-import json4s.Json4sToSchema._
+import json4s.implicits._
 import SanityLinter._
 
 class SanityLinterSpec extends Specification { def is = s2"""
