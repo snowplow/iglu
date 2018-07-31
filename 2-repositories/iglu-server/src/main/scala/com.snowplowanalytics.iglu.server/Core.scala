@@ -39,6 +39,9 @@ import slick.jdbc.meta.MTable
 // slf4j
 import org.slf4j.{Logger, LoggerFactory}
 
+// postgres
+import org.postgresql.util.PSQLException
+
 
 class IgluServer(serverConfig: ServerConfig) extends Api {
 
@@ -71,14 +74,24 @@ class IgluServer(serverConfig: ServerConfig) extends Api {
 object TableInitialization {
   // Creates the necessary table if they are not already present in the database
   def initializeTables(db: Database): Unit = {
-    db withDynSession {
-      if (MTable.getTables("schemas").list.isEmpty) {
-        new SchemaDAO(db).createTable()
+    try {
+      db withDynSession {
+        if (MTable.getTables("schemas").list.isEmpty) {
+          new SchemaDAO(db).createTable()
+        }
+        new SchemaDAO(db).bootstrapSelfDescSchema()
+        if (MTable.getTables("apikeys").list.isEmpty) {
+          new ApiKeyDAO(db).createTable
+        }
       }
-      new SchemaDAO(db).bootstrapSelfDescSchema()
-      if (MTable.getTables("apikeys").list.isEmpty) {
-        new ApiKeyDAO(db).createTable
-      }
+    }
+    catch {
+      case err: PSQLException =>
+        println("There is a problem with database initialization: " + err.getMessage + " Check your credentials.")
+        sys.exit(1)
+      case _: Throwable =>
+        println("Something went wrong with database initialization.")
+        sys.exit(1)
     }
   }
 }
