@@ -20,7 +20,7 @@ import scalaz._
 import Scalaz._
 
 // json4s
-import org.json4s._
+import org.json4s.{JValue, JString}
 import org.json4s.jackson.JsonMethods.{ asJsonNode, fromJsonNode }
 
 // Java
@@ -110,6 +110,10 @@ object LintCommand {
    */
   lazy val validator = SelfSyntaxChecker.getSyntaxValidator
 
+  /** All lintings that user can skip */
+  val OptionalChecks: List[String] =
+    List("rootObject", "unknownFormats", "numericMinMax", "stringLength", "optionalNull", "description")
+
   /**
    * End-of-the-world class, containing info about success/failure of execution
    *
@@ -127,7 +131,7 @@ object LintCommand {
       println(s"TOTAL: $totalWarnings warnings were encountered")
 
       if (failedSchemas + totalFailures > 0) sys.exit(1)
-      else sys.exit(0)
+      else ()
     }
 
     /**
@@ -229,30 +233,40 @@ object LintCommand {
 
   /**
     * Validates if user provided --skip-checks with a valid string
-    * @param skipChecks command line input for --skip-checks
+    * @param lintersString command line input for --skip-checks
     * @return Either error concatenated error messages or valid list of linters
     */
-  def validateSkippedLinters(skipChecks: String): Either[String, List[Linter]] = {
-    val skippedLinters = skipChecks.split(",")
-    val linterValidationErrors = skippedLinters.filterNot(allLinters.isDefinedAt)
-    if (linterValidationErrors.nonEmpty) {
-      Left(s"Unknown linters [${linterValidationErrors.mkString(",")}] ")
-    } else {
-      val allowedToBeExcluded: List[String] = List("rootObject", "unknownFormats", "numericMinMax",
-                                                   "stringLength", "optionalNull", "description")
-      val forbiddenExcludes = skippedLinters.diff(allowedToBeExcluded)
-      if (forbiddenExcludes.nonEmpty) {
-        Left(s"Linters [${forbiddenExcludes.mkString(",")}] can NOT be excluded.")
-      } else {
-        val lintersToUse = skippedLinters.foldLeft(allLinters.values.toList) { (linters, cur) =>
-          (linters, allLinters.get(cur)) match {
-            case (l: List[Linter], Some(linter)) => l.diff(List(linter))
-            case (l: List[Linter], None)         => l
-            case (l: List[_], _)                 => throw new IllegalArgumentException(s"$l is NOT a list of linters")
-          }
-        }
-        Right(lintersToUse)
-      }
+  def skipLinters(lintersString: String): Either[String, List[Linter]] =
+    validateOptionalLinters(lintersString).map { toSkip =>
+      allLinters.filterKeys(linter => !toSkip.contains(linter)).values.toList
     }
+
+  /**
+    * Validates if user provided --skip-checks with a valid string
+    * @param lintersString command line input for --skip-checks
+    * @return Either error concatenated error messages or valid list of linters
+    */
+  def includeLinters(lintersString: String): Either[String, List[Linter]] =
+    validateOptionalLinters(lintersString).map { toInclude =>
+      allLinters.filterKeys(toInclude.contains).values.toList
+    }
+
+  /** Check that comma-separated list passed by --skip-checks is list of optional linters */
+  def validateOptionalLinters(string: String): Either[String, List[String]] = {
+    val linters = string.split(',').toList
+    val invalidLinters = linters.filterNot(allLinters.isDefinedAt)
+
+    val knownLinters: Either[String, List[String]] = invalidLinters match {
+      case Nil => Right(linters)
+      case invalid => Left(s"Unknown linters [${invalid.mkString(",")}] ")
+    }
+
+    for {
+      list <- knownLinters
+      _ <- list.filterNot(linter => OptionalChecks.contains(linter)) match {
+        case Nil => Right(())
+        case nonOptional => Left(s"Unknown linters [${nonOptional.mkString(", ")}]")
+      }
+    } yield list
   }
 }
