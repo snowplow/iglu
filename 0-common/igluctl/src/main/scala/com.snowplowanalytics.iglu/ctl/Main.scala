@@ -16,6 +16,8 @@ object Main extends App {
   Command.cliParser.parse(args, Command()).map(c => (c, c.toCommand)) match {
     case Some((_, Some(ddl: GenerateCommand))) =>
       ddl.processDdl()
+    case Some((_, Some(deploy: DeployCommand))) =>
+      deploy.process()
     case Some((_, Some(sync: PushCommand))) =>
       sync.process()
     case Some((_, Some(lint: LintCommand))) =>

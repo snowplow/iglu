@@ -134,7 +134,6 @@ case class GenerateCommand(
       warnings = schemaVerMessages ++ schemaErrors ++ ddlErrors ++ ddlWarnings)
   }
 
-
   /**
     * Checks if there is any missing schema version in a directory of schemas
     * or if a specific schema file doesn't have version 1-0-0
