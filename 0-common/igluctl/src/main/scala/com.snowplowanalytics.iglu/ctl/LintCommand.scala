@@ -20,7 +20,7 @@ import scalaz._
 import Scalaz._
 
 // json4s
-import org.json4s._
+import org.json4s.{JValue, JString}
 import org.json4s.jackson.JsonMethods.{ asJsonNode, fromJsonNode }
 
 // Java
