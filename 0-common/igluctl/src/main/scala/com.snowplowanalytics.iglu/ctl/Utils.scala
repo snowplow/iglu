@@ -16,6 +16,10 @@ package com.snowplowanalytics.iglu.ctl
 import scalaz._
 import Scalaz._
 
+// Json4s
+import org.json4s.{ JValue, MappingException, Formats }
+import org.json4s.jackson.JsonMethods.compact
+
 // Iglu
 import com.snowplowanalytics.iglu.core.SchemaMap
 import com.snowplowanalytics.iglu.schemaddl.{ IgluSchema, RevisionGroup, ModelGroup }
@@ -76,6 +80,14 @@ object Utils {
    */
   def splitValidations[F, S](validations: List[Validation[F, S]]): (List[F], List[S]) =
     validations.foldLeft((List.empty[F], List.empty[S]))(splitValidation)
+
+  /** Json4s method for extracting deserialized data */
+  def extractKey[A](json: JValue, key: String)(implicit ev: Manifest[A], formats: Formats): Either[String, A] =
+    try {
+      Right((json \ key).extract[A])
+    } catch {
+      case _: MappingException => Left(s"Cannot extract key $key from ${compact(json)}")
+    }
 
   /**
    * Helper function for [[splitValidations]]

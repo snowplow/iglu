@@ -49,7 +49,7 @@ case class S3cpCommand(
     secretAccessKey: Option[String],
     profile: Option[String],
     region: Option[String])
-  extends Command.CtlCommand {
+  extends Command.CtlCommand with IgluctlConfig.IgluctlAction {
   import S3cpCommand._
 
   /**
@@ -189,7 +189,7 @@ object S3cpCommand {
       println(s"TOTAL: $failures errors were encountered")
 
       if (failures > 0) sys.exit(1)
-      else sys.exit(0)
+      else ()
     }
 
     /**

@@ -20,7 +20,7 @@ lazy val root = project.in(file("."))
     organization          :=  "com.snowplowanalytics",
     version               :=  "0.5.0",
     description           :=  "Iglu Command Line Interface",
-    scalaVersion          :=  "2.12.4",
+    scalaVersion          :=  "2.11.12",
   )
   .settings(buildSettings: _*)
   .settings(
@@ -35,6 +35,7 @@ lazy val root = project.in(file("."))
       Libraries.activation,
       // Scala
       Libraries.schemaddl,
+      Libraries.igluClient,
       Libraries.scopt,
       Libraries.scalajHttp,
       Libraries.awscala,
