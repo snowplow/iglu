@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2018 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -12,22 +12,16 @@
  */
 package com.snowplowanalytics.iglu.ctl
 
-object Main extends App {
-  Command.cliParser.parse(args, Command()).map(c => (c, c.toCommand)) match {
-    case Some((_, Some(ddl: GenerateCommand))) =>
-      ddl.processDdl()
-    case Some((_, Some(deploy: DeployCommand))) =>
-      deploy.process()
-    case Some((_, Some(sync: PushCommand))) =>
-      sync.process()
-    case Some((_, Some(lint: LintCommand))) =>
-      lint.process()
-    case Some((_, Some(s3cp: S3cpCommand))) =>
-      s3cp.process()
-    case Some((c, _)) if c.command.isEmpty || c.command.contains("static")=>
-      Command.cliParser.showUsageAsError()
-    case _ =>
-      sys.exit(0)
+/** Common configuration format used for `static deploy` command */
+case class IgluctlConfig(
+  description: Option[String],
+  lintCommand: LintCommand,
+  generateCommand: GenerateCommand,
+  actions: List[IgluctlConfig.IgluctlAction])
 
+object IgluctlConfig {
+  /** Trait common to S3cp and Push commands */
+  private[ctl] trait IgluctlAction {
+    def process(): Unit
   }
 }
