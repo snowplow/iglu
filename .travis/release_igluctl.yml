@@ -33,4 +33,4 @@ packages:
 
         # The binaries to put in the zip
         binary_paths:
-          - 0-common/igluctl/target/scala-2.12/igluctl
+          - 0-common/igluctl/target/scala-2.11/igluctl
