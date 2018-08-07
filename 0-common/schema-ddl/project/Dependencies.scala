@@ -16,8 +16,7 @@ import sbt._
 object Dependencies {
   object V {
     // Scala
-    val igluCoreJson4s   = "0.3.0-M1"
-    val igluCore         = "0.3.0-M1"
+    val igluCore         = "0.3.0-M2"
     val scalaz7          = "7.0.9"
     val circe            = "0.9.3"
 
