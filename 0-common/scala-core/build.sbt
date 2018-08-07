@@ -23,30 +23,24 @@ lazy val igluCore = (project in file("."))
   .settings(buildSettings: _*)
   .settings(
     name := "iglu-core",
-    libraryDependencies ++= Dependencies.onVersion(
-      all = Seq(
-      // Scala (test only)
-      Libraries.json4sTest),
-      on210 = Seq(Libraries.specs2._210),
-      on211 = Seq(Libraries.specs2._211),
-      on212 = Seq(Libraries.specs2._211)
-    ).value
+    libraryDependencies ++= Seq(
+       // Scala (test only)
+       Libraries.specs2,
+       Libraries.json4sTest
+    )
   )
+
 
 lazy val igluCoreJson4s = (project in file("iglu-core-json4s"))
   .dependsOn(igluCore)
   .settings(json4sBuildSettings: _*)
   .settings(
     name := "iglu-core-json4s",
-    libraryDependencies ++= Dependencies.onVersion(
-      all = Seq(
-      // Scala
-      Libraries.json4s),
-      // Scala (test only)
-      on210 = Seq(Libraries.specs2._210),
-      on211 = Seq(Libraries.specs2._211),
-      on212 = Seq(Libraries.specs2._211)
-    ).value
+    libraryDependencies ++= Seq(
+       Libraries.json4s,
+       // Scala (test only)
+       Libraries.specs2
+    )
   )
 
 lazy val igluCoreCirce = (project in file("iglu-core-circe"))
@@ -54,15 +48,11 @@ lazy val igluCoreCirce = (project in file("iglu-core-circe"))
   .settings(circeBuildSettings: _*)
   .settings(
     name := "iglu-core-circe",
-    libraryDependencies ++= Dependencies.onVersion(
-      all = Seq(
-        // Scala
+    libraryDependencies ++= Seq(
         Libraries.circe,
         Libraries.circeParser,
-        Libraries.cats),
-      // Scala (test only)
-      on210 = Seq(Libraries.specs2._210),
-      on211 = Seq(Libraries.specs2._211),
-      on212 = Seq(Libraries.specs2._211)
-    ).value
+        Libraries.cats,
+       // Scala (test only)
+       Libraries.specs2
+    )
   )

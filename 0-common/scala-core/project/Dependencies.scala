@@ -18,10 +18,7 @@ object Dependencies {
     val json4s          = "3.2.11"
     val circe           = "0.9.3"
     val cats            = "1.2.0"
-    object specs2 {
-      val _210          = "3.3.1"
-      val _211          = "4.3.2"
-    }
+    val specs2          = "4.3.2"
   }
 
   object Libraries {
@@ -32,18 +29,6 @@ object Dependencies {
 
     // Scala (test only)
     val json4sTest       = "org.json4s"                 %% "json4s-jackson"            % V.json4s          % "test"
-    object specs2 {
-      val _210           = "org.specs2"                 %% "specs2-core"               % V.specs2._210     % "test"
-      val _211           = "org.specs2"                 %% "specs2-core"               % V.specs2._211     % "test"
-    }
+    val specs2           = "org.specs2"                 %% "specs2-core"               % V.specs2          % "test"
   }
-
-  def onVersion[A](all: Seq[A] = Seq(), on210: => Seq[A] = Seq(), on211: => Seq[A] = Seq(), on212: => Seq[A] = Seq()) =
-    scalaVersion(v => all ++ (if (v.contains("2.10.")) {
-      on210
-    } else if (v.contains("2.11.")) {
-      on211
-    } else {
-      on212
-    }))
 }

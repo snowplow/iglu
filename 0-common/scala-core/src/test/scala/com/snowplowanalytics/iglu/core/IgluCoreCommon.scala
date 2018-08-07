@@ -117,8 +117,8 @@ object IgluCoreCommon {
      */
     def getContent(json: JValue): JValue =
       removeSelf(json) match {
-        case content => content
         case JNothing => JNothing
+        case content => content
       }
   }
 
@@ -132,8 +132,8 @@ object IgluCoreCommon {
 
     def getContent(json: JValue): JValue =
       json \ "data" match {
-        case data: JValue => data
         case JNothing => JNothing
+        case data => data
       }
 
     def attachSchemaKey(schemaKey: SchemaKey, instance: JValue): JValue =
