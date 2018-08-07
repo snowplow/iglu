@@ -16,13 +16,13 @@ import sbt._
 object Dependencies {
   object V {
     // Scala
-    val igluCore         = "0.3.0-M2"
+    val igluCore         = "0.3.0-M3"
     val scalaz7          = "7.0.9"
     val circe            = "0.9.3"
 
     // Scala (test only)
     val specs2           = "4.3.2"
-    val scalaCheck       = "1.13.5"
+    val scalaCheck       = "1.14.0"
   }
 
   object Libraries {

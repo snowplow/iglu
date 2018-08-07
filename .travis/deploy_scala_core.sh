@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 tag=$1
 
 project="scala-core/"
@@ -32,14 +34,9 @@ cd "${TRAVIS_BUILD_DIR}/0-common/scala-core"
 project_version=$(sbt version -Dsbt.log.noformat=true | tail -n 1 | perl -ne 'print $1 if /(\d+\.\d+[^\r\n]*)/')
 
 if [ "${project_version}" == "${release}" ]; then
-    # igluCore
-    sbt +test --warn
-    sbt +publish
-    sbt +bintraySyncMavenCentral
-    # igluCoreCirce
-    sbt "project igluCoreCirce" +test --warn
-    sbt "project igluCoreCirce" +publish
-    sbt "project igluCoreCirce" +bintraySyncMavenCentral
+    sbt "project igluCoreJson4s" +test --warn
+    sbt "project igluCoreJson4s" +publish
+    sbt "project igluCoreJson4s" +bintraySyncMavenCentral
 
 
 else
