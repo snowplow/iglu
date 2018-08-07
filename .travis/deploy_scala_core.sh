@@ -40,10 +40,6 @@ if [ "${project_version}" == "${release}" ]; then
     sbt "project igluCoreCirce" +test --warn
     sbt "project igluCoreCirce" +publish
     sbt "project igluCoreCirce" +bintraySyncMavenCentral
-    # igluCoreJson4s
-    sbt "project igluCoreJson4s" +test --warn
-    sbt "project igluCoreJson4s" +publish
-    sbt "project igluCoreJson4s" +bintraySyncMavenCentral
 
 
 else

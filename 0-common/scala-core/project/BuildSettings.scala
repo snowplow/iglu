@@ -20,9 +20,8 @@ object BuildSettings {
   // Basic settings common for Iglu project and all its subprojects
   lazy val commonSettings = Seq[Setting[_]](
     organization       := "com.snowplowanalytics",
-    version            := "0.3.0-M2",
-    scalaVersion       := "2.12.4",
-    crossScalaVersions := Seq("2.11.11", "2.12.4"),
+    version            := "0.3.0-M3",
+    scalaVersion       := "2.11.11",
     scalacOptions      := Seq("-deprecation", "-encoding", "utf8", "-Yrangepos",
                               "-feature", "-unchecked",
                               "-Xlint",

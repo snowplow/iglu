@@ -54,6 +54,7 @@ lazy val igluCoreCirce = (project in file("iglu-core-circe"))
         Libraries.circeParser,
         Libraries.cats,
        // Scala (test only)
+       Libraries.specs2,
        Libraries.json4sTest
     )
   )
