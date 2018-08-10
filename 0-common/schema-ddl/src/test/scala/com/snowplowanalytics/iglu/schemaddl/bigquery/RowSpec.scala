@@ -1,9 +1,15 @@
-package com.snowplowanalytics.iglu.schemaddl.bigquery
+package com.snowplowanalytics.iglu.schemaddl
+package bigquery
+
+import org.json4s.jackson.JsonMethods.parse
 
 import io.circe._
 import io.circe.literal._
 
 import org.specs2.matcher.ValidatedMatchers._
+
+import jsonschema.Schema
+import jsonschema.json4s.implicits._
 
 class RowSpec extends org.specs2.Specification { def is = s2"""
   castValue transforms any primitive value $e1
@@ -14,6 +20,7 @@ class RowSpec extends org.specs2.Specification { def is = s2"""
   cast does not stringify null when mode is Nullable $e6
   cast turns any unexpected type into string, when schema type is string $e7
   castRepeated eleminates nulls $e8
+  cast array does not remove it $e9
   """
 
   import Row._
@@ -55,7 +62,7 @@ class RowSpec extends org.specs2.Specification { def is = s2"""
       Field("someBool", Type.Boolean, Mode.Required),
       Field("repeatedInt", Type.Integer, Mode.Repeated)))
 
-    val expected = Record(List(("someBool", Primitive(true)), ("repeatedInt", Repeated(List(Primitive(1), Primitive(5), Primitive(2))))))
+    val expected = Record(List(("some_bool", Primitive(true)), ("repeated_int", Repeated(List(Primitive(1), Primitive(5), Primitive(2))))))
     castValue(inputField)(inputJson) must beValid(expected)
   }
 
@@ -82,7 +89,7 @@ class RowSpec extends org.specs2.Specification { def is = s2"""
     ))
 
     val expected = Record(List(
-      ("someBool", Primitive(true)),
+      ("some_bool", Primitive(true)),
       ("nested", Record(List(
         ("str", Primitive("foo bar")),
         ("int", Primitive(3)),
@@ -114,7 +121,7 @@ class RowSpec extends org.specs2.Specification { def is = s2"""
 
     val inputField = Type.Record(List(Field("unionType", Type.String, Mode.Nullable)))
 
-    val expected = Record(List(("unionType", Primitive("""["this","is","fallback","strategy"]"""))))
+    val expected = Record(List(("union_type", Primitive("""["this","is","fallback","strategy"]"""))))
     castValue(inputField)(inputJson) must beValid(expected)
   }
 
@@ -126,5 +133,32 @@ class RowSpec extends org.specs2.Specification { def is = s2"""
 
     val expected = Repeated(List(Primitive("this"), Primitive("has"), Primitive("no"), Primitive("at all")))
     castRepeated(inputField)(inputJson) must beValid(expected)
+  }
+
+  def e9 = {
+    val schema = Schema.parse(parse(
+      """
+        |  {
+        |    "type": "object",
+        |    "properties": {
+        |      "imp": {
+        |        "type": "array",
+        |        "items": {
+        |        }
+        |      }
+        |    }
+        |  }
+      """.stripMargin)).getOrElse(throw new RuntimeException("Invalid JSON Schema"))
+
+    // TODO: add generator test
+    // val inputField = Generator.build("array_test", schema, true)
+    val fds = List(Field("imp",Type.String,Mode.Repeated))
+    val t = Type.Record(fds)
+    val inputField = Field("array_test",t,Mode.Required)
+
+    val inputJson = json"""{}"""
+
+    val expected = Row.Record(List(("imp", Row.Null)))
+    castObject(fds)(Map.empty) must beValid(expected)
   }
 }

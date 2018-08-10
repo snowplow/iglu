@@ -3,7 +3,6 @@ package com.snowplowanalytics.iglu.schemaddl.bigquery
 import io.circe._
 
 import cats.syntax.traverse._
-import cats.syntax.either._
 import cats.syntax.validated._
 import cats.instances.list._
 import cats.data.{NonEmptyList, Validated, ValidatedNel}
@@ -51,11 +50,15 @@ object Row {
       case Type.DateTime =>
         value.asString.fold(WrongType(value, fieldType).invalidNel[Row])(Primitive(_).validNel)
       case Type.Record(subfields) =>
-        value.asObject.fold(WrongType(value, fieldType).invalidNel[Map[String, Json]])(_.toMap.validNel).andThen(castObject(subfields))
+        value
+          .asObject
+          .fold(WrongType(value, fieldType).invalidNel[Map[String, Json]])(_.toMap.validNel)
+          .andThen(castObject(subfields))
     }
   }
 
   private implicit class Recover(val value: CastResult) extends AnyVal {
+    /** If cast failed, but value is null and column is nullable - fallback to null */
     def recover(mode: Mode): CastResult = value match {
       case Validated.Invalid(NonEmptyList(e @ WrongType(Json.Null, _), Nil)) =>
         if (mode == Mode.Nullable) Null.validNel else e.invalidNel
@@ -73,12 +76,16 @@ object Row {
       case f @ Field(name, fieldType, Mode.Repeated) =>
         jsonObject.get(name) match {
           case Some(json) => castRepeated(fieldType)(json).map { (f.normalName, _) }
-          case None => MissingInValue(name, Json.fromFields(jsonObject)).invalidNel
+          case None => (f.normalName, Row.Null).validNel[CastError]
         }
-      case f @ Field(name, fieldType, mode) =>
+      case f @ Field(name, fieldType, Mode.Nullable) =>
         jsonObject.get(name) match {
-          case Some(value) => castValue(fieldType)(value).recover(mode).map { (f.normalName, _) }
-          case None if mode == Mode.Nullable => (f.normalName, Null).validNel
+          case Some(value) => castValue(fieldType)(value).recover(Mode.Nullable).map { (f.normalName, _) }
+          case None => (f.normalName, Null).validNel
+        }
+      case f @ Field(name, fieldType, Mode.Required) =>
+        jsonObject.get(name) match {
+          case Some(value) => castValue(fieldType)(value).map { (f.normalName, _) }
           case None => MissingInValue(name, Json.fromFields(jsonObject)).invalidNel
         }
     }

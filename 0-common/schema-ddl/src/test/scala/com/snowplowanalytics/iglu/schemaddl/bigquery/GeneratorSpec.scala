@@ -20,6 +20,7 @@ class GeneratorSpec extends org.specs2.Specification { def is = s2"""
   build generates repeated nullary field for array $e4
   build uses string-fallback strategy for union types $e5
   build recognized nullable union type $e6
+  build generates repeated string for empty schema in items $e7
   """
 
   def e1 = {
@@ -177,5 +178,23 @@ class GeneratorSpec extends org.specs2.Specification { def is = s2"""
     )),Mode.Nullable)
 
     Generator.build("foo", input, false) must beEqualTo(expected)
+  }
+
+  def e7 = {
+    val input = SpecHelpers.parseSchema(
+      """
+        |  {
+        |    "type": "object",
+        |    "properties": {
+        |      "imp": {
+        |        "type": "array",
+        |        "items": {}
+        |      }
+        |    }
+        |  }
+      """.stripMargin)
+
+    val expected = Field("arrayTest",Type.Record(List(Field("imp",Type.String,Mode.Repeated))),Mode.Required)
+    Generator.build("arrayTest", input, true) must beEqualTo(expected)
   }
 }

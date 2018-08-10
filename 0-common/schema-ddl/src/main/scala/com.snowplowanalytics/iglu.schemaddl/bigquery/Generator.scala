@@ -13,7 +13,6 @@
 package com.snowplowanalytics.iglu.schemaddl.bigquery
 
 import com.snowplowanalytics.iglu.core.SchemaKey
-import com.snowplowanalytics.iglu.schemaddl.StringUtils
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.{ArrayProperties, CommonProperties, Schema}
 
 object Generator {
