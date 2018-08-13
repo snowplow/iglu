@@ -46,7 +46,8 @@ import PushCommand._
  * @param masterApiKey mater key UUID which can be used to create any Schema
  * @param inputDir directory with JSON Schemas or single JSON file
  */
-case class PushCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File, isPublic: Boolean) extends Command.CtlCommand {
+case class PushCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File, isPublic: Boolean)
+  extends Command.CtlCommand with Command.IgluctlAction {
 
   /**
    * Primary function, performing IO reading, processing and printing results

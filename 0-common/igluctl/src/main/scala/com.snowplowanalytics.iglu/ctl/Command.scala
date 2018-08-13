@@ -110,6 +110,11 @@ object Command {
    */
   private[ctl] trait CtlCommand
 
+  /**
+    * Trait common to S3cp and Push commands
+    */
+  private[ctl] trait IgluctlAction
+
   def inputReadable(c: Command): Either[String, Unit] =
     c.input match {
       case Some(input) if input.exists() && input.canRead => Right(())
