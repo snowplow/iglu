@@ -12,7 +12,7 @@ import Scalaz._
 
 // json4s
 import org.json4s._
-import org.json4s.jackson.JsonMethods.{asJsonNode, fromJsonNode}
+import org.json4s.jackson.JsonMethods.{asJsonNode, fromJsonNode, compact, render}
 
 // iglu scala client
 import com.snowplowanalytics.iglu.client.ValidatedNel
@@ -82,31 +82,33 @@ case class DeployCommand(config: File) extends Command.CtlCommand {
     actions.map{ IgluctlConfig(description, new File(jInput.extract[String]), lint, generate, _) }
   }
 
+  def extractKey[A](json: JValue, key: String)(implicit ev: Manifest[A]): Either[String, A] =
+    try {
+      Right((json \ key).extract[A])
+    } catch {
+      case _: MappingException => Left(s"Cannot extract key $key from ${compact(render(json))}")
+    }
+
   def extractAction(input: String, actionDoc: JValue): ValidatedNel[IgluctlAction] = {
     actionDoc \ "action" match {
       case JString("s3cp") =>
-        val bucket = (actionDoc \ "bucketPath").extractOpt[String]
-        val accessKeyId = (actionDoc \ "accessKeyId").extractOpt[String]
-        val secretAccessKey = (actionDoc \ "secretAccessKey").extractOpt[String]
-        val profile = (actionDoc \ "profile").extractOpt[String]
-        val region = (actionDoc \ "region").extractOpt[String]
-        bucket match {
-          case Some(bckt) =>
-            S3cpCommand(new File(input), bckt, None, accessKeyId, secretAccessKey, profile, region).success
-          case None =>
-            "bucketPath is a required field and can not be missed.".toProcessingMessageNel.failure
-        }
+        val command: Either[String, S3cpCommand] = for {
+          bucket <- extractKey[String](actionDoc, "bucketPath")
+          accessKeyId <- extractKey[Option[String]](actionDoc, "accessKeyId")
+          secretAccessKey <- extractKey[Option[String]](actionDoc, "secretAccessKey")
+          profile <- extractKey[Option[String]](actionDoc, "profile")
+          region <- extractKey[Option[String]](actionDoc, "region")
+        } yield S3cpCommand(new File(input), bucket, None, accessKeyId, secretAccessKey, profile, region)
+
+        command.fold(err => err.toProcessingMessageNel.failure, s3cp => s3cp.success)
       case JString("push") =>
-        val cmd: Option[PushCommand] = for {
-          registryRoot <- (actionDoc \ "registry").extractOpt[HttpUrl]
-          isPublic <- (actionDoc \ "isPublic").extractOpt[Boolean]
-          masterApiKey <- (actionDoc \ "apikey").extractOpt[UUID]
+        val command: Either[String, PushCommand] = for {
+          registryRoot <- extractKey[HttpUrl](actionDoc, "registry")
+          masterApiKey <- extractKey[UUID](actionDoc, "apikey")
+          isPublic <- extractKey[Boolean](actionDoc, "isPublic")
         } yield PushCommand(registryRoot, masterApiKey, new File(input), isPublic)
 
-        cmd match {
-          case Some(push) => push.success
-          case None => "Unsuccessful extraction of push command.".toProcessingMessageNel.failure
-        }
+        command.fold(err => err.toProcessingMessageNel.failure, push => push.success)
       case JString(action) => s"Unrecognized action $action".toProcessingMessageNel.failure
       case _ => "Action can only be a string".toProcessingMessageNel.failure
     }
