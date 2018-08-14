@@ -4,7 +4,7 @@ package com.snowplowanalytics.iglu.ctl
 import java.io.File
 import java.util.UUID
 
-import com.snowplowanalytics.iglu.ctl.PushCommand.HttpUrl
+import com.snowplowanalytics.iglu.client.repositories.EmbeddedRepositoryRef
 
 // scalaz
 import scalaz._
@@ -24,6 +24,8 @@ import com.snowplowanalytics.iglu.client.repositories.{HttpRepositoryRef, Reposi
 // this project
 import FileUtils.getJsonFromFile
 import Command.IgluctlAction
+import LintCommand.validateSkippedLinters
+import PushCommand.parseRegistryRoot
 
 
 case class DeployCommand(config: File) extends Command.CtlCommand {
@@ -36,7 +38,10 @@ case class DeployCommand(config: File) extends Command.CtlCommand {
     val mirrorIgluCentral = RepositoryRefConfig("Iglu Central - GCP Mirror", 1, List("com.snowplowanalytics"))
     val mirrorHttpRepository = HttpRepositoryRef(mirrorIgluCentral, "http://mirror01.iglucentral.com")
 
-    Resolver(500, List(httpRepository, mirrorHttpRepository))
+    val embeddedRepo = RepositoryRefConfig("Embedded", 1, List("com.snowplowanalytics.iglu"))
+    val embeddedIglu = EmbeddedRepositoryRef(embeddedRepo, "/my-repo")
+
+    Resolver(500, List(httpRepository, mirrorHttpRepository, embeddedIglu))
   }
 
   /**
@@ -62,6 +67,7 @@ case class DeployCommand(config: File) extends Command.CtlCommand {
           case pc: PushCommand => pc.process()
           case sp: S3cpCommand => sp.process()
         }
+        println("All configuration steps are run without an issue.")
       case Failure(err) =>
         sys.error(err.toString)
         sys.exit(1)
@@ -70,16 +76,22 @@ case class DeployCommand(config: File) extends Command.CtlCommand {
 
   def extractIgluctlConfig(config: JValue): ValidatedNel[IgluctlConfig] = {
     val description = (config \ "description").extractOpt[String]
-    val jInput: JValue = config \ "input"
     val jLint: JValue = config \ "lint"
     val jGenerate: JValue = config \ "generate"
     val jActions: JValue = config \ "actions"
 
-    val lint: LintCommand = (jInput merge jLint).extract[LintCommand]
-    val generate: GenerateCommand = (jInput merge jGenerate).extract[GenerateCommand]
-    val actions = extractActions(jInput.extract[String], jActions)
+    val inputExt = extractKey[String](config, "input")
 
-    actions.map{ IgluctlConfig(description, new File(jInput.extract[String]), lint, generate, _) }
+    inputExt match {
+      case Right(input) =>
+        for {
+          lint <- extractLint(input, jLint)
+          generate <- extractGenerate(input, jGenerate)
+          actions <- extractActions(input, jActions)
+        } yield IgluctlConfig(description, lint, generate, actions)
+      case Left(err) =>
+        err.toProcessingMessageNel.failure
+    }
   }
 
   def extractKey[A](json: JValue, key: String)(implicit ev: Manifest[A]): Either[String, A] =
@@ -88,6 +100,34 @@ case class DeployCommand(config: File) extends Command.CtlCommand {
     } catch {
       case _: MappingException => Left(s"Cannot extract key $key from ${compact(render(json))}")
     }
+
+  def extractLint(input: String, doc: JValue): ValidatedNel[LintCommand] = {
+    val command: Either[String, LintCommand] = for {
+      skipWarnings <- extractKey[Boolean](doc, "skipWarnings")
+      includedChecks <- extractKey[List[String]](doc, "includedChecks")
+      linters <- validateSkippedLinters(includedChecks.mkString(","))
+    } yield LintCommand(new File(input), skipWarnings, linters)
+
+    command.fold(err => err.toProcessingMessageNel.failure, lint => lint.success)
+  }
+
+  def extractGenerate(input: String, doc: JValue): ValidatedNel[GenerateCommand] = {
+    val command: Either[String, GenerateCommand] = for {
+      output <- extractKey[String](doc, "output")
+      db <- extractKey[String](doc, "db")
+      withJsonPaths <-  extractKey[Boolean](doc, "withJsonPaths")
+      rawMode <- extractKey[Boolean](doc, "rawMode")
+      dbSchema <- extractKey[Option[String]](doc, "dbSchema")
+      varcharSize <- extractKey[Int](doc, "varcharSize")
+      splitProduct <- extractKey[Boolean](doc, "splitProduct")
+      noHeader <- extractKey[Boolean](doc, "noHeader")
+      force <- extractKey[Boolean](doc, "force")
+      owner <- extractKey[Option[String]](doc, "owner")
+    } yield GenerateCommand(new File(input), new File(output), db, withJsonPaths, rawMode, dbSchema, varcharSize,
+      splitProduct, noHeader, force, owner)
+
+    command.fold(err => err.toProcessingMessageNel.failure, generate => generate.success)
+  }
 
   def extractAction(input: String, actionDoc: JValue): ValidatedNel[IgluctlAction] = {
     actionDoc \ "action" match {
@@ -103,10 +143,10 @@ case class DeployCommand(config: File) extends Command.CtlCommand {
         command.fold(err => err.toProcessingMessageNel.failure, s3cp => s3cp.success)
       case JString("push") =>
         val command: Either[String, PushCommand] = for {
-          registryRoot <- extractKey[HttpUrl](actionDoc, "registry")
-          masterApiKey <- extractKey[UUID](actionDoc, "apikey")
+          registryRoot <- extractKey[String](actionDoc, "registry")
+          masterApiKey <- extractKey[String](actionDoc, "apikey")
           isPublic <- extractKey[Boolean](actionDoc, "isPublic")
-        } yield PushCommand(registryRoot, masterApiKey, new File(input), isPublic)
+        } yield PushCommand(parseRegistryRoot(registryRoot).toOption.get, UUID.fromString(masterApiKey), new File(input), isPublic)
 
         command.fold(err => err.toProcessingMessageNel.failure, push => push.success)
       case JString(action) => s"Unrecognized action $action".toProcessingMessageNel.failure
