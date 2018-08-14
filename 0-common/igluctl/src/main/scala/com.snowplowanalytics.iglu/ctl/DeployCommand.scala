@@ -69,39 +69,6 @@ case class DeployCommand(config: File) extends Command.CtlCommand {
   }
 
   def extractIgluctlConfig(config: JValue): ValidatedNel[IgluctlConfig] = {
-
-    def extractAction(jInput: JValue, actionDoc: JValue): ValidatedNel[IgluctlAction] = {
-      actionDoc \ "action" match {
-        case JString("s3cp") =>
-          val bucket = (actionDoc \ "bucketPath").extractOpt[String]
-          val accessKeyId = (actionDoc \ "accessKeyId").extractOpt[String]
-          val secretAccessKey = (actionDoc \ "secretAccessKey").extractOpt[String]
-          val profile = (actionDoc \ "profile").extractOpt[String]
-          val region = (actionDoc \ "region").extractOpt[String]
-          bucket match {
-            case Some(bckt) =>
-              S3cpCommand(new File(jInput.extract[String]), bckt, None, accessKeyId, secretAccessKey, profile, region).success
-            case None =>
-              "bucketPath is a required field and can not be missed.".toProcessingMessageNel.failure
-          }
-        case JString("push") =>
-          val registryRoot = (actionDoc \ "registry").extract[HttpUrl]
-          val isPublic = (actionDoc \ "isPublic").extract[Boolean]
-          val masterApiKey = (actionDoc \ "masterApiKey").extract[UUID]
-          PushCommand(registryRoot, masterApiKey, new File(jInput.extract[String]), isPublic).success
-        case JString(action) => s"Unrecognized action $action".toProcessingMessageNel.failure
-        case _ => "Action can only be a string".toProcessingMessageNel.failure
-      }
-    }
-
-    def extractActions(jInput: JValue, actions: JValue): ValidatedNel[List[IgluctlAction]] = {
-      actions match {
-        case JNull => List.empty[IgluctlAction].success
-        case JArray(actions: List[JValue]) => actions.traverse(extractAction(jInput, _))
-        case _ => "Actions can be either array or null.".toProcessingMessageNel.failure
-      }
-    }
-
     val description = (config \ "description").extractOpt[String]
     val jInput: JValue = config \ "input"
     val jLint: JValue = config \ "lint"
@@ -110,12 +77,47 @@ case class DeployCommand(config: File) extends Command.CtlCommand {
 
     val lint: LintCommand = (jInput merge jLint).extract[LintCommand]
     val generate: GenerateCommand = (jInput merge jGenerate).extract[GenerateCommand]
-    val actions = extractActions(jInput, jActions)
+    val actions = extractActions(jInput.extract[String], jActions)
 
-    actions match {
-      case Success(lst) => IgluctlConfig(description, new File(jInput.extract[String]), lint, generate, lst).success
-      case Failure(e) => e.failure
-    }
-
+    actions.map{ IgluctlConfig(description, new File(jInput.extract[String]), lint, generate, _) }
   }
+
+  def extractAction(input: String, actionDoc: JValue): ValidatedNel[IgluctlAction] = {
+    actionDoc \ "action" match {
+      case JString("s3cp") =>
+        val bucket = (actionDoc \ "bucketPath").extractOpt[String]
+        val accessKeyId = (actionDoc \ "accessKeyId").extractOpt[String]
+        val secretAccessKey = (actionDoc \ "secretAccessKey").extractOpt[String]
+        val profile = (actionDoc \ "profile").extractOpt[String]
+        val region = (actionDoc \ "region").extractOpt[String]
+        bucket match {
+          case Some(bckt) =>
+            S3cpCommand(new File(input), bckt, None, accessKeyId, secretAccessKey, profile, region).success
+          case None =>
+            "bucketPath is a required field and can not be missed.".toProcessingMessageNel.failure
+        }
+      case JString("push") =>
+        val cmd: Option[PushCommand] = for {
+          registryRoot <- (actionDoc \ "registry").extractOpt[HttpUrl]
+          isPublic <- (actionDoc \ "isPublic").extractOpt[Boolean]
+          masterApiKey <- (actionDoc \ "apikey").extractOpt[UUID]
+        } yield PushCommand(registryRoot, masterApiKey, new File(input), isPublic)
+
+        cmd match {
+          case Some(push) => push.success
+          case None => "Unsuccessful extraction of push command.".toProcessingMessageNel.failure
+        }
+      case JString(action) => s"Unrecognized action $action".toProcessingMessageNel.failure
+      case _ => "Action can only be a string".toProcessingMessageNel.failure
+    }
+  }
+
+  def extractActions(input: String, actions: JValue): ValidatedNel[List[IgluctlAction]] = {
+    actions match {
+      case JNull => List.empty[IgluctlAction].success
+      case JArray(actions: List[JValue]) => actions.traverse(extractAction(input, _))
+      case _ => "Actions can be either array or null.".toProcessingMessageNel.failure
+    }
+  }
+
 }

@@ -8,7 +8,7 @@ import Command.IgluctlAction
 
 
 case class IgluctlConfig(
-  description: Option[String] = None,
+  description: Option[String],
   input:       File,
   lintCommand: LintCommand,
   generateCommand: GenerateCommand,
