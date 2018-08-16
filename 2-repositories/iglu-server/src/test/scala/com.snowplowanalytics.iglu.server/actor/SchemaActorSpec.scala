@@ -84,16 +84,16 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
     "for AddSchema" should {
 
       "return a 201 if the schema doesnt already exist and is private" in {
-        val future = schema ? AddSchema(vendor, name, format, version,
-          invalidSchema, owner, permission, isPublic)
+        val future = schema ? AddSchema(vendor, name, format, version, draftNumOfVersionedSchemas,
+          invalidSchema, owner, permission, isPublic, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === Created
         result must contain("Schema successfully added") and contain(vendor)
       }
 
       "return a 201 if the schema doesnt already exist and is public" in {
-        val future = schema ? AddSchema(otherVendor, otherName, format, version,
-          invalidSchema, otherOwner, permission, !isPublic)
+        val future = schema ? AddSchema(otherVendor, otherName, format, version, draftNumOfVersionedSchemas,
+          invalidSchema, otherOwner, permission, !isPublic, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === Created
         result must contain("Schema successfully added") and
@@ -101,8 +101,8 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
       }
 
       "return a 401 if the schema already exists" in {
-        val future = schema ? AddSchema(vendor, name, format, version,
-          invalidSchema, owner, permission, isPublic)
+        val future = schema ? AddSchema(vendor, name, format, version, draftNumOfVersionedSchemas,
+          invalidSchema, owner, permission, isPublic, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === Unauthorized
         result must contain("This schema already exists")
@@ -112,16 +112,16 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
     "for UpdateSchema" should {
 
       "return a 200 if the schema already exists" in {
-        val future = schema ? UpdateSchema(vendor, name, format, version,
-          invalidSchema, owner, permission, isPublic)
+        val future = schema ? UpdateSchema(vendor, name, format, version, draftNumOfVersionedSchemas,
+          invalidSchema, owner, permission, isPublic, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain("Schema successfully updated") and contain(vendor)
       }
 
       "returna 201 if the schema doesnt already exist" in {
-        val future = schema ? UpdateSchema(vendor, name2, format, version,
-          invalidSchema, owner, permission, isPublic)
+        val future = schema ? UpdateSchema(vendor, name2, format, version, draftNumOfVersionedSchemas,
+          invalidSchema, owner, permission, isPublic, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === Created
         result must contain("Schema successfully added") and contain(vendor)
@@ -131,7 +131,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
     "for GetPublicSchemas" should {
 
       "return a 200 if there are public schemas available" in {
-        val future = schema ? GetPublicSchemas(owner, permission, includeMetadata = false)
+        val future = schema ? GetPublicSchemas(owner, permission, includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(innerSchema)
@@ -141,7 +141,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
     "for GetPublicMetadata" should {
 
       "return a 200 if there are public schemas available" in {
-        val future = schema ? GetPublicMetadata(owner, permission)
+        val future = schema ? GetPublicMetadata(owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         result must contain(otherVendor) and contain(otherName) and
           contain(format) and contain(version)
@@ -152,7 +152,8 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if the schema exists and is private" in {
         val future = schema ?
-          GetSchema(vendors, names, formats, versions, owner, permission, includeMetadata = false)
+          GetSchema(vendors, names, formats, versions, List(draftNumOfVersionedSchemas), owner, permission,
+            includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(innerSchema)
@@ -160,7 +161,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if the schema exists and is public" in {
         val future = schema ? GetSchema(otherVendors, otherNames, formats,
-          versions, owner, permission, includeMetadata = false)
+          versions, List(draftNumOfVersionedSchemas), owner, permission, includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(innerSchema)
@@ -169,7 +170,8 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
       """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val future = schema ?
-          GetSchema(vendors, names, formats, versions, otherOwner, permission, includeMetadata = false)
+          GetSchema(vendors, names, formats, versions, List(draftNumOfVersionedSchemas), otherOwner, permission,
+            includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")
@@ -177,7 +179,8 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 404 if the schema doesnt exist" in {
         val future = schema ?
-          GetSchema(vendors, faultyNames, formats, versions, owner, permission, includeMetadata = false)
+          GetSchema(vendors, faultyNames, formats, versions, List(draftNumOfVersionedSchemas), owner, permission,
+            includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")
@@ -188,7 +191,8 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if the schema exists" in {
         val future = schema ?
-          GetMetadata(vendors, names, formats, versions, owner, permission)
+          GetMetadata(vendors, names, formats, versions, List(draftNumOfVersionedSchemas),
+            owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(vendor) and contain(name) and contain(format) and
@@ -197,7 +201,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if the schema exists and is public" in {
         val future = schema ? GetMetadata(otherVendors, otherNames, formats,
-          versions, owner, permission)
+          versions, List(draftNumOfVersionedSchemas), owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(otherVendor) and contain(otherName) and
@@ -207,7 +211,8 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
       """return a 401 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val future = schema ?
-          GetSchema(vendors, names, formats, versions, otherOwner, permission, includeMetadata = false)
+          GetSchema(vendors, names, formats, versions, List(draftNumOfVersionedSchemas), otherOwner, permission,
+            includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")
@@ -215,7 +220,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 404 if the schema doesnt exist" in {
         val future = schema ? GetMetadata(vendors, faultyNames, formats,
-          versions, owner, permission)
+          versions, List.empty[String], owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")
@@ -226,7 +231,8 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if there are schemas available" in {
         val future = schema ?
-          GetSchemasFromFormat(vendors, names, formats, owner, permission, includeMetadata = false)
+          GetSchemasFromFormat(vendors, names, formats, owner, permission,
+            includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(innerSchema)
@@ -234,7 +240,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if there are schemas available and they are public" in {
         val future = schema ? GetSchemasFromFormat(otherVendors, otherNames,
-          formats, owner, permission, includeMetadata = false)
+          formats, owner, permission, includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(innerSchema)
@@ -243,7 +249,8 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
       """return a 404 if the owner is not a prefix of the vendor and the schemas
       are private""" in {
         val future = schema ?
-          GetSchemasFromFormat(vendors, names, formats, otherOwner, permission, includeMetadata = false)
+          GetSchemasFromFormat(vendors, names, formats, otherOwner, permission,
+            includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")
@@ -251,7 +258,8 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 404 if there are no schemas available" in {
         val future = schema ?
-          GetSchemasFromFormat(vendors, faultyNames, formats, owner, permission, includeMetadata = false)
+          GetSchemasFromFormat(vendors, faultyNames, formats, owner, permission,
+            includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")
@@ -262,7 +270,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if there are schemas available" in {
         val future = schema ?
-          GetMetadataFromFormat(vendors, names, formats, owner, permission)
+          GetMetadataFromFormat(vendors, names, formats, owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(vendor) and contain(name) and contain(format)
@@ -270,7 +278,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if there are schemas available and they are public" in {
         val future = schema ? GetMetadataFromFormat(otherVendors, otherNames,
-          formats, owner, permission)
+          formats, owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(otherVendor) and contain(otherName) and
@@ -280,7 +288,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
       """return a 404 if the owner is not a prefix of the vendor and the schemas
       are private""" in {
         val future = schema ?
-          GetMetadataFromFormat(vendors, names, formats, otherOwner, permission)
+          GetMetadataFromFormat(vendors, names, formats, otherOwner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")
@@ -288,7 +296,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 404 if there are no schemas available" in {
         val future = schema ? GetMetadataFromFormat(vendors, faultyNames,
-          formats, owner, permission)
+          formats, owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")
@@ -299,7 +307,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if there are schemas available" in {
         val future = schema ?
-          GetSchemasFromName(vendors, names, owner, permission, includeMetadata = false)
+          GetSchemasFromName(vendors, names, owner, permission, includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(innerSchema)
@@ -307,7 +315,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if there are schemas available and they are public" in {
         val future = schema ?
-          GetSchemasFromName(otherVendors, otherNames, owner, permission, includeMetadata = false)
+          GetSchemasFromName(otherVendors, otherNames, owner, permission, includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(innerSchema)
@@ -316,7 +324,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
       """return a 404 if the owner is not a prefix of the vendor and the schemas
       are private""" in {
         val future = schema ?
-          GetSchemasFromName(vendors, names, otherOwner, permission, includeMetadata = false)
+          GetSchemasFromName(vendors, names, otherOwner, permission, includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")
@@ -324,7 +332,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 404 if there are no schemas available" in {
         val future = schema ?
-          GetSchemasFromName(vendors, faultyNames, owner, permission, includeMetadata = false)
+          GetSchemasFromName(vendors, faultyNames, owner, permission, includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")
@@ -335,7 +343,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if there are schemas available" in {
         val future = schema ?
-          GetMetadataFromName(vendors, names, owner, permission)
+          GetMetadataFromName(vendors, names, owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(vendor) and contain(name)
@@ -343,7 +351,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if there are schemas available and they are public" in {
         val future = schema ?
-          GetMetadataFromName(otherVendors, otherNames, owner, permission)
+          GetMetadataFromName(otherVendors, otherNames, owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(otherVendor) and contain(otherName)
@@ -352,7 +360,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
       """return a 404 if the owner is not a prefix of the vendor and the schemas
       are private""" in {
         val future = schema ?
-          GetMetadataFromName(vendors, names, otherOwner, permission)
+          GetMetadataFromName(vendors, names, otherOwner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")
@@ -360,7 +368,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 404 if there are no schemas available" in {
         val future = schema ?
-          GetMetadataFromName(vendors, faultyNames, owner, permission)
+          GetMetadataFromName(vendors, faultyNames, owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")
@@ -370,7 +378,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
     "for GetSchemasFromVendor" should {
 
       "return a 200 if there are schemas available" in {
-        val future = schema ? GetSchemasFromVendor(vendors, owner, permission, includeMetadata = false)
+        val future = schema ? GetSchemasFromVendor(vendors, owner, permission, includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(innerSchema)
@@ -378,7 +386,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if there are schemas available and they are public" in {
         val future = schema ?
-          GetSchemasFromVendor(otherVendors, owner, permission, includeMetadata = false)
+          GetSchemasFromVendor(otherVendors, owner, permission, includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(innerSchema)
@@ -387,7 +395,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
       """return a 404 if the owner is not a prefix of the vendor and the schemas
       are private""" in {
         val future = schema ?
-          GetSchemasFromVendor(vendors,  otherOwner, permission, includeMetadata = false)
+          GetSchemasFromVendor(vendors,  otherOwner, permission, includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")
@@ -395,7 +403,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 404 if there are no schemas available" in {
         val future = schema ?
-          GetSchemasFromVendor(faultyVendors, owner, permission, includeMetadata = false)
+          GetSchemasFromVendor(faultyVendors, owner, permission, includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")
@@ -405,7 +413,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
     "for GetMetadataFromVendor" should {
 
       "return a 200 if there are schemas available" in {
-        val future = schema ? GetMetadataFromVendor(vendors, owner, permission)
+        val future = schema ? GetMetadataFromVendor(vendors, owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(vendor)
@@ -413,7 +421,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if there are schemas available and they are public" in {
         val future = schema ?
-          GetMetadataFromVendor(otherVendors, owner, permission)
+          GetMetadataFromVendor(otherVendors, owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(otherVendor)
@@ -422,7 +430,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
       """return a 404 if the owner is not a prefix of the vendor and the schemas
       are private""" in {
         val future = schema ?
-          GetMetadataFromVendor(vendors, otherOwner, permission)
+          GetMetadataFromVendor(vendors, otherOwner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")
@@ -430,7 +438,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 404 if there are no schemas available" in {
         val future = schema ?
-          GetMetadataFromVendor(faultyVendors, owner, permission)
+          GetMetadataFromVendor(faultyVendors, owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")

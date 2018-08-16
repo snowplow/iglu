@@ -70,6 +70,8 @@ case class Schema(
                    format: String,
                    @(ApiModelProperty @field)(value = "Version of schema")
                    version: String,
+                   @(ApiModelProperty @field)(value = "Draft number of schema")
+                   draftNumber: String,
                    @(ApiModelProperty @field)(value = "Schema")
                    schema: String,
                    @(ApiModelProperty @field)(value = "Date at which schema was created", hidden = true)
@@ -98,19 +100,20 @@ class SchemaDAO(val db: Database) extends DAO {
     def name = column[String]("name", O.DBType("varchar(50)"), O.NotNull)
     def format = column[String]("format", O.DBType("varchar(50)"), O.NotNull)
     def version = column[String]("version", O.DBType("varchar(50)"), O.NotNull)
+    def draftNumber = column[String]("draftnumber", O.DBType("varchar(50)"), O.NotNull)
     def schema = column[String]("schema", O.DBType("text"), O.NotNull)
-    def createdAt = column[LocalDateTime]("createdat", O.DBType("timestamp"),
-      O.NotNull)
-    def updatedAt = column[LocalDateTime]("updatedat", O.DBType("timestamp"),
-      O.NotNull)
+    def createdAt = column[LocalDateTime]("createdat", O.DBType("timestamp"), O.NotNull)
+    def updatedAt = column[LocalDateTime]("updatedat", O.DBType("timestamp"), O.NotNull)
     def isPublic = column[Boolean]("ispublic", O.DBType("boolean"), O.NotNull)
 
-    def * = (schemaId, vendor, name, format, version, schema, createdAt,
+    def * = (schemaId, vendor, name, format, version, draftNumber, schema, createdAt,
       updatedAt, isPublic) <> (Schema.tupled, Schema.unapply)
   }
 
   //Object used to access the table
   val schemas = TableQuery[Schemas]
+
+  sealed trait MetadataResult
 
   //Case classes for json formatting
   case class MetadataContainer(metadata: Metadata)
@@ -118,12 +121,21 @@ class SchemaDAO(val db: Database) extends DAO {
                       permissions: Permission)
   case class Permission(read: String, write: String)
   case class ResMetadata(vendor: String, name: String, format: String,
-                         version: String, metadata: Metadata)
+                         version: String, metadata: Metadata) extends MetadataResult
+  case class DraftMetadata(vendor: String, name: String, format: String,
+                                 draftNumber: String, metadata: Metadata) extends MetadataResult
 
   val selfDescVendor = "com.snowplowanalytics.self-desc"
   val selfDescName = "schema"
   val selfDescFormat = "jsonschema"
   val selfDescVersion = "1-0-0"
+
+  // draftNumber of schemas which are not draft
+  val notDraftNumber = "0"
+
+  // Slick check to be used in all schema queries
+  def draftNumberCheck(draftNumber: Column[String], isDraft: Boolean): Column[Boolean] =
+    if (isDraft) draftNumber =!= notDraftNumber else draftNumber === notDraftNumber
 
   /**
     * Creates the schemas table.
@@ -140,8 +152,8 @@ class SchemaDAO(val db: Database) extends DAO {
       val source = Source.fromURL(getClass.getResource("/valid-schema.json"))
       val lines = source.getLines mkString "\n"
       source.close
-      add(selfDescVendor, selfDescName, selfDescFormat, selfDescVersion, lines,
-        selfDescVendor, "write", true)
+      add(selfDescVendor, selfDescName, selfDescFormat, selfDescVersion, notDraftNumber, lines,
+        selfDescVendor, "write", isPublic = true, isDraft = false)
     }
 
   /**
@@ -166,10 +178,10 @@ class SchemaDAO(val db: Database) extends DAO {
     * of this vendor
     */
   def getFromVendor(vendors: List[String], owner: String,
-                    permission: String, includeMetadata: Boolean): (StatusCode, String) =
+                    permission: String, includeMetadata: Boolean, isDraft: Boolean): (StatusCode, String) =
       db withDynSession {
         val preliminaryList = (for {
-          s <- schemas if s.vendor inSet vendors
+          s <- schemas if (s.vendor inSet vendors) && draftNumberCheck(s.draftNumber, isDraft)
         } yield s).list
 
         if (preliminaryList.isEmpty) {
@@ -180,12 +192,19 @@ class SchemaDAO(val db: Database) extends DAO {
               .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
               .map(s =>
                 if (includeMetadata) {
-                  parse(s.schema) merge Extraction.decompose(
-                    MetadataContainer(
-                      Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-                        s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
-                        s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
-                        getPermission(s.vendor, owner, permission, s.isPublic))))
+                  parse(s.schema) merge
+                    (if (isDraft)
+                      Extraction.decompose(MetadataContainer(
+                        Metadata(buildDraftLoc(s.vendor, s.name, s.format, s.draftNumber),
+                          s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                          s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                          getPermission(s.vendor, owner, permission, s.isPublic))))
+                    else
+                      Extraction.decompose(MetadataContainer(
+                        Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                          s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                          s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                          getPermission(s.vendor, owner, permission, s.isPublic)))))
                 } else parse(s.schema))
 
           jsonSchemas match {
@@ -205,23 +224,29 @@ class SchemaDAO(val db: Database) extends DAO {
     * of this vendor
     */
   def getMetadataFromVendor(vendors: List[String], owner: String,
-                            permission: String): (StatusCode, String) =
+                            permission: String, isDraft: Boolean): (StatusCode, String) =
     db withDynSession {
       val preliminaryList = (for {
-        s <- schemas if s.vendor inSet vendors
+        s <- schemas if (s.vendor inSet vendors) && draftNumberCheck(s.draftNumber, isDraft)
       } yield s).list
 
       if(preliminaryList.isEmpty) {
         (NotFound, result(404, "There are no schemas available here"))
       } else {
-        val metadata: List[ResMetadata] =
+        val metadata: List[MetadataResult] =
           preliminaryList
             .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
-            .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
-              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-                s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
-                s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
-                getPermission(s.vendor, owner, permission, s.isPublic))))
+            .map(s =>
+              if (isDraft) DraftMetadata(s.vendor, s.name, s.format, s.draftNumber,
+                Metadata(buildDraftLoc(s.vendor, s.name, s.format, s.draftNumber),
+                  s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  getPermission(s.vendor, owner, permission, s.isPublic)))
+              else ResMetadata(s.vendor, s.name, s.format, s.version,
+                Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                  s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  getPermission(s.vendor, owner, permission, s.isPublic))))
 
         metadata match {
           case Nil => (NotFound, result(404, "There are no schemas available here"))
@@ -241,28 +266,34 @@ class SchemaDAO(val db: Database) extends DAO {
     * satifsfying the query
     */
   def getFromName(vendors: List[String], names: List[String], owner: String,
-                  permission: String, includeMetadata: Boolean): (StatusCode, String) =
+                  permission: String, includeMetadata: Boolean, isDraft: Boolean): (StatusCode, String) =
     db withDynSession {
       val preliminaryList = (for {
         s <- schemas if (s.vendor inSet vendors) &&
-          (s.name inSet names)
+          (s.name inSet names) && draftNumberCheck(s.draftNumber, isDraft)
       } yield s).list
 
       if (preliminaryList.isEmpty) {
-        (NotFound, result(404,
-          "There are no schemas available here"))
+        (NotFound, result(404, "There are no schemas available here"))
       } else {
         val jsonSchemas: List[JValue] =
           preliminaryList
             .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
             .map(s =>
               if (includeMetadata) {
-                parse(s.schema) merge Extraction.decompose(
-                  MetadataContainer(
-                    Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-                      s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
-                      s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
-                      getPermission(s.vendor, owner, permission, s.isPublic))))
+                parse(s.schema) merge
+                  (if (isDraft)
+                    Extraction.decompose(MetadataContainer(
+                      Metadata(buildDraftLoc(s.vendor, s.name, s.format, s.draftNumber),
+                        s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                        s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                        getPermission(s.vendor, owner, permission, s.isPublic))))
+                  else
+                    Extraction.decompose(MetadataContainer(
+                      Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                        s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                        s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                        getPermission(s.vendor, owner, permission, s.isPublic)))))
               } else parse(s.schema))
 
         jsonSchemas match {
@@ -283,25 +314,31 @@ class SchemaDAO(val db: Database) extends DAO {
     * satifsfying the query
     */
   def getMetadataFromName(vendors: List[String], names: List[String],
-                          owner: String, permission: String): (StatusCode, String) =
+                          owner: String, permission: String, isDraft: Boolean): (StatusCode, String) =
     db withDynSession {
       val preliminaryList = (for {
         s <- schemas if (s.vendor inSet vendors) &&
-          (s.name inSet names)
+          (s.name inSet names) && draftNumberCheck(s.draftNumber, isDraft)
       } yield s).list
 
       if (preliminaryList.isEmpty) {
         (NotFound, result(404,
           "There are no schemas available here"))
       } else {
-        val metadata: List[ResMetadata] =
+        val metadata: List[MetadataResult] =
           preliminaryList
             .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
-            .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
-              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-                s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
-                s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
-                getPermission(s.vendor, owner, permission, s.isPublic))))
+            .map(s =>
+              if (isDraft) DraftMetadata(s.vendor, s.name, s.format, s.draftNumber,
+                Metadata(buildDraftLoc(s.vendor, s.name, s.format, s.draftNumber),
+                  s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  getPermission(s.vendor, owner, permission, s.isPublic)))
+              else ResMetadata(s.vendor, s.name, s.format, s.version,
+                Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                  s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  getPermission(s.vendor, owner, permission, s.isPublic))))
 
         metadata match {
           case Nil => (NotFound, result(404, "There are no schemas available here"))
@@ -323,13 +360,14 @@ class SchemaDAO(val db: Database) extends DAO {
     */
   def getFromFormat(vendors: List[String], names: List[String],
                     schemaFormats: List[String], owner: String,
-                    permission: String, includeMetadata: Boolean):
+                    permission: String, includeMetadata: Boolean, isDraft: Boolean):
     (StatusCode, String) =
       db withDynSession {
         val preliminaryList = (for {
           s <- schemas if (s.vendor inSet vendors) &&
             (s.name inSet names) &&
-            (s.format inSet schemaFormats)
+            (s.format inSet schemaFormats) &&
+            draftNumberCheck(s.draftNumber, isDraft)
         } yield s).list
 
         if (preliminaryList.isEmpty) {
@@ -341,12 +379,19 @@ class SchemaDAO(val db: Database) extends DAO {
               .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
               .map(s =>
                 if (includeMetadata) {
-                  parse(s.schema) merge Extraction.decompose(
-                    MetadataContainer(
-                      Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-                        s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
-                        s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
-                        getPermission(s.vendor, owner, permission, s.isPublic))))
+                  parse(s.schema) merge
+                    (if (isDraft)
+                      Extraction.decompose(MetadataContainer(
+                        Metadata(buildDraftLoc(s.vendor, s.name, s.format, s.draftNumber),
+                          s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                          s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                          getPermission(s.vendor, owner, permission, s.isPublic))))
+                    else
+                      Extraction.decompose(MetadataContainer(
+                        Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                          s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                          s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                          getPermission(s.vendor, owner, permission, s.isPublic)))))
                 } else parse(s.schema))
 
           jsonSchemas match {
@@ -367,28 +412,34 @@ class SchemaDAO(val db: Database) extends DAO {
     * @return a status code and json pair containing metadata about every version
     * of a schema
     */
-  def getMetadataFromFormat(vendors: List[String], names: List[String],
-                            schemaFormats: List[String], owner: String, permission: String):
-    (StatusCode, String) =
+  def getMetadataFromFormat(vendors: List[String], names: List[String], schemaFormats: List[String], owner: String,
+                            permission: String, isDraft: Boolean): (StatusCode, String) =
       db withDynSession {
         val preliminaryList = (for {
           s <- schemas if (s.vendor inSet vendors) &&
             (s.name inSet names) &&
-            (s.format inSet schemaFormats)
+            (s.format inSet schemaFormats) &&
+            draftNumberCheck(s.draftNumber, isDraft)
         } yield s).list
 
         if (preliminaryList.isEmpty) {
           (NotFound, result(404,
             "There are no schemas available here"))
         } else {
-          val metadata: List[ResMetadata] =
+          val metadata: List[MetadataResult] =
             preliminaryList
               .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
-              .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
-                Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-                  s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
-                  s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
-                  getPermission(s.vendor, owner, permission, s.isPublic))))
+              .map(s =>
+                if (isDraft) DraftMetadata(s.vendor, s.name, s.format, s.draftNumber,
+                  Metadata(buildDraftLoc(s.vendor, s.name, s.format, s.draftNumber),
+                    s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                    s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                    getPermission(s.vendor, owner, permission, s.isPublic)))
+                else ResMetadata(s.vendor, s.name, s.format, s.version,
+                  Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                    s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                    s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                    getPermission(s.vendor, owner, permission, s.isPublic))))
 
           metadata match {
             case Nil => (NotFound, result(404, "There are no schemas available here"))
@@ -408,15 +459,16 @@ class SchemaDAO(val db: Database) extends DAO {
     * @param permission API key's permission
     * @return a status code and json pair containing the schema
     */
-  def get(vendors: List[String], names: List[String],
-          schemaFormats: List[String], versions: List[String], owner: String,
-          permission: String, includeMetadata: Boolean): (StatusCode, String) =
+  def get(vendors: List[String], names: List[String], schemaFormats: List[String], versions: List[String],
+          draftNumbers: List[String], owner: String, permission: String, includeMetadata: Boolean,isDraft: Boolean):
+  (StatusCode, String) =
     db withDynSession {
       val preliminaryList = (for {
         s <- schemas if (s.vendor inSet vendors) &&
           (s.name inSet names) &&
           (s.format inSet schemaFormats) &&
-          (s.version inSet versions)
+          (if (isDraft) s.draftNumber inSet draftNumbers else s.version inSet versions) &&
+          draftNumberCheck(s.draftNumber, isDraft)
       } yield s).list
 
       if (preliminaryList.isEmpty) {
@@ -427,12 +479,19 @@ class SchemaDAO(val db: Database) extends DAO {
             .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
             .map(s =>
               if (includeMetadata) {
-                parse(s.schema) merge Extraction.decompose(
-                  MetadataContainer(
-                    Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-                      s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
-                      s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
-                      getPermission(s.vendor, owner, permission, s.isPublic))))
+                parse(s.schema) merge
+                  (if (isDraft)
+                    Extraction.decompose(MetadataContainer(
+                      Metadata(buildDraftLoc(s.vendor, s.name, s.format, s.draftNumber),
+                        s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                        s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                        getPermission(s.vendor, owner, permission, s.isPublic))))
+                  else
+                    Extraction.decompose(MetadataContainer(
+                      Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                        s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                        s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                        getPermission(s.vendor, owner, permission, s.isPublic)))))
               } else parse(s.schema))
 
         jsonSchemas match {
@@ -454,27 +513,34 @@ class SchemaDAO(val db: Database) extends DAO {
     * @return a status code and json pair containing the metadata
     */
   def getMetadata(vendors: List[String], names: List[String],
-                  schemaFormats: List[String], versions: List[String], owner: String,
-                  permission: String): (StatusCode, String) =
+                  schemaFormats: List[String], versions: List[String], draftNumbers: List[String], owner: String,
+                  permission: String, isDraft: Boolean): (StatusCode, String) =
     db withDynSession {
       val preliminaryList = (for {
         s <- schemas if (s.vendor inSet vendors) &&
           (s.name inSet names) &&
           (s.format inSet schemaFormats) &&
-          (s.version inSet versions)
+          (if (isDraft) s.draftNumber inSet draftNumbers else s.version inSet versions) &&
+          draftNumberCheck(s.draftNumber, isDraft)
       } yield s).list
 
       if (preliminaryList.isEmpty) {
         (NotFound, result(404, "There are no schemas available here"))
       } else {
-        val metadata: List[ResMetadata] =
+        val metadata: List[MetadataResult] =
           preliminaryList
             .filter(s => ((s.vendor startsWith owner) || owner == "*") || s.isPublic)
-            .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
-              Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-                s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
-                s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
-                getPermission(s.vendor, owner, permission, s.isPublic))))
+            .map(s =>
+              if (isDraft) DraftMetadata(s.vendor, s.name, s.format, s.draftNumber,
+                Metadata(buildDraftLoc(s.vendor, s.name, s.format, s.draftNumber),
+                  s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  getPermission(s.vendor, owner, permission, s.isPublic)))
+              else ResMetadata(s.vendor, s.name, s.format, s.version,
+                Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                  s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  getPermission(s.vendor, owner, permission, s.isPublic))))
 
         metadata match {
           case Nil => (NotFound, result(404, "There are no schemas available here"))
@@ -490,22 +556,31 @@ class SchemaDAO(val db: Database) extends DAO {
     * @param permission API key's permission
     * @return a status code and json pair containing the schemas
     */
-  def getPublicSchemas(owner: String, permission: String, includeMetadata: Boolean):
+  def getPublicSchemas(owner: String, permission: String, includeMetadata: Boolean, isDraft: Boolean):
     (StatusCode, String) =
       db withDynSession {
-        val jsonSchemas: List[JValue] = (for {
-          s <- schemas if s.isPublic
-        } yield s)
-          .list
-          .map(s =>
-                  if (includeMetadata) {
-                    parse(s.schema) merge Extraction.decompose(
-                      MetadataContainer(
-                        Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-                          s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
-                          s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
-                          getPermission(s.vendor, owner, permission, s.isPublic))))
-                  } else parse(s.schema))
+        val jsonSchemas: List[JValue] =
+          (for {
+            s <- schemas
+            if s.isPublic && draftNumberCheck(s.draftNumber, isDraft) }
+            yield s)
+            .list
+            .map(s =>
+              if (includeMetadata) {
+                parse(s.schema) merge
+                  (if (isDraft)
+                    Extraction.decompose(MetadataContainer(
+                      Metadata(buildDraftLoc(s.vendor, s.name, s.format, s.draftNumber),
+                        s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                        s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                        getPermission(s.vendor, owner, permission, s.isPublic))))
+                  else
+                    Extraction.decompose(MetadataContainer(
+                      Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                        s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                        s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                        getPermission(s.vendor, owner, permission, s.isPublic)))))
+              } else parse(s.schema))
 
         jsonSchemas match {
           case Nil => (NotFound, result(404, "There are no schemas available here"))
@@ -520,18 +595,25 @@ class SchemaDAO(val db: Database) extends DAO {
     * @param permission API key's permission
     * @return a status code and json pair containing the metadata
     */
-  def getPublicMetadata(owner: String, permission: String):
-    (StatusCode, String) =
+  def getPublicMetadata(owner: String, permission: String, isDraft: Boolean): (StatusCode, String) =
       db withDynSession {
-        val metadata: List[ResMetadata] = (for {
-          s <- schemas if s.isPublic
-        } yield s)
-          .list
-          .map(s => ResMetadata(s.vendor, s.name, s.format, s.version,
-            Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
-              s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
-              s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
-              getPermission(s.vendor, owner, permission, s.isPublic))))
+        val metadata: List[MetadataResult] =
+          (for {
+            s <- schemas
+            if s.isPublic && draftNumberCheck(s.draftNumber, isDraft) }
+            yield s)
+            .list
+            .map(s =>
+              if (isDraft) DraftMetadata(s.vendor, s.name, s.format, s.draftNumber,
+                Metadata(buildDraftLoc(s.vendor, s.name, s.format, s.draftNumber),
+                  s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  getPermission(s.vendor, owner, permission, s.isPublic)))
+              else ResMetadata(s.vendor, s.name, s.format, s.version,
+                Metadata(buildLoc(s.vendor, s.name, s.format, s.version),
+                  s.createdAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  s.updatedAt.toString("MM/dd/yyyy HH:mm:ss"),
+                  getPermission(s.vendor, owner, permission, s.isPublic))))
 
         metadata match {
           case Nil => (NotFound, result(404, "There are no schemas available here"))
@@ -546,26 +628,29 @@ class SchemaDAO(val db: Database) extends DAO {
     * @param name the schema's name
     * @param format the schema's format
     * @param version the schema's version
+    * @param draftNumber the schema's draft number
     * @param schema the schema itself
     * @param owner the owner of the API key the request was made with
     * @param permission API key's permission
     * @param isPublic whether or not the schema is publicly available
     * @return a status code json response pair
     */
-  def add(vendor: String, name: String, format: String, version: String,
+  def add(vendor: String, name: String, format: String, version: String, draftNumber: String,
           schema: String, owner: String, permission: String,
-          isPublic: Boolean = false): (StatusCode, String) =
+          isPublic: Boolean = false, isDraft: Boolean): (StatusCode, String) =
     if ((permission == "write" || permission == "super") && (vendor.startsWith(owner) || owner == "*")) {
       db withDynSession {
-        get(List(vendor), List(name), List(format), List(version), owner, permission, includeMetadata = false) match {
+        get(List(vendor), List(name), List(format), List(version), List(draftNumber), owner,
+          permission, includeMetadata = false, isDraft) match {
           case (OK, j) => (Unauthorized, result(401, "This schema already exists"))
           case _ => {
             val now = new LocalDateTime()
-            schemas.insert(Schema(0, vendor, name, format, version, schema, now, now, isPublic))
+            schemas.insert(Schema(0, vendor, name, format, version, draftNumber, schema, now, now, isPublic))
           } match {
             case 0 => (InternalServerError, result(500, "Something went wrong"))
             case _ => (Created, result(201, "Schema successfully added",
-              buildLoc(vendor, name, format, version)))
+                if (isDraft) buildDraftLoc(vendor, name, format, draftNumber)
+                else buildLoc(vendor, name, format, version)))
           }
         }
       }
@@ -585,32 +670,35 @@ class SchemaDAO(val db: Database) extends DAO {
     * @param isPublic whether or not the schema is publicly available
     * @return a status code json response pair
     */
-  def update(vendor: String, name: String, format: String, version: String,
+  def update(vendor: String, name: String, format: String, version: String, draftNumber: String,
              schema: String, owner: String, permission: String,
-             isPublic: Boolean = false): (StatusCode, String) = {
+             isPublic: Boolean = false, isDraft: Boolean): (StatusCode, String) = {
     if (permission == "write" &&( (vendor startsWith owner) || owner == "*")) {
       db withDynSession {
-        get(List(vendor), List(name), List(format), List(version), owner, permission, includeMetadata = false) match {
-          case (OK, j) =>
+        get(List(vendor), List(name), List(format), List(version), List(draftNumber),
+          owner, permission, includeMetadata = false, isDraft) match {
+          case (OK, _) =>
             schemas
               .filter(s => s.vendor === vendor &&
                 s.name === name &&
                 s.format === format &&
-                s.version === version)
+                (if (isDraft) s.draftNumber === draftNumber else s.version === version))
               .map(s => (s.schema, s.isPublic, s.updatedAt))
               .update(schema, isPublic, new LocalDateTime()) match {
                 case 1 => (OK, result(200, "Schema successfully updated",
-                  buildLoc(vendor, name, format, version)))
+                  if (isDraft) buildDraftLoc(vendor, name, format, draftNumber)
+                  else buildLoc(vendor, name, format, version)))
                 case _ => (InternalServerError,
                   result(500, "Something went wrong"))
             }
           case (NotFound, _) => {
             val now = new LocalDateTime()
-            schemas.insert(Schema(0, vendor, name, format, version, schema, now, now, isPublic))
+            schemas.insert(Schema(0, vendor, name, format, version, draftNumber, schema, now, now, isPublic))
           } match {
               case 0 => (InternalServerError, result(500, "Something went wrong"))
               case _ => (Created, result(201, "Schema successfully added",
-                buildLoc(vendor, name, format, version)))
+                if (isDraft) buildDraftLoc(vendor, name, format, draftNumber)
+                else buildLoc(vendor, name, format, version)))
             }
           case rest => rest
         }
@@ -620,15 +708,15 @@ class SchemaDAO(val db: Database) extends DAO {
     }
   }
 
-  def delete(vendor: String, name: String, format: String, version: String,
-             owner: String, permission: String, isPublic: Boolean = false): (StatusCode, String) =
+  def delete(vendor: String, name: String, format: String, version: String, draftNumber: String,
+             owner: String, permission: String, isPublic: Boolean = false, isDraft: Boolean): (StatusCode, String) =
     if (permission == "write" &&( (vendor startsWith owner) || owner == "*")) {
       db withDynSession {
         schemas.filter(s =>
           s.vendor === vendor &&
             s.name === name &&
             s.format === format &&
-            s.version === version)
+            (if (isDraft) s.draftNumber === draftNumber else s.version === version))
           .delete match {
           case 0 => (404, result(404, "Schema not found"))
           case 1 => (OK, result(200, "Schema successfully deleted"))
@@ -717,8 +805,8 @@ class SchemaDAO(val db: Database) extends DAO {
         map(_.schema).list
 
       schema match {
-        case single :: Nil => single
-        case _ => "not found"
+        case single :: _ => single
+        case Nil => "not found"
       }
     }
 
@@ -732,6 +820,17 @@ class SchemaDAO(val db: Database) extends DAO {
     */
   private def buildLoc(vendor: String, name: String, format: String, version: String): String =
     List("", "api", "schemas", vendor, name, format, version).mkString("/")
+
+  /**
+    * Helper method to build the location of the draft schema from its metadata.
+    * @param vendor schema's vendor
+    * @param name schema's name
+    * @param format schema's format
+    * @param draftNumber schema's draft number
+    * @return
+    */
+  private def buildDraftLoc(vendor: String, name: String, format: String, draftNumber: String): String =
+    List("", "api", "draft", vendor, name, format, draftNumber).mkString("/")
 
   /**
     * Helper method to construct an appropriate permission object.
