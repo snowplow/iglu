@@ -15,7 +15,7 @@
 package com.snowplowanalytics.iglu.server
 
 // This project
-import service.{ApiKeyGenService, SchemaService, ValidationService}
+import service.{ApiKeyGenService, DraftSchemaService, SchemaService, ValidationService}
 
 // Scala
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -60,15 +60,18 @@ trait Api {
   val routes: Route =
     corsHandler(
       pathPrefix("api") {
+        pathPrefix("draft") {
+          new DraftSchemaService(schemaActor, apiKeyActor).routes
+        } ~
         pathPrefix("auth") {
           new ApiKeyGenService(apiKeyActor).routes
         } ~
-          pathPrefix("schemas") {
-            pathPrefix("validate") {
-              new ValidationService(schemaActor, apiKeyActor).routes
-            } ~
-              new SchemaService(schemaActor, apiKeyActor).routes
-          }
+        pathPrefix("schemas") {
+          pathPrefix("validate") {
+            new ValidationService(schemaActor, apiKeyActor).routes
+          } ~
+            new SchemaService(schemaActor, apiKeyActor).routes
+        }
       } ~
         pathPrefix("") {
           pathEndOrSingleSlash {

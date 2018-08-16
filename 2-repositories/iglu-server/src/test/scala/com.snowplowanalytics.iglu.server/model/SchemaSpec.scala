@@ -117,8 +117,8 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for add" should {
 
       "add a private schema properly" in {
-        val (status, res) = schema.add(vendor, name, format, version,
-          invalidSchema, owner, permission, isPublic)
+        val (status, res) = schema.add(vendor, name, format, version, draftNumOfVersionedSchemas,
+          invalidSchema, owner, permission, isPublic, isDraft = false)
         status === Created
         res must contain("Schema successfully added") and contain(vendor)
 
@@ -135,8 +135,8 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "add a public schema properly" in {
-        val (status, res) = schema.add(otherVendor, name2, format, version,
-          invalidSchema, otherOwner, permission, !isPublic)
+        val (status, res) = schema.add(otherVendor, name2, format, version, draftNumOfVersionedSchemas,
+          invalidSchema, otherOwner, permission, !isPublic, isDraft = false)
         status === Created
         res must contain("Schema successfully added") and contain(otherVendor)
 
@@ -153,8 +153,8 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "not add a schema if it already exists" in {
-        val (status, res) = schema.add(vendor, name, format, version,
-          invalidSchema, owner, permission, isPublic)
+        val (status, res) = schema.add(vendor, name, format, version, draftNumOfVersionedSchemas,
+          invalidSchema, owner, permission, isPublic, isDraft = false)
         status === Unauthorized
         res must contain("This schema already exists")
 
@@ -170,8 +170,8 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "add a private schema properly with super permission" in {
-        val (status, res) = schema.add(otherVendor2, name, format, version,
-          validSchema2, otherOwner2, superPermission, isPublic)
+        val (status, res) = schema.add(otherVendor2, name, format, version, draftNumOfVersionedSchemas,
+          validSchema2, otherOwner2, superPermission, isPublic, isDraft = false)
         status === Created
         res must contain("Schema successfully added") and contain(otherVendor2)
 
@@ -191,8 +191,8 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for update" should {
 
       "update a schema properly" in {
-        val (status, res) = schema.update(vendor, name, format, version,
-          invalidSchema2, owner, permission)
+        val (status, res) = schema.update(vendor, name, format, version, draftNumOfVersionedSchemas,
+          invalidSchema2, owner, permission, isDraft = false)
         status === OK
         res must contain("Schema successfully updated") and contain(vendor)
 
@@ -208,8 +208,8 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "create a schema if it does not exist" in {
-        val (status, res) = schema.update(vendor, name3, format, version,
-          invalidSchema, owner, permission)
+        val (status, res) = schema.update(vendor, name3, format, version, draftNumOfVersionedSchemas,
+          invalidSchema, owner, permission, isDraft = false)
         status === Created
         res must contain("Schema successfully added") and contain(vendor)
 
@@ -229,7 +229,8 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve a schema properly if it is private" in {
         val (status, res) =
-          schema.get(vendors, names, formats, versions, owner, permission, includeMetadata = false)
+          schema.get(vendors, names, formats, versions, List.empty[String], owner, permission,
+            includeMetadata = false, isDraft = false)
         status === OK
         res must contain(innerSchema2)
 
@@ -246,8 +247,8 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       }
 
       "retrieve a schema properly if it is public" in {
-        val (status, res) = schema.get(otherVendors, name2s, formats, versions,
-          faultyOwner, permission, includeMetadata = false)
+        val (status, res) = schema.get(otherVendors, name2s, formats, versions, List.empty[String],
+          faultyOwner, permission, includeMetadata = false, isDraft = false)
         status === OK
         res must contain(innerSchema)
 
@@ -266,14 +267,16 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) =
-          schema.get(vendors, names, formats, versions, faultyOwner, permission, includeMetadata = false)
+          schema.get(vendors, names, formats, versions, List.empty[String], faultyOwner, permission,
+            includeMetadata = false, isDraft = false)
         status === NotFound
         res must contain("There are no schemas available here")
       }
 
       "return a 404 if the schema is not in the db" in {
         val (status, res) =
-         schema.get(vendors, faultyNames, formats, versions, owner, permission, includeMetadata = false)
+         schema.get(vendors, faultyNames, formats, versions, List.empty[String], owner, permission,
+           includeMetadata = false, isDraft = false)
         status === NotFound
         res must contain("There are no schemas available here")
 
@@ -292,8 +295,8 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for getMetadata" should {
 
       "retrieve metadata about a schema properly if it is private" in {
-        val (status, res) = schema.getMetadata(vendors, names, formats,
-          versions, owner, permission)
+        val (status, res) = schema.getMetadata(vendors, names, formats, versions,
+          List.empty[String], owner, permission, isDraft = false)
         status === OK
         res must contain(vendor) and contain(name) and contain(format) and
           contain(version)
@@ -312,7 +315,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve metadata about a schema properly if it is public" in {
         val (status, res) = schema.getMetadata(otherVendors, name2s,
-          formats, versions, faultyOwner, permission)
+          formats, versions, List.empty[String], faultyOwner, permission, isDraft = false)
         status === OK
         res must contain(otherVendor) and contain(name2) and contain(format) and
           contain(version)
@@ -332,14 +335,14 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) = schema.getMetadata(vendors, names, formats,
-          versions, faultyOwner, permission)
+          versions, List.empty[String], faultyOwner, permission, isDraft = false)
         status === NotFound
         res must contain("There are no schemas available here")
       }
 
       "return a 404 if the schema is not in the db" in {
         val (status, res) = schema.getMetadata(vendors, faultyNames, formats,
-          versions, owner, permission)
+          versions, List.empty[String], owner, permission, isDraft = false)
         status === NotFound
         res must contain("There are no schemas available here")
 
@@ -358,7 +361,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for getPublicSchemas" should {
 
       "retrieve every public schema available" in {
-        val (status, res) = schema.getPublicSchemas(owner, permission, includeMetadata = false)
+        val (status, res) = schema.getPublicSchemas(owner, permission, includeMetadata = false, isDraft = false)
         status === OK
         res must contain(innerSchema)
 
@@ -374,7 +377,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for getPublicMetadata" should {
       
       "retrieve metadata about every public schema available" in {
-        val (status, res) = schema.getPublicMetadata(owner, permission)
+        val (status, res) = schema.getPublicMetadata(owner, permission, isDraft = false)
         status === OK
         res must contain(otherVendor) and contain(name2) and
           contain(format) and contain(version)
@@ -392,7 +395,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are public" in {
         val (status, res) =
-          schema.getFromFormat(vendors, names, formats, owner, permission, includeMetadata = false)
+          schema.getFromFormat(vendors, names, formats, owner, permission, includeMetadata = false, isDraft = false)
         status === OK
         res must contain(innerSchema2)
 
@@ -409,7 +412,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are public" in {
         val (status, res) = schema.getFromFormat(otherVendors, name2s, formats,
-          faultyOwner, permission, includeMetadata = false)
+          faultyOwner, permission, includeMetadata = false, isDraft = false)
         status === OK
         res must contain(innerSchema)
 
@@ -427,14 +430,14 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) =
-          schema.getFromFormat(vendors, names, formats, faultyOwner, permission, includeMetadata = false)
+          schema.getFromFormat(vendors, names, formats, faultyOwner, permission, includeMetadata = false, isDraft = false)
         status === NotFound
         res must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas matching the query" in {
         val (status, res) =
-          schema.getFromFormat(vendors, faultyNames, formats, owner, permission, includeMetadata = false)
+          schema.getFromFormat(vendors, faultyNames, formats, owner, permission, includeMetadata = false, isDraft = false)
         status === NotFound
         res must contain("There are no schemas available here")
 
@@ -453,7 +456,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are private" in {
         val (status, res) = schema.getMetadataFromFormat(vendors, names,
-          formats, owner, permission)
+          formats, owner, permission, isDraft = false)
         status === OK
         res must contain(vendor) and contain(name) and contain(format)
 
@@ -470,7 +473,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are public" in {
         val (status, res) = schema.getMetadataFromFormat(otherVendors,
-          name2s, formats, faultyOwner, permission)
+          name2s, formats, faultyOwner, permission, isDraft = false)
         status === OK
         res must contain(otherVendor) and contain(name2) and contain(format)
 
@@ -488,14 +491,14 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) = schema.getMetadataFromFormat(vendors, names,
-          formats, faultyOwner, permission)
+          formats, faultyOwner, permission, isDraft = false)
         status === NotFound
         res must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas matching the query" in {
         val (status, res) = schema.getMetadataFromFormat(vendors, faultyNames,
-          formats, owner, permission)
+          formats, owner, permission, isDraft = false)
         status === NotFound
         res must contain ("There are no schemas available here")
 
@@ -514,7 +517,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are private" in {
         val (status, res) =
-          schema.getFromName(vendors, names, owner, permission, includeMetadata = false)
+          schema.getFromName(vendors, names, owner, permission, includeMetadata = false, isDraft = false)
         status === OK
         res must contain(innerSchema2)
 
@@ -530,7 +533,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are public" in {
         val (status, res) =
-          schema.getFromName(otherVendors, name2s, faultyOwner, permission, includeMetadata = false)
+          schema.getFromName(otherVendors, name2s, faultyOwner, permission, includeMetadata = false, isDraft = false)
         status === OK
         res must contain(innerSchema)
 
@@ -547,14 +550,14 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) =
-          schema.getFromName(vendors, names, faultyOwner, permission, includeMetadata = false)
+          schema.getFromName(vendors, names, faultyOwner, permission, includeMetadata = false, isDraft = false)
         status === NotFound
         res must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas matching the query" in {
         val (status, res) =
-          schema.getFromName(vendors, faultyNames, owner, permission, includeMetadata = false)
+          schema.getFromName(vendors, faultyNames, owner, permission, includeMetadata = false, isDraft = false)
         status === NotFound
         res must contain("There are no schemas available here")
 
@@ -572,7 +575,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are private" in {
         val (status, res) =
-          schema.getMetadataFromName(vendors, names, owner, permission)
+          schema.getMetadataFromName(vendors, names, owner, permission, isDraft = false)
         status === OK
         res must contain(vendor) and contain(name)
 
@@ -588,7 +591,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are public" in {
         val (status, res) = schema.getMetadataFromName(otherVendors, name2s,
-          faultyOwner, permission)
+          faultyOwner, permission, isDraft = false)
         status === OK
         res must contain(otherVendor) and contain(name2)
 
@@ -605,14 +608,14 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) =
-          schema.getMetadataFromName(vendors, names, faultyOwner, permission)
+          schema.getMetadataFromName(vendors, names, faultyOwner, permission, isDraft = false)
         status === NotFound
         res must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas matching the query" in {
         val (status, res) =
-          schema.getMetadataFromName(vendors, faultyNames, owner, permission)
+          schema.getMetadataFromName(vendors, faultyNames, owner, permission, isDraft = false)
         status === NotFound
         res must contain("There are no schemas available here")
 
@@ -629,7 +632,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
     "for getFromVendor" should {
 
       "return schemas properly if they are private" in {
-        val (status, res) = schema.getFromVendor(vendors, owner, permission, includeMetadata = false)
+        val (status, res) = schema.getFromVendor(vendors, owner, permission, includeMetadata = false, isDraft = false)
         status === OK
         res must contain(innerSchema)
 
@@ -644,7 +647,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are public" in {
         val (status, res) =
-          schema.getFromVendor(otherVendors, faultyOwner, permission, includeMetadata = false)
+          schema.getFromVendor(otherVendors, faultyOwner, permission, includeMetadata = false, isDraft = false)
         status === OK
         res must contain(innerSchema)
 
@@ -660,14 +663,14 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) =
-          schema.getFromVendor(vendors, faultyOwner, permission, includeMetadata = false)
+          schema.getFromVendor(vendors, faultyOwner, permission, includeMetadata = false, isDraft = false)
         status === NotFound
         res must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas matching the query" in {
         val (status, res) =
-          schema.getFromVendor(faultyVendors, owner, permission, includeMetadata = false)
+          schema.getFromVendor(faultyVendors, owner, permission, includeMetadata = false, isDraft = false)
         status === NotFound
         res must contain("There are no schemas available here")
 
@@ -684,7 +687,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "return schemas properly if they are private" in {
         val (status, res) =
-          schema.getMetadataFromVendor(vendors, owner, permission)
+          schema.getMetadataFromVendor(vendors, owner, permission, isDraft = false)
         status === OK
         res must contain(vendor)
 
@@ -699,7 +702,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "retrieve schemas properly if they are public" in {
         val (status, res) =
-          schema.getMetadataFromVendor(otherVendors, faultyOwner, permission)
+          schema.getMetadataFromVendor(otherVendors, faultyOwner, permission, isDraft = false)
         status === OK
         res must contain(otherVendor)
 
@@ -715,14 +718,14 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val (status, res) =
-          schema.getMetadataFromVendor(vendors, faultyOwner, permission)
+          schema.getMetadataFromVendor(vendors, faultyOwner, permission, isDraft = false)
         status === NotFound
         res must contain("There are no schemas available here")
       }
 
       "return a 404 if there are no schemas matching the query" in {
         val (status, res) =
-          schema.getMetadataFromVendor(faultyVendors, owner, permission)
+          schema.getMetadataFromVendor(faultyVendors, owner, permission, isDraft = false)
         status === NotFound
         res must contain("There are no schemas available here")
 
@@ -740,7 +743,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       "return a 200 if the instance is valid against the schema" in {
 
         val name = "ad_click5"
-        schema.add(vendor, name, format, version,
+        schema.add(vendor, name, format, version, draftNumOfVersionedSchemas,
           """{
             "$schema": "http://com.snowplowanalytics/schema/jsonschema/1-0-0",
             "description": "Schema for an ad click event",
@@ -785,7 +788,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             "required": ["targetUrl"],
             "additionalProperties": false
             }
-          }""", owner, permission, isPublic)
+          }""", owner, permission, isPublic, isDraft = false)
         val (status, res) =
           schema.validate(vendor, name, format, version, validInstance)
         status === OK
@@ -820,7 +823,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
       "return the schema if it is self-describing" in {
 
-        schema.add("com.snowplowanalytics.self-desc", "schema", format, version,
+        schema.add("com.snowplowanalytics.self-desc", "schema", format, version, draftNumOfVersionedSchemas,
           """{
             "$schema": "http://json-schema.org/draft-04/schema#",
             "description": "Meta-schema for self-describing JSON schema",
@@ -871,7 +874,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
             }
             ]
           }
-          """, owner, permission, isPublic)
+          """, owner, permission, isPublic, isDraft = false)
 
         val (status, res) = schema.validateSchema(validSchema, format)
         status === OK

@@ -208,8 +208,8 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
         (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
             validateSchema(f) { schema =>
               val schemaAdded: Future[(StatusCode, String)] =
-                (schemaActor ? AddSchema(v, n, f, vs, schema, owner, permission, isPublic.contains("true")))
-                  .mapTo[(StatusCode, String)]
+                (schemaActor ? AddSchema(v, n, f, vs, draftNumOfVersionedSchemas, schema, owner, permission,
+                  isPublic.contains("true"), isDraft = false)).mapTo[(StatusCode, String)]
               sendResponse(schemaAdded)
             }
           }
@@ -260,8 +260,8 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
         (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
             validateSchema(f) { schema =>
               val schemaUpdated: Future[(StatusCode, String)] =
-                (schemaActor ? UpdateSchema(v, n, f, vs, schema, owner, permission, isPublic.contains("true")))
-                  .mapTo[(StatusCode, String)]
+                (schemaActor ? UpdateSchema(v, n, f, vs, draftNumOfVersionedSchemas, schema, owner, permission,
+                  isPublic.contains("true"), isDraft = false)).mapTo[(StatusCode, String)]
               sendResponse(schemaUpdated)
             }
           }
@@ -277,8 +277,8 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       path(VendorPattern / NamePattern / FormatPattern / VersionPattern) { (v, n, f, vs) =>
         (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
           val schemaDeleted: Future[(StatusCode, String)] =
-            (schemaActor ? DeleteSchema(v, n, f, vs, owner, permission, isPublic.contains("true")))
-              .mapTo[(StatusCode, String)]
+            (schemaActor ? DeleteSchema(v, n, f, vs, draftNumOfVersionedSchemas, owner, permission,
+              isPublic.contains("true"), isDraft = false)).mapTo[(StatusCode, String)]
           sendResponse(schemaDeleted)
         }
       }
@@ -313,18 +313,18 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     (parameter('filter.?) | formField('filter.?)) {
       case Some("metadata") =>
         val getMetadataFromVendor: Future[(StatusCode, String)] =
-          (schemaActor ? GetMetadataFromVendor(v, o, p)).mapTo[(StatusCode, String)]
+          (schemaActor ? GetMetadataFromVendor(v, o, p, isDraft = false)).mapTo[(StatusCode, String)]
         sendResponse(getMetadataFromVendor)
       case _ =>
         (parameter('metadata.?) | formField('metadata.?)) {
           case Some("1") =>
             val getSchemaWithMetadataFromVendor: Future[(StatusCode, String)] =
-              (schemaActor ? GetSchemasFromVendor(v, o, p, includeMetadata = true)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetSchemasFromVendor(v, o, p, includeMetadata = true, isDraft = false)).mapTo[(StatusCode, String)]
             sendResponse(getSchemaWithMetadataFromVendor)
           case Some(m) => throw new IllegalArgumentException(s"metadata can NOT be $m")
           case None =>
             val getSchemaFromVendor: Future[(StatusCode, String)] =
-              (schemaActor ? GetSchemasFromVendor(v, o, p, includeMetadata = false)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetSchemasFromVendor(v, o, p, includeMetadata = false, isDraft = false)).mapTo[(StatusCode, String)]
             sendResponse(getSchemaFromVendor)
         }
     }
@@ -363,18 +363,18 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     (parameter('filter.?) | formField('filter.?)) {
       case Some("metadata") =>
         val getMetadataFromName: Future[(StatusCode, String)] =
-          (schemaActor ? GetMetadataFromName(v, n, o, p)).mapTo[(StatusCode, String)]
+          (schemaActor ? GetMetadataFromName(v, n, o, p, isDraft = false)).mapTo[(StatusCode, String)]
         sendResponse(getMetadataFromName)
       case _ =>
         (parameter('metadata.?) | formField('metadata.?)) {
           case Some("1") =>
             val getSchemaWithMetadataFromName: Future[(StatusCode, String)] =
-              (schemaActor ? GetMetadataFromName(v, n, o, p)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetSchemasFromName(v, n, o, p, includeMetadata = true, isDraft = false)).mapTo[(StatusCode, String)]
             sendResponse(getSchemaWithMetadataFromName)
           case Some(m) => throw new IllegalArgumentException(s"metadata can NOT be $m")
           case None =>
             val getSchemaFromName: Future[(StatusCode, String)] =
-              (schemaActor ? GetSchemasFromName(v, n, o, p, includeMetadata = false)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetSchemasFromName(v, n, o, p, includeMetadata = false, isDraft = false)).mapTo[(StatusCode, String)]
             sendResponse(getSchemaFromName)
         }
     }
@@ -418,18 +418,18 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     (parameter('filter.?) | formField('filter.?)) {
       case Some("metadata") =>
         val getMetadaFromFormat: Future[(StatusCode, String)] =
-          (schemaActor ? GetMetadataFromFormat(v, n, f, o, p)).mapTo[(StatusCode, String)]
+          (schemaActor ? GetMetadataFromFormat(v, n, f, o, p, isDraft = false)).mapTo[(StatusCode, String)]
         sendResponse(getMetadaFromFormat)
       case _ =>
         (parameter('metadata.?) | formField('metadata.?)) {
           case Some("1") =>
             val getSchemaWithMetadataFromFormat: Future[(StatusCode, String)] =
-              (schemaActor ? GetSchemasFromFormat(v, n, f, o, p, includeMetadata = true)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetSchemasFromFormat(v, n, f, o, p, includeMetadata = true, isDraft = false)).mapTo[(StatusCode, String)]
             sendResponse(getSchemaWithMetadataFromFormat)
           case Some(m) => throw new IllegalArgumentException(s"metadata can NOT be $m")
           case None =>
             val getSchemaFromFormat: Future[(StatusCode, String)] =
-              (schemaActor ? GetSchemasFromFormat(v, n, f, o, p, includeMetadata = false)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetSchemasFromFormat(v, n, f, o, p, includeMetadata = false, isDraft = false)).mapTo[(StatusCode, String)]
             sendResponse(getSchemaFromFormat)
         }
     }
@@ -476,18 +476,18 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     (parameter('filter.?) | formField('filter.?)) {
       case Some("metadata") =>
         val getMetadata: Future[(StatusCode, String)] =
-          (schemaActor ? GetMetadata(v, n, f, vs, o, p)).mapTo[(StatusCode, String)]
+          (schemaActor ? GetMetadata(v, n, f, vs, List.empty[String], o, p, isDraft = false)).mapTo[(StatusCode, String)]
         sendResponse(getMetadata)
       case _ =>
         (parameter('metadata.?) | formField('metadata.?)) {
           case Some("1") =>
             val getSchemaWithMetadata: Future[(StatusCode, String)] =
-              (schemaActor ? GetSchema(v, n, f, vs, o, p, includeMetadata = true)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetSchema(v, n, f, vs, List.empty[String], o, p, includeMetadata = true, isDraft = false)).mapTo[(StatusCode, String)]
             sendResponse(getSchemaWithMetadata)
           case Some(m) => throw new IllegalArgumentException(s"metadata can NOT be $m")
           case None =>
             val getSchema: Future[(StatusCode, String)] =
-              (schemaActor ? GetSchema(v, n, f, vs, o, p, includeMetadata = false)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetSchema(v, n, f, vs, List.empty[String], o, p, includeMetadata = false, isDraft = false)).mapTo[(StatusCode, String)]
             sendResponse(getSchema)
         }
     }
@@ -519,18 +519,18 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     (parameter('filter.?) | formField('filter.?)) {
       case Some("metadata") =>
         val getPublicMetadata: Future[(StatusCode, String)] =
-          (schemaActor ? GetPublicMetadata(owner, permission)).mapTo[(StatusCode, String)]
+          (schemaActor ? GetPublicMetadata(owner, permission, isDraft = false)).mapTo[(StatusCode, String)]
         sendResponse(getPublicMetadata)
       case _ =>
         (parameter('metadata.?) | formField('metadata.?)) {
           case Some("1") =>
             val getPublicSchemaWithMetadata: Future[(StatusCode, String)] =
-              (schemaActor ? GetPublicSchemas(owner, permission, includeMetadata = true)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetPublicSchemas(owner, permission, includeMetadata = true, isDraft = false)).mapTo[(StatusCode, String)]
             sendResponse(getPublicSchemaWithMetadata)
           case Some(m) => throw new IllegalArgumentException(s"metadata can NOT be $m")
           case None =>
             val getPublicSchema: Future[(StatusCode, String)] =
-              (schemaActor ? GetPublicSchemas(owner, permission, includeMetadata = false)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetPublicSchemas(owner, permission, includeMetadata = false, isDraft = false)).mapTo[(StatusCode, String)]
             sendResponse(getPublicSchema)
         }
     }

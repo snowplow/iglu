@@ -87,6 +87,7 @@ object TableInitialization {
     }
     catch {
       case err: PSQLException =>
+//        println("stacktrace: \n" + err.getStackTrace)
         println("There is a problem with database initialization: " + err.getMessage + " Check your credentials.")
         sys.exit(1)
       case _: Throwable =>

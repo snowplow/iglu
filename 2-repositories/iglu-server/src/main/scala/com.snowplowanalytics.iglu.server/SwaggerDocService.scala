@@ -23,7 +23,7 @@ import com.github.swagger.akka.SwaggerHttpService
 import com.github.swagger.akka.model.{Contact, Info, License}
 
 // This project
-import service.{ApiKeyGenService, SchemaService, ValidationService}
+import service.{ApiKeyGenService, SchemaService, DraftSchemaService, ValidationService}
 import util.ServerConfig
 
 
@@ -31,6 +31,7 @@ class SwaggerDocService(serverConfig: ServerConfig) extends SwaggerHttpService {
   override val apiClasses: Set[Class[_]] = Set(
     classOf[ApiKeyGenService],
     classOf[SchemaService],
+    classOf[DraftSchemaService],
     classOf[ValidationService]
   )
   override val host = s"${serverConfig.baseURL}"
