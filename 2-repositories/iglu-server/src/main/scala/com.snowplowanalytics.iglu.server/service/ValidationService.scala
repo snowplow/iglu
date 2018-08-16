@@ -70,7 +70,7 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     */
   lazy val routes: Route =
     rejectEmptyResponse {
-      get {
+      post {
         contentTypeNegotiator(
           path(FormatPattern) { format =>
             validateSchemaRoute(format)
@@ -88,12 +88,12 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     */
   @Path("/{schemaFormat}")
   @ApiOperation(value = "Validates that a schema is self-describing",
-    notes = "Returns a validation message", httpMethod = "GET", produces = "application/json")
+    notes = "Returns a validation message", httpMethod = "POST", produces = "application/json")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "schemaFormat", value = "Schema's format",
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "schema", value = "Schema to be validated",
-      required = true, dataType = "string", paramType = "query")
+      required = true, dataType = "string", paramType = "form")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200,
@@ -105,7 +105,7 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       message = "The schema format provided is invalid")
   ))
   def validateSchemaRoute(@ApiParam(hidden = true) schemaFormat: String): Route =
-    parameter('schema) { schema =>
+    formField('schema) { schema =>
       val selfDescSchemaValidated: Future[(StatusCode, String)] =
         (schemaActor ? ValidateSchema(schema, schemaFormat, provideSchema = false))
           .mapTo[(StatusCode, String)]
@@ -123,7 +123,7 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     */
   @Path("/{vendor}/{name}/{schemaFormat}/{version}")
   @ApiOperation(value = "Validates an instance against its schema",
-    notes = "Returns a validation message", httpMethod = "GET", produces = "application/json")
+    notes = "Returns a validation message", httpMethod = "POST", produces = "application/json")
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "vendor", value = "Schema's vendor",
       required = true, dataType = "string", paramType = "path"),
@@ -135,7 +135,7 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "instance",
       value = "Instance to be validated", required = true,
-      dataType = "string", paramType = "query")
+      dataType = "string", paramType = "form")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200,
@@ -151,7 +151,7 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                     @ApiParam(hidden = true) n: String,
                     @ApiParam(hidden = true) f: String,
                     @ApiParam(hidden = true) vs: String): Route =
-    parameter('instance) { instance =>
+    formField('instance) { instance =>
       val schemaValidated: Future[(StatusCode, String)] =
         (schemaActor ? Validate(v, n, f, vs, instance)).mapTo[(StatusCode, String)]
       onSuccess(schemaValidated) { (status, performed) =>

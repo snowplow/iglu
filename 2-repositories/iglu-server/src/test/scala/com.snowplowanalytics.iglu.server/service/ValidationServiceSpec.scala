@@ -16,6 +16,9 @@ package com.snowplowanalytics.iglu.server
 package service
 
 // Scala
+import akka.http.scaladsl.model.HttpEntity
+import akka.http.scaladsl.model.Multipart.FormData
+
 import scala.concurrent.duration._
 
 // Akka
@@ -73,19 +76,15 @@ class ValidationServiceSpec extends Specification
 
   val start = "/api/schemas/validate/"
 
-  val validUrl = s"${start}${format}?schema=$validSchemaUri"
-  val invalidUrl = s"${start}${format}?schema=$invalidSchemaUri"
-  val notSchemaUrl = s"${start}${format}?schema=$notJson"
-  val invalidFormatUrl = s"${start}${invalidFormat}?schema=$validSchemaUri"
+  val validUrl = s"${start}${format}"
+  val invalidUrl = s"${start}${format}"
+  val notSchemaUrl = s"${start}${format}"
+  val invalidFormatUrl = s"${start}${invalidFormat}"
 
-  val validInstanceUrl = s"${start}${vendor}/${name}/${format}/${version}" +
-    s"?instance=$validInstanceUri"
-  val invalidInstanceUrl = s"${start}${vendor}/${name}/${format}/${version}" +
-    s"?instance=$invalidSchemaUri"
-  val notInstanceUrl = s"${start}${vendor}/${name}/${format}/${version}" +
-    s"?instance=$notJson"
-  val notFoundInstanceUrl = s"${start}${vendor}/${name}/${format}/1-0-100" +
-    s"?instance=$validInstanceUri"
+  val validInstanceUrl = s"$start$vendor/$name/$format/$version"
+  val invalidInstanceUrl = s"${start}${vendor}/${name}/${format}/${version}"
+  val notInstanceUrl = s"${start}${vendor}/${name}/${format}/${version}"
+  val notFoundInstanceUrl = s"${start}${vendor}/${name}/${format}/1-0-100"
 
   sequential
 
@@ -94,7 +93,8 @@ class ValidationServiceSpec extends Specification
     "for self-describing validation" should {
 
       "return a 200 if the schema provided is self-describing" in {
-        Get(validUrl) ~> addHeader("apikey", key) ~> routes ~> check {
+        Post(validUrl, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
+          addHeader("apikey", key) ~> routes ~> check {
           status === OK
           contentType === `application/json`
           responseAs[String] must
@@ -103,7 +103,8 @@ class ValidationServiceSpec extends Specification
       }
 
       "return a 400 if the schema provided is not self-describing" in {
-        Get(invalidUrl) ~> addHeader("apikey", key) ~> routes ~> check {
+        Post(invalidUrl, FormData(Map("schema" -> HttpEntity(`application/json`, invalidSchema)))) ~>
+          addHeader("apikey", key) ~> routes ~> check {
           status === BadRequest
           contentType === `application/json`
           responseAs[String] must contain(
@@ -113,7 +114,8 @@ class ValidationServiceSpec extends Specification
       }
 
       "return a 400 if the schema provided is not valid" in {
-        Get(notSchemaUrl) ~> addHeader("apikey", key) ~> routes ~> check {
+        Post(notSchemaUrl, FormData(Map("schema" -> HttpEntity(`application/json`, notJson)))) ~>
+          addHeader("apikey", key) ~> routes ~> check {
           status === BadRequest
           contentType === `application/json`
           responseAs[String] must contain("The schema provided is not valid")
@@ -121,7 +123,8 @@ class ValidationServiceSpec extends Specification
       }
 
       "return a 400 if the format provided is not supported" in {
-        Get(invalidFormatUrl) ~> addHeader("apikey", key) ~> routes ~> check {
+        Post(invalidFormatUrl, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
+          addHeader("apikey", key) ~> routes ~> check {
           status === BadRequest
           contentType === `application/json`
           responseAs[String] must
@@ -133,7 +136,8 @@ class ValidationServiceSpec extends Specification
     "for instance validation" should {
 
       "return a 200 if the instance is valid against the schema" in {
-        Get(validInstanceUrl) ~> addHeader("apikey", key) ~> routes ~> check {
+        Post(validInstanceUrl, FormData(Map("instance" -> HttpEntity(`application/json`, validInstance)))) ~>
+          addHeader("apikey", key) ~> routes ~> check {
           status === OK
           contentType === `application/json`
           responseAs[String] must
@@ -142,7 +146,8 @@ class ValidationServiceSpec extends Specification
       }
 
       "return a 400 if the instance is not valid against the schema" in {
-        Get(invalidInstanceUrl) ~> addHeader("apikey", key) ~> routes ~>
+        Post(invalidInstanceUrl, FormData(Map("instance" -> HttpEntity(`application/json`, invalidSchema)))) ~>
+          addHeader("apikey", key) ~> routes ~>
         check {
           status === BadRequest
           contentType === `application/json`
@@ -152,7 +157,8 @@ class ValidationServiceSpec extends Specification
       }
 
       "return a 400 if the instance provided is not valid" in {
-        Get(notInstanceUrl) ~> addHeader("apikey", key) ~> routes ~> check {
+        Post(notInstanceUrl, FormData(Map("instance" -> HttpEntity(`application/json`, notJson)))) ~>
+          addHeader("apikey", key) ~> routes ~> check {
           status === BadRequest
           contentType === `application/json`
           responseAs[String] must contain("The instance provided is not valid")
@@ -160,7 +166,8 @@ class ValidationServiceSpec extends Specification
       }
 
       "return a 404 if the schema to validate against was not found" in {
-        Get(notFoundInstanceUrl) ~> addHeader("apikey", key) ~> routes ~>
+        Post(notFoundInstanceUrl, FormData(Map("instance" -> HttpEntity(`application/json`, validInstance)))) ~>
+          addHeader("apikey", key) ~> routes ~>
         check {
           status === NotFound
           contentType === `application/json`
