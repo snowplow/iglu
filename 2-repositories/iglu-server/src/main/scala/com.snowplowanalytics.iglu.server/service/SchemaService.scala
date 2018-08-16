@@ -181,7 +181,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       required = true, dataType = "string", paramType = "path"),
     new ApiImplicitParam(name = "version", value = "Schema's version",
       required = true, dataType = "string", paramType = "path"),
-    new ApiImplicitParam(name = "body", value = "Schema to be added",
+    new ApiImplicitParam(name = "schema", value = "Schema to be added",
       required = true, dataType = "string", paramType = "body"),
     new ApiImplicitParam(name = "isPublic",
       value = "Do you want your schema to be publicly available? Assumed false",
