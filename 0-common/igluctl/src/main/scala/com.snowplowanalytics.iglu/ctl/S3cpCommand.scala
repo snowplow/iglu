@@ -49,7 +49,7 @@ case class S3cpCommand(
     secretAccessKey: Option[String],
     profile: Option[String],
     region: Option[String])
-  extends Command.CtlCommand {
+  extends Command.CtlCommand with Command.IgluctlAction {
   import S3cpCommand._
 
   /**

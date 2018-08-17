@@ -36,6 +36,9 @@ case class Command(
   command:         Option[String]  = None,
   input:           Option[File]    = None,
 
+  // deploy
+  config:          Option[File]    = None,
+
   // ddl
   output:          Option[File]    = None,
   db:              String          = "redshift",
@@ -66,6 +69,7 @@ case class Command(
   region:          Option[String]  = None
 ) {
   def toCommand: Option[Command.CtlCommand] = command match {
+    case Some("static deploy") => Some(DeployCommand(config.get))
     case Some("static generate") => Some(
       GenerateCommand(input.get, output.getOrElse(new File(".")), db, withJsonPaths, rawMode, schema, varcharSize, splitProduct, noHeader, force, owner))
     case Some("static push") =>
@@ -106,6 +110,11 @@ object Command {
    */
   private[ctl] trait CtlCommand
 
+  /**
+    * Trait common to S3cp and Push commands
+    */
+  private[ctl] trait IgluctlAction
+
   def inputReadable(c: Command): Either[String, Unit] =
     c.input match {
       case Some(input) if input.exists() && input.canRead => Right(())
@@ -125,7 +134,6 @@ object Command {
       .action { (_, c) => c.copy(command = Some("static")) }
       .text("Static Iglu generator\n")
       .children(
-
         cmd("generate")
           .action { (_, c) => c.copy(command = c.command.map(_ + " generate")) }
           .text("Generate DDL out of JSON Schema\n")
@@ -185,6 +193,16 @@ object Command {
                 failure("Options --with-json-paths and --split-product cannot be used together")
               case _ => success
             }
+          ),
+
+        cmd("deploy")
+          .action(subcommand("deploy"))
+          .text("Perform usual schema workflow at once\n")
+          .children(
+
+            arg[File]("config") required()
+              action { (x, c) => c.copy(config = Some(x))}
+              text "Path to configuration file\n"
           ),
 
         cmd("push")
@@ -280,7 +298,7 @@ object Command {
                 "\t\t\t   numericMinMax         : Check that schema with numeric type contains both minimum and maximum properties\n" +
                 "\t\t\t   stringLength          : Check that schema with string type contains maxLength property or other ways to extract max length\n" +
                 "\t\t\t   optionalNull          : Check that non-required fields have null type\n" +
-                "\t\t\t   description           : Check that property contains description\n"
+                "\t\t\t   description           : Check that property contains description"
       )
   }
 }

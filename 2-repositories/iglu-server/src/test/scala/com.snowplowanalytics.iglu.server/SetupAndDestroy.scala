@@ -47,7 +47,7 @@ trait SetupAndDestroy extends BeforeAndAfterAll {
   insert into apikeys (uid, vendor_prefix, permission, createdat) values ('a89c5f27-fe76-4754-8a07-d41884af1074', 'com.snowplowanalytics','write',current_timestamp);
   insert into apikeys (uid, vendor_prefix, permission, createdat) values ('6eadba20-9b9f-4648-9c23-770272f8d627', 'com.snowplowanalytics','read',current_timestamp);
 
-  insert into schemas values(10000, 'com.snowplowanalytics.snowplow', 'ad_click', 'jsonschema', '1-0-0', '{
+  insert into schemas values(10000, 'com.snowplowanalytics.snowplow', 'ad_click', 'jsonschema', '1-0-0', '0', '{
     "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
     "description": "Schema for an ad click event",
     "self": {
@@ -94,7 +94,54 @@ trait SetupAndDestroy extends BeforeAndAfterAll {
     "additionalProperties": false
   }', current_timestamp, current_timestamp, 'f');
 
-  insert into schemas values(20000, 'com.snowplowanalytics.snowplow', 'ad_click', 'jsonschema', '1-0-1', '{
+  insert into schemas values(12000, 'com.snowplowanalytics.snowplow', 'ad_click', 'jsonschema', '1-0-0', '1', '{
+    "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+    "description": "Schema for an ad click event",
+    "self": {
+      "vendor": "com.snowplowanalytics.snowplow",
+      "name": "ad_click",
+      "format": "jsonschema",
+      "version": "1-0-0"
+    },
+
+    "type": "object",
+    "properties": {
+      "clickId": {
+        "type": "string"
+      },
+      "impressionId": {
+        "type": "string"
+      },
+      "zoneId": {
+        "type": "string"
+      },
+      "bannerId": {
+        "type": "string"
+      },
+      "campaignId": {
+        "type": "string"
+      },
+      "advertiserId": {
+        "type": "string"
+      },
+      "targetUrl": {
+        "type": "string",
+        "minLength": 1
+      },
+      "costModel": {
+        "enum": ["cpa", "cpc", "cpm"]
+      },
+      "cost": {
+        "type": "number",
+        "minimum": 0
+      }
+    },
+    "required": ["targetUrl"],
+    "dependencies": {"cost": ["costModel"]},
+    "additionalProperties": false
+  }', current_timestamp, current_timestamp, 'f');
+
+  insert into schemas values(20000, 'com.snowplowanalytics.snowplow', 'ad_click', 'jsonschema', '1-0-1', '0', '{
      "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
      "description": "Schema for an ad click event",
      "self": {
@@ -141,7 +188,54 @@ trait SetupAndDestroy extends BeforeAndAfterAll {
      "additionalProperties": false
   }', current_timestamp, current_timestamp, 'f');
 
-  insert into schemas values(30000, 'com.snowplowanalytics.snowplow', 'ad_click2', 'jsonschema', '1-0-1', '{
+  insert into schemas values(21000, 'com.snowplowanalytics.snowplow', 'ad_click', 'jsonschema', '1-0-1', '1', '{
+     "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+     "description": "Schema for an ad click event",
+     "self": {
+       "vendor": "com.snowplowanalytics.snowplow",
+       "name": "ad_click",
+       "format": "jsonschema",
+       "version": "1-0-1"
+     },
+
+     "type": "object",
+     "properties": {
+       "clickId": {
+         "type": "string"
+       },
+       "impressionId": {
+         "type": "string"
+       },
+       "zoneId": {
+         "type": "string"
+       },
+       "bannerId": {
+         "type": "string"
+       },
+       "campaignId": {
+         "type": "string"
+       },
+       "advertiserId": {
+         "type": "string"
+       },
+       "targetUrl": {
+         "type": "string",
+         "minLength": 1
+       },
+       "costModel": {
+         "enum": ["cpa", "cpc", "cpm"]
+       },
+       "cost": {
+         "type": "number",
+         "minimum": 0
+       }
+     },
+     "required": ["targetUrl"],
+     "dependencies": {"cost": ["costModel"]},
+     "additionalProperties": false
+  }', current_timestamp, current_timestamp, 'f');
+
+  insert into schemas values(30000, 'com.snowplowanalytics.snowplow', 'ad_click2', 'jsonschema', '1-0-1', '0', '{
      "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
      "description": "Schema for an ad click event",
      "self": {
@@ -188,7 +282,54 @@ trait SetupAndDestroy extends BeforeAndAfterAll {
      "additionalProperties": false
   }', current_timestamp, current_timestamp, 'f');
 
-  insert into schemas values(40000, 'com.benfradet.ben', 'ad_click2', 'jsonschema', '1-0-0', '{
+  insert into schemas values(33000, 'com.snowplowanalytics.snowplow', 'ad_click2', 'jsonschema', '1-0-1', '1', '{
+     "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+     "description": "Schema for an ad click event",
+     "self": {
+       "vendor": "com.snowplowanalytics.snowplow",
+       "name": "ad_click2",
+       "format": "jsonschema",
+       "version": "1-0-1"
+     },
+
+     "type": "object",
+     "properties": {
+       "clickId": {
+         "type": "string"
+       },
+       "impressionId": {
+         "type": "string"
+       },
+       "zoneId": {
+         "type": "string"
+       },
+       "bannerId": {
+         "type": "string"
+       },
+       "campaignId": {
+         "type": "string"
+       },
+       "advertiserId": {
+         "type": "string"
+       },
+       "targetUrl": {
+         "type": "string",
+         "minLength": 1
+       },
+       "costModel": {
+         "enum": ["cpa", "cpc", "cpm"]
+       },
+       "cost": {
+         "type": "number",
+         "minimum": 0
+       }
+     },
+     "required": ["targetUrl"],
+     "dependencies": {"cost": ["costModel"]},
+     "additionalProperties": false
+  }', current_timestamp, current_timestamp, 'f');
+
+  insert into schemas values(40000, 'com.benfradet.ben', 'ad_click2', 'jsonschema', '1-0-0', '0', '{
      "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
      "description": "Schema for an ad click event",
      "self": {
@@ -235,7 +376,148 @@ trait SetupAndDestroy extends BeforeAndAfterAll {
     "additionalProperties": false
   }', current_timestamp, current_timestamp, 't');
 
-  insert into schemas values(50000, 'com.benfradet.ben', 'ad_click', 'jsonschema', '1-0-0', '{
+  insert into schemas values(41000, 'com.benfradet.ben', 'ad_click2', 'jsonschema', '1-0-0', '1', '{
+     "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+     "description": "Schema for an ad click event",
+     "self": {
+       "vendor": "com.benfradet.ben",
+       "name": "ad_click2",
+       "format": "jsonschema",
+       "version": "1-0-1"
+     },
+
+    "type": "object",
+    "properties": {
+      "clickId": {
+        "type": "string"
+      },
+      "impressionId": {
+        "type": "string"
+      },
+      "zoneId": {
+        "type": "string"
+      },
+      "bannerId": {
+        "type": "string"
+      },
+      "campaignId": {
+        "type": "string"
+      },
+      "advertiserId": {
+        "type": "string"
+      },
+      "targetUrl": {
+        "type": "string",
+        "minLength": 1
+      },
+      "costModel": {
+        "enum": ["cpa", "cpc", "cpm"]
+      },
+      "cost": {
+        "type": "number",
+        "minimum": 0
+      }
+    },
+    "required": ["targetUrl"],
+    "dependencies": {"cost": ["costModel"]},
+    "additionalProperties": false
+  }', current_timestamp, current_timestamp, 't');
+
+  insert into schemas values(16000, 'com.benfradet.ben', 'ad_click2', 'jsonschema', '1-0-0', '1', '{
+      "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+      "description": "Schema for an ad click event",
+      "self": {
+        "vendor": "com.benfradet.ben",
+        "name": "ad_click2",
+        "format": "jsonschema",
+        "version": "1-0-1"
+      },
+
+     "type": "object",
+     "properties": {
+       "clickId": {
+         "type": "string"
+       },
+       "impressionId": {
+         "type": "string"
+       },
+       "zoneId": {
+         "type": "string"
+       },
+       "bannerId": {
+         "type": "string"
+       },
+       "campaignId": {
+         "type": "string"
+       },
+       "advertiserId": {
+         "type": "string"
+       },
+       "targetUrl": {
+         "type": "string",
+         "minLength": 1
+       },
+       "costModel": {
+         "enum": ["cpa", "cpc", "cpm"]
+       },
+       "cost": {
+         "type": "number",
+         "minimum": 0
+       }
+     },
+     "required": ["targetUrl"],
+     "dependencies": {"cost": ["costModel"]},
+     "additionalProperties": false
+   }', current_timestamp, current_timestamp, 't');
+
+   insert into schemas values(51000, 'com.benfradet.ben', 'ad_click', 'jsonschema', '1-0-0', '1', '{
+     "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+     "description": "Schema for an ad click event",
+     "self": {
+       "vendor": "com.benfradet.ben",
+       "name": "ad_click",
+       "format": "jsonschema",
+       "version": "1-0-0"
+     },
+
+    "type": "object",
+    "properties": {
+      "clickId": {
+        "type": "string"
+      },
+      "impressionId": {
+        "type": "string"
+      },
+      "zoneId": {
+        "type": "string"
+      },
+      "bannerId": {
+        "type": "string"
+      },
+      "campaignId": {
+        "type": "string"
+      },
+      "advertiserId": {
+        "type": "string"
+      },
+      "targetUrl": {
+        "type": "string",
+        "minLength": 1
+      },
+      "costModel": {
+        "enum": ["cpa", "cpc", "cpm"]
+      },
+      "cost": {
+        "type": "number",
+        "minimum": 0
+      }
+    },
+    "required": ["targetUrl"],
+    "dependencies": {"cost": ["costModel"]},
+    "additionalProperties": false
+  }', current_timestamp, current_timestamp, 'f');
+
+  insert into schemas values(50000, 'com.benfradet.ben', 'ad_click', 'jsonschema', '1-0-0', '0', '{
      "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
      "description": "Schema for an ad click event",
      "self": {

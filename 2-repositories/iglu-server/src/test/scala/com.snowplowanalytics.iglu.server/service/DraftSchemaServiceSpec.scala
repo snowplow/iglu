@@ -36,12 +36,12 @@ import akka.http.scaladsl.server.Route
 import org.specs2.mutable.Specification
 
 
-class SchemaServiceSpec extends Specification
+class DraftSchemaServiceSpec extends Specification
   with Api with Specs2RouteTest with SetupAndDestroy {
 
   override def afterAll() = super.afterAll()
-  val schemaActor: ActorRef = system.actorOf(Props(classOf[SchemaActor], config), "schemaActor2")
-  val apiKeyActor: ActorRef = system.actorOf(Props(classOf[ApiKeyActor], config), "apiKeyActor2")
+  val schemaActor: ActorRef = system.actorOf(Props(classOf[SchemaActor], config), "schemaActor4")
+  val apiKeyActor: ActorRef = system.actorOf(Props(classOf[ApiKeyActor], config), "apiKeyActor4")
 
   implicit val routeTestTimeout: RouteTestTimeout = RouteTestTimeout(20 seconds)
 
@@ -62,6 +62,9 @@ class SchemaServiceSpec extends Specification
   val version = "1-0-0"
   val version2 = "1-0-1"
 
+  val draftNumber1 = "1"
+  val draftNumber2 = "2"
+
   val validSchema =
     s"""{
       "self": {
@@ -79,17 +82,17 @@ class SchemaServiceSpec extends Specification
   val invalidSchemaUri = invalidSchema.replaceAll(" ", "%20").
     replaceAll("\"", "%22")
 
-  val start = "/api/schemas/"
+  val start = "/api/draft/"
 
   //get urls
   val publicSchemasUrl = s"${start}public"
   val metaPublicSchemasUrl = s"${publicSchemasUrl}?filter=metadata"
 
-  val url = s"${start}${vendor}/${name}/${format}/${version}"
-  val publicUrl = s"${start}${otherVendor}/${name}/${format}/${version}"
+  val url = s"${start}${vendor}/${name}/${format}/$draftNumber1"
+  val publicUrl = s"${start}${otherVendor}/${name}/${format}/${draftNumber1}"
   val multiUrl = s"${url},${vendor}/${name2}/${format}/${version}"
   val multiPublicUrl = s"${url},${otherVendor}/${name}/${format}/${version}"
-  val faultyUrl = s"${start}${vendor}/${name}/jsonchema/${version}"
+  val faultyUrl = s"${start}${vendor}/${name}/jsonchema/${draftNumber1}"
   val multiVersionUrl = s"${url},${version2}"
   val multiVersionPublicUrl = s"${publicUrl},${version2}"
   val metaUrl = s"${url}?filter=metadata"
@@ -149,50 +152,50 @@ class SchemaServiceSpec extends Specification
   val metadataIncludedUrl = s"$url?metadata=1"
 
   //post urls
-  val postUrl1 = s"$start$vendor/unit_test1/$format/$version"
-  val postUrl2 = s"$start$vendor/unit_test2/$format/$version" +
+  val postUrl1 = s"$start$vendor/unit_test1/$format/$draftNumber1"
+  val postUrl2 = s"$start$vendor/unit_test2/$format/$draftNumber1" +
     s"?schema=$validSchemaUri"
-  val postUrl3 = s"$start$vendor/unit_test3/$format/$version"
-  val postUrl4 = s"$start$vendor/unit_test4/$format/$version" +
+  val postUrl3 = s"$start$vendor/unit_test3/$format/$draftNumber1"
+  val postUrl4 = s"$start$vendor/unit_test4/$format/$draftNumber1" +
     s"?schema=$validSchemaUri"
   val postUrl6 = s"$url?schema=$validSchemaUri"
-  val postUrl7 = s"$start$vendor/unit_test7/$format/$version" +
+  val postUrl7 = s"$start$vendor/unit_test7/$format/$draftNumber1" +
     s"?schema=$invalidSchemaUri"
-  val postUrl8 = s"$start$vendor/unit_test8/$format/$version" +
+  val postUrl8 = s"$start$vendor/unit_test8/$format/$draftNumber1" +
     s"?schema=$notJson"
-  val postUrl9 = s"${start}${vendor}/unit_test9/${format}/${version}" +
+  val postUrl9 = s"${start}${vendor}/unit_test9/${format}/${draftNumber1}" +
     s"?isPublic=true"
-  val postUrl10 = s"${start}${vendor}/unit_test10/${format}/${version}" +
+  val postUrl10 = s"${start}${vendor}/unit_test10/${format}/${draftNumber1}" +
     s"?schema=${validSchemaUri}&isPublic=true"
-  val postUrl11 = s"${start}${vendor}/unit_test11/${format}/${version}"
-  val postUrl12 = s"${start}${vendor}/unit_test12/${format}/${version}"
+  val postUrl11 = s"${start}${vendor}/unit_test11/${format}/${draftNumber1}"
+  val postUrl12 = s"${start}${vendor}/unit_test12/${format}/${draftNumber1}"
 
   //put urls
-  val putUrl1 = s"${start}${vendor}/unit_test13/${format}/${version}"
-  val putUrl2 = s"${start}${vendor}/unit_test14/${format}/${version}" +
+  val putUrl1 = s"${start}${vendor}/unit_test13/${format}/${draftNumber1}"
+  val putUrl2 = s"${start}${vendor}/unit_test14/${format}/${draftNumber1}" +
     s"?schema=${validSchemaUri}"
-  val putUrl3 = s"${start}${vendor}/unit_test15/${format}/${version}"
+  val putUrl3 = s"${start}${vendor}/unit_test15/${format}/${draftNumber1}"
 
   sequential
 
-  "SchemaService" should {
+  "DraftSchemaService" should {
 
     "for GET requests" should {
 
-      "for the /api/schemas/public endpoint" should {
+      "for the /api/draft/public endpoint" should {
 
         "return a proper catalog of public schemas" in {
           Get(publicSchemasUrl) ~> addHeader("apikey", readKey) ~> routes ~>
-          check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(otherVendor)
-          }
+            check {
+              status === OK
+              contentType === `application/json`
+              responseAs[String] must contain(otherVendor)
+            }
         }
 
         "return proper metadata for every public schema" in {
           Get(metaPublicSchemasUrl) ~> addHeader("apikey", readKey) ~>
-          routes ~> check {
+            routes ~> check {
             status === OK
             contentType === `application/json`
             responseAs[String] must contain(otherVendor)
@@ -203,7 +206,7 @@ class SchemaServiceSpec extends Specification
       "for version based urls" should {
 
         "return a proper json for well-formed single GET requests" +
-        s"($url)" in {
+          s"($url)" in {
           Get(url) ~> addHeader("apikey", readKey) ~> routes ~> check {
             status === OK
             contentType === `application/json`
@@ -211,7 +214,7 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        s"return a proper json for a public schema (${publicUrl})" in {
+        s"return a proper json for a public draft schema (${publicUrl})" in {
           Get(publicUrl) ~> addHeader("apikey", wrongVendorKey) ~> routes ~> check {
             status === OK
             contentType === `application/json`
@@ -220,54 +223,54 @@ class SchemaServiceSpec extends Specification
         }
 
         "return proper metadata for well-formed single GET requests" +
-        s"($metaUrl)" in {
+          s"($metaUrl)" in {
           Get(metaUrl) ~> addHeader("apikey", readKey) ~> routes ~> check {
             status === OK
             contentType === `application/json`
             responseAs[String] must contain(vendor) and contain(name) and
-              contain(format) and contain(version)
+              contain(format) and contain(draftNumber1)
           }
         }
 
         "return schema without metadata for GET " +
-        s"($url)" in {
+          s"($url)" in {
           Get(url) ~> addHeader("apikey", readKey) ~> routes ~> check {
             status === OK
             contentType === `application/json`
             responseAs[String] must contain(vendor) and contain(name) and
-              contain(format) and contain(version) and not contain("metadata")
+              contain(format) and contain(draftNumber1) and not contain("metadata")
           }
         }
 
         "return schema with metadata for GET " +
-        s"($metadataIncludedUrl)" in {
+          s"($metadataIncludedUrl)" in {
           Get(metadataIncludedUrl) ~> addHeader("apikey", readKey) ~> routes ~> check {
             status === OK
             contentType === `application/json`
             responseAs[String] must contain(vendor) and contain(name) and
-              contain(format) and contain(version) and contain("metadata")
+              contain(format) and contain(draftNumber1) and contain("metadata")
           }
         }
 
         s"return proper metadata for a public schema $metaPublicUrl" in {
           Get(metaPublicUrl) ~> addHeader("apikey", wrongVendorKey) ~> routes ~>
-          check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(otherVendor) and contain(name) and
-              contain(format) and contain(version)
-          }
+            check {
+              status === OK
+              contentType === `application/json`
+              responseAs[String] must contain(otherVendor) and contain(name) and
+                contain(format) and contain(draftNumber1)
+            }
         }
 
         "return a 404 for GET requests for which the schema is not in the db" in
-        {
-          Get(faultyUrl) ~> addHeader("apikey", readKey) ~> routes ~> check {
-            status === NotFound
-            contentType === `application/json`
-            responseAs[String] must
-              contain("There are no schemas available here")
+          {
+            Get(faultyUrl) ~> addHeader("apikey", readKey) ~> routes ~> check {
+              status === NotFound
+              contentType === `application/json`
+              responseAs[String] must
+                contain("There are no schemas available here")
+            }
           }
-        }
 
         "return a 404 if no apikey is found in the db" in {
           Get(url) ~> addHeader("apikey", faultyKey) ~> Route.seal(routes) ~>
@@ -300,24 +303,24 @@ class SchemaServiceSpec extends Specification
 
         """return a 404 if the owner of the API key is not a prefix of the
           schema's vendor""" in {
-            Get(url) ~> addHeader("apikey", wrongVendorKey) ~>
-              Route.seal(routes) ~> check {
-                status === NotFound
-              contentType === `application/json`
-                responseAs[String] must
-                  contain("There are no schemas available here")
-              }
+          Get(url) ~> addHeader("apikey", wrongVendorKey) ~>
+            Route.seal(routes) ~> check {
+            status === NotFound
+            contentType === `application/json`
+            responseAs[String] must
+              contain("There are no schemas available here")
+          }
         }
 
         "return a 200 if schema is public and no apikey is provided" in {
-          Get(s"$start$otherVendor/$name2/$format/$version") ~> Route.seal(routes) ~> check {
+          Get(s"$start$otherVendor/$name2/$format/$draftNumber1") ~> Route.seal(routes) ~> check {
             status === OK
             contentType === `application/json`
           }
         }
 
         "return a 404 if schema is private and no apikey is provided" in {
-          Get(s"$start$otherVendor/$name/$format/$version") ~> Route.seal(routes) ~> check {
+          Get(s"$start$otherVendor/$name/$format/$draftNumber1") ~> Route.seal(routes) ~> check {
             status === NotFound
             contentType === `application/json`
             responseAs[String] must
@@ -335,7 +338,7 @@ class SchemaServiceSpec extends Specification
       "for vendor based urls" should {
 
         "return the catalog of available schemas for this vendor" +
-        s"(${vendorUrl})" in {
+          s"(${vendorUrl})" in {
           Get(vendorUrl) ~> addHeader("apikey", readKey) ~> routes ~> check {
             status === OK
             contentType === `application/json`
@@ -344,73 +347,73 @@ class SchemaServiceSpec extends Specification
         }
 
         "return the catalog of available public schemas for another vendor" +
-        s"(${vendorPublicUrl})" in {
+          s"(${vendorPublicUrl})" in {
           Get(vendorPublicUrl) ~> addHeader("apikey", readKey) ~> routes ~>
-          check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(otherVendor) and contain(name) and
-              contain(name2)
-          }
+            check {
+              status === OK
+              contentType === `application/json`
+              responseAs[String] must contain(otherVendor) and contain(name) and
+                contain(name2)
+            }
         }
 
         "return the catalog of available schemas for those vendors" +
-        s"(${multiVendorUrl})" in {
+          s"(${multiVendorUrl})" in {
           Get(multiVendorUrl) ~> addHeader("apikey", readKey) ~> routes ~>
-          check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(vendor) and contain(vendor2)
-          }
+            check {
+              status === OK
+              contentType === `application/json`
+              responseAs[String] must contain(vendor) and contain(vendor2)
+            }
         }
 
         "return metadata about every schema for this vendor" +
-        s"(${metaVendorUrl})" in {
+          s"(${metaVendorUrl})" in {
           Get(metaVendorUrl) ~> addHeader("apikey", readKey) ~> routes ~>
-          check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(vendor)
-          }
+            check {
+              status === OK
+              contentType === `application/json`
+              responseAs[String] must contain(vendor)
+            }
         }
 
         "return metadata about every public schema for another vendor" +
-        s"(${metaVendorPublicUrl})" in {
+          s"(${metaVendorPublicUrl})" in {
           Get(metaVendorPublicUrl) ~> addHeader("apikey", readKey) ~> routes ~>
-          check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(otherVendor)
-          }
+            check {
+              status === OK
+              contentType === `application/json`
+              responseAs[String] must contain(otherVendor)
+            }
         }
 
         "return metadata about every schema for those vendors" +
-        s"(${metaMultiVendorUrl})" in {
+          s"(${metaMultiVendorUrl})" in {
           Get(metaMultiVendorUrl) ~> addHeader("apikey", readKey) ~> routes ~>
-          check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(vendor) and contain(vendor2)
-          }
+            check {
+              status === OK
+              contentType === `application/json`
+              responseAs[String] must contain(vendor) and not contain vendor2
+            }
         }
 
         "return a 404 for a vendor which has no schemas" in {
           Get(otherVendorUrl) ~> addHeader("apikey", wrongVendorKey) ~>
-          routes ~> check {
+            routes ~> check {
             status === NotFound
             contentType === `application/json`
             responseAs[String] must
-            contain("There are no schemas available here")
+              contain("There are no schemas available here")
           }
         }
 
         "return a 404 if the owner is not a prefix of the vendor" in {
           Get(vendorUrl) ~> addHeader("apikey", wrongVendorKey) ~> routes ~>
-          check {
-            status === NotFound
-            contentType === `application/json`
-            responseAs[String] must contain("There are no schemas available here")
-          }
+            check {
+              status === NotFound
+              contentType === `application/json`
+              responseAs[String] must contain("There are no schemas available here")
+            }
         }
       }
 
@@ -433,7 +436,7 @@ class SchemaServiceSpec extends Specification
         }
 
         "return the catalog of available schemas for this name" +
-        s"(${nameUrl})" in {
+          s"(${nameUrl})" in {
           Get(nameUrl) ~> addHeader("apikey", readKey) ~> routes ~> check {
             status === OK
             contentType === `application/json`
@@ -442,28 +445,28 @@ class SchemaServiceSpec extends Specification
         }
 
         "return the catalog of available schemas for those names" +
-        s"(${multiNameUrl})" in {
+          s"(${multiNameUrl})" in {
           Get(multiNameUrl) ~> addHeader("apikey", readKey) ~> routes ~>
-          check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(name) and contain(name2)
-          }
+            check {
+              status === OK
+              contentType === `application/json`
+              responseAs[String] must contain(name) and contain(name2)
+            }
         }
 
         "return the catalog of available public schemas for those names" +
-        s"(${multiNamePublicUrl})" in {
+          s"(${multiNamePublicUrl})" in {
           Get(multiNamePublicUrl) ~> addHeader("apikey", readKey) ~> routes ~>
-          check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(otherVendor) and contain(name) and
-              contain(name2)
-          }
+            check {
+              status === OK
+              contentType === `application/json`
+              responseAs[String] must contain(otherVendor) and contain(name) and
+                contain(name2)
+            }
         }
 
         "return metadata about every schema having this vendor, name" +
-        s"(${metaNameUrl})" in {
+          s"(${metaNameUrl})" in {
           Get(metaNameUrl) ~> addHeader("apikey", readKey) ~> routes ~> check {
             status === OK
             contentType === `application/json`
@@ -472,19 +475,19 @@ class SchemaServiceSpec extends Specification
         }
 
         "return metadata about every schema having those names" +
-        s"(${metaMultiNameUrl})" in {
+          s"(${metaMultiNameUrl})" in {
           Get(metaMultiNameUrl) ~> addHeader("apikey", readKey) ~> routes ~>
-          check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(name) and contain(name2)
-          }
+            check {
+              status === OK
+              contentType === `application/json`
+              responseAs[String] must contain(name) and contain(name2)
+            }
         }
 
         "return metadata about every public schema having those names" +
-        s"(${metaMultiNamePublicUrl})" in {
+          s"(${metaMultiNamePublicUrl})" in {
           Get(metaMultiNamePublicUrl) ~> addHeader("apikey", readKey) ~>
-          routes ~> check {
+            routes ~> check {
             status === OK
             contentType === `application/json`
             responseAs[String] must contain(otherVendor) and contain(name) and
@@ -494,21 +497,21 @@ class SchemaServiceSpec extends Specification
 
         "return a 404 for a vendor/name combination which has no schemas" in {
           Get(otherNameUrl) ~> addHeader("apikey", wrongVendorKey) ~> routes ~>
-          check {
-            status === NotFound
-            contentType === `application/json`
-            responseAs[String] must
-              contain("There are no schemas available here")
-          }
+            check {
+              status === NotFound
+              contentType === `application/json`
+              responseAs[String] must
+                contain("There are no schemas available here")
+            }
         }
 
         "return a 404 if the owner is not a prefix of the vendor" in {
           Get(nameUrl) ~> addHeader("apikey", wrongVendorKey) ~> routes ~>
-          check {
-            status === NotFound
-            contentType === `application/json`
-            responseAs[String] must contain("There are no schemas available here")
-          }
+            check {
+              status === NotFound
+              contentType === `application/json`
+              responseAs[String] must contain("There are no schemas available here")
+            }
         }
 
 
@@ -517,7 +520,7 @@ class SchemaServiceSpec extends Specification
       "for format based urls" should {
 
         "return the catalog of available schemas for this format" +
-        s"(${formatUrl})" in {
+          s"(${formatUrl})" in {
           Get(formatUrl) ~> addHeader("apikey", readKey) ~> routes ~> check {
             status === OK
             contentType === `application/json`
@@ -528,21 +531,21 @@ class SchemaServiceSpec extends Specification
         """return a 404 for a vendor/name/format combination which has
         no schemas""" in {
           Get(otherFormatUrl) ~> addHeader("apikey", wrongVendorKey) ~>
-          routes ~> check {
+            routes ~> check {
             status === NotFound
             contentType === `application/json`
             responseAs[String] must
-            contain("There are no schemas available here")
+              contain("There are no schemas available here")
           }
         }
 
         "return a 404 if the owner is not a prefix of the vendor" in {
           Get(formatUrl) ~> addHeader("apikey", wrongVendorKey) ~> routes ~>
-          check {
-            status === NotFound
-            contentType === `application/json`
-            responseAs[String] must contain("There are no schemas available here")
-          }
+            check {
+              status === NotFound
+              contentType === `application/json`
+              responseAs[String] must contain("There are no schemas available here")
+            }
         }
       }
     }
@@ -553,17 +556,6 @@ class SchemaServiceSpec extends Specification
       "return success if the schema is passed as form data" in {
         Post(postUrl1, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
           addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
-            status === Created
-            contentType === `application/json`
-            responseAs[String] must contain("Schema successfully added") and
-              contain(vendor)
-          }
-      }
-
-      //should be removed from db before running tests for now
-      "return success if the schema is passed as query parameter" in {
-        Post(postUrl2) ~> addHeader("apikey", writeKey) ~> Route.seal(routes) ~>
-        check {
           status === Created
           contentType === `application/json`
           responseAs[String] must contain("Schema successfully added") and
@@ -572,9 +564,20 @@ class SchemaServiceSpec extends Specification
       }
 
       //should be removed from db before running tests for now
+      "return success if the schema is passed as query parameter" in {
+        Post(postUrl2) ~> addHeader("apikey", writeKey) ~> Route.seal(routes) ~>
+          check {
+            status === Created
+            contentType === `application/json`
+            responseAs[String] must contain("Schema successfully added") and
+              contain(vendor)
+          }
+      }
+
+      //should be removed from db before running tests for now
       "return success if the schema is passed as request body" in {
         Post(postUrl11, HttpEntity(`application/json`, validSchema)) ~>
-        addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === Created
           contentType === `application/json`
           responseAs[String] must contain("Schema successfully added") and
@@ -585,7 +588,7 @@ class SchemaServiceSpec extends Specification
       //should be removed from db before running tests for now
       "return success if the schema is passed as form data and is public" in {
         Post(postUrl9, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
-        addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === Created
           contentType === `application/json`
           responseAs[String] must contain("Schema successfully added") and
@@ -596,7 +599,7 @@ class SchemaServiceSpec extends Specification
       //should be removed from db before running tests for now
       "return success if the schema is passed as query param and is public" in {
         Post(postUrl10) ~> addHeader("apikey", writeKey) ~>
-        Route.seal(routes) ~> check {
+          Route.seal(routes) ~> check {
           status === Created
           contentType === `application/json`
           responseAs[String] must contain("Schema successfully added") and
@@ -608,7 +611,7 @@ class SchemaServiceSpec extends Specification
       """return success if the schemas is passed as request body and is
       public""" in {
         Post(postUrl12, HttpEntity(`application/json`, validSchema)) ~>
-        addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === Created
           contentType === `application/json`
           responseAs[String] must contain("Schema successfully added") and
@@ -620,39 +623,39 @@ class SchemaServiceSpec extends Specification
       specified""" in {
         Post(postUrl3) ~> addHeader("apikey", writeKey) ~>
           Route.seal(routes) ~> check {
-            status === BadRequest
-            contentType === `text/plain(UTF-8)`
-            responseAs[String] must
-              contain("The schema provided is not valid")
-          }
+          status === BadRequest
+          contentType === `text/plain(UTF-8)`
+          responseAs[String] must
+            contain("The schema provided is not valid")
+        }
       }
 
       """return 401 if the API key doesn't have sufficient permissions with
       query param""" in {
         Post(postUrl4) ~> addHeader("apikey", readKey) ~>
           Route.seal(routes) ~> check {
-            status === Unauthorized
-            contentType === `application/json`
-            responseAs[String] must
-              contain("You do not have sufficient privileges")
-          }
+          status === Unauthorized
+          contentType === `application/json`
+          responseAs[String] must
+            contain("You do not have sufficient privileges")
+        }
       }
 
       """return a 401 if the API key doesn't have sufficient permissions
       with form data""" in {
         Post(postUrl3, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
           addHeader("apikey", readKey) ~> Route.seal(routes) ~> check {
-            status === Unauthorized
-            contentType === `application/json`
-            responseAs[String] must
-              contain("You do not have sufficient privileges")
+          status === Unauthorized
+          contentType === `application/json`
+          responseAs[String] must
+            contain("You do not have sufficient privileges")
         }
       }
 
       """return a 401 if the API key doesn't have sufficient permissions with
       body request""" in {
         Post(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
-        addHeader("apikey", readKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", readKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
           contentType === `application/json`
           responseAs[String] must
@@ -670,7 +673,7 @@ class SchemaServiceSpec extends Specification
 
       "return a 400 if no apikey is specified with form data" in {
         Post(postUrl3, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
-        Route.seal(routes) ~> check {
+          Route.seal(routes) ~> check {
           status === BadRequest
           contentType === `text/plain(UTF-8)`
           responseAs[String] must
@@ -680,7 +683,7 @@ class SchemaServiceSpec extends Specification
 
       "return a 400 if no apikey is specified with body request" in {
         Post(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
-        Route.seal(routes) ~> check {
+          Route.seal(routes) ~> check {
           status === BadRequest
           contentType === `text/plain(UTF-8)`
           responseAs[String] must
@@ -690,7 +693,7 @@ class SchemaServiceSpec extends Specification
 
       "return a 401 if the API key is not an uuid with query param" in {
         Post(postUrl4) ~> addHeader("apikey", notUuidKey) ~>
-        Route.seal(routes) ~> check {
+          Route.seal(routes) ~> check {
           status === Unauthorized
           contentType === `application/json`
           responseAs[String] must
@@ -700,7 +703,7 @@ class SchemaServiceSpec extends Specification
 
       "return a 401 if the API key is not an uuid with form data" in {
         Post(postUrl3, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
-        addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
           contentType === `application/json`
           responseAs[String] must
@@ -710,7 +713,7 @@ class SchemaServiceSpec extends Specification
 
       "return a 401 if the API key is not an uuid with body request" in {
         Post(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
-        addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
           contentType === `application/json`
           responseAs[String] must
@@ -721,7 +724,7 @@ class SchemaServiceSpec extends Specification
       """return a 401 if the owner of the API key is not a prefix of the
       schema's vendor with query param""" in {
         Post(postUrl6) ~> addHeader("apikey", wrongVendorKey) ~>
-        Route.seal(routes) ~> check {
+          Route.seal(routes) ~> check {
           status === Unauthorized
           contentType === `application/json`
           responseAs[String] must
@@ -732,7 +735,7 @@ class SchemaServiceSpec extends Specification
       """return a 401 if the owner of the API key is not a prefix of the
       schema's vendor with form data""" in {
         Post(postUrl3, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
-        addHeader("apikey", wrongVendorKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", wrongVendorKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
           contentType === `application/json`
           responseAs[String] must
@@ -743,7 +746,7 @@ class SchemaServiceSpec extends Specification
       """return a 401 if the owner of the API key is not a prefix of the
       schema's vendor with body request""" in {
         Post(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
-        addHeader("apikey", wrongVendorKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", wrongVendorKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
           contentType === `application/json`
           responseAs[String] must
@@ -754,19 +757,19 @@ class SchemaServiceSpec extends Specification
       """return a 400 if the supplied schema is not self-describing with query
       param and contain a validation failure report""" in {
         Post(postUrl7) ~> addHeader("apikey", writeKey) ~> Route.seal(routes) ~>
-        check {
-          status === BadRequest
-          contentType === `text/plain(UTF-8)`
-          responseAs[String] must
-            contain("The schema provided is not a valid self-describing") and
-            contain("report")
-        }
+          check {
+            status === BadRequest
+            contentType === `text/plain(UTF-8)`
+            responseAs[String] must
+              contain("The schema provided is not a valid self-describing") and
+              contain("report")
+          }
       }
 
       """return a 400 if the supplied schema is not self-describing with form
       data and contain a validation failure report""" in {
         Post(postUrl3, FormData(Map("schema" -> HttpEntity(`application/json`, invalidSchema)))) ~>
-        addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === BadRequest
           contentType === `text/plain(UTF-8)`
           responseAs[String] must
@@ -778,7 +781,7 @@ class SchemaServiceSpec extends Specification
       """return a 400 if the supplied schema is not self-describing with body
       request and contain a validation failure report""" in {
         Post(postUrl3, HttpEntity(`application/json`, invalidSchema)) ~>
-        addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === BadRequest
           contentType === `text/plain(UTF-8)`
           responseAs[String] must
@@ -788,18 +791,18 @@ class SchemaServiceSpec extends Specification
       }
 
       "return a 400 if the supplied string is not a schema with query param" in
-      {
-        Post(postUrl8) ~> addHeader("apikey", writeKey) ~> Route.seal(routes) ~>
-        check {
-          status === BadRequest
-          contentType === `text/plain(UTF-8)`
-          responseAs[String] must contain("The schema provided is not valid")
+        {
+          Post(postUrl8) ~> addHeader("apikey", writeKey) ~> Route.seal(routes) ~>
+            check {
+              status === BadRequest
+              contentType === `text/plain(UTF-8)`
+              responseAs[String] must contain("The schema provided is not valid")
+            }
         }
-      }
 
       "return a 400 if the supplied string is not a schema with form data" in {
         Post(postUrl3, FormData(Map("schema" -> HttpEntity(`text/plain(UTF-8)`, notJson)))) ~>
-        addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === BadRequest
           contentType === `text/plain(UTF-8)`
           responseAs[String] must contain("The schema provided is not valid")
@@ -809,7 +812,7 @@ class SchemaServiceSpec extends Specification
       """return a 400 if the supplied string is not a schema with body
       request""" in {
         Post(postUrl3, HttpEntity(`application/json`, notJson)) ~>
-        addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === BadRequest
           contentType === `text/plain(UTF-8)`
           responseAs[String] must contain("The schema provided is not valid")
@@ -821,7 +824,7 @@ class SchemaServiceSpec extends Specification
 
       "return a 201 if the schema doesnt already exist with form data" in {
         Put(putUrl1, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
-        addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === Created
           contentType === `application/json`
           responseAs[String] must contain("Schema successfully added") and
@@ -831,17 +834,17 @@ class SchemaServiceSpec extends Specification
 
       "return a 201 if the schema doesnt already exist with query param" in {
         Put(putUrl2) ~> addHeader("apikey", writeKey) ~> Route.seal(routes) ~>
-        check {
-          status === Created
-          contentType === `application/json`
-          responseAs[String] must contain("Schema successfully added") and
-            contain(vendor)
-        }
+          check {
+            status === Created
+            contentType === `application/json`
+            responseAs[String] must contain("Schema successfully added") and
+              contain(vendor)
+          }
       }
 
       "return a 201 if the schema doesnt already exist with body request" in {
         Put(putUrl3, HttpEntity(`application/json`, validSchema)) ~>
-        addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === Created
           contentType === `application/json`
           responseAs[String] must contain("Schema successfully added") and
@@ -853,39 +856,39 @@ class SchemaServiceSpec extends Specification
       specified""" in {
         Put(postUrl3) ~> addHeader("apikey", writeKey) ~>
           Route.seal(routes) ~> check {
-            status === BadRequest
-            contentType === `text/plain(UTF-8)`
-            responseAs[String] must
-              contain("The schema provided is not valid")
-          }
+          status === BadRequest
+          contentType === `text/plain(UTF-8)`
+          responseAs[String] must
+            contain("The schema provided is not valid")
+        }
       }
 
       """return 401 if the API key doesn't have sufficient permissions with
       query param""" in {
         Put(postUrl4) ~> addHeader("apikey", readKey) ~>
           Route.seal(routes) ~> check {
-            status === Unauthorized
-            contentType === `application/json`
-            responseAs[String] must
-              contain("You do not have sufficient privileges")
-          }
+          status === Unauthorized
+          contentType === `application/json`
+          responseAs[String] must
+            contain("You do not have sufficient privileges")
+        }
       }
 
       """return a 401 if the API key doesn't have sufficient permissions
       with form data""" in {
         Put(postUrl3, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
           addHeader("apikey", readKey) ~> Route.seal(routes) ~> check {
-            status === Unauthorized
-            contentType === `application/json`
-            responseAs[String] must
-              contain("You do not have sufficient privileges")
+          status === Unauthorized
+          contentType === `application/json`
+          responseAs[String] must
+            contain("You do not have sufficient privileges")
         }
       }
 
       """return a 401 if the API key doesn't have sufficient permissions with
       body request""" in {
         Put(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
-        addHeader("apikey", readKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", readKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
           contentType === `application/json`
           responseAs[String] must
@@ -904,7 +907,7 @@ class SchemaServiceSpec extends Specification
 
       "return a 400 if no apikey is specified with form data" in {
         Put(postUrl3, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
-        Route.seal(routes) ~> check {
+          Route.seal(routes) ~> check {
           status === BadRequest
           contentType === `text/plain(UTF-8)`
           responseAs[String] must
@@ -914,7 +917,7 @@ class SchemaServiceSpec extends Specification
 
       "return a 400 if no apikey is specified with body request" in {
         Put(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
-        Route.seal(routes) ~> check {
+          Route.seal(routes) ~> check {
           status === BadRequest
           contentType === `text/plain(UTF-8)`
           responseAs[String] must
@@ -924,7 +927,7 @@ class SchemaServiceSpec extends Specification
 
       "return a 401 if the API key is not an uuid with query param" in {
         Put(postUrl4) ~> addHeader("apikey", notUuidKey) ~>
-        Route.seal(routes) ~> check {
+          Route.seal(routes) ~> check {
           status === Unauthorized
           contentType === `application/json`
           responseAs[String] must
@@ -934,7 +937,7 @@ class SchemaServiceSpec extends Specification
 
       "return a 401 if the API key is not an uuid with form data" in {
         Put(postUrl3, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
-        addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
           contentType === `application/json`
           responseAs[String] must
@@ -944,7 +947,7 @@ class SchemaServiceSpec extends Specification
 
       "return a 401 if the API key is not an uuid with body request" in {
         Put(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
-        addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
           contentType === `application/json`
           responseAs[String] must
@@ -955,7 +958,7 @@ class SchemaServiceSpec extends Specification
       """return a 401 if the owner of the API key is not a prefix of the
       schema's vendor with query param""" in {
         Put(postUrl6) ~> addHeader("apikey", wrongVendorKey) ~>
-        Route.seal(routes) ~> check {
+          Route.seal(routes) ~> check {
           status === Unauthorized
           contentType === `application/json`
           responseAs[String] must
@@ -966,7 +969,7 @@ class SchemaServiceSpec extends Specification
       """return a 401 if the owner of the API key is not a prefix of the
       schema's vendor with form data""" in {
         Put(postUrl3, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
-        addHeader("apikey", wrongVendorKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", wrongVendorKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
           contentType === `application/json`
           responseAs[String] must
@@ -977,7 +980,7 @@ class SchemaServiceSpec extends Specification
       """return a 401 if the owner of the API key is not a prefix of the
       schema's vendor with body request""" in {
         Put(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
-        addHeader("apikey", wrongVendorKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", wrongVendorKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
           contentType === `application/json`
           responseAs[String] must
@@ -988,19 +991,19 @@ class SchemaServiceSpec extends Specification
       """return a 400 if the supplied schema is not self-describing with query
       param and contain a validation failure report""" in {
         Put(postUrl7) ~> addHeader("apikey", writeKey) ~> Route.seal(routes) ~>
-        check {
-          status === BadRequest
-          contentType === `text/plain(UTF-8)`
-          responseAs[String] must
-            contain("The schema provided is not a valid self-describing") and
-            contain("report")
-        }
+          check {
+            status === BadRequest
+            contentType === `text/plain(UTF-8)`
+            responseAs[String] must
+              contain("The schema provided is not a valid self-describing") and
+              contain("report")
+          }
       }
 
       """return a 400 if the supplied schema is not self-describing with form
       data and contain a validation failure report""" in {
         Put(postUrl3, FormData(Map("schema" -> HttpEntity(`application/json`, invalidSchema)))) ~>
-        addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === BadRequest
           contentType === `text/plain(UTF-8)`
           responseAs[String] must
@@ -1012,7 +1015,7 @@ class SchemaServiceSpec extends Specification
       """return a 400 if the supplied schema is not self-describing with body
       request and contain a validation failure report""" in {
         Put(postUrl3, HttpEntity(`application/json`, invalidSchema)) ~>
-        addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === BadRequest
           contentType === `text/plain(UTF-8)`
           responseAs[String] must
@@ -1022,18 +1025,18 @@ class SchemaServiceSpec extends Specification
       }
 
       "return a 400 if the supplied string is not a schema with query param" in
-      {
-        Put(postUrl8) ~> addHeader("apikey", writeKey) ~> Route.seal(routes) ~>
-        check {
-          status === BadRequest
-          contentType === `text/plain(UTF-8)`
-          responseAs[String] must contain("The schema provided is not valid")
+        {
+          Put(postUrl8) ~> addHeader("apikey", writeKey) ~> Route.seal(routes) ~>
+            check {
+              status === BadRequest
+              contentType === `text/plain(UTF-8)`
+              responseAs[String] must contain("The schema provided is not valid")
+            }
         }
-      }
 
       "return a 400 if the supplied string is not a schema with form data" in {
         Put(postUrl3, FormData(Map("schema" -> HttpEntity(`text/plain(UTF-8)` , notJson)))) ~>
-        addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === BadRequest
           contentType === `text/plain(UTF-8)`
           responseAs[String] must contain("The schema provided is not valid")
@@ -1043,7 +1046,7 @@ class SchemaServiceSpec extends Specification
       """return a 400 if the supplied string is not a schema with body
       request""" in {
         Put(postUrl3, HttpEntity(`application/json`, notJson)) ~>
-        addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
+          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === BadRequest
           contentType === `text/plain(UTF-8)`
           responseAs[String] must contain("The schema provided is not valid")

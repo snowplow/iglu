@@ -85,7 +85,7 @@ object FileUtils {
   class JsonFile private(val content: JValue, val origin: File) {
     /**
      * Try to extract Self-describing JSON Schema from JSON file
-     * [[JsonFile]] not neccessary contains JSON Schema, it also used for storing
+     * [[JsonFile]] not necessarily contains JSON Schema, it also used for storing
      * plain JSON, so this method isn't always successful
      *
      * @return validation JSON Schema

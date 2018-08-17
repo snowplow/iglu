@@ -40,6 +40,7 @@ object IgluctlBuild extends Build {
         Libraries.jaxbImpl,
         Libraries.activation,
         // Scala
+        Libraries.igluClient,
         Libraries.schemaddl,
         Libraries.scopt,
         Libraries.scalajHttp,

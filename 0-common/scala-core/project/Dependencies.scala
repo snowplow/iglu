@@ -14,18 +14,14 @@ import sbt._
 import Keys._
 
 object Dependencies {
-  val resolutionRepos = Seq(
-    "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"  // For Specs2
-  )
-
   object V {
     // Scala
     val json4s          = "3.2.11"
-    val circe           = "0.8.0"
+    val circe           = "0.9.3"
+    val cats            = "1.1.0"
     object specs2 {
       val _210          = "3.3.1"
-      val _211          = "3.3.1"
-      val _212          = "3.9.5"
+      val _211          = "4.0.4"
     }
   }
 
@@ -33,13 +29,13 @@ object Dependencies {
     val json4s           = "org.json4s"                 %% "json4s-jackson"            % V.json4s
     val circe            = "io.circe"                   %% "circe-core"                % V.circe
     val circeParser      = "io.circe"                   %% "circe-parser"              % V.circe
+    val cats             = "org.typelevel"              %% "cats-core"                 % V.cats
 
     // Scala (test only)
     val json4sTest       = "org.json4s"                 %% "json4s-jackson"            % V.json4s          % "test"
     object specs2 {
       val _210           = "org.specs2"                 %% "specs2-core"               % V.specs2._210     % "test"
       val _211           = "org.specs2"                 %% "specs2-core"               % V.specs2._211     % "test"
-      val _212           = "org.specs2"                 %% "specs2-core"               % V.specs2._212     % "test"
     }
   }
 

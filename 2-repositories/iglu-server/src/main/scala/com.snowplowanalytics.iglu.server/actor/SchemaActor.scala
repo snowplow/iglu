@@ -42,8 +42,8 @@ object SchemaActor {
    * @param isPublic whether or not the schema is publicly available
    */
   case class AddSchema(vendor: String, name: String, format: String,
-    version: String, schema: String, owner: String, permission: String,
-    isPublic: Boolean = false)
+    version: String, draftNumber: String, schema: String, owner: String, permission: String,
+    isPublic: Boolean = false, isDraft: Boolean)
 
   /**
    * Message to send in order to update or create a schema based on its
@@ -58,8 +58,8 @@ object SchemaActor {
    * @param isPublic wheter or not the schema is publicly available
    */
   case class UpdateSchema(vendor: String, name: String, format: String,
-    version: String, schema: String, owner: String, permission: String,
-    isPublic: Boolean = false)
+    version: String, draftNumber: String, schema: String, owner: String, permission: String,
+    isPublic: Boolean = false, isDraft: Boolean)
 
   /**
    * Message to send in order to delete a schema based on its
@@ -72,22 +72,22 @@ object SchemaActor {
    * @param permission API key's permission
    * @param isPublic whether or not the schema is publicly available
    */
-  case class DeleteSchema(vendor: String, name: String, format: String,
-    version: String, owner: String, permission: String, isPublic: Boolean = false)
+  case class DeleteSchema(vendor: String, name: String, format: String, version: String, draftNumber: String,
+    owner: String, permission: String, isPublic: Boolean = false, isDraft: Boolean)
 
   /**
    * Message to send in order to retrieve every public schema.
    * @param owner the owner of the API key the request was made with
    * @param permission API key's permission
    */
-  case class GetPublicSchemas(owner: String, permission: String, includeMetadata: Boolean)
+  case class GetPublicSchemas(owner: String, permission: String, includeMetadata: Boolean, isDraft: Boolean)
 
   /**
    * Message to send in order to retrieve every public schema's metadata.
    * @param owner the owner of the API key the request was made with
    * @param permission API key's permission
    */
-  case class GetPublicMetadata(owner: String, permission: String)
+  case class GetPublicMetadata(owner: String, permission: String, isDraft: Boolean)
 
   /**
    * Message to send in order to retrieve a schema based on its
@@ -100,8 +100,8 @@ object SchemaActor {
    * @param permission API key's permission
    */
   case class GetSchema(vendors: List[String], names: List[String],
-    formats: List[String], versions: List[String], owner: String,
-    permission: String, includeMetadata: Boolean)
+    formats: List[String], versions: List[String], draftNumbers: List[String], owner: String,
+    permission: String, includeMetadata: Boolean, isDraft: Boolean)
 
   /**
    * Message to send in order to retrieve metadata about a schema based on its
@@ -114,8 +114,8 @@ object SchemaActor {
    * @param permission API key's permission
    */
   case class GetMetadata(vendors: List[String], names: List[String],
-    formats: List[String], versions: List[String], owner: String,
-    permission: String)
+    formats: List[String], versions: List[String], draftNumbers: List[String], owner: String,
+    permission: String, isDraft: Boolean)
 
   /**
    * Message to send in order to get every version of a schema.
@@ -126,7 +126,7 @@ object SchemaActor {
    * @param permission API key's permission
    */
   case class GetSchemasFromFormat(vendors: List[String], names: List[String],
-    formats: List[String], owner: String, permission: String, includeMetadata: Boolean)
+    formats: List[String], owner: String, permission: String, includeMetadata: Boolean, isDraft: Boolean)
 
   /**
    * Message to send in order to get metadata about every version of a schema.
@@ -137,7 +137,7 @@ object SchemaActor {
    * @param permission API key's permission
    */
   case class GetMetadataFromFormat(vendors: List[String], names: List[String],
-    formats: List[String], owner: String, permission: String)
+    formats: List[String], owner: String, permission: String, isDraft: Boolean)
 
   /**
    * Message to send in order to retrieve every format, version combination of
@@ -148,7 +148,7 @@ object SchemaActor {
    * @param permission API key's permission
    */
   case class GetSchemasFromName(vendors: List[String], names: List[String],
-    owner: String, permission: String, includeMetadata: Boolean)
+    owner: String, permission: String, includeMetadata: Boolean, isDraft: Boolean)
 
   /**
    * Message to send in order to retrieve metadata about every format, version
@@ -159,7 +159,7 @@ object SchemaActor {
    * @param permission API key's permission
    */
   case class GetMetadataFromName(vendors: List[String], names: List[String],
-    owner: String, permission: String)
+    owner: String, permission: String, isDraft: Boolean)
 
   /**
    * Message to send in order to retrieve every schema belonging to a vendor.
@@ -168,7 +168,7 @@ object SchemaActor {
    * @param permission API key's permission
    */
   case class GetSchemasFromVendor(vendors: List[String], owner: String,
-    permission: String, includeMetadata: Boolean)
+    permission: String, includeMetadata: Boolean, isDraft: Boolean)
 
   /**
    * Message to send in order to retrieve metadata about every schema belonging
@@ -178,7 +178,7 @@ object SchemaActor {
    * @param permission API key's permission
    */
   case class GetMetadataFromVendor(vendors: List[String], owner: String,
-    permission: String)
+    permission: String, isDraft: Boolean)
 
   /**
    * Message to send in order to validate that a schema is self-describing.
@@ -217,40 +217,40 @@ class SchemaActor(serverConfig: ServerConfig) extends Actor {
    */
   def receive = {
 
-    case AddSchema(v, n, f, vs, s, o, p, i) =>
-      sender ! schema.add(v, n, f, vs, s, o, p, i)
+    case AddSchema(v, n, f, vs, dn, s, o, p, i, d) =>
+      sender ! schema.add(v, n, f, vs, dn, s, o, p, i, d)
 
-    case UpdateSchema(v, n, f, vs, s, o, p, i) =>
-      sender ! schema.update(v, n, f, vs, s, o, p, i)
+    case UpdateSchema(v, n, f, vs, dn, s, o, p, i, d) =>
+      sender ! schema.update(v, n, f, vs, dn, s, o, p, i, d)
 
-    case DeleteSchema(v, n, f, vs, o, p, i) =>
-      sender ! schema.delete(v, n, f, vs, o, p, i)
+    case DeleteSchema(v, n, f, vs, dn, o, p, i, d) =>
+      sender ! schema.delete(v, n, f, vs, dn, o, p, i, d)
 
-    case GetPublicSchemas(o, p, i) => sender ! schema.getPublicSchemas(o, p, i)
+    case GetPublicSchemas(o, p, i, d) => sender ! schema.getPublicSchemas(o, p, i, d)
 
-    case GetPublicMetadata(o, p) => sender ! schema.getPublicMetadata(o, p)
+    case GetPublicMetadata(o, p, i) => sender ! schema.getPublicMetadata(o, p, i)
 
-    case GetSchema(v, n, f, vs, o, p, i) => sender ! schema.get(v, n, f, vs, o, p, i)
+    case GetSchema(v, n, f, vs, dn, o, p, i, d) => sender ! schema.get(v, n, f, vs, dn, o, p, i, d)
 
-    case GetMetadata(v, n, f, vs, o, p) =>
-      sender ! schema.getMetadata(v, n, f, vs, o, p)
+    case GetMetadata(v, n, f, vs, dn, o, p, i) =>
+      sender ! schema.getMetadata(v, n, f, vs, dn, o, p, i)
 
-    case GetSchemasFromFormat(v, n, f, o, p, i) =>
-      sender ! schema.getFromFormat(v, n, f, o, p, i)
+    case GetSchemasFromFormat(v, n, f, o, p, i, d) =>
+      sender ! schema.getFromFormat(v, n, f, o, p, i, d)
 
-    case GetMetadataFromFormat(v, n, f, o, p) =>
-      sender ! schema.getMetadataFromFormat(v, n, f, o, p)
+    case GetMetadataFromFormat(v, n, f, o, p, i) =>
+      sender ! schema.getMetadataFromFormat(v, n, f, o, p, i)
 
-    case GetSchemasFromName(v, n, o, p, i) =>
-      sender ! schema.getFromName(v, n, o, p, i)
+    case GetSchemasFromName(v, n, o, p, i, d) =>
+      sender ! schema.getFromName(v, n, o, p, i, d)
 
-    case GetMetadataFromName(v, n, o, p) =>
-      sender ! schema.getMetadataFromName(v, n, o, p)
+    case GetMetadataFromName(v, n, o, p, i) =>
+      sender ! schema.getMetadataFromName(v, n, o, p, i)
 
-    case GetSchemasFromVendor(v, o, p, i) => sender ! schema.getFromVendor(v, o, p, i)
+    case GetSchemasFromVendor(v, o, p, i, d) => sender ! schema.getFromVendor(v, o, p, i, d)
 
-    case GetMetadataFromVendor(v, o, p) =>
-      sender ! schema.getMetadataFromVendor(v, o, p)
+    case GetMetadataFromVendor(v, o, p, i) =>
+      sender ! schema.getMetadataFromVendor(v, o, p, i)
 
     case ValidateSchema(s, f, p) => sender ! schema.validateSchema(s, f, p)
 

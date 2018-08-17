@@ -28,9 +28,9 @@ object BuildSettings {
   lazy val basicSettings = Seq[Setting[_]](
     name                  :=  "igluctl",
     organization          :=  "com.snowplowanalytics",
-    version               :=  "0.4.1",
+    version               :=  "0.5.0",
     description           :=  "Iglu Command Line Interface",
-    scalaVersion          :=  "2.12.4",
+    scalaVersion          :=  "2.11.12",
     scalacOptions         :=  Seq(
       "-deprecation",
       "-encoding", "UTF-8",
