@@ -18,7 +18,7 @@ trait syntax {
   /**
     * Ops class, adding postfix `attachSchemaKey` method and its
     * alias `makeSelfDescribing` to all types with instance of
-    * [[ExtractSchemaKey]] type class
+    * `ExtractSchemaKey` type class
     *
     * @param entity original entity without Schema key
     * @tparam E entity type supposed to be able to merge-in [[SchemaKey]]
@@ -35,7 +35,7 @@ trait syntax {
   /**
     * Ops class, adding postfix `attachSchemaMap` method and its
     * alias `makeSelfDescribing` to all types with instance of
-    * [[ExtractSchemaMap]] type class
+    * `ExtractSchemaMap` type class
     *
     * @param entity original entity without Schema key
     * @tparam E entity type supposed to be able to merge-in [[SchemaKey]]
@@ -53,7 +53,7 @@ trait syntax {
 
   /**
     * Ops class, adding postfix parameterless `extractSchemaKey` method
-    * to all types with instance of [[ExtractSchemaKey]] type class
+    * to all types with instance of `ExtractSchemaKey` type class
     *
     * @param entity original entity (Schema or instance) bearing [[SchemaKey]]
     * @tparam E entity type supposed to be able to extract [[SchemaKey]]
@@ -88,7 +88,7 @@ trait syntax {
 
   /**
     * Ops class, adding postfix parameterless `extractSchemaMap` method
-    * to all types with instance of [[ExtractSchemaMap]] type class
+    * to all types with instance of `ExtractSchemaMap` type class
     *
     * @param entity original entity (Schema or instance) bearing [[SchemaMap]]
     * @tparam E entity type supposed to be able to extract [[SchemaMap]]
@@ -101,13 +101,13 @@ trait syntax {
       implicitly[ExtractSchemaMap[E]].extractSchemaMap(entity)
 
     /**
-      * Alias for [[extractSchemaMap]]
+      * Alias for `extractSchemaMap`
       */
     def getSchemaMap: Option[SchemaMap] =
       extractSchemaMap
 
     /**
-      * Unsafely extract [[SchemaMap]]. Must be used only on types where it
+      * Unsafely extract `SchemaMap`. Must be used only on types where it
       * presented for sure, like case classes
       *
       * @return not-wrapped SchemaMap
@@ -122,7 +122,7 @@ trait syntax {
   }
 
   /**
-    * Ops methods for [[ToData]] type class
+    * Ops methods for `ToData` type class
     */
   implicit class ToDataOps[E: ToData](instance: E) {
     def toData: Option[SelfDescribingData[E]] =
@@ -130,7 +130,7 @@ trait syntax {
   }
 
   /**
-    * Ops methods for [[ToSchema]] type class
+    * Ops methods for `ToSchema` type class
     */
   implicit class ToSchemaOps[E: ToSchema](schema: E) {
     def toSchema: Option[SelfDescribingSchema[E]] =

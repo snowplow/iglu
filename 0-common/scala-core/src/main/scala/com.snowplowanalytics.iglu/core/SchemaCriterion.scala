@@ -53,7 +53,7 @@ final case class SchemaCriterion(
    *
    * @param entities list of Self-describing instances (or Schemas)
    * @tparam E type of Self-describing entity, having
-   *           an [[ExtractSchemaKey]] instance in scope
+   *           an `ExtractSchemaKey` instance in scope
    * @return list of matching entities
    */
   def pickFrom[E: ExtractSchemaKey](entities: Seq[E]): Seq[E] =
