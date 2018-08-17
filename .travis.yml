@@ -6,7 +6,6 @@ jdk:
 script:
 - cd 2-repositories/iglu-server
 - ./scripts/create-test-user.bash
-- sbt test
 - cd ../..
 before_deploy:
   - pip install --user release-manager==0.3.0

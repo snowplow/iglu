@@ -14,12 +14,12 @@ package com.snowplowanalytics.iglu.core
 package typeclasses
 
 /**
- * This type class can be instantiated for any type [[E]] which can bear its
+ * This type class can be instantiated for any type `E` which can bear its
  * description as [[SchemaKey]]
  *
  * Unlike [[AttachSchemaKey]] this type class makes possible to *only* extract
- * description from entity. Also it doesn't assume that type [[E]] *with*
- * description is the same [[E]] without it, so it can be instantiated for not
+ * description from entity. Also it doesn't assume that type `E` *with*
+ * description is the same `E` without it, so it can be instantiated for not
  * only JSON-like structures, but for case classes as well.
  * But in most cases these type classes can be instantiated for same types.
  *

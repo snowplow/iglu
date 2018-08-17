@@ -57,7 +57,7 @@ object SchemaKey {
                                         // Extract whole SchemaVer within single group
 
   /**
-   * Default [[Ordering]] instance for [[SchemaKey]]
+   * Default `Ordering` instance for [[SchemaKey]]
    * Sort keys alphabetically AND by ascending SchemaVer
    * (so initial Schemas will be in the beginning)
    *

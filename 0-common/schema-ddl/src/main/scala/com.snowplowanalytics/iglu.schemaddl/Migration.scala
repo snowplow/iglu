@@ -164,9 +164,9 @@ object Migration {
 
   /**
    * Map each single Schema to List of subsequent Schemas
-   * 1-0-0 -> [[1-0-1], [1-0-1, 1-0-2], [1-0-1, 1-0-2, 1-0-3]]
-   * 1-0-1 -> [[1-0-2], [1-0-2, 1-0-3]]
-   * 1-0-2 -> [[1-0-3]]
+   * 1-0-0 -> List([1-0-1], [1-0-1, 1-0-2], [1-0-1, 1-0-2, 1-0-3])
+   * 1-0-1 -> List([1-0-2], [1-0-2, 1-0-3])
+   * 1-0-2 -> List([1-0-3])
    *
    * @param schemas list of self-describing schemas
    * @return list of pairs of schema and its targets
@@ -182,7 +182,7 @@ object Migration {
 
   /**
    * Return list of non-empty initial segments of sequence
-   * [1,2,3,4] -> [[1,2,3,4], [1,2,3], [1,2], [1]]
+   * [1,2,3,4] -> List([1,2,3,4], [1,2,3], [1,2], [1])
    *
    * @param xs original sequence
    * @return list of non-empty initial segments ordered by descendence

@@ -67,7 +67,7 @@ object SchemaVer {
       "((?:0|[1-9][0-9]*)|\\?)$").r   // ADDITION
 
   /**
-   * Default [[Ordering]] instance for [[SchemaVer]]
+   * Default `Ordering` instance for [[SchemaVer]]
    * making initial Schemas first and latest Schemas last
    */
   implicit val ordering: Ordering[SchemaVer] =
