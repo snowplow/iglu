@@ -65,7 +65,7 @@ object SchemaMap {
       "(?:-(?:0|[1-9][0-9]*)){2})$").r
 
   /**
-    * Default [[Ordering]] instance for [[SchemaKey]]
+    * Default `Ordering` instance for [[SchemaKey]]
     * Sort keys alphabetically AND by ascending SchemaVer
     * (so initial Schemas will be in the beginning)
     *

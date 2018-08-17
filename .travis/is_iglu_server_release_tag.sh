@@ -1,6 +1,9 @@
 #!/bin/bash
 
+set -e
+
 tag=$1
+
 cicd=${tag:0:12}
 release=${tag:12}
 

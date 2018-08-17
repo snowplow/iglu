@@ -26,12 +26,12 @@ import typeclasses.{ NormalizeData, StringifyData, ToData }
   */
 final case class SelfDescribingData[D](schema: SchemaKey, data: D) {
   /**
-    * Render data instance to its base type [[D]]
+    * Render data instance to its base type `D`
     */
   def normalize(implicit ev: NormalizeData[D]): D = ev.normalize(this)
 
   /**
-    * Render data instance as [[String]]
+    * Render data instance as `String`
     */
   def asString(implicit ev: StringifyData[D]): String = ev.asString(this)
 }
