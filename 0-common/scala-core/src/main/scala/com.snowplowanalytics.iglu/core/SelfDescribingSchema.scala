@@ -26,12 +26,12 @@ import typeclasses.{NormalizeSchema, StringifySchema, ToSchema}
   */
 final case class SelfDescribingSchema[S](self: SchemaMap, schema: S) {
   /**
-    * Render Schema to its base type [[S]]
+    * Render Schema to its base type `S`
     */
   def normalize(implicit ev: NormalizeSchema[S]): S = ev.normalize(this)
 
   /**
-    * Render Schema as [[String]]
+    * Render Schema as `String`
     */
   def asString(implicit ev: StringifySchema[S]): String = ev.asString(this)
 }

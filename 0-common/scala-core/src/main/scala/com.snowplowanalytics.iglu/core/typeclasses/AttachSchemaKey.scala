@@ -14,8 +14,8 @@ package com.snowplowanalytics.iglu.core
 package typeclasses
 
 /**
- * This type class can be instantiated for any type [[E]] which after
- * attaching [[SchemaKey]] to it will remain same [[E]] (like Self-describing
+ * This type class can be instantiated for any type `E` which after
+ * attaching [[SchemaKey]] to it will remain same `E` (like Self-describing
  * JSON - same `JValue` before and after).
  *
  * Unlike [[ExtractSchemaKey]] this type class makes possible also to attach
@@ -38,7 +38,7 @@ package typeclasses
  */
 trait AttachSchemaKey[E] extends ExtractSchemaKey[E] {
   /**
-   * Attach (merge-in) [[SchemaKey]] into entity of type [[E]]
+   * Attach (merge-in) [[SchemaKey]] into entity of type `E`
    *
    * @param schemaKey Schema description or reference to it
    * @param entity some entity that can be Self-described
