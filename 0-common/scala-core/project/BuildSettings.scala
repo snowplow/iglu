@@ -21,8 +21,8 @@ object BuildSettings {
   lazy val commonSettings = Seq[Setting[_]](
     organization                        := "com.snowplowanalytics",
     version                             := "0.3.0",
-    scalaVersion                        := "2.12.4",
-    crossScalaVersions                  := Seq("2.11.8", "2.12.4"),
+    scalaVersion                        := "2.12.6",
+    crossScalaVersions                  := Seq("2.11.12", "2.12.6"),
     scalacOptions                       := compilerFlags.value,
     scalacOptions in (Compile, console) --=
       Seq("-Ywarn-unused:imports", "-Xfatal-warnings")
@@ -114,8 +114,7 @@ object BuildSettings {
         ))
       else if (version.startsWith("2.11."))
         allScalacFlags.diff(Seq(
-          "-Ypartial-unification",        // not available
-          "-Xlint:constant",
+          "-Xlint:constant",              // not available
           "-Ywarn-extra-implicit"
         )).filterNot(_.startsWith("-Ywarn-unused:"))
       else allScalacFlags
