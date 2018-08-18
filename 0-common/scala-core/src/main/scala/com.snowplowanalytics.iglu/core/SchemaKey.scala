@@ -15,16 +15,17 @@ package core
 
 import scala.util.matching.Regex
 
+import typeclasses.ExtractSchemaKey
+
 /**
- * Entity describing schema of data.
- * Can have known or unknown `SchemaVer`. Extracted from `schema` key.
- * Duality of `SchemaMap`
+ * Entity describing schema of data, Duality of `SchemaMap`
+ * Unlike `PartialSchemaKey` it always has full known version
  */
-case class SchemaKey(
+final case class SchemaKey(
   vendor: String,
   name: String,
   format: String,
-  version: SchemaVer) {
+  version: SchemaVer.Full) {
 
   /**
    * Converts the SchemaKey back to an Iglu-format schema URI
@@ -33,6 +34,10 @@ case class SchemaKey(
    */
   def toSchemaUri: String =
     s"iglu:$vendor/$name/$format/${version.asString}"
+
+  /** Lossy conversion to partial schema key */
+  def asPartial: PartialSchemaKey =
+    PartialSchemaKey(vendor, name, format, version)
 }
 
 /**
@@ -50,8 +55,6 @@ object SchemaKey {
     "([1-9][0-9]*" +                    // MODEL (cannot start with 0)
     "(?:-(?:0|[1-9][0-9]*)){2})$").r    // REVISION and ADDITION
                                         // Extract whole SchemaVer within single group
-
-  implicit val versionOrdering: Ordering[SchemaVer] = SchemaVer.ordering
 
   /**
    * Default [[Ordering]] instance for [[SchemaKey]]
@@ -82,7 +85,14 @@ object SchemaKey {
    */
   def fromUri(schemaUri: String): Option[SchemaKey] = schemaUri match {
     case schemaUriRegex(vnd, n, f, ver) =>
-      SchemaVer.parse(ver).map(SchemaKey(vnd, n, f, _))
+      SchemaVer.parse(ver).flatMap {
+        case full: SchemaVer.Full => Some(SchemaKey(vnd, n, f, full))
+        case _ => None
+      }
     case _ => None
   }
+
+  /** Try to decode `E` as `SchemaKey[E]` */
+  def parse[E: ExtractSchemaKey](e: E): Option[SchemaKey] =
+    implicitly[ExtractSchemaKey[E]].extractSchemaKey(e)
 }

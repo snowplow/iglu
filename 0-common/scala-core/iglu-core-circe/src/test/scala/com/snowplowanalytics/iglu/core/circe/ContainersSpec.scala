@@ -19,7 +19,7 @@ import cats.syntax.either._
 
 // circe
 import io.circe._
-import io.circe.parser.parse
+import io.circe.literal._
 
 // This library
 import com.snowplowanalytics.iglu.core._
@@ -38,110 +38,35 @@ class ContainersSpec extends Specification { def is = s2"""
 
   def e1 = {
 
-    val result: Json = parse(
+    val result: Json =
+      json"""
+        {
+         "schema": "iglu:com.snowplowanalytics.snowplow/geolocation_context/jsonschema/1-1-0",
+         "data": {
+          "latitude": 32.2,
+          "longitude": 53.23,
+          "speed": 40
+         }
+        }
       """
-        |{
-        | "schema": "iglu:com.snowplowanalytics.snowplow/geolocation_context/jsonschema/1-1-0",
-        | "data": {
-        |  "latitude": 32.2,
-        |  "longitude": 53.23,
-        |  "speed": 40
-        | }
-        |}
-      """.stripMargin).getOrElse(Json.Null)
 
-    val key = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0))
-    val data = parse(
+    val key = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
+    val data =
+      json"""
+        {
+          "latitude": 32.2,
+          "longitude": 53.23,
+          "speed": 40
+        }
       """
-        |{
-        |  "latitude": 32.2,
-        |  "longitude": 53.23,
-        |  "speed": 40
-        |}
-      """.stripMargin).getOrElse(Json.Null)
 
     result.toData must beSome(SelfDescribingData(key, data))
   }
 
   def e2 = {
 
-    val result: Json = parse(
-      """
-        |{
-        |	"self": {
-        |		"vendor": "com.acme",
-        |		"name": "keyvalue",
-        |		"format": "jsonschema",
-        |		"version": "1-1-0"
-        |	},
-        |	"type": "object",
-        |	"properties": {
-        |		"name": { "type": "string" },
-        |		"value": { "type": "string" }
-        |	}
-        |}
-      """.stripMargin).getOrElse(Json.Null)
-
-    val self = SchemaMap("com.acme", "keyvalue", "jsonschema", SchemaVer.Full(1,1,0))
-    val schema = parse(
-      """
-        |{
-        |	"type": "object",
-        |	"properties": {
-        |		"name": { "type": "string" },
-        |		"value": { "type": "string" }
-        | }
-        |}
-      """.stripMargin).getOrElse(Json.Null)
-
-    // With AttachTo[JValue] with ToData[JValue] in scope .toSchema won't be even available
-    result.toSchema must beSome(SelfDescribingSchema(self, schema))
-  }
-
-  def e3 = {
-
-    val schema = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0))
-    val data: Json = parse(
-      """
-        |{
-        |  "latitude": 32.2,
-        |  "longitude": 53.23,
-        |  "speed": 40
-        |}
-      """.stripMargin).getOrElse(Json.Null)
-
-    val expected: Json = parse(
-      """
-        |{
-        | "schema": "iglu:com.snowplowanalytics.snowplow/geolocation_context/jsonschema/1-1-0",
-        | "data": {
-        |  "latitude": 32.2,
-        |  "longitude": 53.23,
-        |  "speed": 40
-        | }
-        |}
-      """.stripMargin).getOrElse(Json.Null)
-
-    val result = SelfDescribingData(schema, data).normalize
-    result must beEqualTo(expected)
-  }
-
-  def e4 = {
-
-    val self = SchemaMap("com.acme", "keyvalue", "jsonschema", SchemaVer.Full(1,1,0))
-    val schema: Json = parse(
-      """
-        |{
-        |	"type": "object",
-        |	"properties": {
-        |		"name": { "type": "string" },
-        |		"value": { "type": "string" }
-        | }
-        |}
-      """.stripMargin).getOrElse(Json.Null)
-
-    val expected: Json = parse(
-      """
+    val result: Json =
+      json"""
         {
         	"self": {
         		"vendor": "com.acme",
@@ -155,7 +80,82 @@ class ContainersSpec extends Specification { def is = s2"""
         		"value": { "type": "string" }
         	}
         }
-      """).getOrElse(Json.Null)
+      """
+
+    val self = SchemaMap("com.acme", "keyvalue", "jsonschema", SchemaVer.Full(1,1,0))
+    val schema =
+      json"""
+        {
+        	"type": "object",
+        	"properties": {
+        		"name": { "type": "string" },
+        		"value": { "type": "string" }
+         }
+        }
+      """
+
+    // With AttachTo[JValue] with ToData[JValue] in scope .toSchema won't be even available
+    result.toSchema must beSome(SelfDescribingSchema(self, schema))
+  }
+
+  def e3 = {
+
+    val schema = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
+    val data: Json =
+      json"""
+        {
+          "latitude": 32.2,
+          "longitude": 53.23,
+          "speed": 40
+        }
+      """
+
+    val expected: Json =
+      json"""
+        {
+         "schema": "iglu:com.snowplowanalytics.snowplow/geolocation_context/jsonschema/1-1-0",
+         "data": {
+          "latitude": 32.2,
+          "longitude": 53.23,
+          "speed": 40
+         }
+        }
+      """
+
+    val result = SelfDescribingData(schema, data).normalize
+    result must beEqualTo(expected)
+  }
+
+  def e4 = {
+
+    val self = SchemaMap("com.acme", "keyvalue", "jsonschema", SchemaVer.Full(1,1,0))
+    val schema: Json =
+      json"""
+        {
+        	"type": "object",
+        	"properties": {
+        		"name": { "type": "string" },
+        		"value": { "type": "string" }
+         }
+        }
+      """
+
+    val expected: Json =
+      json"""
+        {
+        	"self": {
+        		"vendor": "com.acme",
+        		"name": "keyvalue",
+        		"format": "jsonschema",
+        		"version": "1-1-0"
+        	},
+        	"type": "object",
+        	"properties": {
+        		"name": { "type": "string" },
+        		"value": { "type": "string" }
+        	}
+        }
+      """
 
     val result = SelfDescribingSchema(self, schema)
     result.normalize must beEqualTo(expected)
@@ -163,15 +163,15 @@ class ContainersSpec extends Specification { def is = s2"""
 
   def e5 = {
 
-    val schema = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0))
-    val data: Json = parse(
+    val schema = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
+    val data: Json =
+      json"""
+        {
+          "latitude": 32.2,
+          "longitude": 53.23,
+          "speed": 40
+        }
       """
-        |{
-        |  "latitude": 32.2,
-        |  "longitude": 53.23,
-        |  "speed": 40
-        |}
-      """.stripMargin).getOrElse(Json.Null)
 
     val expected: String =
       """{"schema":"iglu:com.snowplowanalytics.snowplow/geolocation_context/jsonschema/1-1-0","data":{"latitude":32.2,"longitude":53.23,"speed":40}}"""
@@ -183,16 +183,16 @@ class ContainersSpec extends Specification { def is = s2"""
   def e6 = {
 
     val self = SchemaMap("com.acme", "keyvalue", "jsonschema", SchemaVer.Full(1,1,0))
-    val schema: Json = parse(
+    val schema: Json =
+      json"""
+        {
+        	"type": "object",
+        	"properties": {
+        		"name": { "type": "string" },
+        		"value": { "type": "string" }
+         }
+        }
       """
-        |{
-        |	"type": "object",
-        |	"properties": {
-        |		"name": { "type": "string" },
-        |		"value": { "type": "string" }
-        | }
-        |}
-      """.stripMargin).getOrElse(Json.Null)
 
     val expected: String =
       """{"type":"object","properties":{"name":{"type":"string"},"value":{"type":"string"}},"self":{"vendor":"com.acme","name":"keyvalue","format":"jsonschema","version":"1-1-0"}}"""

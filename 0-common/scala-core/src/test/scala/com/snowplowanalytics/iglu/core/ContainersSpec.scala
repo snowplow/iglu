@@ -49,7 +49,7 @@ class ContainersSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    val key = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0))
+    val key = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
     val data = parse(
       """
         |{
@@ -103,7 +103,7 @@ class ContainersSpec extends Specification { def is = s2"""
   def e3 = {
     import IgluCoreCommon.Json4SNormalizeData
 
-    val schema = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0))
+    val schema = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
     val data = parse(
       """
         |{
@@ -169,7 +169,7 @@ class ContainersSpec extends Specification { def is = s2"""
   def e5 = {
     implicit val stringify: StringifyData[JValue] = IgluCoreCommon.StringifyData
 
-    val schema = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0))
+    val schema = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
     val data: JValue = parse(
       """
         |{

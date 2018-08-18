@@ -17,7 +17,7 @@ import cats.syntax.either._
 
 // circe
 import io.circe._
-import io.circe.parser.parse
+import io.circe.literal._
 
 // This library
 import com.snowplowanalytics.iglu.core._
@@ -31,34 +31,34 @@ class DecordersSpec extends Specification { def is = s2"""
   """
 
   def e1 = {
-    val result: Json = parse(
+    val result: Json =
+      json"""
+        {
+        	"self": {
+        		"vendor": "com.acme",
+        		"name": "keyvalue",
+        		"format": "jsonschema",
+        		"version": "1-1-0"
+        	},
+        	"type": "object",
+        	"properties": {
+        		"name": { "type": "string" },
+        		"value": { "type": "string" }
+        	}
+        }
       """
-        |{
-        |	"self": {
-        |		"vendor": "com.acme",
-        |		"name": "keyvalue",
-        |		"format": "jsonschema",
-        |		"version": "1-1-0"
-        |	},
-        |	"type": "object",
-        |	"properties": {
-        |		"name": { "type": "string" },
-        |		"value": { "type": "string" }
-        |	}
-        |}
-      """.stripMargin).getOrElse(Json.Null)
 
     val self = SchemaMap("com.acme", "keyvalue", "jsonschema", SchemaVer.Full(1,1,0))
-    val schema = parse(
+    val schema =
+      json"""
+        {
+        	"type": "object",
+        	"properties": {
+        		"name": { "type": "string" },
+        		"value": { "type": "string" }
+         }
+        }
       """
-        |{
-        |	"type": "object",
-        |	"properties": {
-        |		"name": { "type": "string" },
-        |		"value": { "type": "string" }
-        | }
-        |}
-      """.stripMargin).getOrElse(Json.Null)
 
     // With AttachTo[JValue] with ToData[JValue] in scope .toSchema won't be even available
     result.as[SelfDescribingSchema[Json]] must beRight(SelfDescribingSchema(self, schema))

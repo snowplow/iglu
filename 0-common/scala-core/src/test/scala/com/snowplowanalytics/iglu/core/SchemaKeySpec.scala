@@ -27,6 +27,7 @@ class SchemaKeySpec extends Specification { def is = s2"""
     fail to parse with missing REVISION $e4
     fail to parse with invalid name $e5
     fail to parse with missing ADDITION $e8
+    fail to parse partial schema key $e9
 
   Specification for SchemaKey
     sort entities with SchemaKey $e6
@@ -37,13 +38,13 @@ class SchemaKeySpec extends Specification { def is = s2"""
   def e1 = {
     val uri = "iglu:com.snowplowanalytics.snowplow/mobile_context/jsonschema/1-0-0"
     SchemaKey.fromUri(uri) must beSome(
-      SchemaKey("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", SchemaVer(1,0,0)))
+      SchemaKey("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", SchemaVer.Full(1,0,0)))
   }
 
   def e2 = {
     val uri = "iglu:uk.edu.acme.sub-division/second-event_complex/jsonschema/2-10-32"
     SchemaKey.fromUri(uri) must beSome(
-      SchemaKey("uk.edu.acme.sub-division", "second-event_complex", "jsonschema", SchemaVer(2,10,32)))
+      SchemaKey("uk.edu.acme.sub-division", "second-event_complex", "jsonschema", SchemaVer.Full(2,10,32)))
   }
 
   def e3 = {
@@ -65,7 +66,13 @@ class SchemaKeySpec extends Specification { def is = s2"""
     val uri = "iglu:com.snowplowanalytics.snowplow/mobile.context/jsonschema/1-2-"
     SchemaKey.fromUri(uri) must beNone
   }
-  
+
+  def e9 = {
+    val uri = "iglu:com.snowplowanalytics.snowplow/mobile.context/jsonschema/1-2-?"
+    SchemaKey.fromUri(uri) must beNone
+  }
+
+
   def e6 = {
 
     implicit val ordering = SchemaKey.ordering

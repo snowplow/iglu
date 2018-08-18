@@ -12,12 +12,14 @@
  */
 package com.snowplowanalytics.iglu.core
 
+import typeclasses.ExtractSchemaMap
+
 /**
   * Entity describing a schema object itself
   * Has known `SchemaVer`, extracted from `self` Schema's subobject
   * Duality of `SchemaKey`
   */
-case class SchemaMap(
+final case class SchemaMap(
   vendor: String,
   name: String,
   format: String,
@@ -40,7 +42,6 @@ case class SchemaMap(
   /** Convert to its data-duality - `SchemaKey` */
   def toSchemaKey: SchemaKey =
     SchemaKey(vendor, name, format, version)
-
 }
 
 object SchemaMap {
@@ -62,8 +63,6 @@ object SchemaMap {
       "([a-zA-Z0-9-_]+)/" +
       "([1-9][0-9]*" +
       "(?:-(?:0|[1-9][0-9]*)){2})$").r
-
-  implicit val versionOrdering: Ordering[SchemaVer] = SchemaVer.ordering
 
   /**
     * Default [[Ordering]] instance for [[SchemaKey]]
@@ -91,9 +90,9 @@ object SchemaMap {
     * @return a Validation-boxed SchemaKey for
     *         Success, and an error String on Failure
     */
-  def fromUri(schemaUri: String): Option[SchemaKey] = schemaUri match {
+  def fromUri(schemaUri: String): Option[SchemaMap] = schemaUri match {
     case schemaUriRegex(vnd, n, f, ver) =>
-      SchemaVer.parse(ver).map(SchemaKey(vnd, n, f, _))
+      SchemaVer.parseFull(ver).map(SchemaMap(vnd, n, f, _))
     case _ => None
   }
 
@@ -114,5 +113,9 @@ object SchemaMap {
       }
     case _ => None
   }
+
+  /** Try to decode `E` as `SchemaMap[E]` */
+  def parse[E: ExtractSchemaMap](e: E): Option[SchemaMap] =
+    implicitly[ExtractSchemaMap[E]].extractSchemaMap(e)
 
 }

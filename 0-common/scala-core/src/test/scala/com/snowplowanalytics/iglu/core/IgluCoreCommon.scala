@@ -166,7 +166,7 @@ object IgluCoreCommon {
           entity.vendor,
           entity.name,
           entity.format,
-          SchemaVer(entity.model, entity.revision, entity.addition)
+          SchemaVer.Full(entity.model, entity.revision, entity.addition)
         )
       )
   }

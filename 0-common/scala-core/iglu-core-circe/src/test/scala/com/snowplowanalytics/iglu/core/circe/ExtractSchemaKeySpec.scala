@@ -19,7 +19,7 @@ import cats.syntax.either._
 
 // circe
 import io.circe._
-import io.circe.parser.parse
+import io.circe.literal._
 
 // This library
 import com.snowplowanalytics.iglu.core._
@@ -41,55 +41,52 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
 
   def e1 = {
 
-    val json: Json = parse(
+    val json: Json =
+      json"""
+        {
+          "schema": "iglu:com.acme.useless/null/jsonschema/2-0-3",
+          "data": null
+        }
       """
-        |{
-        |  "schema": "iglu:com.acme.useless/null/jsonschema/2-0-3",
-        |  "data": null
-        |}
-      """.stripMargin).getOrElse(Json.Null)
 
     json.getSchemaKeyUnsafe
 
     json.getSchemaKey must beSome(
-      SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer(2,0,3))
+      SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer.Full(2,0,3))
     )
   }
 
   def e2 = {
 
-    val json: Json = parse(
+    val json: Json =
+      json"""
+        {
+          "schema": "iglu:com.acme.useless/null/jsonschema/2-0-3",
+          "data": null
+        }
       """
-        |{
-        |  "schema": "iglu:com.acme.useless/null/jsonschema/2-0-3",
-        |  "data": null
-        |}
-      """.stripMargin).getOrElse(Json.Null)
 
-    json.getSchemaKeyUnsafe must beEqualTo(SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer(2,0,3)))
+    json.getSchemaKeyUnsafe must beEqualTo(SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer.Full(2,0,3)))
   }
 
   def e3 = {
 
-    val json: Json = parse(
+    val json: Json =
+      json"""
+        {
+          "schema": "iglu:com.acme.useless/null/jsonschema/2-0-3",
+          "data": null
+        }
       """
-        |{
-        |  "schema": "iglu:com.acme.useless/null/jsonschema/2-0-3",
-        |  "data": null
-        |}
-      """.stripMargin).getOrElse(Json.Null)
 
     json.getSchemaKey must beSome(
-      SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer(2,0,3))
+      SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer.Full(2,0,3))
     )
   }
 
   def e4 = {
 
-    val json: Json = parse(
-      """
-        |{ "data": null }
-      """.stripMargin).getOrElse(Json.Null)
+    val json: Json = json"""{ "data": null }"""
 
     json.getSchemaKeyUnsafe must throwA[RuntimeException].like {
       case e => e.getMessage must startingWith("Cannot extract SchemaKey from object ")
@@ -98,22 +95,22 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
 
   def e5 = {
 
-    val json: Json = parse(
+    val json: Json =
+      json"""
+        {
+        	"self": {
+        		"vendor": "com.acme",
+        		"name": "keyvalue",
+        		"format": "jsonschema",
+        		"version": "1-1-0"
+        	},
+        	"type": "object",
+        	"properties": {
+        		"name": { "type": "string" },
+        		"value": { "type": "string" }
+        	}
+        }
       """
-        |{
-        |	"self": {
-        |		"vendor": "com.acme",
-        |		"name": "keyvalue",
-        |		"format": "jsonschema",
-        |		"version": "1-1-0"
-        |	},
-        |	"type": "object",
-        |	"properties": {
-        |		"name": { "type": "string" },
-        |		"value": { "type": "string" }
-        |	}
-        |}
-      """.stripMargin).toOption.get
 
     json.getSchemaMap must beSome(
       SchemaMap("com.acme", "keyvalue", "jsonschema", SchemaVer.Full(1,1,0))
@@ -123,22 +120,22 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
   def e6 = {
 
     // SchemaVer cannot have 0 as MODEL
-    val json: Json = parse(
+    val json: Json =
+      json"""
+        {
+        	"self": {
+        		"vendor": "com.acme",
+        		"name": "keyvalue",
+        		"format": "jsonschema",
+        		"version": "0-1-0"
+        	},
+        	"type": "object",
+        	"properties": {
+        		"name": { "type": "string" },
+        		"value": { "type": "string" }
+        	}
+        }
       """
-        |{
-        |	"self": {
-        |		"vendor": "com.acme",
-        |		"name": "keyvalue",
-        |		"format": "jsonschema",
-        |		"version": "0-1-0"
-        |	},
-        |	"type": "object",
-        |	"properties": {
-        |		"name": { "type": "string" },
-        |		"value": { "type": "string" }
-        |	}
-        |}
-      """.stripMargin).getOrElse(Json.Null)
 
     json.getSchemaKey must beNone
   }
@@ -146,13 +143,13 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
   def e7 = {
 
     // SchemaVer cannot have preceding 0 in REVISION
-    val json: Json = parse(
+    val json: Json =
+      json"""
+        {
+          "schema": "iglu:com.acme.useless/null/jsonschema/2-01-3",
+          "data": null
+        }
       """
-        |{
-        |  "schema": "iglu:com.acme.useless/null/jsonschema/2-01-3",
-        |  "data": null
-        |}
-      """.stripMargin).getOrElse(Json.Null)
 
     json.getSchemaKey must beNone
   }

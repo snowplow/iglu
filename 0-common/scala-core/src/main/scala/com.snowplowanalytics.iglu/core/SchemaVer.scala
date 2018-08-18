@@ -33,7 +33,7 @@ object SchemaVer {
     Full(model, revision, addition)
 
   /** Explicit, fully known version. Can be attached to both data and schema */
-  case class Full(model: Int, revision: Int, addition: Int) extends SchemaVer {
+  final case class Full(model: Int, revision: Int, addition: Int) extends SchemaVer {
     def asString = s"$model-$revision-$addition"
 
     def getModel = Some(model)
@@ -42,7 +42,7 @@ object SchemaVer {
   }
 
   /** Partially known version. Can be attached only to data, schema need to be looked-up or inferenced */
-  case class Partial(model: Option[Int], revision: Option[Int], addition: Option[Int]) extends SchemaVer {
+  final case class Partial(model: Option[Int], revision: Option[Int], addition: Option[Int]) extends SchemaVer {
     def asString = s"${model.getOrElse("?")}-${revision.getOrElse("?")}-${addition.getOrElse("?")}"
 
     def getModel = model
@@ -70,20 +70,27 @@ object SchemaVer {
    * Default [[Ordering]] instance for [[SchemaVer]]
    * making initial Schemas first and latest Schemas last
    */
-  val ordering = Ordering.by { (schemaVer: SchemaVer) =>
-    (schemaVer.getModel, schemaVer.getRevision, schemaVer.getAddition)
-  }
+  implicit val ordering: Ordering[SchemaVer] =
+    Ordering.by { (schemaVer: SchemaVer) =>
+      (schemaVer.getModel, schemaVer.getRevision, schemaVer.getAddition)
+    }
 
-  /**
-   * Extract the model, revision, and addition of the SchemaVer
-   *
-   * @return some SchemaVer or None
-   */
-  def parse(version: String): Option[SchemaVer] = version match {
+  implicit val orderingFull: Ordering[Full] =
+    Ordering.by { (schemaVer: SchemaVer.Full) =>
+      (schemaVer.model, schemaVer.revision, schemaVer.addition)
+    }
+
+  /** Extract the model, revision, and addition of the SchemaVer (possibly unknown) */
+  def parse(version: String): Option[SchemaVer] =
+    parseFull(version).orElse { version match {
+      case schemaVerPartialRegex(IntString(m), IntString(r), IntString(a)) =>
+        Some(SchemaVer.Partial(m, r, a))
+    } }
+
+  /** Extract the model, revision, and addition of the SchemaVer (always known) */
+  def parseFull(version: String): Option[SchemaVer.Full] = version match {
     case schemaVerFullRegex(m, r, a) =>
       Some(SchemaVer.Full(m.toInt, r.toInt, a.toInt))
-    case schemaVerPartialRegex(IntString(m), IntString(r), IntString(a)) =>
-      Some(SchemaVer.Partial(m, r, a))
     case _ =>
       None
   }

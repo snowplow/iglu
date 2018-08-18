@@ -19,7 +19,7 @@ import syntax._
 /**
  * Class to filter Schemas by [[SchemaKey]]
  */
-case class SchemaCriterion(
+final case class SchemaCriterion(
   vendor: String,
   name: String,
   format: String,

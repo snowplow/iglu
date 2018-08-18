@@ -24,7 +24,7 @@ import typeclasses.{ NormalizeData, StringifyData, ToData }
   * @tparam D generic type to represent data instance type
   *           (usually it is some JSON-library's base trait)
   */
-case class SelfDescribingData[D](schema: SchemaKey, data: D) {
+final case class SelfDescribingData[D](schema: SchemaKey, data: D) {
   /**
     * Render data instance to its base type [[D]]
     */
@@ -37,6 +37,7 @@ case class SelfDescribingData[D](schema: SchemaKey, data: D) {
 }
 
 object SelfDescribingData {
+  /** Try to decode `D` as `SelfDescribingData[D]` */
   def parse[D](data: D)(implicit ev: ToData[D]): Option[SelfDescribingData[D]] =
     ev.toData(data)
 }
