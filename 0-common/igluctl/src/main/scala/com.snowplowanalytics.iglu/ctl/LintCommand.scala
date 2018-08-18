@@ -32,7 +32,7 @@ import com.github.fge.jsonschema.core.report.{ ListProcessingReport, ProcessingM
 // Schema DDL
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.{ allLinters, Linter, lint }
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s.Json4sToSchema._
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s.implicits._
 
 // This library
 import GenerateCommand.{Result, Errors, VersionSuccess, Warnings}
