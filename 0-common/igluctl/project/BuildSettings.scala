@@ -13,9 +13,6 @@
  * express or implied.  See the Apache License Version 2.0 for the specific
  * language governing permissions and limitations there under.
  */
-import bintray.{BintrayIvyResolver, BintrayRepo, BintrayCredentials}
-import bintray.BintrayPlugin._
-import bintray.BintrayKeys._
 import sbtassembly.AssemblyPlugin.autoImport._
 import sbtassembly.AssemblyPlugin.defaultShellScript
 import sbt._
@@ -26,11 +23,6 @@ object BuildSettings {
 
   // Basic settings for our app
   lazy val basicSettings = Seq[Setting[_]](
-    name                  :=  "igluctl",
-    organization          :=  "com.snowplowanalytics",
-    version               :=  "0.4.1",
-    description           :=  "Iglu Command Line Interface",
-    scalaVersion          :=  "2.12.4",
     scalacOptions         :=  Seq(
       "-deprecation",
       "-encoding", "UTF-8",
@@ -54,43 +46,20 @@ object BuildSettings {
       "-source", "1.8",
       "-target", "1.8"
     ),
-    scalacOptions in Test :=  Seq("-Yrangepos")
+    scalacOptions in Test := Seq("-Yrangepos")
   )
 
-  lazy val scalifySettings = Seq(sourceGenerators in Compile <+= (sourceManaged in Compile, version, name, organization, scalaVersion) map { (d, v, n, o, sv) =>
-    val file = d / "settings.scala"
-    IO.write(file, """package com.snowplowanalytics.iglu.ctl.generated
-                     |object ProjectSettings {
-                     |  val version = "%s"
-                     |  val name = "%s"
-                     |}
-                     |""".stripMargin.format(v, n))
-    Seq(file)
-  })
-
-  // Bintray publish settings
-  lazy val publishSettings = bintraySettings ++ Seq[Setting[_]](
-    licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
-    bintrayOrganization := Some("snowplow"),
-    bintrayRepository := "snowplow-generic",
-    publishMavenStyle := false,
-
-    // Custom Bintray resolver used to publish package with custom Ivy patterns (custom path in Bintray)
-    // It requires ~/.bintray/credentials file and bintrayOrganization setting
-    publishTo in bintray := {
-      for {
-        bintrayOrg     <- bintrayOrganization.value
-        credentials    <- BintrayCredentials.read(bintrayCredentialsFile.value).right.toOption.flatten
-        bintrayRepo     = BintrayRepo(credentials, Some(bintrayOrg), name.value)
-        connectedRepo   = bintrayRepo.client.repo(bintrayOrg, bintrayRepository.value)
-        bintrayPackage  = connectedRepo.get(name.value)
-        ivyResolver     = BintrayIvyResolver(
-          bintrayRepository.value,
-          bintrayPackage.version(version.value),
-          Seq(s"${name.value}_${version.value.replace('-', '_')}.[ext]"),   // Ivy Pattern
-          release = true)
-      } yield new RawRepository(ivyResolver)
-    }
+  lazy val scalifySettings = Seq(
+    sourceGenerators in Compile += Def.task {
+      val file = (sourceManaged in Compile).value / "settings.scala"
+      IO.write(file, """package com.snowplowanalytics.iglu.ctl.generated
+                       |object ProjectSettings {
+                       |  val version = "%s"
+                       |  val name = "%s"
+                       |}
+                       |""".stripMargin.format(version.value, name.value, organization.value, scalaVersion.value))
+      Seq(file)
+    }.taskValue
   )
 
   // Assembly settings
@@ -106,5 +75,5 @@ object BuildSettings {
     mainClass in assembly := Some("com.snowplowanalytics.iglu.ctl.Main")
   )
 
-  lazy val buildSettings = basicSettings ++ scalifySettings ++ publishSettings ++ sbtAssemblySettings
+  lazy val buildSettings = basicSettings ++ scalifySettings ++ sbtAssemblySettings
 }
