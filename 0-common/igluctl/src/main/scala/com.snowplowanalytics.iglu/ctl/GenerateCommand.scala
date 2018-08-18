@@ -451,7 +451,7 @@ object GenerateCommand {
 
     private[ctl] def toSnakeCase: TableDefinition = {
       val snakifiedColumns = getCreateTable.columns.map { column =>
-        val snakified = StringUtils.toSnakeCase(column.columnName)
+        val snakified = StringUtils.snakeCase(column.columnName)
         column.copy(columnName = snakified)
       }
       val statements = ddlFile.statements.map {
