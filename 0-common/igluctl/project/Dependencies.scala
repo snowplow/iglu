@@ -25,7 +25,7 @@ object Dependencies {
     val jaxbImpl         = "2.3.0"
     val activation       = "1.1.1"
     // Scala
-    val schemaddl        = "0.8.0"
+    val schemaddl        = "0.8.0-M5"
     val igluClient       = "0.5.0"
     val scopt            = "3.5.0"
     val scalajHttp       = "2.3.0"
