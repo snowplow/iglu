@@ -287,13 +287,13 @@ object Command {
           action { (x, c) => c.copy(linters = x) }
           valueName "<linters>"
           text "Lint without specified linters, given comma separated\tDefault: None\n" +
-                "\t\t\t   All linters and their explanations are below.\n" +
-                "\t\t\t   rootObject            : Check that root of schema has object type and contains properties\n" +
-                "\t\t\t   unknownFormats        : Check that schema doesn't contain unknown formats\n" +
-                "\t\t\t   numericMinMax         : Check that schema with numeric type contains both minimum and maximum properties\n" +
-                "\t\t\t   stringLength          : Check that schema with string type contains maxLength property or other ways to extract max length\n" +
-                "\t\t\t   optionalNull          : Check that non-required fields have null type\n" +
-                "\t\t\t   description           : Check that property contains description"
+                "\t\t\t   rootObject           - Check that root of schema has object type and contains properties\n" +
+                "\t\t\t   unknownFormats       - Check that schema doesn't contain unknown formats\n" +
+                "\t\t\t   numericMinMax        - Check that schema with numeric type contains both minimum and maximum properties\n" +
+                "\t\t\t   stringLength         - Check that schema with string type contains maxLength property or other ways to extract max length\n" +
+                "\t\t\t   optionalNull         - Check that non-required fields have null type\n" +
+                "\t\t\t   stringMaxLengthRange - Check that possible VARCHAR is in acceptable limits for Redshift\n" +
+                "\t\t\t   description          - Check that property contains description"
       )
   }
 }
