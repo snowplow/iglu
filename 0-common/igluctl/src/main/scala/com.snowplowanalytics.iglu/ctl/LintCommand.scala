@@ -112,7 +112,7 @@ object LintCommand {
 
   /** All lintings that user can skip */
   val OptionalChecks: List[String] =
-    List("rootObject", "unknownFormats", "numericMinMax", "stringLength", "optionalNull", "description")
+    List("rootObject", "unknownFormats", "numericMinMax", "stringLength", "optionalNull", "description", "stringMaxLengthRange")
 
   /**
    * End-of-the-world class, containing info about success/failure of execution
