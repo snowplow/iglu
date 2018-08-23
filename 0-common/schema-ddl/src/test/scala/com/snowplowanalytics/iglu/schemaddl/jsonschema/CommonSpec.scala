@@ -20,7 +20,7 @@ import org.json4s.jackson.JsonMethods.parse
 import org.specs2.Specification
 
 
-import json4s.Json4sToSchema._
+import json4s.implicits._
 import StringProperties._
 
 class CommonSpec extends Specification { def is = s2"""

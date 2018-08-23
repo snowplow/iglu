@@ -13,14 +13,9 @@
 package com.snowplowanalytics.iglu.core
 package typeclasses
 
-// Scala
-import com.snowplowanalytics.iglu.core.SchemaKey
-
-import scala.language.implicitConversions
-
 /**
- * This type class can be instantiated for any type [[E]] which after
- * attaching [[SchemaKey]] to it will remain same [[E]] (like Self-describing
+ * This type class can be instantiated for any type `E` which after
+ * attaching [[SchemaKey]] to it will remain same `E` (like Self-describing
  * JSON - same `JValue` before and after).
  *
  * Unlike [[ExtractSchemaKey]] this type class makes possible also to attach
@@ -43,7 +38,7 @@ import scala.language.implicitConversions
  */
 trait AttachSchemaMap[E] extends ExtractSchemaMap[E] {
   /**
-   * Attach (merge-in) [[SchemaMap]] into schema entity of type [[E]]
+   * Attach (merge-in) [[SchemaMap]] into schema entity of type `E`
    *
    * @param schemaMap Schema description or reference to it
    * @param entity some entity that can be Self-described

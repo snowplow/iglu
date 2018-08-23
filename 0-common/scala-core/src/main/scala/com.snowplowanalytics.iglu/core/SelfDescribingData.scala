@@ -12,7 +12,7 @@
  */
 package com.snowplowanalytics.iglu.core
 
-import typeclasses.{ NormalizeData, StringifyData }
+import typeclasses.{ NormalizeData, StringifyData, ToData }
 
 /**
   * Container for Self-describing data
@@ -24,15 +24,20 @@ import typeclasses.{ NormalizeData, StringifyData }
   * @tparam D generic type to represent data instance type
   *           (usually it is some JSON-library's base trait)
   */
-case class SelfDescribingData[D](schema: SchemaKey, data: D) {
+final case class SelfDescribingData[D](schema: SchemaKey, data: D) {
   /**
-    * Render data instance to its base type [[D]]
+    * Render data instance to its base type `D`
     */
   def normalize(implicit ev: NormalizeData[D]): D = ev.normalize(this)
 
   /**
-    * Render data instance as [[String]]
+    * Render data instance as `String`
     */
   def asString(implicit ev: StringifyData[D]): String = ev.asString(this)
 }
 
+object SelfDescribingData {
+  /** Try to decode `D` as `SelfDescribingData[D]` */
+  def parse[D](data: D)(implicit ev: ToData[D]): Option[SelfDescribingData[D]] =
+    ev.toData(data)
+}

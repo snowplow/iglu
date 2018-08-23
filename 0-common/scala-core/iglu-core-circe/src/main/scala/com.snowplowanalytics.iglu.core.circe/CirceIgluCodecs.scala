@@ -14,7 +14,7 @@ package com.snowplowanalytics.iglu.core.circe
 
 // Cats
 import cats.syntax.either._
-import cats.syntax.cartesian._
+import cats.syntax.apply._
 import cats.instances.option._
 
 // Circe
@@ -27,20 +27,20 @@ import com.snowplowanalytics.iglu.core._
 /**
  * Example of Circe codecs for Iglu entities
  */
-object CirceIgluCodecs {
+trait CirceIgluCodecs {
 
-  val decodeSchemaVer: Decoder[SchemaVer] =
+  final implicit val decodeSchemaVer: Decoder[SchemaVer] =
     Decoder.instance(parseSchemaVer)
 
-  val encodeSchemaVer: Encoder[SchemaVer] =
+  final implicit val encodeSchemaVer: Encoder[SchemaVer] =
     Encoder.instance { schemaVer =>
       Json.fromString(schemaVer.asString)
     }
 
-  val decodeSchemaKey: Decoder[SchemaMap] =
+  final implicit val decodeSchemaKey: Decoder[SchemaMap] =
     Decoder.instance(parseSchemaMap)
 
-  val encodeSchemaMap: Encoder[SchemaMap] =
+  final implicit val encodeSchemaMap: Encoder[SchemaMap] =
     Encoder.instance { key =>
       Json.obj(
         "vendor"  -> Json.fromString(key.vendor),
@@ -50,12 +50,24 @@ object CirceIgluCodecs {
       )
     }
 
-  val encodeSchema: Encoder[SelfDescribingSchema[Json]] =
+  final implicit val decodeSchema: Decoder[SelfDescribingSchema[Json]] =
+    Decoder.instance { hCursor =>
+      for {
+        map <- hCursor.as[JsonObject].map(_.toMap)
+        jsonSchema <- map.get("self") match {
+          case None => Left(DecodingFailure("self-key is not available", hCursor.history))
+          case Some(_) => Right(map - "self")
+        }
+        schemaMap <- parseSchemaMap(hCursor)
+      } yield SelfDescribingSchema(schemaMap, Json.fromJsonObject(JsonObject.fromMap(jsonSchema)))
+    }
+
+  final implicit val encodeSchema: Encoder[SelfDescribingSchema[Json]] =
     Encoder.instance { schema =>
       Json.obj("self" -> schema.self.asJson(encodeSchemaMap)).deepMerge(schema.schema)
     }
 
-  val encodeData: Encoder[SelfDescribingData[Json]] =
+  final implicit val encodeData: Encoder[SelfDescribingData[Json]] =
     Encoder.instance { data =>
       Json.obj("schema" -> Json.fromString(data.schema.toSchemaUri), "data" -> data.data)
     }
@@ -86,7 +98,7 @@ object CirceIgluCodecs {
     } yield schemaKey
 
   private[circe] def selfMapToSchemaMap(selfMap: Map[String, Json], hCursor: HCursor): Either[DecodingFailure, SchemaMap] = {
-    val self = (selfMap.get("vendor") |@| selfMap.get("name") |@| selfMap.get("format") |@| selfMap.get("version")).map {
+    val self = (selfMap.get("vendor"), selfMap.get("name"), selfMap.get("format"), selfMap.get("version")).mapN {
       (v, n, f, ver) =>
         for {
           vendor  <- v.asString
@@ -99,3 +111,5 @@ object CirceIgluCodecs {
     Either.fromOption(self.flatten, DecodingFailure("SchemaKey has incompatible format", hCursor.history))
   }
 }
+
+object CirceIgluCodecs extends CirceIgluCodecs

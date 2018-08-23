@@ -47,7 +47,7 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
       """.stripMargin)
 
     json.getSchemaKey must beSome(
-      SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer(2,0,3))
+      SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer.Full(2,0,3))
     )
   }
 
@@ -61,7 +61,7 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    json.getSchemaKeyUnsafe must beEqualTo(SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer(2,0,3)))
+    json.getSchemaKeyUnsafe must beEqualTo(SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer.Full(2,0,3)))
   }
 
   def e3 = {
@@ -75,7 +75,7 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
       """.stripMargin)
 
     json.getSchemaKey must beSome(
-      SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer(2,0,3))
+      SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer.Full(2,0,3))
     )
   }
 

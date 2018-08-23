@@ -53,7 +53,7 @@ class AttachSchemaKeySpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    val result = data.attachSchemaKey(SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0)))
+    val result = data.attachSchemaKey(SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)))
     result must beEqualTo(expected)
   }
 

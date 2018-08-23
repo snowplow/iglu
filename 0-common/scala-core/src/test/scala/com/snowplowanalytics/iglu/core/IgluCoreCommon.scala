@@ -28,8 +28,6 @@ object IgluCoreCommon {
 
   implicit val formats = IgluJson4sCodecs.formats
 
-  import syntax._
-
   ////////////////////////
   // ExtractFrom Json4s //
   ////////////////////////
@@ -119,8 +117,8 @@ object IgluCoreCommon {
      */
     def getContent(json: JValue): JValue =
       removeSelf(json) match {
-        case content => content
         case JNothing => JNothing
+        case content => content
       }
   }
 
@@ -134,8 +132,8 @@ object IgluCoreCommon {
 
     def getContent(json: JValue): JValue =
       json \ "data" match {
-        case data: JValue => data
         case JNothing => JNothing
+        case data => data
       }
 
     def attachSchemaKey(schemaKey: SchemaKey, instance: JValue): JValue =
@@ -168,7 +166,7 @@ object IgluCoreCommon {
           entity.vendor,
           entity.name,
           entity.format,
-          SchemaVer(entity.model, entity.revision, entity.addition)
+          SchemaVer.Full(entity.model, entity.revision, entity.addition)
         )
       )
   }

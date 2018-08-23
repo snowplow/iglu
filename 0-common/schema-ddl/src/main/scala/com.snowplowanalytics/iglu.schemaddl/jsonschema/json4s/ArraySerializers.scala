@@ -23,8 +23,7 @@ import jsonschema.ArrayProperties._
 object ArraySerializers {
 
   implicit val formats = DefaultFormats
-  import Json4sToSchema._
-  import Json4sFromSchema._
+  import implicits._
 
   object ItemsSerializer extends CustomSerializer[Items](_ => (
     {

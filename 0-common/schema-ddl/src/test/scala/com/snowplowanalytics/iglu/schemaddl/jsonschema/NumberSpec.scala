@@ -19,7 +19,7 @@ import org.json4s.jackson.JsonMethods.parse
 // specs2
 import org.specs2.Specification
 
-import json4s.Json4sToSchema._
+import json4s.implicits._
 
 class NumberSpec extends Specification { def is = s2"""
   Check JSON Schema number-specific properties

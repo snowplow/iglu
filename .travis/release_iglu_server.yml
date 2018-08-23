@@ -19,7 +19,7 @@ packages:
     version  : <%= FUNC['sbt_version(2-repositories/iglu-server/)'] %>
     build_version : <%= ENV['TRAVIS_BUILD_RELEASE_TAG'] %>
     build_commands:
-      - cd 2-repositories/iglu-server && sbt assembly && cd ../..
+      - cd 2-repositories/iglu-server && ./scripts/create-test-user.bash && sbt assembly && cd ../..
 
     # Required: Artifact
     artifacts:

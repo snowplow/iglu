@@ -134,7 +134,6 @@ case class GenerateCommand(
       warnings = schemaVerMessages ++ schemaErrors ++ ddlErrors ++ ddlWarnings)
   }
 
-
   /**
     * Checks if there is any missing schema version in a directory of schemas
     * or if a specific schema file doesn't have version 1-0-0
@@ -451,7 +450,7 @@ object GenerateCommand {
 
     private[ctl] def toSnakeCase: TableDefinition = {
       val snakifiedColumns = getCreateTable.columns.map { column =>
-        val snakified = StringUtils.toSnakeCase(column.columnName)
+        val snakified = StringUtils.snakeCase(column.columnName)
         column.copy(columnName = snakified)
       }
       val statements = ddlFile.statements.map {

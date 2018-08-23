@@ -19,31 +19,8 @@ import org.json4s._
 /**
  * Module containing type class instance with all Schema properties' Serializers
  */
-object Json4sToSchema {
-  /**
-   * json4s formats for all JSON Schema properties
-   */
-  implicit val allFormats =
-    org.json4s.DefaultFormats +
-    StringSerializers.FormatSerializer +
-    StringSerializers.MinLengthSerializer +
-    StringSerializers.MaxLengthSerializer +
-    StringSerializers.PatternSerializer +
-    ObjectSerializers.PropertiesSerializer +
-    ObjectSerializers.AdditionalPropertiesSerializer +
-    ObjectSerializers.RequiredSerializer +
-    ObjectSerializers.PatternPropertiesSerializer +
-    CommonSerializers.TypeSerializer +
-    CommonSerializers.EnumSerializer +
-    CommonSerializers.OneOfSerializer +
-    CommonSerializers.DescriptionSerializer +
-    NumberSerializers.MaximumSerializer +
-    NumberSerializers.MinimumSerializer +
-    NumberSerializers.MultipleOfSerializer +
-    ArraySerializers.AdditionalPropertiesSerializer +
-    ArraySerializers.MaxItemsSerializer +
-    ArraySerializers.MinItemsSerializer +
-    ArraySerializers.ItemsSerializer
+trait Json4sToSchema {
+  import Formats._
 
   /**
    * Type class instance allowing to convert json4s JValue
@@ -58,7 +35,6 @@ object Json4sToSchema {
         case o: JObject => json.extractOpt[Schema]
         case _          => None
       }
-
   }
 }
 

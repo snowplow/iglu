@@ -98,7 +98,7 @@ class ContainersSpec extends Specification { def is = s2"""
 
   def e3 = {
 
-    val schema = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0))
+    val schema = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
     val data = parse(
       """
         |{
@@ -162,7 +162,7 @@ class ContainersSpec extends Specification { def is = s2"""
 
   def e5 = {
 
-    val schema = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0))
+    val schema = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
     val data: JValue = parse(
       """
         |{

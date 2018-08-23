@@ -15,14 +15,14 @@ package typeclasses
 
 
 /**
-  * Type class to render data into it base type [[D]]
-  * and lowest-level ([[String]]) common for all aps
+  * Type class to render data into it base type `D`
+  * and lowest-level (`String`) common for all aps
   *
   * @tparam D generic type in which instance can be represented
   */
 trait NormalizeData[D] {
   /**
-    * Render data instance to its base type [[D]]
+    * Render data instance to its base type `D`
     */
   def normalize(container: SelfDescribingData[D]): D
 }

@@ -20,7 +20,7 @@ import cats.syntax.either._
 
 // Circe
 import io.circe._
-import io.circe.parser.parse
+import io.circe.literal._
 
 // This library
 import com.snowplowanalytics.iglu.core._
@@ -36,131 +36,130 @@ class AttachSchemaKeySpec extends Specification { def is = s2"""
 
   def e1 = {
 
-    val data: Json = parse(
+    val data: Json =
+      json"""
+        {
+          "latitude": 32.2,
+          "longitude": 53.23,
+          "speed": 40
+        }
       """
-        |{
-        |  "latitude": 32.2,
-        |  "longitude": 53.23,
-        |  "speed": 40
-        |}
-      """.stripMargin).toOption.get
 
-    val expected: Json = parse(
+    val expected: Json =
+      json"""
+        {
+         "schema": "iglu:com.snowplowanalytics.snowplow/geolocation_context/jsonschema/1-1-0",
+         "data": {
+          "latitude": 32.2,
+          "longitude": 53.23,
+          "speed": 40
+         }
+        }
       """
-        |{
-        | "schema": "iglu:com.snowplowanalytics.snowplow/geolocation_context/jsonschema/1-1-0",
-        | "data": {
-        |  "latitude": 32.2,
-        |  "longitude": 53.23,
-        |  "speed": 40
-        | }
-        |}
-      """.stripMargin).getOrElse(Json.Null)
 
-    val result = data.attachSchemaKey(SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0)))
+    val result = data.attachSchemaKey(SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)))
     result must beEqualTo(expected)
   }
 
   def e2 = {
 
-    val schema: Json = parse(
+    val schema: Json =
+      json"""
+        {
+          "type": "object",
+          	"properties": {
+          		"latitude": {
+          			"type": "number"
+          		},
+          		"longitude": {
+          			"type": "number"
+          		},
+          		"latitudeLongitudeAccuracy": {
+          			"type": ["number", "null"]
+          		},
+          		"altitude": {
+          			"type": ["number", "null"]
+          		},
+          		"altitudeAccuracy": {
+          			"type": ["number", "null"]
+          		},
+          		"bearing": {
+          			"type": ["number", "null"]
+          		},
+          		"speed": {
+          			"type": ["number", "null"]
+          		},
+          		"timestamp": {
+          			"type": ["integer", "null"]
+          		}
+          	},
+          	"required": ["latitude", "longitude"],
+          	"additionalProperties": false
+        }
       """
-        |{
-        |  "type": "object",
-        |  	"properties": {
-        |  		"latitude": {
-        |  			"type": "number"
-        |  		},
-        |  		"longitude": {
-        |  			"type": "number"
-        |  		},
-        |  		"latitudeLongitudeAccuracy": {
-        |  			"type": ["number", "null"]
-        |  		},
-        |  		"altitude": {
-        |  			"type": ["number", "null"]
-        |  		},
-        |  		"altitudeAccuracy": {
-        |  			"type": ["number", "null"]
-        |  		},
-        |  		"bearing": {
-        |  			"type": ["number", "null"]
-        |  		},
-        |  		"speed": {
-        |  			"type": ["number", "null"]
-        |  		},
-        |  		"timestamp": {
-        |  			"type": ["integer", "null"]
-        |  		}
-        |  	},
-        |  	"required": ["latitude", "longitude"],
-        |  	"additionalProperties": false
-        |}
-      """.stripMargin).getOrElse(Json.Null)
 
-    val expected: Json = parse(
+    val expected: Json =
+      json"""
+        {
+        	"self": {
+        		"vendor": "com.snowplowanalytics.snowplow",
+        		"name": "geolocation_context",
+        		"format": "jsonschema",
+        		"version": "1-1-0"
+        	},
+
+        	"type": "object",
+        	"properties": {
+        		"latitude": {
+        			"type": "number"
+        		},
+        		"longitude": {
+        			"type": "number"
+        		},
+        		"latitudeLongitudeAccuracy": {
+        			"type": ["number", "null"]
+        		},
+        		"altitude": {
+        			"type": ["number", "null"]
+        		},
+        		"altitudeAccuracy": {
+        			"type": ["number", "null"]
+        		},
+        		"bearing": {
+        			"type": ["number", "null"]
+        		},
+        		"speed": {
+        			"type": ["number", "null"]
+        		},
+        		"timestamp": {
+        			"type": ["integer", "null"]
+        		}
+        	},
+        	"required": ["latitude", "longitude"],
+        	"additionalProperties": false
+        }
       """
-        |{
-        |	"self": {
-        |		"vendor": "com.snowplowanalytics.snowplow",
-        |		"name": "geolocation_context",
-        |		"format": "jsonschema",
-        |		"version": "1-1-0"
-        |	},
-        |
-        |	"type": "object",
-        |	"properties": {
-        |		"latitude": {
-        |			"type": "number"
-        |		},
-        |		"longitude": {
-        |			"type": "number"
-        |		},
-        |		"latitudeLongitudeAccuracy": {
-        |			"type": ["number", "null"]
-        |		},
-        |		"altitude": {
-        |			"type": ["number", "null"]
-        |		},
-        |		"altitudeAccuracy": {
-        |			"type": ["number", "null"]
-        |		},
-        |		"bearing": {
-        |			"type": ["number", "null"]
-        |		},
-        |		"speed": {
-        |			"type": ["number", "null"]
-        |		},
-        |		"timestamp": {
-        |			"type": ["integer", "null"]
-        |		}
-        |	},
-        |	"required": ["latitude", "longitude"],
-        |	"additionalProperties": false
-        |}
-      """.stripMargin).getOrElse(Json.Null)
 
     val result = schema.attachSchemaMap(SchemaMap("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)))
     result must beJson(expected)
   }
 
   def e3 = {
-
-    val schema: Json = parse(
+    val schema: Json =
+      json"""
+        {
+          "type": "object",
+          	"properties": {
+          		"latitude": {
+          			"type": "number"
+          		},
+          		"longitude": {
+          			"type": "number"
+          		}
+        }}
       """
-        |{
-        |  "type": "object",
-        |  	"properties": {
-        |  		"latitude": {
-        |  			"type": "number"
-        |  		},
-        |  		"longitude": {
-        |  			"type": "number"
-        |  		}
-        |}}
-      """.stripMargin).getOrElse(Json.Null)
 
-    val key = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer(1,1,0))
+    val key = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
     val result = schema.attachSchemaKey(key)
     result.getSchemaKey must beSome(key)
   }

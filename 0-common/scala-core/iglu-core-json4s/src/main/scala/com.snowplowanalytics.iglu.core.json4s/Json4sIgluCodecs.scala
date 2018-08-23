@@ -46,7 +46,7 @@ object Json4sIgluCodecs {
   ))
 
   /**
-   * Extract [[SchemaKey]] from `self` key and remaining as Schema body
+   * Extract `SchemaKey` from `self` key and remaining as Schema body
    */
   object SchemaSerializer extends CustomSerializer[SelfDescribingSchema[JValue]](_ => (
     {
@@ -64,7 +64,7 @@ object Json4sIgluCodecs {
     ))
 
   /**
-   * Extract [[SchemaKey]] from string and data from data key
+   * Extract `SchemaKey` from string and data from data key
    */
   object DataSerializer extends CustomSerializer[SelfDescribingData[JValue]](_ => (
     {

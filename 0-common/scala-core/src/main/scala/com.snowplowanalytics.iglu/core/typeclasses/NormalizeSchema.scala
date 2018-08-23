@@ -14,14 +14,14 @@ package com.snowplowanalytics.iglu.core
 package typeclasses
 
 /**
-  * Type class to render Schema into its base type [[S]]
-  * and lowest-level ([[String]]) common for all aps
+  * Type class to render Schema into its base type `S`
+  * and lowest-level (`String`) common for all aps
   *
   * @tparam S generic type in which Schema can be represented
   */
 trait NormalizeSchema[S] {
   /**
-    * Render Schema to its base type [[S]]
+    * Render Schema to its base type `S`
     */
   def normalize(container: SelfDescribingSchema[S]): S
 }

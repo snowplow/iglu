@@ -19,7 +19,7 @@ import syntax._
 /**
  * Class to filter Schemas by [[SchemaKey]]
  */
-case class SchemaCriterion(
+final case class SchemaCriterion(
   vendor: String,
   name: String,
   format: String,
@@ -53,7 +53,7 @@ case class SchemaCriterion(
    *
    * @param entities list of Self-describing instances (or Schemas)
    * @tparam E type of Self-describing entity, having
-   *           an [[ExtractSchemaKey]] instance in scope
+   *           an `ExtractSchemaKey` instance in scope
    * @return list of matching entities
    */
   def pickFrom[E: ExtractSchemaKey](entities: Seq[E]): Seq[E] =
@@ -182,7 +182,7 @@ object SchemaCriterion {
     try {
       Some(number.toInt)
     } catch {
-      case e: NumberFormatException => None
+      case _: NumberFormatException => None
     }
   }
 }

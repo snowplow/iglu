@@ -13,6 +13,8 @@
 package com.snowplowanalytics.iglu.core
 package circe
 
+import cats.{ Show, Eq }
+
 import io.circe._
 
 import com.snowplowanalytics.iglu.core.typeclasses._
@@ -75,29 +77,47 @@ trait instances {
 
   // Container-specific instances
 
-  final implicit val igluNormalizeDataJValue: NormalizeData[Json] =
+  final implicit val igluNormalizeDataJson: NormalizeData[Json] =
     new NormalizeData[Json] {
       override def normalize(container: SelfDescribingData[Json]): Json =
         CirceIgluCodecs.encodeData(container)
     }
 
-  final implicit val igluNormalizeSchemaJValue: NormalizeSchema[Json] =
+  final implicit val igluNormalizeSchemaJson: NormalizeSchema[Json] =
     new NormalizeSchema[Json] {
       override def normalize(container: SelfDescribingSchema[Json]): Json =
         CirceIgluCodecs.encodeSchema(container)
     }
 
-  final implicit val igluStringifyDataJValue: StringifyData[Json] =
+  final implicit val igluStringifyDataJson: StringifyData[Json] =
     new StringifyData[Json] {
       override def asString(container: SelfDescribingData[Json]): String =
-        container.normalize(igluNormalizeDataJValue).noSpaces
+        container.normalize(igluNormalizeDataJson).noSpaces
     }
 
-  final implicit val igluStringifySchemaJValue: StringifySchema[Json] =
+  final implicit val igluStringifySchemaJson: StringifySchema[Json] =
     new StringifySchema[Json] {
       override def asString(container: SelfDescribingSchema[Json]): String =
-        container.normalize(igluNormalizeSchemaJValue).noSpaces
+        container.normalize(igluNormalizeSchemaJson).noSpaces
     }
+
+  // Cats instances
+
+  final implicit val schemaVerShow: Show[SchemaVer] =
+    Show.show(_.asString)
+
+  final implicit val schemaKeyShow: Show[SchemaKey] =
+    Show.show(_.toSchemaUri)
+
+  final implicit val partialSchemaKeyShow: Show[PartialSchemaKey] =
+    Show.show(_.toSchemaUri)
+
+  final implicit val schemaVerEq: Eq[SchemaVer.Full] =
+    Eq.fromUniversalEquals[SchemaVer.Full]
+
+  // Decide if we want to provide Eq partial
+  final implicit val schemaKeyEq: Eq[SchemaKey] =
+    Eq.fromUniversalEquals[SchemaKey]
 }
 
-object instances extends instances
+object instances extends instances with CirceIgluCodecs

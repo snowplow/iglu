@@ -30,4 +30,8 @@ package object server {
   val NamePattern: Regex = "[a-zA-Z0-9-_]+".r
   val FormatPattern: Regex = "[a-zA-Z0-9-_]+".r
   val VersionPattern: Regex = "([1-9][0-9]*(?:-(?:0|[1-9][0-9]*)){2})".r
+  val DraftNumberPattern: Regex = "[1-9][0-9]*".r
+
+  val versionOfDraftSchemas = "0-0-0"
+  val draftNumOfVersionedSchemas = "0"
 }

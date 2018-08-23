@@ -1,0 +1,231 @@
+{
+  "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+  "description": "Schema for Igluctl's configuration",
+  "self": {
+    "vendor": "com.snowplowanalytics.iglu",
+    "name": "igluctl_config",
+    "format": "jsonschema",
+    "version": "1-0-0"
+  },
+  "type": "object",
+  "properties": {
+    "description": {
+      "description": "Human-readable & short description the configuration",
+      "type": "string"
+    },
+    "input": {
+      "description": "Path to input schemas",
+      "type": "string",
+      "format": "uri"
+    },
+    "lint": {
+      "description": "Configuration for lint command",
+      "type": "object",
+      "properties": {
+        "skipWarnings": {
+          "description": "Don't output messages with log level less than ERROR",
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "includedChecks": {
+          "description": "Lint using provided linters",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string",
+            "enum": [
+              "rootObject",
+              "unknownFormats",
+              "numericMinMax",
+              "stringLength",
+              "optionalNull",
+              "description",
+              "stringMaxLengthRange"
+            ]
+          }
+        }
+      },
+      "required": [
+        "skipWarnings",
+        "includedChecks"
+      ]
+    },
+    "generate": {
+      "description": "Configuration for static generate command",
+      "type": "object",
+      "properties": {
+        "output": {
+          "description": "Directory to put generated data",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": "."
+        },
+        "dbschema": {
+          "description": "Redshift database schema (e.g. 'atomic')",
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 128,
+          "default": "atomic"
+        },
+        "owner": {
+          "description": "Redshift table owner",
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128
+        },
+        "varcharSize": {
+          "description": "Redshift varchar size",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 65535,
+          "default": 4096
+        },
+        "withJsonPaths": {
+          "description": "Produce JSON Paths files with DDL or not",
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": true
+        },
+        "noHeader": {
+          "description": "Place header comments into output DDL or not",
+          "type": "boolean",
+          "default": false
+        },
+        "force": {
+          "description": "Force overwrite existing manually-edited files",
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        }
+      },
+      "required": [
+        "output",
+        "dbschema",
+        "owner",
+        "varcharSize",
+        "withJsonPaths",
+        "noHeader",
+        "force"
+      ]
+    },
+    "actions": {
+      "description": "Configuration for s3cp and push commands",
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "anyOf": [
+          {
+            "description": "Configuration for static push command",
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "push"
+                ]
+              },
+              "registry": {
+                "type": "string",
+                "format": "uri"
+              },
+              "isPublic": {
+                "type": "boolean",
+                "default": false
+              },
+              "apikey": {
+                "oneOf": [
+                  {
+                    "format": "uuid"
+                  },
+                  {
+                    "pattern": "^\\$[A-Z0-9-_]+"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "action",
+              "registry",
+              "isPublic",
+              "apikey"
+            ]
+          },
+          {
+            "description": "Configuration for static s3cp command",
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "s3cp"
+                ]
+              },
+              "uploadFormat": {
+                "type": "string",
+                "enum": [
+                  "jsonpath",
+                  "jsonschema"
+                ]
+              },
+              "bucketPath": {
+                "type": "string",
+                "pattern": "^s3://"
+              },
+              "profile": {
+                "description": "AWS profile",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "region": {
+                "description": "AWS region",
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "default": "us-west-2"
+              }
+            },
+            "required": [
+              "action",
+              "uploadFormat",
+              "bucketPath",
+              "profile",
+              "region"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "input",
+    "lint",
+    "generate",
+    "actions"
+  ],
+  "additionalProperties": false
+}

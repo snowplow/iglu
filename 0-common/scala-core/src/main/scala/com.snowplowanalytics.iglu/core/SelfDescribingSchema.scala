@@ -12,7 +12,7 @@
  */
 package com.snowplowanalytics.iglu.core
 
-import typeclasses.{NormalizeSchema, StringifySchema}
+import typeclasses.{NormalizeSchema, StringifySchema, ToSchema}
 
 /**
   * Container for Self-describing Schema
@@ -24,15 +24,21 @@ import typeclasses.{NormalizeSchema, StringifySchema}
   * @tparam S generic type to represent Schema type (usually it is
   *           some JSON-library's base trait)
   */
-case class SelfDescribingSchema[S](self: SchemaMap, schema: S) {
+final case class SelfDescribingSchema[S](self: SchemaMap, schema: S) {
   /**
-    * Render Schema to its base type [[S]]
+    * Render Schema to its base type `S`
     */
   def normalize(implicit ev: NormalizeSchema[S]): S = ev.normalize(this)
 
   /**
-    * Render Schema as [[String]]
+    * Render Schema as `String`
     */
   def asString(implicit ev: StringifySchema[S]): String = ev.asString(this)
+}
+
+object SelfDescribingSchema {
+  /** Try to decode `S` as `SelfDescribingSchema[S]` */
+  def parse[S](schema: S)(implicit ev: ToSchema[S]): Option[SelfDescribingSchema[S]] =
+    ev.toSchema(schema)
 }
 

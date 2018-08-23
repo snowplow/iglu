@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 tag=$1
 
 project="schema-ddl/"
@@ -34,11 +36,8 @@ project_version=$(sbt version -Dsbt.log.noformat=true | tail -n 1 | perl -ne 'pr
 if [ "${project_version}" == "${release}" ]; then
     # local publish only dependency, scala-core
     cd "${TRAVIS_BUILD_DIR}/0-common/scala-core"
-    sbt +test --warn
     sbt +publishLocal
-    sbt "project igluCoreCirce" +test --warn
     sbt "project igluCoreCirce" +publishLocal --warn
-    sbt "project igluCoreJson4s" +test --warn
     sbt "project igluCoreJson4s" +publishLocal --warn
     # universal publish schema-ddl
     cd "${TRAVIS_BUILD_DIR}/0-common/schema-ddl"

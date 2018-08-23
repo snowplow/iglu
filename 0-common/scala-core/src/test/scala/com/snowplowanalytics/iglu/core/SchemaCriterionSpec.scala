@@ -69,19 +69,19 @@ class SchemaCriterionSpec extends Specification { def is = s2"""
 
   def e4 = {
     val criterion = SchemaCriterion("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", 2)
-    val key = SchemaKey("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", SchemaVer(2, 1, 0))
+    val key = SchemaKey("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", SchemaVer.Full(2, 1, 0))
     criterion.matches(key) must beTrue
   }
 
   def e5 = {
     val criterion = SchemaCriterion("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", None, Some(0), Some(0))
-    val key = SchemaKey("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", SchemaVer(2, 0, 0))
+    val key = SchemaKey("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", SchemaVer.Full(2, 0, 0))
     criterion.matches(key) must beTrue
   }
 
   def e6 = {
     val criterion = SchemaCriterion("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", None, Some(0), Some(0))
-    val key = SchemaKey("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", SchemaVer(2, 1, 0))
+    val key = SchemaKey("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", SchemaVer.Full(2, 1, 0))
     criterion matches key must beFalse
   }
 
