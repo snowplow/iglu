@@ -12,8 +12,8 @@
  */
 package com.snowplowanalytics.iglu.schemaddl.redshift
 
-// Scalaz
-import scalaz.NonEmptyList
+// cats
+import cats.data.NonEmptyList
 
 /**
  * table_attributes are:
@@ -49,5 +49,5 @@ case class DistKeyTable(columnName: String) extends TableAttribute {
 
 // Don't confuse with redshift.SortKey which is applicable for columns
 case class SortKeyTable(sortstyle: Option[Sortstyle], columns: NonEmptyList[String]) extends TableAttribute {
-  def toDdl = sortstyle.map(_.toDdl + " ").getOrElse("") + "SORTKEY (" + columns.list.mkString(",") + ")"
+  def toDdl = sortstyle.map(_.toDdl + " ").getOrElse("") + "SORTKEY (" + columns.toList.mkString(",") + ")"
 }

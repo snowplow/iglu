@@ -12,8 +12,8 @@
  */
 package com.snowplowanalytics.iglu.schemaddl.redshift
 
-// Scalaz
-import scalaz.NonEmptyList
+// cats
+import cats.data.NonEmptyList
 
 /**
  * table_constraints  are:
@@ -24,14 +24,14 @@ import scalaz.NonEmptyList
 sealed trait TableConstraint extends Ddl
 
 case class UniqueKeyTable(columns: NonEmptyList[String]) extends TableConstraint {
-  def toDdl = s"UNIQUE (${columns.list.map(_.mkString(", "))})"
+  def toDdl = s"UNIQUE (${columns.toList.map(_.mkString(", "))})"
 }
 
 case class PrimaryKeyTable(columns: NonEmptyList[String]) extends TableConstraint {
-  def toDdl = s"PRIMARY KEY (${columns.list.map(_.mkString(", "))})"
+  def toDdl = s"PRIMARY KEY (${columns.toList.map(_.mkString(", "))})"
 }
 
 case class ForeignKeyTable(columns: NonEmptyList[String], reftable: RefTable) extends TableConstraint {
-  def toDdl = s"FOREIGN KEY (${columns.list.mkString(",")}) ${reftable.toDdl}"
+  def toDdl = s"FOREIGN KEY (${columns.toList.mkString(",")}) ${reftable.toDdl}"
 }
 
