@@ -13,12 +13,12 @@
 package com.snowplowanalytics.iglu.schemaddl
 package jsonschema
 
-object StringProperties {
+/**
+  * Marker trait for properties specific *ONLY* for strings
+  */
+private[iglu] sealed trait StringProperty
 
-  /**
-   * Marker trait for properties specific *ONLY* for strings
-   */
-  private[iglu] sealed trait StringProperty
+object StringProperty {
 
   /**
    * Class representing `minLength` keyword
@@ -47,19 +47,33 @@ object StringProperties {
     def keyName = "format"
     def asString: String
   }
-  case object UriFormat extends Format { val asString = "uri" }
-  case object Ipv4Format extends Format { val asString = "ipv4" }
-  case object Ipv6Format extends Format { val asString = "ipv6" }
-  case object EmailFormat extends Format { val asString = "email" }
-  case object DateTimeFormat extends Format { val asString = "date-time" }
-  case object DateFormat extends Format { val asString = "date" }
-  case object HostNameFormat extends Format { val asString = "hostname" }
-  case object UuidFormat extends Format { val asString = "uuid" }
+  object Format {
+    case object UriFormat extends Format { val asString = "uri" }
+    case object Ipv4Format extends Format { val asString = "ipv4" }
+    case object Ipv6Format extends Format { val asString = "ipv6" }
+    case object EmailFormat extends Format { val asString = "email" }
+    case object DateTimeFormat extends Format { val asString = "date-time" }
+    case object DateFormat extends Format { val asString = "date" }
+    case object HostNameFormat extends Format { val asString = "hostname" }
+    case object UuidFormat extends Format { val asString = "uuid" }
 
-  /**
-   * Implementations MAY add custom format attributes
-   */
-  case class CustomFormat(value: String) extends Format with StringProperty  { val asString = value }
+    /**
+      * Implementations MAY add custom format attributes
+      */
+    case class CustomFormat(value: String) extends Format with StringProperty  { val asString = value }
+
+    def fromString(string: String): Format = string match {
+      case "uri" => UriFormat
+      case "ipv4" => Ipv4Format
+      case "ivp6" => Ipv6Format
+      case "email" => EmailFormat
+      case "date-time" => DateTimeFormat
+      case "date" => DateFormat
+      case "hostname" => HostNameFormat
+      case "uuid" => UuidFormat
+      case custom => CustomFormat(custom)
+    }
+  }
 
   /**
    * Class representing `pattern` keyword

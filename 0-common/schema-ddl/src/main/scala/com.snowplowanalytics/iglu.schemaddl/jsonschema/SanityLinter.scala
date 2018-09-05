@@ -16,10 +16,10 @@ import cats.data._
 import cats.implicits._
 
 // This library
-import StringProperties._
+import StringProperty._
 import CommonProperties._
-import ArrayProperties.{AdditionalItemsSchema, ListItems, TupleItems}
-import ObjectProperties.{ AdditionalPropertiesSchema, AdditionalPropertiesAllowed, PatternProperties, Properties, Required }
+import ArrayProperty.{Items, AdditionalItems}
+import ObjectProperty.{ AdditionalProperties, PatternProperties, Properties, Required }
 
 
 /**
@@ -34,6 +34,12 @@ import ObjectProperties.{ AdditionalPropertiesSchema, AdditionalPropertiesAllowe
  */
 object SanityLinter {
 
+  sealed trait Cursor
+  case class DownField(key: String) extends Cursor
+  case class At(index: Int) extends Cursor
+
+  type JsonPointer = List[Cursor]
+
   /**
    * Aggregated property lints
    */
@@ -43,6 +49,8 @@ object SanityLinter {
    * Check of single property
    */
   type LintProperty = Validated[String, Unit]
+
+  type ValidationResult = Map[JsonPointer, LintProperty]
 
   /**
    * Function able to lint Schema AST
@@ -79,7 +87,7 @@ object SanityLinter {
      */
     def withoutType(jsonType: Type): Boolean =
       value.`type` match {
-        case Some(Product(types)) => !types.contains(jsonType)
+        case Some(Type.Product(types)) => !types.contains(jsonType)
         case Some(t) => t != jsonType
         case None => false            // absent type is ok
       }
@@ -89,7 +97,7 @@ object SanityLinter {
      */
     def withType(jsonType: Type): Boolean =
       value.`type` match {
-        case Some(Product(types)) => types.contains(jsonType)
+        case Some(Type.Product(types)) => types.contains(jsonType)
         case Some(t) => t == jsonType
         case None => false            // absent type is ok
       }
@@ -131,7 +139,7 @@ object SanityLinter {
         (height match {
           case 0 =>
             (schema.`type`, schema.properties) match {
-              case (Some(Object), Some(Properties(_))) => propertySuccess
+              case (Some(Type.Object), Some(Properties(_))) => propertySuccess
               case (_, _) => "Root of schema should have type object and contain properties".invalid
             }
           case _ => propertySuccess
@@ -156,19 +164,19 @@ object SanityLinter {
     }
 
     val additionalProperties = schema.additionalProperties match {
-      case Some(AdditionalPropertiesSchema(s)) => lint(s, height+1, linters)
+      case Some(AdditionalProperties.AdditionalPropertiesSchema(s)) => lint(s, height+1, linters)
       case _ => schemaSuccess
     }
 
     val items = schema.items match {
-      case Some(ListItems(s)) => lint(s, height+1, linters)
-      case Some(TupleItems(i)) =>
+      case Some(Items.ListItems(s)) => lint(s, height+1, linters)
+      case Some(Items.TupleItems(i)) =>
         i.foldLeft(schemaSuccess)((a, s) => a |+| lint(s, height+1, linters))
       case None => schemaSuccess
     }
 
     val additionalItems = schema.additionalItems match {
-      case Some(AdditionalItemsSchema(s)) => lint(s, height+1, linters)
+      case Some(AdditionalItems.AdditionalItemsSchema(s)) => lint(s, height+1, linters)
       case _ => schemaSuccess
     }
 
@@ -184,7 +192,7 @@ object SanityLinter {
     *
     * Check that root of schema has object type and contains properties
     */
-  val lintRootObject: Linter = (_: Schema) => {
+  private val lintRootObject: Linter = (_: Schema) => {
     throw new IllegalStateException("Illegal use of lintRootObject")
   }
 
@@ -217,7 +225,7 @@ object SanityLinter {
     * See http://docs.aws.amazon.com/redshift/latest/dg/r_Character_types.html
     */
   val lintStringMaxLengthRange: Linter = (schema: Schema) => {
-    if (schema.withType(String)) {
+    if (schema.withType(Type.String)) {
       schema.maxLength match {
         case Some(max) if max.value > 65535 =>
           s"Schema with string type has maxLength property [${max.value}] greater than Redshift VARCHAR(max) 65535".invalid
@@ -244,9 +252,9 @@ object SanityLinter {
    */
   val lintNumericProperties: Linter = (schema: Schema) => {
     val numberProperties = schema.allProperties.collect {
-      case Some(p: NumberProperties.NumberProperty) => p
+      case Some(p: NumberProperty) => p
     }
-    val fruitless = numberProperties.nonEmpty && (schema.withoutType(Number) && schema.withoutType(Integer))
+    val fruitless = numberProperties.nonEmpty && (schema.withoutType(Type.Number) && schema.withoutType(Type.Integer))
     (!fruitless).or(s"Numeric properties [${numberProperties.map(_.keyName).mkString(",")}] require number, integer or absent type")
   }
 
@@ -255,9 +263,9 @@ object SanityLinter {
    */
   val lintStringProperties: Linter = (schema: Schema) => {
     val stringProperties = schema.allProperties.collect {
-      case Some(p: StringProperties.StringProperty) => p
+      case Some(p: StringProperty) => p
     }
-    val fruitless = stringProperties.nonEmpty && schema.withoutType(String)
+    val fruitless = stringProperties.nonEmpty && schema.withoutType(Type.String)
     (!fruitless).or(s"String properties [${stringProperties.map(_.keyName).mkString(",")}] require string or absent type")
   }
 
@@ -266,9 +274,9 @@ object SanityLinter {
    */
   val lintObjectProperties: Linter = (schema: Schema) => {
     val objectProperties = schema.allProperties.collect {
-      case Some(p: ObjectProperties.ObjectProperty) => p
+      case Some(p: ObjectProperty) => p
     }
-    val fruitless = objectProperties.map(_.keyName).nonEmpty && schema.withoutType(Object)
+    val fruitless = objectProperties.map(_.keyName).nonEmpty && schema.withoutType(Type.Object)
     (!fruitless).or(s"Object properties [${objectProperties.map(_.keyName).mkString(",")}] require object or absent type")
   }
 
@@ -277,9 +285,9 @@ object SanityLinter {
    */
   val lintArrayProperties: Linter = (schema: Schema) => {
     val arrayProperties = schema.allProperties.collect {
-      case Some(p: ArrayProperties.ArrayProperty) => p
+      case Some(p: ArrayProperty) => p
     }
-    val fruitless = arrayProperties.nonEmpty && schema.withoutType(Array)
+    val fruitless = arrayProperties.nonEmpty && schema.withoutType(Type.Array)
     (!fruitless).or(s"Array properties [${arrayProperties.map(_.keyName).mkString(",")}] require array or absent type")
   }
 
@@ -289,7 +297,7 @@ object SanityLinter {
    */
   val lintRequiredPropertiesExist: Linter = (schema: Schema) => {
     (schema.additionalProperties, schema.required, schema.properties, schema.patternProperties) match {
-      case (Some(AdditionalPropertiesAllowed(false)), Some(Required(required)), Some(Properties(properties)), None) =>
+      case (Some(AdditionalProperties.AdditionalPropertiesAllowed(false)), Some(Required(required)), Some(Properties(properties)), None) =>
         val allowedKeys = properties.keySet
         val requiredKeys = required.toSet
         val diff = requiredKeys -- allowedKeys
@@ -303,7 +311,7 @@ object SanityLinter {
     */
   val lintUnknownFormats: Linter = (schema: Schema) => {
     schema.format match {
-      case Some(CustomFormat(format)) => s"Unknown format [$format] detected. Known formats are: date-time, date, email, hostname, ipv4, ipv6, uri".invalid
+      case Some(Format.CustomFormat(format)) => s"Unknown format [$format] detected. Known formats are: date-time, date, email, hostname, ipv4, ipv6, uri".invalid
       case _ => propertySuccess
     }
   }
@@ -312,7 +320,7 @@ object SanityLinter {
    * Check that schema with numeric type contains both minimum and maximum properties
    */
   val lintNumericMinMax: Linter = (schema: Schema) => {
-    if (schema.withType(Number) || schema.withType(Integer)) {
+    if (schema.withType(Type.Number) || schema.withType(Type.Integer)) {
       (schema.minimum, schema.maximum) match {
         case (Some(_), Some(_)) => propertySuccess
         case (None, Some(_)) => "Schema with numeric type doesn't contain minimum property".invalid
@@ -327,8 +335,8 @@ object SanityLinter {
    * Check that schema with string type contains maxLength property or other ways to extract max length
    */
   val lintStringLength: Linter = (schema: Schema) => {
-    if (schema.withType(String) && schema.enum.isEmpty && schema.maxLength.isEmpty) {
-      if (schema.withFormat(Ipv4Format) || schema.withFormat(Ipv6Format) || schema.withFormat(DateTimeFormat)) {
+    if (schema.withType(Type.String) && schema.enum.isEmpty && schema.maxLength.isEmpty) {
+      if (schema.withFormat(Format.Ipv4Format) || schema.withFormat(Format.Ipv6Format) || schema.withFormat(Format.DateTimeFormat)) {
         propertySuccess
       } else {
         "Schema with string type doesn't contain maxLength property or other ways to extract max length".invalid
@@ -349,7 +357,7 @@ object SanityLinter {
         val optionalKeys = allowedKeys -- requiredKeys
         val optKeysWithoutTypeNull = for {
           key <- optionalKeys
-          if !properties(key).withType(Null)
+          if !properties(key).withType(Type.Null)
         } yield key
         optKeysWithoutTypeNull.isEmpty.or("Optional field doesn't allow null type")
       case _ => propertySuccess

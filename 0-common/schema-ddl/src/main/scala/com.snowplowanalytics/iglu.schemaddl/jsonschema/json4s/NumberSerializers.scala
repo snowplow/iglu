@@ -17,46 +17,46 @@ package jsonschema.json4s
 import org.json4s._
 
 // This library
-import jsonschema.NumberProperties._
+import jsonschema.NumberProperty._
 
 object NumberSerializers {
 
   object MultipleOfSerializer extends CustomSerializer[MultipleOf](_ => (
     {
-      case JInt(value)    => IntegerMultipleOf(value)
-      case JDouble(value) => NumberMultipleOf(value)
-      case x => throw new MappingException(x + " isn't numeric value")
+      case JInt(value)    => MultipleOf.IntegerMultipleOf(value)
+      case JDouble(value) => MultipleOf.NumberMultipleOf(value)
+      case x => throw new MappingException(x + " isn't a numeric value")
     },
 
     {
-      case NumberMultipleOf(value)  => JDouble(value.toDouble)
-      case IntegerMultipleOf(value) => JInt(value)
+      case MultipleOf.NumberMultipleOf(value)  => JDouble(value.toDouble)
+      case MultipleOf.IntegerMultipleOf(value) => JInt(value)
     }
     ))
 
   object MaximumSerializer extends CustomSerializer[Maximum](_ => (
     {
-      case JInt(value)    => IntegerMaximum(value)
-      case JDouble(value) => NumberMaximum(value)
-      case x => throw new MappingException(x + " isn't numeric value")
+      case JInt(value)    => Maximum.IntegerMaximum(value)
+      case JDouble(value) => Maximum.NumberMaximum(value)
+      case x => throw new MappingException(x + " isn't a numeric value")
     },
 
     {
-      case NumberMaximum(value) => JDouble(value.toDouble)
-      case IntegerMaximum(value)   => JInt(value)
+      case Maximum.NumberMaximum(value) => JDouble(value.toDouble)
+      case Maximum.IntegerMaximum(value) => JInt(value)
     }
     ))
 
   object MinimumSerializer extends CustomSerializer[Minimum](_ => (
     {
-      case JInt(value)    => IntegerMinimum(value)
-      case JDouble(value) => NumberMinimum(value)
+      case JInt(value)    => Minimum.IntegerMinimum(value)
+      case JDouble(value) => Minimum.NumberMinimum(value)
       case x => throw new MappingException(x + " isn't numeric value")
     },
 
     {
-      case NumberMinimum(value)  => JDouble(value.toDouble)
-      case IntegerMinimum(value) => JInt(value)
+      case Minimum.NumberMinimum(value) => JDouble(value.toDouble)
+      case Minimum.IntegerMinimum(value) => JInt(value)
     }
     ))
 }
