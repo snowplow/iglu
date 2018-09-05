@@ -17,10 +17,10 @@ package jsonschema
 import java.lang.{ Enum => _}
 
 // This library
-import ArrayProperties._
-import StringProperties._
-import ObjectProperties._
-import NumberProperties._
+import ArrayProperty._
+import StringProperty._
+import ObjectProperty._
+import NumberProperty._
 import CommonProperties._
 
 /**

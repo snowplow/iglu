@@ -29,6 +29,7 @@ lazy val root = project.in(file("."))
     Dependencies.Libraries.circeGeneric,
     Dependencies.Libraries.circeLiteral,
     Dependencies.Libraries.circeParser,
+    Dependencies.Libraries.jsonValidator,
     // Scala (test only)
     Dependencies.Libraries.specs2,
     Dependencies.Libraries.specs2Cats

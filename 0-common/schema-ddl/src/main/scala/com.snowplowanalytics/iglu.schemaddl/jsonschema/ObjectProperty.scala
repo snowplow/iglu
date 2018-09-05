@@ -12,14 +12,12 @@
  */
 package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
-object ObjectProperties {
+/**
+  * Marker trait for properties specific *ONLY* for objects
+  */
+private[iglu] sealed trait ObjectProperty
 
-  /**
-   * Marker trait for properties specific *ONLY* for objects
-   */
-  private[iglu] sealed trait ObjectProperty
-
-
+object ObjectProperty {
   /**
    * Type representing keyword `properties`
    *
@@ -29,7 +27,6 @@ object ObjectProperties {
     def keyName = "properties"
   }
 
-
   /**
    * ADT representing value for `additionalProperties` keyword
    *
@@ -38,18 +35,18 @@ object ObjectProperties {
   sealed trait AdditionalProperties extends JsonSchemaProperty with ObjectProperty {
     def keyName = "additionalProperties"
   }
+  object AdditionalProperties {
+    /**
+      * Allowance of properties not listed in `properties` and `patternProperties`
+      */
+    case class AdditionalPropertiesAllowed(value: Boolean) extends AdditionalProperties
 
-  /**
-   * Allowance of properties not listed in `properties` and `patternProperties`
-   */
-  case class AdditionalPropertiesAllowed(value: Boolean) extends AdditionalProperties
-
-  /**
-   * Value **must** be always valid Schema, but it's always equals to just
-   * `additionalProperties: true`
-   */
-  case class AdditionalPropertiesSchema(value: Schema) extends AdditionalProperties
-
+    /**
+      * Value **must** be always valid Schema, but it's always equals to just
+      * `additionalProperties: true`
+      */
+    case class AdditionalPropertiesSchema(value: Schema) extends AdditionalProperties
+  }
 
   /**
    * ADT representing holder for `required` keyword

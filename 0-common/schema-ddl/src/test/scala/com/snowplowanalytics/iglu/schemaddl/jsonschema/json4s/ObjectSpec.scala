@@ -10,18 +10,19 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.schemaddl.jsonschema
+package com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s
 
 // json4s
 import org.json4s._
 import org.json4s.jackson.JsonMethods.parse
 
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.ObjectProperty.{Properties, Required}
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.{Schema, StringProperty}
+
+import implicits._
+
 // specs2
 import org.specs2.Specification
-
-
-import ObjectProperties._
-import json4s.implicits._
 
 class ObjectSpec extends Specification { def is = s2"""
   Check JSON Schema object specification
@@ -72,7 +73,7 @@ class ObjectSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    Schema.parse(schema) must beSome(Schema(properties = Some(Properties(Map("innerKey" -> Schema(minLength = Some(StringProperties.MinLength(32))))))))
+    Schema.parse(schema) must beSome(Schema(properties = Some(Properties(Map("innerKey" -> Schema(minLength = Some(StringProperty.MinLength(32))))))))
   }
 
   def e4 = {
