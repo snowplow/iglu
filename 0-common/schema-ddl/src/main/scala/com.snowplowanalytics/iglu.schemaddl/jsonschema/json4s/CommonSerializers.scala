@@ -16,50 +16,65 @@ package json4s
 
 // json4s
 import org.json4s._
-import org.json4s.JsonAST.{JArray, JString}
+import org.json4s.jackson.JsonMethods.{ parse, compact }
+
+import cats.instances.either._
+import cats.instances.list._
+import cats.syntax.traverse._
+
+// Circe
+import io.circe.Json
 
 // This library
 import CommonProperties._
 
 object CommonSerializers {
 
-  import implicits._
+  // TODO: replace with AST-based
+  private def fromCirce(json: Json): JValue =
+    parse(json.noSpaces)
 
-  private def stringToType(json: JValue): Option[Type] = json match {
-    case JString("null")    => Some(Null)
-    case JString("boolean") => Some(Boolean)
-    case JString("string")  => Some(String)
-    case JString("integer") => Some(Integer)
-    case JString("number")  => Some(Number)
-    case JString("array")   => Some(Array)
-    case JString("object")  => Some(Object)
-    case _                  => None
-  }
+  private def toCirce(json: JValue): Json =
+    json match {
+      case JString(string) => Json.fromString(string)
+      case JInt(int) => Json.fromBigInt(int)
+      case JBool(bool) => Json.fromBoolean(bool)
+      case JArray(arr) => Json.fromValues(arr.map(toCirce))
+      case JDouble(num) => Json.fromDoubleOrNull(num)
+      case JDecimal(decimal) => Json.fromBigDecimal(decimal)
+      case JObject(fields) => Json.fromFields(fields.map { case (k, v) => (k, toCirce(v)) })
+      case JNull => Json.Null
+      case JNothing => Json.Null
+    }
+
+  import implicits._
 
   object TypeSerializer extends CustomSerializer[Type](_ => (
     {
       case JArray(ts) =>
-        val types = ts.map(stringToType)
-        val union = if (types.exists(_.isEmpty)) None else Some(types.map(_.get))
-        union match {
-          case Some(List(t)) => t
-          case Some(u)       => Product(u)
-          case None          => throw new MappingException(ts + " is not valid list of types")
+        val types = ts.map {
+          case JString(s) => Type.fromString(s)
+          case s => Left(compact(s))
         }
-      case str @ JString(t) =>
-        stringToType(str) match {
-          case Some(singleType) => singleType
-          case None             => throw new MappingException(str + " is not valid list of types")
+        types.sequence[Either[String, ?], Type] match {
+          case Right(List(t)) => t
+          case Right(u)       => Type.Product(u)
+          case Left(invalid)  => throw new MappingException(invalid + " is not valid list of types")
+        }
+      case JString(t) =>
+        Type.fromString(t) match {
+          case Right(singleType) => singleType
+          case Left(invalid)             => throw new MappingException(invalid + " is not valid list of types")
         }
       case x => throw new MappingException(x + " is not valid list of types")
     },
 
     {
-      case t: Type => t.asJson
+      case t: Type => fromCirce(t.asJson)
     }
     ))
 
-  object DescriptionSerializer extends CustomSerializer[Description](x => (
+  object DescriptionSerializer extends CustomSerializer[Description](_ => (
     {
       case JString(value) => Description(value)
       case x => throw new MappingException(x + " isn't valid description")
@@ -73,12 +88,12 @@ object CommonSerializers {
 
   object EnumSerializer extends CustomSerializer[Enum](_ => (
     {
-      case JArray(values) => Enum(values)
+      case JArray(values) => Enum(values.map(toCirce))
       case x => throw new MappingException(x + " isn't valid enum")
     },
 
     {
-      case Enum(values) => JArray(values)
+      case Enum(values) => JArray(values.map(fromCirce))
     }
     ))
 

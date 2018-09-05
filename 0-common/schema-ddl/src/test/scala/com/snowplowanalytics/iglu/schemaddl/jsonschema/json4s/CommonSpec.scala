@@ -10,18 +10,19 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.schemaddl.jsonschema
+package com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s
 
 // json4s
 import org.json4s._
 import org.json4s.jackson.JsonMethods.parse
 
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.StringProperty.Format
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.{CommonProperties, Schema}
+
+import implicits._
+
 // specs2
 import org.specs2.Specification
-
-
-import json4s.implicits._
-import StringProperties._
 
 class CommonSpec extends Specification { def is = s2"""
   Check JSON Schema common properties
@@ -40,7 +41,7 @@ class CommonSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    Schema.parse(schema) must beSome(Schema(`type` = Some(CommonProperties.String)))
+    Schema.parse(schema) must beSome(Schema(`type` = Some(CommonProperties.Type.String)))
   }
 
 
@@ -53,7 +54,7 @@ class CommonSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    Schema.parse(schema) must beSome(Schema(`type` = Some(CommonProperties.Product(List(CommonProperties.String, CommonProperties.Null)))))
+    Schema.parse(schema) must beSome(Schema(`type` = Some(CommonProperties.Type.Product(List(CommonProperties.Type.String, CommonProperties.Type.Null)))))
   }
 
   def e3 = {
@@ -66,7 +67,7 @@ class CommonSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    Schema.parse(schema) must beSome(Schema(format = Some(Ipv4Format)))
+    Schema.parse(schema) must beSome(Schema(format = Some(Format.Ipv4Format)))
   }
   
   def e4 = {

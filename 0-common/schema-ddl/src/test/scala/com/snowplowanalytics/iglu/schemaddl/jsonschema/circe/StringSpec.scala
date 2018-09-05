@@ -10,18 +10,18 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.schemaddl.jsonschema
+package com.snowplowanalytics.iglu.schemaddl.jsonschema.circe
 
 // json4s
-import org.json4s._
-import org.json4s.jackson.JsonMethods.parse
+import io.circe.literal._
+
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.StringProperty.{Format, MaxLength, MinLength}
+
+import implicits._
 
 // specs2
 import org.specs2.Specification
-
-
-import StringProperties._
-import json4s.implicits._
 
 class StringSpec extends Specification { def is = s2"""
   Check JSON Schema string specification
@@ -31,29 +31,20 @@ class StringSpec extends Specification { def is = s2"""
   """
 
   def e1 = {
-    val schema = parse(
-      """
-        |{"minLength": 32}
-      """.stripMargin)
+    val schema = json"""{"minLength": 32}"""
 
     Schema.parse(schema) must beSome(Schema(minLength = Some(MinLength(32))))
   }
 
   def e2 = {
-    val schema = parse(
-      """
-        |{"maxLength": 32, "format": "ipv4"}
-      """.stripMargin)
+    val schema = json"""{"maxLength": 32, "format": "ipv4"}"""
 
-    Schema.parse(schema) must beSome(Schema(maxLength = Some(MaxLength(32)), format = Some(Ipv4Format)))
+    Schema.parse(schema) must beSome(Schema(maxLength = Some(MaxLength(32)), format = Some(Format.Ipv4Format)))
   }
 
   def e3 = {
-    val schema = parse(
-      """
-        |{"maxLength": 32, "format": "unknown"}
-      """.stripMargin)
+    val schema = json"""{"maxLength": 32, "format": "unknown"}"""
 
-    Schema.parse(schema) must beSome(Schema(maxLength = Some(MaxLength(32)), format = Some(CustomFormat("unknown"))))
+    Schema.parse(schema) must beSome(Schema(maxLength = Some(MaxLength(32)), format = Some(Format.CustomFormat("unknown"))))
   }
 }

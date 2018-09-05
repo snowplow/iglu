@@ -104,77 +104,77 @@ class ParseSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    import ObjectProperties._
-    import NumberProperties._
-    import ArrayProperties._
-    import StringProperties._
+    import ObjectProperty._
+    import NumberProperty._
+    import ArrayProperty._
+    import StringProperty._
     import CommonProperties._
 
     implicit def optconv[A](a: A): Option[A] = Some(a)
 
     val resultSchema = Schema(
-      `type` = Object,
+      `type` = Type.Object,
       properties = Properties(Map(
         "ipAddress" -> Schema(
-          `type` = String,
-          format = Ipv4Format
+          `type` = Type.String,
+          format = Format.Ipv4Format
         ),
         "email" -> Schema(
-          `type` = String,
-          format = EmailFormat
+          `type` = Type.String,
+          format = Format.EmailFormat
         ),
         "someString" -> Schema(
-          `type` = String
+          `type` = Type.String
         ),
         "netstedObject" -> Schema(
-          `type` = Object,
+          `type` = Type.Object,
           properties = Properties(Map(
             "nestedKey" -> Schema(
-              `type` = Null
+              `type` = Type.Null
             ),
             "deeply" -> Schema(
-              `type` = Object,
+              `type` = Type.Object,
               properties = Properties(Map(
                 "blueDeep" -> Schema(
-                  `type` = Integer,
-                  minimum = IntegerMinimum(0),
-                  maximum = IntegerMaximum(32767)
+                  `type` = Type.Integer,
+                  minimum =  Minimum.IntegerMinimum(0),
+                  maximum = Maximum.IntegerMaximum(32767)
                 ),
                 "deepUnionTypeArray" -> Schema(
-                  `type` = Array,
-                  items = ListItems(Schema(
-                    `type` = Product(List(Object, String, Null, Integer)),
+                  `type` = Type.Array,
+                  items = Items.ListItems(Schema(
+                    `type` = Type.Product(List(Type.Object, Type.String, Type.Null, Type.Integer)),
                     properties = Properties(Map(
                       "foo" -> Schema(
-                        `type` = String
+                        `type` = Type.String
                       )
                     )),
-                    additionalProperties = AdditionalPropertiesAllowed(false),
-                    minimum = IntegerMinimum(0),
-                    maximum = IntegerMaximum(32767)
+                    additionalProperties = AdditionalProperties.AdditionalPropertiesAllowed(false),
+                    minimum = Minimum.IntegerMinimum(0),
+                    maximum = Maximum.IntegerMaximum(32767)
                   ))
                 )
               )),
-              additionalProperties = AdditionalPropertiesAllowed(false)
+              additionalProperties = AdditionalProperties.AdditionalPropertiesAllowed(false)
             )
           )),
-          additionalProperties = AdditionalPropertiesAllowed(false)
+          additionalProperties = AdditionalProperties.AdditionalPropertiesAllowed(false)
         ),
         "emptyObject" -> Schema(
-          `type` = Object,
+          `type` = Type.Object,
           properties = Properties(Map()),
-          additionalProperties = AdditionalPropertiesAllowed(false)
+          additionalProperties = AdditionalProperties.AdditionalPropertiesAllowed(false)
         ),
         "simpleArray" -> Schema(
-          `type` = Array,
-          items = ListItems(Schema(
-            `type` = Integer,
-            minimum = IntegerMinimum(0),
-            maximum = IntegerMaximum(32767)
+          `type` = Type.Array,
+          items = Items.ListItems(Schema(
+            `type` = Type.Integer,
+            minimum = Minimum.IntegerMinimum(0),
+            maximum = Maximum.IntegerMaximum(32767)
           ))
         )
       )),
-      additionalProperties = AdditionalPropertiesAllowed(false)
+      additionalProperties = AdditionalProperties.AdditionalPropertiesAllowed(false)
     )
 
     Schema.parse(schema) must beSome(resultSchema)
@@ -182,78 +182,78 @@ class ParseSpec extends Specification { def is = s2"""
 
   def e2 = {
 
-    import ObjectProperties._
-    import NumberProperties._
-    import ArrayProperties._
-    import StringProperties._
+    import ObjectProperty._
+    import NumberProperty._
+    import ArrayProperty._
+    import StringProperty._
     import CommonProperties._
     import json4s.Formats._
 
     implicit def optconv[A](a: A): Option[A] = Some(a)
 
     val sourceSchema = Schema(
-      `type` = Object,
+      `type` = Type.Object,
       properties = Properties(Map(
         "ipAddress" -> Schema(
-          `type` = String,
-          format = Ipv4Format
+          `type` = Type.String,
+          format = Format.Ipv4Format
         ),
         "email" -> Schema(
-          `type` = String,
-          format = EmailFormat
+          `type` = Type.String,
+          format = Format.EmailFormat
         ),
         "someString" -> Schema(
-          `type` = String
+          `type` = Type.String
         ),
         "netstedObject" -> Schema(
-          `type` = Object,
+          `type` = Type.Object,
           properties = Properties(Map(
             "nestedKey" -> Schema(
-              `type` = Null
+              `type` = Type.Null
             ),
             "deeply" -> Schema(
-              `type` = Object,
+              `type` = Type.Object,
               properties = Properties(Map(
                 "blueDeep" -> Schema(
-                  `type` = Integer,
-                  minimum = IntegerMinimum(0),
-                  maximum = IntegerMaximum(32767)
+                  `type` = Type.Integer,
+                  minimum = Minimum.IntegerMinimum(0),
+                  maximum = Maximum.IntegerMaximum(32767)
                 ),
                 "deepUnionTypeArray" -> Schema(
-                  `type` = Array,
-                  items = ListItems(Schema(
-                    `type` = Product(List(Object, String, Null, Integer)),
+                  `type` = Type.Array,
+                  items = Items.ListItems(Schema(
+                    `type` = Type.Product(List(Type.Object, Type.String, Type.Null, Type.Integer)),
                     properties = Properties(Map(
                       "foo" -> Schema(
-                        `type` = String
+                        `type` = Type.String
                       )
                     )),
-                    additionalProperties = AdditionalPropertiesAllowed(false),
-                    minimum = IntegerMinimum(0),
-                    maximum = IntegerMaximum(32767)
+                    additionalProperties = AdditionalProperties.AdditionalPropertiesAllowed(false),
+                    minimum = Minimum.IntegerMinimum(0),
+                    maximum = Maximum.IntegerMaximum(32767)
                   ))
                 )
               )),
-              additionalProperties = AdditionalPropertiesAllowed(false)
+              additionalProperties = AdditionalProperties.AdditionalPropertiesAllowed(false)
             )
           )),
-          additionalProperties = AdditionalPropertiesAllowed(false)
+          additionalProperties = AdditionalProperties.AdditionalPropertiesAllowed(false)
         ),
         "emptyObject" -> Schema(
-          `type` = Object,
+          `type` = Type.Object,
           properties = Properties(Map()),
-          additionalProperties = AdditionalPropertiesAllowed(false)
+          additionalProperties = AdditionalProperties.AdditionalPropertiesAllowed(false)
         ),
         "simpleArray" -> Schema(
-          `type` = Array,
-          items = ListItems(Schema(
-            `type` = Integer,
-            minimum = IntegerMinimum(0),
-            maximum = IntegerMaximum(32767)
+          `type` = Type.Array,
+          items = Items.ListItems(Schema(
+            `type` = Type.Integer,
+            minimum = Minimum.IntegerMinimum(0),
+            maximum = Maximum.IntegerMaximum(32767)
           ))
         )
       )),
-      additionalProperties = AdditionalPropertiesAllowed(false)
+      additionalProperties = AdditionalProperties.AdditionalPropertiesAllowed(false)
     )
 
     val resultSchema = parse(

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2018 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -11,13 +11,22 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 package com.snowplowanalytics.iglu.schemaddl.jsonschema
+package circe
 
-/**
- * Common supertype for all JSON Schema properties
- */
-trait JsonSchemaProperty extends Product with Serializable {
-  /**
-   * Each property should at least have canonical key
-   */
-  def keyName: String
+import io.circe._
+
+import CommonProperties._
+
+trait CommonDecoders {
+  implicit def schemaDecoder: Decoder[Schema]
+
+  implicit val typeDecoder = Decoder[String]
+    .emap(Type.fromString)
+    .or(Decoder[List[String]].emap(Type.fromProduct))
+
+  implicit val descriptionDecoder = Decoder[String].map(Description)
+
+  implicit lazy val enumDecoder = Decoder[List[Json]].map(Enum.apply)
+
+  implicit lazy val oneOfDecoder = Decoder[List[Schema]].map(OneOf.apply)
 }

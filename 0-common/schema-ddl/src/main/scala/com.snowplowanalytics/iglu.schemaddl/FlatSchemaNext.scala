@@ -109,8 +109,8 @@ object FlatSchemaNext {
    */
   private def isObject(schema: Schema): Boolean =
     schema.`type` match {
-      case Some(Product(types)) => types.contains(Object)
-      case Some(Object) => true
+      case Some(Type.Product(types)) => types.contains(Type.Object)
+      case Some(Type.Object) => true
       case _ => false
     }
 }

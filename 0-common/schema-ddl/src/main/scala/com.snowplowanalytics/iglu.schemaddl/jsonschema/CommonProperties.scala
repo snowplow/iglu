@@ -12,11 +12,12 @@
  */
 package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
-// json4s
-import org.json4s._
+// circe
+import io.circe.Json
 
-// So far only `enum` need to be parametrized with JSON AST type
-// and `Type` need to know about representation (to render product type)
+import cats.data.{ Validated, ValidatedNel }
+import cats.implicits._
+
 object CommonProperties {
 
   /**
@@ -26,50 +27,68 @@ object CommonProperties {
    */
   sealed trait Type extends JsonSchemaProperty {
     def keyName = "type"
-    def asJson: JValue
+    def asJson: Json
   }
+  object Type {
+    case object Null extends Type {
+      def asJson = Json.fromString("null")
+    }
 
-  case object Null extends Type {
-    def asJson = JString("null")
+    case object Boolean extends Type {
+      def asJson = Json.fromString("boolean")
+    }
+
+    case object String extends Type {
+      def asJson = Json.fromString("string")
+    }
+
+    case object Integer extends Type {
+      def asJson = Json.fromString("integer")
+    }
+
+    case object Number extends Type {
+      def asJson = Json.fromString("number")
+    }
+
+    case object Array extends Type {
+      def asJson = Json.fromString("array")
+    }
+
+    case object Object extends Type {
+      def asJson = Json.fromString("object")
+    }
+
+    case class Product(value: List[Type]) extends Type {
+      def asJson = Json.fromValues(value.map(_.asJson))
+
+      def hasNull: Boolean = value.contains(Null)
+    }
+
+    private[jsonschema] def fromString(s: String): Either[String, Type] = s match {
+      case "null"    => Right(Type.Null)
+      case "boolean" => Right(Type.Boolean)
+      case "string"  => Right(Type.String)
+      case "integer" => Right(Type.Integer)
+      case "number"  => Right(Type.Number)
+      case "array"   => Right(Type.Array)
+      case "object"  => Right(Type.Object)
+      case other     => Left(other)
+    }
+
+    private[jsonschema] def fromProduct(arr: List[String]): Either[String, Type] =
+      arr.map(fromString).map(_.toValidatedNel).sequence[ValidatedNel[String, ?], Type] match {
+        case Validated.Valid(List(single)) => single.asRight
+        case Validated.Valid(product) => Product(product).asRight
+        case Validated.Invalid(invalids) => invalids.toList.mkString(",").asLeft
+      }
   }
-
-  case object Boolean extends Type {
-    def asJson = JString("boolean")
-  }
-
-  case object String extends Type {
-    def asJson = JString("string")
-  }
-
-  case object Integer extends Type {
-    def asJson = JString("integer")
-  }
-
-  case object Number extends Type {
-    def asJson = JString("number")
-  }
-
-  case object Array extends Type {
-    def asJson = JString("array")
-  }
-
-  case object Object extends Type {
-    def asJson = JString("object")
-  }
-
-  case class Product(value: List[Type]) extends Type {
-    def asJson = JArray(value.map(_.asJson))
-
-    def hasNull: Boolean = value.contains(Null)
-  }
-
 
   /**
    * Type representing value for `enum` key
    *
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor76
    */
-  case class Enum(value: List[JValue]) extends JsonSchemaProperty { def keyName = "enum" }
+  case class Enum(value: List[Json]) extends JsonSchemaProperty { def keyName = "enum" }
 
 
   /**
@@ -88,7 +107,6 @@ object CommonProperties {
   case class Description(value: String) extends JsonSchemaProperty {
     def keyName = "description"
   }
-
 }
 
 

@@ -12,12 +12,12 @@
  */
 package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
-object NumberProperties {
+/**
+  * Marker trait for properties specific *ONLY* for numbers and integers
+  */
+private[iglu] sealed trait NumberProperty
 
-  /**
-   * Marker trait for properties specific *ONLY* for numbers and integers
-   */
-  private[iglu] sealed trait NumberProperty
+object NumberProperty {
 
   /**
    * AST representing keyword `multipleOf`
@@ -27,8 +27,10 @@ object NumberProperties {
   sealed trait MultipleOf extends JsonSchemaProperty with NumberProperty {
     def keyName = "multipleOf"
   }
-  case class NumberMultipleOf(value: BigDecimal) extends MultipleOf
-  case class IntegerMultipleOf(value: BigInt) extends MultipleOf
+  object MultipleOf {
+    case class NumberMultipleOf(value: BigDecimal) extends MultipleOf
+    case class IntegerMultipleOf(value: BigInt) extends MultipleOf
+  }
 
   /**
    * AST representing keyword `minimum`
@@ -40,15 +42,17 @@ object NumberProperties {
 
     /**
      * Get value of `minimum` property as `BigDecimal` preserving point for
-     * [[NumberMinimum]] and adding it for [[IntegerMinimum]]
+     * `NumberMinimum` and adding it for `IntegerMinimum`
      */
     def getAsDecimal: BigDecimal
   }
-  case class NumberMinimum(value: BigDecimal) extends Minimum {
-    def getAsDecimal = value
-  }
-  case class IntegerMinimum(value: BigInt) extends Minimum {
-    def getAsDecimal = BigDecimal(value)
+  object Minimum {
+    case class NumberMinimum(value: BigDecimal) extends Minimum {
+      def getAsDecimal = value
+    }
+    case class IntegerMinimum(value: BigInt) extends Minimum {
+      def getAsDecimal = BigDecimal(value)
+    }
   }
 
   /**
@@ -61,17 +65,18 @@ object NumberProperties {
 
     /**
      * Get value of `maximum` property as `BigDecimal` preserving point for
-     * [[NumberMaximum]] and adding it for [[IntegerMaximum]]
+     * `NumberMaximum` and adding it for `IntegerMaximum`
      */
     def getAsDecimal: BigDecimal
   }
-  case class NumberMaximum(value: BigDecimal) extends Maximum {
-    def getAsDecimal = value
+  object Maximum {
+    case class NumberMaximum(value: BigDecimal) extends Maximum {
+      def getAsDecimal = value
+    }
+    case class IntegerMaximum(value: BigInt) extends Maximum {
+      def getAsDecimal = BigDecimal(value)
+    }
   }
-  case class IntegerMaximum(value: BigInt) extends Maximum {
-    def getAsDecimal = BigDecimal(value)
-  }
-
 }
 
 

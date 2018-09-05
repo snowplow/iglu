@@ -21,7 +21,7 @@ import org.json4s._
 
 // This library
 import jsonschema.Schema
-import jsonschema.ObjectProperties._
+import jsonschema.ObjectProperty._
 
 
 object ObjectSerializers {
@@ -32,7 +32,7 @@ object ObjectSerializers {
     keys match {
       case Nil             => Some(acc.reverse)
       case JString(h) :: t => allString(t, h :: acc)
-      case _ :: t          => None
+      case _               => None
     }
   }
 
@@ -55,17 +55,17 @@ object ObjectSerializers {
 
   object AdditionalPropertiesSerializer extends CustomSerializer[AdditionalProperties](_ => (
     {
-      case JBool(bool) => AdditionalPropertiesAllowed(bool)
+      case JBool(bool) => AdditionalProperties.AdditionalPropertiesAllowed(bool)
       case obj: JObject => Schema.parse(obj: JValue) match {
-        case Some(schema) => AdditionalPropertiesSchema(schema)
+        case Some(schema) => AdditionalProperties.AdditionalPropertiesSchema(schema)
         case None => throw new MappingException(obj + " isn't additionalProperties")
       }
       case x => throw new MappingException(x + " isn't bool")
     },
 
     {
-      case AdditionalPropertiesAllowed(value) => JBool(value)
-      case AdditionalPropertiesSchema(value) => Schema.normalize(value)
+      case AdditionalProperties.AdditionalPropertiesAllowed(value) => JBool(value)
+      case AdditionalProperties.AdditionalPropertiesSchema(value) => Schema.normalize(value)
     }
     ))
 

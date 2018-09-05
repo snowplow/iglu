@@ -1,0 +1,35 @@
+{
+    "schema": "iglu:com.snowplowanalytics.iglu/igluctl_config/jsonschema/1-0-0",
+    "data": {
+        "input": "/Users/chuwy/workspace/iglu-central/",
+        "lint": {
+            "skipWarnings": true,
+            "includedChecks": ["rootObject", "unknownFormats", "numericMinMax", "stringLength", "optionalNull", "description", "stringMaxLengthRange"]
+        },
+        "generate": {
+            "output": "output_path",
+            "withJsonPaths": true,
+            "owner": "a_new_owner",
+            "dbschema": "atomic",
+            "varcharSize": 4096,
+            "force": false,
+            "noHeader": false
+        },
+        "actions": [
+            {
+                "action": "s3cp",
+                "uploadFormat": "jsonschema",
+                "bucketPath": "s3://cross-batch-test/bq-schemas/",
+                "profile": "wr",
+                "region": "us-east-1"
+            },
+            {
+                "action": "s3cp",
+                "uploadFormat": "jsonpath",
+                "bucketPath": "s3://cross-batch-test/bq-paths/",
+                "profile": "wr",
+                "region": "us-east-1"
+            }
+        ]
+    }
+}
