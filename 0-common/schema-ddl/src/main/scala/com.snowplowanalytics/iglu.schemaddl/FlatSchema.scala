@@ -12,9 +12,9 @@
  */
 package com.snowplowanalytics.iglu.schemaddl
 
-// Scalaz
-import scalaz._
-import Scalaz._
+// cats
+import cats.data.Validated
+import cats.syntax.validated._
 
 // Scala
 import scala.annotation.tailrec
@@ -89,26 +89,26 @@ object FlatSchema {
    * @param splitProduct whether we need to split product types to different keys
    * @return a validated map of keys and attributes or a failure string
    */
-  def flattenJsonSchema(jSchema: JValue, splitProduct: Boolean): Validation[String, FlatSchema] = {
+  def flattenJsonSchema(jSchema: JValue, splitProduct: Boolean): Validated[String, FlatSchema] = {
     // Match against the Schema and check that it is properly formed: i.e. wrapped in { ... }
     jSchema match {
       case JObject(list) =>
         // Analyze the base level of the schema
         getElemInfo(list) match {
-          case Success(ObjectInfo(properties, required)) =>
+          case Validated.Valid(ObjectInfo(properties, required)) =>
             processProperties(properties, requiredKeys = required, requiredAccum = required) match {
-              case Success(subSchema) =>
+              case Validated.Valid(subSchema) =>
                 val elems = if (splitProduct) splitProductTypes(subSchema.elems) else subSchema.elems
-                FlatSchema(getOrderedMap(elems), subSchema.required).success
-              case Failure(str) => str.failure
+                FlatSchema(getOrderedMap(elems), subSchema.required).valid
+              case Validated.Invalid(str) => str.invalid
             }
-          case Success(FlattenObjectInfo) =>
-            FlatSchema(getOrderedMap(Map.empty[String, Map[String, String]]), Set.empty[String]).success
-          case Failure(str) => str.failure
+          case Validated.Valid(FlattenObjectInfo) =>
+            FlatSchema(getOrderedMap(Map.empty[String, Map[String, String]]), Set.empty[String]).valid
+          case Validated.Invalid(str) => str.invalid
           case _ => ("Error: Function - 'flattenJsonSchema' - " +
-                     "JsonSchema does not begin with an 'object' & 'properties'").failure
+                     "JsonSchema does not begin with an 'object' & 'properties'").invalid
         }
-      case _ => s"Error: Function - 'flattenJsonSchema' - Invalid Schema passed to flattener".failure
+      case _ => s"Error: Function - 'flattenJsonSchema' - Invalid Schema passed to flattener".invalid
     }
   }
 
@@ -152,37 +152,37 @@ object FlatSchema {
       accumKey: String = "",
       requiredKeys: Set[String] = Set.empty,
       requiredAccum: Set[String] = Set.empty)
-  : Validation[String, SubSchema] = {
+  : Validated[String, SubSchema] = {
 
     propertyList match {
       case x :: xs => {
-        val res: Validation[String, SubSchema] = x match {
+        val res: Validated[String, SubSchema] = x match {
           case (key, JObject(list)) =>
             getElemInfo(list) match {
-              case Success(ObjectInfo(properties, required)) =>
+              case Validated.Valid(ObjectInfo(properties, required)) =>
                 val currentLevelRequired = if (requiredAccum.contains(key)) { required } else { Set.empty[String] }
                 val keys = properties.map(_._1).filter(currentLevelRequired.contains).map(accumKey + key + "." + _)
                 processProperties(properties, Map(), accumKey + key + ".", keys.toSet, required)
-              case Success(FlattenObjectInfo) =>
-                SubSchema(Map(accumKey + key -> Map("type" -> "string")), Set.empty[String]).success
-              case Success(ArrayInfo) =>
-                SubSchema(Map(accumKey + key -> Map("type" -> "array")), Set.empty[String]).success
-              case Success(_) => processAttributes(list) match {
-                case Success(attr) => SubSchema(Map(accumKey + key -> attr), Set.empty[String]).success
-                case Failure(str)  => str.failure
+              case Validated.Valid(FlattenObjectInfo) =>
+                SubSchema(Map(accumKey + key -> Map("type" -> "string")), Set.empty[String]).valid
+              case Validated.Valid(ArrayInfo) =>
+                SubSchema(Map(accumKey + key -> Map("type" -> "array")), Set.empty[String]).valid
+              case Validated.Valid(_) => processAttributes(list) match {
+                case Validated.Valid(attr) => SubSchema(Map(accumKey + key -> attr), Set.empty[String]).valid
+                case Validated.Invalid(str)  => str.invalid
               }
-              case Failure(str) => str.failure
+              case Validated.Invalid(str) => str.invalid
             }
-          case _ => s"Error: Function - 'processProperties' - Invalid List Tuple2 Encountered".failure
+          case _ => s"Error: Function - 'processProperties' - Invalid List Tuple2 Encountered".invalid
         }
 
         res match {
-          case Success(goodRes) =>
+          case Validated.Valid(goodRes) =>
             processProperties(xs, accum ++ goodRes.elems, accumKey, requiredKeys ++ goodRes.required, requiredAccum)
-          case Failure(badRes) => badRes.failure
+          case Validated.Invalid(badRes) => badRes.invalid
         }
       }
-      case Nil => SubSchema(accum, requiredKeys).success
+      case Nil => SubSchema(accum, requiredKeys).valid
     }
   }
 
@@ -199,15 +199,15 @@ object FlatSchema {
   private[schemaddl] def processAttributes(
       attributes: List[JField],
       accum: Map[String, String] = Map())
-  : Validation[String, Map[String, String]] = {
+  : Validated[String, Map[String, String]] = {
 
     attributes match {
       case x :: xs =>
         x match {
           case (key, JArray(value))   =>
             stringifyArray(value) match {
-              case Success(strs) => processAttributes(xs, accum ++ Map(key -> strs))
-              case Failure(str)  => str.failure
+              case Validated.Valid(strs) => processAttributes(xs, accum ++ Map(key -> strs))
+              case Validated.Invalid(str)  => str.invalid
             }
           case (key, JBool(value))    => processAttributes(xs, accum ++ Map(key -> value.toString))
           case (key, JInt(value))     => processAttributes(xs, accum ++ Map(key -> value.toString))
@@ -215,9 +215,9 @@ object FlatSchema {
           case (key, JDouble(value))  => processAttributes(xs, accum ++ Map(key -> value.toString))
           case (key, JNull)           => processAttributes(xs, accum ++ Map(key -> "null"))
           case (key, JString(value))  => processAttributes(xs, accum ++ Map(key -> value))
-          case _ => s"Error: Function - 'processAttributes' - Invalid JValue found".failure
+          case _ => s"Error: Function - 'processAttributes' - Invalid JValue found".invalid
         }
-      case Nil => accum.success
+      case Nil => accum.valid
     }
   }
 
@@ -237,7 +237,7 @@ object FlatSchema {
       list: List[JValue],
       accum: String = "",
       delim: String = ",")
-  : Validation[String, String] = {
+  : Validated[String, String] = {
 
     list match {
       case x :: xs =>
@@ -247,9 +247,9 @@ object FlatSchema {
           case JDecimal(d)  => stringifyArray(xs, accum + delim + d.toString)
           case JDouble(d)   => stringifyArray(xs, accum + delim + d.toString)
           case JNull        => stringifyArray(xs, accum + delim + "null")
-          case _            => s"Error: Function - 'processList' - Invalid JValue: $x in list".failure
+          case _            => s"Error: Function - 'processList' - Invalid JValue: $x in list".invalid
         }
-      case Nil => accum.drop(1).success
+      case Nil => accum.drop(1).valid
     }
   }
 
@@ -259,24 +259,24 @@ object FlatSchema {
    * @param jObject JSON object containing JSON Schema
    * @return validated list of required fields
    */
-  private[schemaddl] def getRequiredProperties(jObject: Map[String, JValue]): Validation[String, List[String]] = {
+  private[schemaddl] def getRequiredProperties(jObject: Map[String, JValue]): Validated[String, List[String]] = {
     // Helper function, validates each element as string
-    def JStringToString(array: List[JValue]): Validation[String, List[String]] =
-      array.foldLeft(Nil.success: Validation[String, List[String]]) { (acc, str) =>
+    def JStringToString(array: List[JValue]): Validated[String, List[String]] =
+      array.foldLeft(Nil.valid: Validated[String, List[String]]) { (acc, str) =>
         acc match {
-          case Success(l) => str match {
-            case JString(s) => (s :: l).success
-            case _ => "required property must contain only strings".failure
+          case Validated.Valid(l) => str match {
+            case JString(s) => (s :: l).valid
+            case _ => "required property must contain only strings".invalid
           }
-          case Failure(f) => f.failure
+          case Validated.Invalid(f) => f.invalid
         }
       }
     jObject.get("required") match {
       case Some(required) => required match {
         case JArray(list) => JStringToString(list)
-        case _ => "required property must contain array of keys".failure
+        case _ => "required property must contain array of keys".invalid
       }
-      case None => Nil.success
+      case None => Nil.valid
     }
   }
 
@@ -290,12 +290,12 @@ object FlatSchema {
    * @return a map which contains a string illustrating what needs to be done
    *         with the element
    */
-  private[schemaddl] def getElemInfo(maybeAttrList: List[JField]): Validation[String, Info] = {
+  private[schemaddl] def getElemInfo(maybeAttrList: List[JField]): Validated[String, Info] = {
     val objectMap = maybeAttrList.toMap
     objectMap.get("type") match {
       case Some(types: JValue) =>
         getElemType(types) match {
-          case (Success(elemType)) =>
+          case Validated.Valid(elemType) =>
             elemType match {
               case "object" =>
                 // TODO: probably won't work on complex product types
@@ -303,18 +303,18 @@ object FlatSchema {
                   case Some(JObject(props)) =>
                     val requiredFields = getRequiredProperties(objectMap)
                     requiredFields match {
-                      case Success(required) => ObjectInfo(props, required.toSet).success
-                      case Failure(str)      => str.failure
+                      case Validated.Valid(required) => ObjectInfo(props, required.toSet).valid
+                      case Validated.Invalid(str)    => str.invalid
                     }
-                  case _ => FlattenObjectInfo.success
+                  case _ => FlattenObjectInfo.valid
                 }
-              case "array"  => ArrayInfo.success
-              case _        => PrimitiveInfo.success // Pass back a successful empty Map for a normal entry (Should come up with something better...)
+              case "array"  => ArrayInfo.valid
+              case _        => PrimitiveInfo.valid // Pass back a successful empty Map for a normal entry (Should come up with something better...)
             }
-          case Failure(str) => str.failure
+          case Validated.Invalid(str) => str.invalid
         }
-      case None if objectMap.get("enum").isDefined => PrimitiveInfo.success
-      case _ => FlattenObjectInfo.success
+      case None if objectMap.get("enum").isDefined => PrimitiveInfo.valid
+      case _ => FlattenObjectInfo.valid
     }
   }
 
@@ -327,18 +327,18 @@ object FlatSchema {
    * @param types The JValue from the "type" field of an element
    * @return A validated String which determines what type the element is
    */
-  private[schemaddl] def getElemType(types: JValue): Validation[String, String] = {
+  private[schemaddl] def getElemType(types: JValue): Validated[String, String] = {
     val maybeTypes = types match {
-      case JString(value) => value.success
+      case JString(value) => value.valid
       case JArray(list) => stringifyArray(list)
-      case _ => s"Error: Function - 'getElemType' - Type List contains invalid JValue".failure
+      case _ => s"Error: Function - 'getElemType' - Type List contains invalid JValue".valid
     }
     maybeTypes match {
-      case Success(str) =>
-        if (str.contains("object")) "object".success
-        else if (str.contains("array")) "array".success
-        else "".success
-      case Failure(str) => str.failure
+      case Validated.Valid(str) =>
+        if (str.contains("object")) "object".valid
+        else if (str.contains("array")) "array".valid
+        else "".valid
+      case Validated.Invalid(str) => str.invalid
     }
   }
 
