@@ -12,7 +12,7 @@
  */
 package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
-import scalaz.{Failure, NonEmptyList}
+import cats.data.{ Validated, NonEmptyList}
 
 // json4s
 import org.json4s._
@@ -49,7 +49,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
       """.stripMargin)).get
 
     lint(schema, 0, allLinters.values.toList) must beEqualTo(
-      Failure(NonEmptyList(
+      Validated.Invalid(NonEmptyList.of(
         "Schema doesn't contain description property",
         "String properties [minLength] require string or absent type",
         "Root of schema should have type object and contain properties"
@@ -86,7 +86,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
       """.stripMargin)).get
 
     lint(schema, 0, allLinters.values.toList) must beEqualTo(
-      Failure(NonEmptyList(
+      Validated.Invalid(NonEmptyList.of(
         "Schema doesn't contain description property",
         "Root of schema should have type object and contain properties",
         "Schema doesn't contain description property",
@@ -114,7 +114,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
     )).get
 
     lint(schema, 0, allLinters.values.toList) must beEqualTo(
-      Failure(NonEmptyList(
+      Validated.Invalid(NonEmptyList.of(
         "Schema doesn't contain description property",
         "Required properties [twoKey] doesn't exist in properties",
         "Root of schema should have type object and contain properties",
@@ -155,7 +155,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
     )).get
 
     lint(schema, 0, allLinters.values.toList) must beEqualTo(
-      Failure(NonEmptyList(
+      Validated.Invalid(NonEmptyList.of(
         "Schema doesn't contain description property",
         "Optional field doesn't allow null type",
         "Schema doesn't contain description property",
@@ -208,7 +208,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
     )).get
 
     lint(schema, 0, allLinters.values.toList) must beEqualTo(
-      Failure(NonEmptyList(
+      Validated.Invalid(NonEmptyList.of(
         "Schema doesn't contain description property",
         "Optional field doesn't allow null type",
         "Schema doesn't contain description property",
@@ -251,7 +251,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
     )).get
 
     lint(schema, 0, allLinters.values.toList) must beEqualTo(
-      Failure(NonEmptyList(
+      Validated.Invalid(NonEmptyList.of(
         "Schema doesn't contain description property",
         "Root of schema should have type object and contain properties",
         "Schema doesn't contain description property",
@@ -281,7 +281,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
     )).get
 
     lint(schema, 0, allLinters.values.toList) must beEqualTo(
-      Failure(NonEmptyList(
+      Validated.Invalid(NonEmptyList.of(
         "Schema doesn't contain description property",
         "Optional field doesn't allow null type",
         "Schema doesn't contain description property",
@@ -313,7 +313,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
 
 
     lint(schema, 0, allLinters.values.toList) must beEqualTo(
-      Failure(NonEmptyList(
+      Validated.Invalid(NonEmptyList.of(
         "Schema doesn't contain description property",
         "Optional field doesn't allow null type",
         "Schema doesn't contain description property",
@@ -336,7 +336,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
       """.stripMargin)).get
 
     lint(schema, 0, allLinters.values.toList) must beEqualTo(
-      Failure(NonEmptyList(
+      Validated.Invalid(NonEmptyList.of(
         "Schema doesn't contain description property",
         "Schema with string type has maxLength property [65536] greater than Redshift VARCHAR(max) 65535",
         "Root of schema should have type object and contain properties"
@@ -389,7 +389,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
     val skippedLinters = List(lintDescription)
 
     lint(schema, 0, allLinters.values.toList.diff(skippedLinters)) must beEqualTo(
-      Failure(NonEmptyList(
+      Validated.Invalid(NonEmptyList.of(
         "Optional field doesn't allow null type"
       ))
     )

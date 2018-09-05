@@ -26,7 +26,7 @@ lazy val root = project.in(file("."))
   .settings(libraryDependencies ++= Seq(
     Dependencies.Libraries.igluCoreJson4s,
     Dependencies.Libraries.igluCoreCirce,
-    Dependencies.Libraries.scalaz7,
+    Dependencies.Libraries.circeGeneric,
     Dependencies.Libraries.circeLiteral,
     Dependencies.Libraries.circeParser,
     // Scala (test only)

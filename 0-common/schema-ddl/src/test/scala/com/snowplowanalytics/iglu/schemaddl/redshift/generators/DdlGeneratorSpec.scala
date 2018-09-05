@@ -19,8 +19,8 @@ import scala.collection.immutable.ListMap
 // Specs2
 import org.specs2.Specification
 
-// scalaz
-import scalaz.NonEmptyList
+// cats
+import cats.data.NonEmptyList
 
 // This library
 import com.snowplowanalytics.iglu.schemaddl.FlatSchema
@@ -49,8 +49,8 @@ class DdlGeneratorSpec extends Specification { def is = s2"""
         Column("foo",RedshiftVarchar(30),Set(CompressionEncoding(ZstdEncoding)),Set(Nullability(NotNull))),
         Column("bar",RedshiftVarchar(5),Set(CompressionEncoding(ZstdEncoding)),Set())
       ),
-      Set(ForeignKeyTable(NonEmptyList("root_id"),RefTable("atomic.events",Some("event_id")))),
-      Set(Diststyle(Key), DistKeyTable("root_id"),SortKeyTable(None,NonEmptyList("root_tstamp")))
+      Set(ForeignKeyTable(NonEmptyList.of("root_id"),RefTable("atomic.events",Some("event_id")))),
+      Set(Diststyle(Key), DistKeyTable("root_id"),SortKeyTable(None,NonEmptyList.of("root_tstamp")))
     )
 
     val ddl = DdlGenerator.generateTableDdl(flatSchema, "launch_missles", None, 4096)
@@ -77,8 +77,8 @@ class DdlGeneratorSpec extends Specification { def is = s2"""
         Column("bar",RedshiftVarchar(5),Set(CompressionEncoding(ZstdEncoding)),Set()),
         Column("baz",RedshiftBoolean,Set(CompressionEncoding(RunLengthEncoding)),Set())
       ),
-      Set(ForeignKeyTable(NonEmptyList("root_id"),RefTable("atomic.events",Some("event_id")))),
-      Set(Diststyle(Key), DistKeyTable("root_id"),SortKeyTable(None,NonEmptyList("root_tstamp")))
+      Set(ForeignKeyTable(NonEmptyList.of("root_id"),RefTable("atomic.events",Some("event_id")))),
+      Set(Diststyle(Key), DistKeyTable("root_id"),SortKeyTable(None,NonEmptyList.of("root_tstamp")))
     )
 
     val ddl = DdlGenerator.generateTableDdl(flatSchema, "launch_missles", None, 4096)
