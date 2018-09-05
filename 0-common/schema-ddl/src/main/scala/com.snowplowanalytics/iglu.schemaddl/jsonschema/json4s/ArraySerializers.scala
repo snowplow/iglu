@@ -18,7 +18,7 @@ import org.json4s._
 
 // this library
 import jsonschema.Schema
-import jsonschema.ArrayProperties._
+import jsonschema.ArrayProperty._
 
 object ArraySerializers {
 
@@ -29,35 +29,35 @@ object ArraySerializers {
     {
       case schema: JObject =>
         Schema.parse(schema.asInstanceOf[JValue]) match {
-          case Some(s) => ListItems(s)
+          case Some(s) => Items.ListItems(s)
           case None    => throw new MappingException(schema + " isn't Schema")
         }
       case tuple: JArray =>
         val schemas: List[Option[Schema]] = tuple.arr.map(Schema.parse(_))
-        if (schemas.forall(_.isDefined)) TupleItems(schemas.map(_.get))
+        if (schemas.forall(_.isDefined)) Items.TupleItems(schemas.map(_.get))
         else throw new MappingException(tuple + " need to be array of Schemas")
       case x => throw new MappingException(x + " isn't valid items")
     },
 
     {
-      case ListItems(schema) => Schema.normalize(schema)
-      case TupleItems(schemas) => JArray(schemas.map(Schema.normalize(_)))
+      case Items.ListItems(schema) => Schema.normalize(schema)
+      case Items.TupleItems(schemas) => JArray(schemas.map(Schema.normalize(_)))
     }
     ))
 
   object AdditionalPropertiesSerializer extends CustomSerializer[AdditionalItems](_ => (
     {
-      case JBool(bool) => AdditionalItemsAllowed(bool)
+      case JBool(bool) => AdditionalItems.AdditionalItemsAllowed(bool)
       case obj: JObject => Schema.parse(obj.asInstanceOf[JValue]) match {
-        case Some(schema) => AdditionalItemsSchema(schema)
+        case Some(schema) => AdditionalItems.AdditionalItemsSchema(schema)
         case _ => throw new MappingException(obj + " isn't Schema")
       }
       case x => throw new MappingException(x + " isn't bool")
     },
 
     {
-      case AdditionalItemsAllowed(value) => JBool(value)
-      case AdditionalItemsSchema(schema) => Schema.normalize(schema)
+      case AdditionalItems.AdditionalItemsAllowed(value) => JBool(value)
+      case AdditionalItems.AdditionalItemsSchema(schema) => Schema.normalize(schema)
     }
     ))
 

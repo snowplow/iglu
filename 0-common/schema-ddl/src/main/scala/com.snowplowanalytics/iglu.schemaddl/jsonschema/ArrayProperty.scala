@@ -12,12 +12,12 @@
  */
 package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
-object ArrayProperties {
+/**
+  * Marker trait for properties specific *ONLY* for arrays
+  */
+private[iglu] sealed trait ArrayProperty
 
-  /**
-   * Marker trait for properties specific *ONLY* for arrays
-   */
-  private[iglu] sealed trait ArrayProperty
+object ArrayProperty {
 
   /**
    * ADT representing value for `items` keyword
@@ -27,8 +27,10 @@ object ArrayProperties {
   sealed trait Items extends JsonSchemaProperty with ArrayProperty {
     def keyName = "items"
   }
-  case class ListItems(value: Schema) extends Items
-  case class TupleItems(value: List[Schema]) extends Items
+  object Items {
+    case class ListItems(value: Schema) extends Items
+    case class TupleItems(value: List[Schema]) extends Items
+  }
 
   /**
    * ADT representing value for `additionalItems` keyword
@@ -38,15 +40,16 @@ object ArrayProperties {
   sealed trait AdditionalItems extends JsonSchemaProperty with ArrayProperty {
     def keyName = "additionalItems"
   }
-  case class AdditionalItemsAllowed(value: Boolean) extends AdditionalItems
-  case class AdditionalItemsSchema(value: Schema) extends AdditionalItems
+  object AdditionalItems {
+    case class AdditionalItemsAllowed(value: Boolean) extends AdditionalItems
+    case class AdditionalItemsSchema(value: Schema) extends AdditionalItems
+  }
 
   /**
    * Container representing value for `maxItems` keyword
    *
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor42
    */
-
   case class MaxItems(value: BigInt) extends JsonSchemaProperty with ArrayProperty {
     def keyName = "maxItems"
   }

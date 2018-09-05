@@ -17,22 +17,14 @@ package jsonschema.json4s
 import org.json4s._
 
 // This library
-import jsonschema.StringProperties._
+import jsonschema.StringProperty._
 
 object StringSerializers {
 
   object FormatSerializer extends CustomSerializer[Format](_ => (
     {
-      case JString(format) if format == "ipv4" => Ipv4Format
-      case JString(format) if format == "ipv6" => Ipv6Format
-      case JString(format) if format == "uri" => UriFormat
-      case JString(format) if format == "email" => EmailFormat
-      case JString(format) if format == "hostname" => HostNameFormat
-      case JString(format) if format == "date-time" => DateTimeFormat
-      case JString(format) if format == "date" => DateFormat
-      case JString(format) if format == "uuid" => UuidFormat
-      case JString(format) => CustomFormat(format)
-      case x => throw new MappingException("Format must be string")
+      case JString(format) => Format.fromString(format)
+      case _ => throw new MappingException("Format must be string")
     },
     {
       case f: Format => JString(f.asString)
@@ -63,7 +55,7 @@ object StringSerializers {
     }
     ))
 
-  object PatternSerializer extends CustomSerializer[Pattern](x => (
+  object PatternSerializer extends CustomSerializer[Pattern](_ => (
     {
       case JString(value) => Pattern(value)
       case x => throw new MappingException(x + " isn't valid regex")

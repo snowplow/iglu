@@ -12,48 +12,48 @@
  */
 package com.snowplowanalytics.iglu.schemaddl.bigquery
 
-import org.json4s.JsonAST._
+import io.circe._
 
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.{CommonProperties, Schema, StringProperties}
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.{CommonProperties, Schema, StringProperty}
 
 object Suggestion {
 
   val stringSuggestion: Suggestion = (schema, required) =>
     schema.`type` match {
-      case Some(CommonProperties.String) =>
+      case Some(CommonProperties.Type.String) =>
         Some(name => Field(name, Type.String, Mode.required(required)))
-      case Some(types) if types.nullable(CommonProperties.String) =>
+      case Some(types) if types.nullable(CommonProperties.Type.String) =>
         Some(name => Field(name, Type.String, Mode.Nullable) )
       case _ => None
     }
 
   val booleanSuggestion: Suggestion = (schema, required) =>
     schema.`type` match {
-      case Some(CommonProperties.Boolean) =>
+      case Some(CommonProperties.Type.Boolean) =>
         Some(name => Field(name, Type.Boolean, Mode.required(required)))
-      case Some(CommonProperties.Product(types)) if withNull(types, CommonProperties.Boolean) =>
+      case Some(CommonProperties.Type.Product(types)) if withNull(types, CommonProperties.Type.Boolean) =>
         Some(name => Field(name, Type.Boolean, Mode.Nullable))
       case _ => None
     }
 
   val integerSuggestion: Suggestion = (schema, required) =>
     schema.`type` match {
-      case Some(CommonProperties.Integer) =>
+      case Some(CommonProperties.Type.Integer) =>
         Some(name => Field(name, Type.Integer, Mode.required(required)))
-      case Some(CommonProperties.Product(types)) if withNull(types, CommonProperties.Integer) =>
+      case Some(CommonProperties.Type.Product(types)) if withNull(types, CommonProperties.Type.Integer) =>
         Some(name => Field(name, Type.Integer, Mode.Nullable))
       case _ => None
     }
 
   val floatSuggestion: Suggestion = (schema, required) =>
     schema.`type` match {
-      case Some(CommonProperties.Number) =>
+      case Some(CommonProperties.Type.Number) =>
         Some(name => Field(name, Type.Float, Mode.required(required)))
-      case Some(CommonProperties.Product(types)) if onlyNumeric(types.toSet, true) =>
+      case Some(CommonProperties.Type.Product(types)) if onlyNumeric(types.toSet, true) =>
         Some(name => Field(name, Type.Float, Mode.Nullable))
-      case Some(CommonProperties.Product(types)) if onlyNumeric(types.toSet, false)  =>
+      case Some(CommonProperties.Type.Product(types)) if onlyNumeric(types.toSet, false)  =>
         Some(name => Field(name, Type.Float, Mode.required(required)))
-      case Some(CommonProperties.Product(types)) if withNull(types, CommonProperties.Number) =>
+      case Some(CommonProperties.Type.Product(types)) if withNull(types, CommonProperties.Type.Number) =>
         Some(name => Field(name, Type.Float, Mode.Nullable))
       case _ => None
     }
@@ -68,14 +68,14 @@ object Suggestion {
   // `date-time` format usually means zoned format, which corresponds to BQ Timestamp
   val timestampSuggestion: Suggestion = (schema, required) =>
     (schema.`type`, schema.format) match {
-      case (Some(CommonProperties.String), Some(StringProperties.DateFormat)) =>
+      case (Some(CommonProperties.Type.String), Some(StringProperty.Format.DateFormat)) =>
         Some(name => Field(name, Type.Date, Mode.required(required)))
-      case (Some(CommonProperties.Product(types)), Some(StringProperties.DateFormat)) if withNull(types, CommonProperties.String) =>
+      case (Some(CommonProperties.Type.Product(types)), Some(StringProperty.Format.DateFormat)) if withNull(types, CommonProperties.Type.String) =>
         Some(name => Field(name, Type.Date, Mode.Nullable))
 
-      case (Some(CommonProperties.String), Some(StringProperties.DateTimeFormat)) =>
+      case (Some(CommonProperties.Type.String), Some(StringProperty.Format.DateTimeFormat)) =>
         Some(name => Field(name, Type.Timestamp, Mode.required(required)))
-      case (Some(CommonProperties.Product(types)), Some(StringProperties.DateTimeFormat)) if withNull(types, CommonProperties.String) =>
+      case (Some(CommonProperties.Type.Product(types)), Some(StringProperty.Format.DateTimeFormat)) if withNull(types, CommonProperties.Type.String) =>
         Some(name => Field(name, Type.Timestamp, Mode.Nullable))
 
       case _ => None
@@ -98,12 +98,11 @@ object Suggestion {
     complexEnumSuggestion
   )
 
-  private[iglu] def fromEnum(enums: List[JValue], required: Boolean): String => Field = {
-    def isString(json: JValue) = json.isInstanceOf[JString] || json == JNull
-    def isInteger(json: JValue) = json.isInstanceOf[JInt] || json == JNull
-    def isNumeric(json: JValue) =
-      json.isInstanceOf[JInt] || json.isInstanceOf[JDouble] || json.isInstanceOf[JDecimal] || json == JNull
-    val noNull: Boolean = !enums.contains(JNull)
+  private[iglu] def fromEnum(enums: List[Json], required: Boolean): String => Field = {
+    def isString(json: Json) = json.isString || json.isNull
+    def isInteger(json: Json) = json.asNumber.exists(_.toBigInt.isDefined) || json.isNull
+    def isNumeric(json: Json) = json.isNumber || json.isNull
+    val noNull: Boolean = !enums.contains(Json.Null)
 
     if (enums.forall(isString)) {
       name => Field(name, Type.String, Mode.required(required && noNull))
@@ -117,9 +116,9 @@ object Suggestion {
   }
 
   private def withNull(types: List[CommonProperties.Type], t: CommonProperties.Type): Boolean =
-    types.toSet == Set(t, CommonProperties.Null) || types == List(t)
+    types.toSet == Set(t, CommonProperties.Type.Null) || types == List(t)
 
   private def onlyNumeric(types: Set[CommonProperties.Type], allowNull: Boolean): Boolean =
-    if (allowNull) types == Set(CommonProperties.Number, CommonProperties.Integer, CommonProperties.Null)
-    else types == Set(CommonProperties.Number, CommonProperties.Integer)
+    if (allowNull) types == Set(CommonProperties.Type.Number, CommonProperties.Type.Integer, CommonProperties.Type.Null)
+    else types == Set(CommonProperties.Type.Number, CommonProperties.Type.Integer)
 }
