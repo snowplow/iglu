@@ -12,9 +12,8 @@
  */
 package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
-// Scalaz
-import scalaz._
-import Scalaz._
+import cats.data._
+import cats.implicits._
 
 // This library
 import StringProperties._
@@ -38,27 +37,27 @@ object SanityLinter {
   /**
    * Aggregated property lints
    */
-  type LintSchema = ValidationNel[String, Unit]
+  type LintSchema = ValidatedNel[String, Unit]
 
   /**
    * Check of single property
    */
-  type LintProperty = Validation[String, Unit]
+  type LintProperty = Validated[String, Unit]
 
   /**
    * Function able to lint Schema AST
    */
-  type Linter = (Schema) => LintProperty
+  type Linter = Schema => LintProperty
 
   /**
    * Whole subschema was processed successfully
    */
-  val schemaSuccess = ().successNel[String]
+  val schemaSuccess = ().validNel[String]
 
   /**
    * Some property was processed successfully
    */
-  val propertySuccess = ().success[String]
+  val propertySuccess = ().valid[String]
 
   /**
    * Pimp boolean, so it can pipe failure in case of `false`
@@ -68,7 +67,7 @@ object SanityLinter {
      * Return failure message if condition is false
      */
     def or(message: String): LintProperty =
-      if (value) propertySuccess else message.failure
+      if (value) propertySuccess else message.invalid
   }
 
   /**
@@ -124,7 +123,7 @@ object SanityLinter {
 
     // Current level validations
     val validations = lintersToUse.map(linter => linter(schema))
-      .foldMap(_.toValidationNel)
+      .foldMap(_.toValidatedNel)
 
     // lintRootObject
     val rootTypeCheck =
@@ -133,12 +132,12 @@ object SanityLinter {
           case 0 =>
             (schema.`type`, schema.properties) match {
               case (Some(Object), Some(Properties(_))) => propertySuccess
-              case (_, _) => "Root of schema should have type object and contain properties".failure
+              case (_, _) => "Root of schema should have type object and contain properties".invalid
             }
           case _ => propertySuccess
-        }).toValidationNel
+        }).toValidatedNel
       else
-        propertySuccess.toValidationNel
+        propertySuccess.toValidatedNel
 
 
     // Validations of child nodes
@@ -221,7 +220,7 @@ object SanityLinter {
     if (schema.withType(String)) {
       schema.maxLength match {
         case Some(max) if max.value > 65535 =>
-          s"Schema with string type has maxLength property [${max.value}] greater than Redshift VARCHAR(max) 65535".failure
+          s"Schema with string type has maxLength property [${max.value}] greater than Redshift VARCHAR(max) 65535".invalid
         case _ => propertySuccess
       }
     }
@@ -304,7 +303,7 @@ object SanityLinter {
     */
   val lintUnknownFormats: Linter = (schema: Schema) => {
     schema.format match {
-      case Some(CustomFormat(format)) => s"Unknown format [$format] detected. Known formats are: date-time, date, email, hostname, ipv4, ipv6, uri".failure
+      case Some(CustomFormat(format)) => s"Unknown format [$format] detected. Known formats are: date-time, date, email, hostname, ipv4, ipv6, uri".invalid
       case _ => propertySuccess
     }
   }
@@ -316,9 +315,9 @@ object SanityLinter {
     if (schema.withType(Number) || schema.withType(Integer)) {
       (schema.minimum, schema.maximum) match {
         case (Some(_), Some(_)) => propertySuccess
-        case (None, Some(_)) => "Schema with numeric type doesn't contain minimum property".failure
-        case (Some(_), None) => "Schema with numeric type doesn't contain maximum property".failure
-        case _ => "Schema with numeric type doesn't contain minimum and maximum properties".failure
+        case (None, Some(_)) => "Schema with numeric type doesn't contain minimum property".invalid
+        case (Some(_), None) => "Schema with numeric type doesn't contain maximum property".invalid
+        case _ => "Schema with numeric type doesn't contain minimum and maximum properties".invalid
       }
     }
     else propertySuccess
@@ -332,7 +331,7 @@ object SanityLinter {
       if (schema.withFormat(Ipv4Format) || schema.withFormat(Ipv6Format) || schema.withFormat(DateTimeFormat)) {
         propertySuccess
       } else {
-        "Schema with string type doesn't contain maxLength property or other ways to extract max length".failure
+        "Schema with string type doesn't contain maxLength property or other ways to extract max length".invalid
       }
     } else {
       propertySuccess
@@ -363,7 +362,7 @@ object SanityLinter {
   val lintDescription: Linter = (schema: Schema) => {
     schema.description match {
       case Some(_) => propertySuccess
-      case None => s"Schema doesn't contain description property".failure
+      case None => s"Schema doesn't contain description property".invalid
     }
   }
 

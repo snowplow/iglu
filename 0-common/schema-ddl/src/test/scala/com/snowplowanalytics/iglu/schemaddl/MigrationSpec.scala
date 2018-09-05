@@ -15,9 +15,8 @@ package com.snowplowanalytics.iglu.schemaddl
 // Scala
 import scala.collection.immutable.ListMap
 
-// scalaz
-import scalaz._
-import Scalaz._
+// cats
+import cats.data.Validated
 
 // Iglu Core
 import com.snowplowanalytics.iglu.core.{ SchemaMap, SchemaVer }
@@ -71,7 +70,7 @@ class MigrationSpec extends Specification { def is = s2"""
       """.stripMargin)
     val secondSchema = SelfDescribingSchema(SchemaMap("com.acme", "example", "jsonschema", SchemaVer.Full(1,0,1)), second)
 
-    val migrations = Success(List(
+    val migrations = Validated.Valid(List(
       Migration(
         "com.acme",
         "example",
@@ -143,7 +142,7 @@ class MigrationSpec extends Specification { def is = s2"""
       """.stripMargin)
     val thirdSchema = SelfDescribingSchema(SchemaMap("com.acme", "example", "jsonschema", SchemaVer.Full(1,0,2)), third)
 
-    val migrations1 = Success(List(
+    val migrations1 = Validated.Valid(List(
       Migration(
         "com.acme",
         "example",
@@ -163,7 +162,7 @@ class MigrationSpec extends Specification { def is = s2"""
           ListMap.empty[String, Map[String, String]],
           Set.empty))))
 
-    val migrations2 = Success(List(
+    val migrations2 = Validated.Valid(List(
       Migration(
         "com.acme",
         "example",
