@@ -20,13 +20,21 @@ import org.json4s.jackson.JsonMethods.parse
 import org.specs2.Specification
 
 // This library
+import properties._
+import ObjectProperty._
+import NumberProperty._
+import ArrayProperty._
+import StringProperty._
+import CommonProperties._
+
 import json4s.implicits._
 
 class ParseSpec extends Specification { def is = s2"""
   Check JSON Schema string specification
-    parse big nested Schema $e1
-    transform Schema AST into JSON $e2
-    fail to parse non-Object $e3
+    parse big nested Schema AST e1
+    normalize big nested Schema AST e2
+    parse fails to parse non-Object e3
+    parse single-level Schema AST $e4
   """
 
   def e1 = {
@@ -104,12 +112,6 @@ class ParseSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    import ObjectProperty._
-    import NumberProperty._
-    import ArrayProperty._
-    import StringProperty._
-    import CommonProperties._
-
     implicit def optconv[A](a: A): Option[A] = Some(a)
 
     val resultSchema = Schema(
@@ -186,7 +188,7 @@ class ParseSpec extends Specification { def is = s2"""
     import NumberProperty._
     import ArrayProperty._
     import StringProperty._
-    import CommonProperties._
+    import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.CommonProperties._
     import json4s.Formats._
 
     implicit def optconv[A](a: A): Option[A] = Some(a)
@@ -339,5 +341,14 @@ class ParseSpec extends Specification { def is = s2"""
       """.stripMargin)
 
     Schema.parse(schema) must beNone
+  }
+
+  def e4 = {
+    val schema = parse(
+      """
+        |{}
+      """.stripMargin)
+
+    Schema.parse(schema) must beSome
   }
 }

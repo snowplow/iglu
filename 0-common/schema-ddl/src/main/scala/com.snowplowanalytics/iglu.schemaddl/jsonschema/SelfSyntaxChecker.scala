@@ -13,7 +13,7 @@
 package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
 import com.github.fge.jackson.NodeType
-import com.github.fge.jackson.jsonpointer.JsonPointer
+import com.github.fge.jackson.jsonpointer.{ JsonPointer => FgeJsonPointer }
 import com.github.fge.jsonschema.cfg.ValidationConfiguration
 import com.github.fge.jsonschema.core.exceptions.ProcessingException
 import com.github.fge.jsonschema.core.keyword.syntax.checkers.AbstractSyntaxChecker
@@ -83,7 +83,6 @@ object SelfSyntaxChecker extends AbstractSyntaxChecker("self", NodeType.OBJECT) 
     }
     else true
 
-
   /**
     * Default `SyntaxChecker` method to process key
     * The only required method for `SyntaxChecker`, others are factory methods
@@ -94,7 +93,7 @@ object SelfSyntaxChecker extends AbstractSyntaxChecker("self", NodeType.OBJECT) 
     * @param tree currently processing part of Schema
     */
   @throws[ProcessingException]("If key is invalid")
-  def checkValue(pointers: java.util.Collection[JsonPointer],
+  def checkValue(pointers: java.util.Collection[FgeJsonPointer],
                  bundle: MessageBundle,
                  report: ProcessingReport,
                  tree: SchemaTree): Unit = {

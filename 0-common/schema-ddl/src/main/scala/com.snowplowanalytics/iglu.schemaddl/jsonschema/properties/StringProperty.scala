@@ -10,8 +10,8 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.schemaddl
-package jsonschema
+package com.snowplowanalytics.iglu.schemaddl.jsonschema
+package properties
 
 /**
   * Marker trait for properties specific *ONLY* for strings

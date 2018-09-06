@@ -20,7 +20,7 @@ import org.json4s._
  * Module containing type class instance with all Schema properties' Serializers
  */
 trait Json4sToSchema {
-  import Formats._
+  import com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s.Formats.allFormats
 
   /**
    * Type class instance allowing to convert json4s JValue
@@ -32,7 +32,9 @@ trait Json4sToSchema {
   implicit object Json4sToSchema extends ToSchema[JValue] {
     def parse(json: JValue): Option[Schema] =
       json match {
-        case o: JObject => json.extractOpt[Schema]
+        case _: JObject =>
+          val mf = implicitly[Manifest[Schema]]
+          Some(json.extract[Schema](allFormats, mf))
         case _          => None
       }
   }

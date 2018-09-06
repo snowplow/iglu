@@ -17,7 +17,7 @@ import org.json4s._
 import org.json4s.jackson.JsonMethods.parse
 
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.StringProperty.{Format, MaxLength, MinLength}
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.StringProperty.{Format, MaxLength, MinLength}
 
 import implicits._
 
