@@ -15,8 +15,6 @@ package com.snowplowanalytics.iglu.schemaddl.jsonschema
 import cats.data._
 import cats.implicits._
 
-import com.snowplowanalytics.iglu.schemaddl.Linter
-
 /**
  * Contains Schema validation logic for JSON AST to find nonsense (impossible)
  * JSON Schemas, ie. Schemas which cannot validate ANY value, yet
@@ -47,6 +45,15 @@ object SanityLinter {
     Schema.traverse(schema, validate(linters))
       .runS(ValidationState.empty)
       .value.toMap
+
+  /** Get list of linters from their names or list of unknown names */
+  def getLinters(names: List[String]): Either[NonEmptyList[String], List[Linter]] =
+    names
+      .map(name => (name, Linter.allLintersMap.get(name)))
+      .traverse[ValidatedNel[String, ?], Linter] {
+      case (_, Some(linter)) => linter.validNel
+      case (name, None) => name.invalidNel
+    }.toEither
 
   private def validate(linters: List[Linter])(jsonPointer: JsonPointer, schema: Schema): State[ValidationState, Unit] = {
     val results = linters

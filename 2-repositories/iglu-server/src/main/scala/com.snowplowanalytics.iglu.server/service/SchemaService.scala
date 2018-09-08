@@ -189,10 +189,10 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       dataType = "boolean", paramType = "query")
   ))
   @ApiResponses(Array(
-    new ApiResponse(code = 201, message = "Schema successfully added"),
+    new ApiResponse(code = 201, message = "The schema has been successfully added"),
     new ApiResponse(code = 400,
       message = "The schema provided is not a valid self-describing schema"),
-    new ApiResponse(code = 400, message = "The schema provided is not valid"),
+    new ApiResponse(code = 400, message = "The provided schema is not valid"),
     new ApiResponse(code = 401, message = "This schema already exists"),
     new ApiResponse(code = 401,
       message = "You do not have sufficient privileges"),
@@ -241,11 +241,11 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       dataType = "boolean", paramType = "query")
   ))
   @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Schema successfully updated"),
-    new ApiResponse(code = 201, message = "Schema successfully added"),
+    new ApiResponse(code = 200, message = "The schema has been successfully updated"),
+    new ApiResponse(code = 201, message = "The schema has been successfully added"),
     new ApiResponse(code = 400,
-      message = "The schema provided is not a valid self-describing schema"),
-    new ApiResponse(code = 400, message = "The schema provided is not valid"),
+      message = "The provided schema is not a valid self-describing schema"),
+    new ApiResponse(code = 400, message = "The provided schema is not valid"),
     new ApiResponse(code = 401,
       message = "You do not have sufficient privileges"),
     new ApiResponse(code = 401,
@@ -354,7 +354,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     new ApiResponse(code = 401, message = "The supplied authentication is invalid"),
     new ApiResponse(code = 401, message = "The resource requires authentication," +
                                           "which was not supplied with the request"),
-    new ApiResponse(code = 404, message = "There are no schemas for this vendor, name combination")
+    new ApiResponse(code = 404, message = "There are no schemas for this vendor + name combination")
   ))
   def readNameRoute(@ApiParam(hidden = true) v: List[String],
                     @ApiParam(hidden = true) n: List[String],
@@ -408,7 +408,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     new ApiResponse(code = 401, message = "The supplied authentication is invalid"),
     new ApiResponse(code = 401, message = "The resource requires authentication," +
                                           "which was not supplied with the request"),
-    new ApiResponse(code = 404, message = "There are no schemas for this vendor, name, format combination")
+    new ApiResponse(code = 404, message = "There are no schemas for this vendor + name + format combination")
   ))
   def readFormatRoute(@ApiParam(hidden = true) v: List[String],
                       @ApiParam(hidden = true) n: List[String],

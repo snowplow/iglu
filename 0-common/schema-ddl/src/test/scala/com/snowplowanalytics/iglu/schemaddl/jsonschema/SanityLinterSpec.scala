@@ -25,8 +25,6 @@ import org.specs2.Specification
 import json4s.implicits._
 import SanityLinter._
 
-import com.snowplowanalytics.iglu.schemaddl.Linter
-
 class SanityLinterSpec extends Specification { def is = s2"""
   Check SanityLinter specification
     recognize minLength and object type incompatibility $e1
@@ -42,7 +40,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
   """
 
   def showReport(kv: (JsonPointer, NonEmptyList[Linter.Issue])): (String, NonEmptyList[String]) =
-    kv match { case (k, v) => (k.show, v.map(_.getMessage)) }
+    kv match { case (k, v) => (k.show, v.map(_.show)) }
 
   def e1 = {
     val schema = Schema.parse(parse(
@@ -55,9 +53,9 @@ class SanityLinterSpec extends Specification { def is = s2"""
 
     lint(schema, Linter.allLintersMap.values.toList).map(showReport) must beEqualTo(
       Map(
-        "/" -> NonEmptyList.of("Schema doesn't contain description property",
-          "String properties [minLength] require string or absent type",
-          "Root of schema should have type object and contain properties")
+        "/" -> NonEmptyList.of("The schema is missing the \"description\" property",
+          "String properties [minLength] require either string or absent values",
+          "At the root level, the schema should have a \"type\" property set to \"object\" and have a \"properties\" property")
       )
     )
   }
@@ -92,21 +90,21 @@ class SanityLinterSpec extends Specification { def is = s2"""
 
     val expected = Map(
       "/" ->
-        NonEmptyList.of("Schema doesn't contain description property",
-          "Root of schema should have type object and contain properties"),
+        NonEmptyList.of("The schema is missing the \"description\" property",
+          "At the root level, the schema should have a \"type\" property set to \"object\" and have a \"properties\" property"),
       "/additionalProperties" ->
-        NonEmptyList.of("Schema doesn't contain description property"),
+        NonEmptyList.of("The schema is missing the \"description\" property"),
       "/additionalProperties/properties/nestedObject" ->
-        NonEmptyList.of("Schema doesn't contain description property"),
+        NonEmptyList.of("The schema is missing the \"description\" property"),
       "/additionalProperties/properties/nestedObject/properties/nestedArray/items" ->
-        NonEmptyList.of("Schema doesn't contain description property"),
+        NonEmptyList.of("The schema is missing the \"description\" property"),
       "/additionalProperties/properties/nestedObject/properties/nestedArray/additionalItems" ->
-        NonEmptyList.of("Schema doesn't contain description property"),
+        NonEmptyList.of("The schema is missing the \"description\" property"),
       "/additionalProperties/properties/nestedObject/properties/nestedArray" ->
-        NonEmptyList.of("Schema doesn't contain description property"),
+        NonEmptyList.of("The schema is missing the \"description\" property"),
       "/additionalProperties/properties/nestedObject/properties/nestedArray/additionalItems/patternProperties/someInvalid" ->
-        NonEmptyList.of("Schema with numeric type has minimum property [5] greater than maximum [0]",
-          "Schema doesn't contain description property")
+        NonEmptyList.of("A field with numeric type has a minimum value [5] greater than the maximum value [0]",
+          "The schema is missing the \"description\" property")
     )
 
     lint(schema, Linter.allLintersMap.values.toList).map(showReport) must beEqualTo(expected)
@@ -127,11 +125,11 @@ class SanityLinterSpec extends Specification { def is = s2"""
 
     val expected = Map(
       "/" -> NonEmptyList.of(
-        "Schema doesn't contain description property",
-        "Required properties [twoKey] doesn't exist in properties",
-        "Root of schema should have type object and contain properties"),
+        "The schema is missing the \"description\" property",
+        "Elements specified as required [twoKey] don't exist in schema properties",
+        "At the root level, the schema should have a \"type\" property set to \"object\" and have a \"properties\" property"),
       "/properties/oneKey" ->
-        NonEmptyList.of("Schema doesn't contain description property")
+        NonEmptyList.of("The schema is missing the \"description\" property")
     )
 
     lint(schema, Linter.allLintersMap.values.toList).map(showReport) must beEqualTo(expected)
@@ -170,26 +168,26 @@ class SanityLinterSpec extends Specification { def is = s2"""
 
     val expected = Map(
       "/properties/unitPrice" ->
-        NonEmptyList.of("Schema doesn't contain description property",
-          "Schema with numeric type doesn't contain minimum and maximum properties"),
+        NonEmptyList.of("The schema is missing the \"description\" property",
+          "A numeric property should have \"minimum\" and \"maximum\" properties"),
       "/properties/currency" ->
-        NonEmptyList.of("Schema doesn't contain description property",
-          "Schema with string type doesn't contain maxLength property or other ways to extract max length"),
+        NonEmptyList.of("The schema is missing the \"description\" property",
+          "A string type in the schema doesn't contain \"maxLength\" or format which is required"),
       "/properties/quantity" ->
-        NonEmptyList.of("Schema doesn't contain description property",
-          "Schema with numeric type doesn't contain minimum and maximum properties"),
+        NonEmptyList.of("The schema is missing the \"description\" property",
+          "A numeric property should have \"minimum\" and \"maximum\" properties"),
       "/properties/category" ->
-        NonEmptyList.of("Schema doesn't contain description property",
-          "Schema with string type doesn't contain maxLength property or other ways to extract max length"),
+        NonEmptyList.of("The schema is missing the \"description\" property",
+          "A string type in the schema doesn't contain \"maxLength\" or format which is required"),
       "/properties/name" ->
-        NonEmptyList.of("Schema doesn't contain description property",
-          "Schema with string type doesn't contain maxLength property or other ways to extract max length"),
+        NonEmptyList.of("The schema is missing the \"description\" property",
+          "A string type in the schema doesn't contain \"maxLength\" or format which is required"),
       "/properties/sku" ->
-        NonEmptyList.of("Schema doesn't contain description property",
-          "Schema with string type doesn't contain maxLength property or other ways to extract max length"),
+        NonEmptyList.of("The schema is missing the \"description\" property",
+          "A string type in the schema doesn't contain \"maxLength\" or format which is required"),
       "/" ->
-        NonEmptyList.of("Schema doesn't contain description property",
-          "Optional fields [name,currency,category,unitPrice] don't allow null type")
+        NonEmptyList.of("The schema is missing the \"description\" property",
+          "Use \"type: null\" to indicate a field as optional for properties name,currency,category,unitPrice")
     )
 
     lint(schema, Linter.allLintersMap.values.toList).map(showReport) must beEqualTo(expected)
@@ -230,19 +228,19 @@ class SanityLinterSpec extends Specification { def is = s2"""
 
     val expected = Map(
       "/properties/unitPrice" ->
-        NonEmptyList.of("Schema doesn't contain description property", "Schema with numeric type doesn't contain minimum and maximum properties"),
+        NonEmptyList.of("The schema is missing the \"description\" property", "A numeric property should have \"minimum\" and \"maximum\" properties"),
       "/properties/currency" ->
-        NonEmptyList.of("Schema doesn't contain description property", "Schema with string type doesn't contain maxLength property or other ways to extract max length"),
+        NonEmptyList.of("The schema is missing the \"description\" property", "A string type in the schema doesn't contain \"maxLength\" or format which is required"),
       "/properties/quantity" ->
-        NonEmptyList.of("Schema doesn't contain description property", "Schema with numeric type doesn't contain minimum and maximum properties"),
+        NonEmptyList.of("The schema is missing the \"description\" property", "A numeric property should have \"minimum\" and \"maximum\" properties"),
       "/properties/category" ->
-        NonEmptyList.of("Schema doesn't contain description property", "Schema with string type doesn't contain maxLength property or other ways to extract max length", "Numeric properties [minimum] require number, integer or absent type"),
+        NonEmptyList.of("The schema is missing the \"description\" property", "A string type in the schema doesn't contain \"maxLength\" or format which is required", "Numeric properties [minimum] require either a number, integer or absent values"),
       "/properties/name" ->
-        NonEmptyList.of("Schema doesn't contain description property", "Schema with string type doesn't contain maxLength property or other ways to extract max length", "Numeric properties [maximum] require number, integer or absent type"),
+        NonEmptyList.of("The schema is missing the \"description\" property", "A string type in the schema doesn't contain \"maxLength\" or format which is required", "Numeric properties [maximum] require either a number, integer or absent values"),
       "/properties/sku" ->
-        NonEmptyList.of("Schema doesn't contain description property", "Schema with string type doesn't contain maxLength property or other ways to extract max length"),
+        NonEmptyList.of("The schema is missing the \"description\" property", "A string type in the schema doesn't contain \"maxLength\" or format which is required"),
       "/" ->
-        NonEmptyList.of("Schema doesn't contain description property", "Optional fields [name,currency,category,unitPrice] don't allow null type"))
+        NonEmptyList.of("The schema is missing the \"description\" property", "Use \"type: null\" to indicate a field as optional for properties name,currency,category,unitPrice"))
 
     lint(schema, Linter.allLintersMap.values.toList).map(showReport) must beEqualTo(expected)
   }
@@ -270,13 +268,13 @@ class SanityLinterSpec extends Specification { def is = s2"""
 
     val expected = Map(
       "/items/properties/data" ->
-        NonEmptyList.of("Schema doesn't contain description property"),
+        NonEmptyList.of("The schema is missing the \"description\" property"),
       "/items/properties/schema" ->
-        NonEmptyList.of("Schema doesn't contain description property", "Schema with string type doesn't contain maxLength property or other ways to extract max length"),
+        NonEmptyList.of("The schema is missing the \"description\" property", "A string type in the schema doesn't contain \"maxLength\" or format which is required"),
       "/items" ->
-        NonEmptyList.of("Schema doesn't contain description property"),
+        NonEmptyList.of("The schema is missing the \"description\" property"),
       "/" ->
-        NonEmptyList.of("Schema doesn't contain description property", "Root of schema should have type object and contain properties"))
+        NonEmptyList.of("The schema is missing the \"description\" property", "At the root level, the schema should have a \"type\" property set to \"object\" and have a \"properties\" property"))
 
     lint(schema, Linter.allLintersMap.values.toList).map(showReport) must beEqualTo(expected)
   }
@@ -301,11 +299,11 @@ class SanityLinterSpec extends Specification { def is = s2"""
 
     val expected = Map(
       "/properties/age" ->
-        NonEmptyList.of("Schema doesn't contain description property", "Schema with numeric type doesn't contain minimum and maximum properties"),
+        NonEmptyList.of("The schema is missing the \"description\" property", "A numeric property should have \"minimum\" and \"maximum\" properties"),
       "/properties/name" ->
-        NonEmptyList.of("Schema doesn't contain description property", "Schema with string type doesn't contain maxLength property or other ways to extract max length"),
+        NonEmptyList.of("The schema is missing the \"description\" property", "A string type in the schema doesn't contain \"maxLength\" or format which is required"),
       "/" ->
-        NonEmptyList.of("Schema doesn't contain description property", "Optional fields [age] don't allow null type"))
+        NonEmptyList.of("The schema is missing the \"description\" property", "Use \"type: null\" to indicate a field as optional for properties age"))
 
     lint(schema, Linter.allLintersMap.values.toList).map(showReport) must beEqualTo(expected)
   }
@@ -331,12 +329,12 @@ class SanityLinterSpec extends Specification { def is = s2"""
 
     val expected = Map(
       "/properties/age" ->
-        NonEmptyList.of("Schema doesn't contain description property", "Schema with numeric type doesn't contain minimum and maximum properties"),
+        NonEmptyList.of("The schema is missing the \"description\" property", "A numeric property should have \"minimum\" and \"maximum\" properties"),
       "/properties/name" ->
-        NonEmptyList.of("Schema doesn't contain description property", "Schema with string type doesn't contain maxLength property or other ways to extract max length",
-          "Unknown format [camelCase] detected. Known formats are: date-time, date, email, hostname, ipv4, ipv6, uri"),
+        NonEmptyList.of("The schema is missing the \"description\" property", "A string type in the schema doesn't contain \"maxLength\" or format which is required",
+          "Unknown format [camelCase] detected. Known formats are: date-time, date, email, hostname, ipv4, ipv6 or uri"),
       "/" ->
-        NonEmptyList.of("Schema doesn't contain description property", "Optional fields [age] don't allow null type"))
+        NonEmptyList.of("The schema is missing the \"description\" property", "Use \"type: null\" to indicate a field as optional for properties age"))
 
     lint(schema, Linter.allLintersMap.values.toList).map(showReport) must beEqualTo(expected)
   }
@@ -353,9 +351,9 @@ class SanityLinterSpec extends Specification { def is = s2"""
 
     val expected = Map(
       "/" -> NonEmptyList.of(
-        "Schema doesn't contain description property",
-        "Schema with string type has maxLength property [65536] greater than Redshift VARCHAR(max) 65535",
-        "Root of schema should have type object and contain properties"))
+        "The schema is missing the \"description\" property",
+        "A string property has a \"maxLength\" [65536] greater than the Redshift VARCHAR maximum of 65535",
+        "At the root level, the schema should have a \"type\" property set to \"object\" and have a \"properties\" property"))
 
     lint(schema, Linter.allLintersMap.values.toList).map(showReport) must beEqualTo(expected)
   }
@@ -405,8 +403,8 @@ class SanityLinterSpec extends Specification { def is = s2"""
     val skippedLinters = List(Linter.description)
 
     val expected = Map("/" ->
-      NonEmptyList.of("Optional fields [name,currency,category,unitPrice] don't allow null type"))
+      NonEmptyList.of("Use \"type: null\" to indicate a field as optional for properties name,currency,category,unitPrice"))
 
-    lint(schema, Linter.allLintersMap.values.toList.diff(skippedLinters)).map { case (k, v) => (k.show, v.map(_.getMessage)) } must beEqualTo(expected)
+    lint(schema, Linter.allLintersMap.values.toList.diff(skippedLinters)).map { case (k, v) => (k.show, v.map(_.show)) } must beEqualTo(expected)
   }
 }
