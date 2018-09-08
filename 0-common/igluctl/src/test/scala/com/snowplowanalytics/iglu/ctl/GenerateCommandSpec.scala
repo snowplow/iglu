@@ -12,19 +12,18 @@
  */
 package com.snowplowanalytics.iglu.ctl
 
-import org.specs2.Specification
 import org.json4s.jackson.JsonMethods.parse
+
 import java.io.File
 
 import com.snowplowanalytics.iglu.ctl.GenerateCommand.{DdlOutput, Errors, VersionSuccess, Warnings}
-import com.snowplowanalytics.iglu.ctl.FileUtils.TextFile
-import com.snowplowanalytics.iglu.ctl.Utils.splitValidations
-import com.snowplowanalytics.iglu.ctl.FileUtils.JsonFile
+import com.snowplowanalytics.iglu.ctl.FileUtils.{ TextFile, JsonFile }
 
-// Scalaz
-import scalaz._
-import Scalaz._
+import cats.syntax.alternative._
+import cats.instances.either._
+import cats.instances.list._
 
+import org.specs2.Specification
 
 class GenerateCommandSpec extends Specification { def is = s2"""
   DDL-generation command (ddl) specification
@@ -670,7 +669,7 @@ class GenerateCommandSpec extends Specification { def is = s2"""
     val jsonFile2 = JsonFile(sourceSchema2, new File("1-0-3"))
     val stubFile: File = new File(".")
     val command = GenerateCommand(stubFile, stubFile)
-    val (_, schemas) = splitValidations(List(jsonFile, jsonFile2).map(_.extractSelfDescribingSchema))
+    val (_, schemas) = List(jsonFile, jsonFile2).map(_.extractSelfDescribingSchema).separate
     val schemaVerValidation = command.validateSchemaVersions(schemas)
 
     val schemaVerMessages: List[String] = schemaVerValidation match {
@@ -741,7 +740,7 @@ class GenerateCommandSpec extends Specification { def is = s2"""
     val jsonFile2 = JsonFile(sourceSchema2, new File("1-1-1"))
     val stubFile: File = new File(".")
     val command = GenerateCommand(stubFile, stubFile)
-    val (_, schemas) = splitValidations(List(jsonFile, jsonFile2).map(_.extractSelfDescribingSchema))
+    val (_, schemas) = List(jsonFile, jsonFile2).map(_.extractSelfDescribingSchema).separate
     val schemaVerValidation = command.validateSchemaVersions(schemas)
 
     val schemaVerMessages: List[String] = schemaVerValidation match {

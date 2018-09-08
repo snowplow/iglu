@@ -12,8 +12,7 @@
  */
 package com.snowplowanalytics.iglu.ctl
 
-import scalaz._
-import Scalaz._
+import cats.data.Validated
 
 import org.specs2.Specification
 
@@ -55,7 +54,7 @@ class LintCommandSpec extends Specification { def is = s2"""
     val jsonSchema = parse(schema)
 
     val result = LintCommand.validateSchema(jsonSchema, false)
-    val expected = ().successNel
+    val expected = Validated.Valid(())
     result must beEqualTo(expected)
   }
 }
