@@ -12,9 +12,11 @@
  */
 package com.snowplowanalytics.iglu.ctl
 
-// scalaz
-import scalaz._
-import Scalaz._
+// cats
+import cats.data.Validated
+import cats.syntax.alternative._
+import cats.syntax.validated._
+import cats.instances.list._
 
 // Iglu core
 import com.snowplowanalytics.iglu.core.SchemaMap
@@ -25,7 +27,6 @@ import com.snowplowanalytics.iglu.schemaddl.redshift.generators.MigrationGenerat
 
 // This library
 import FileUtils.TextFile
-import Utils.splitValidations
 
 /**
  * Helper module for [[GenerateCommand]] with functions responsible for DDL migrations
@@ -42,14 +43,14 @@ object Migrations {
   def reifyMigrationMap(
     migrationMap: ValidMigrationMap,
     dbSchema: Option[String],
-    varcharSize: Int): List[Validation[String, TextFile]] = {
+    varcharSize: Int): List[Validated[String, TextFile]] = {
 
     val validationFileList = migrationMap.map {
-      case (source, Success(migrations)) => createTextFiles(migrations, source, varcharSize, dbSchema).success[String]
-      case (source, Failure(error))      => error.failure
+      case (source, Validated.Valid(migrations)) => createTextFiles(migrations, source, varcharSize, dbSchema).valid[String]
+      case (_,      Validated.Invalid(error))    => error.invalid
     }.toList
-    val (migrationErrors, migrationFiles) = splitValidations(validationFileList)
-    migrationFiles.flatten.map(_.success[String]) ++ migrationErrors.map(_.failure[TextFile])
+    val (migrationErrors, migrationFiles) = validationFileList.separate
+    migrationFiles.flatten.map(_.valid[String]) ++ migrationErrors.map(_.invalid[TextFile])
   }
 
   /**
@@ -62,8 +63,8 @@ object Migrations {
     }
 
     baseFiles
-      .map(_.setBasePath(source.version.asString))
-      .map(_.setBasePath(source.name))
-      .map(_.setBasePath(source.vendor))
+      .map(_.setBasePath(source.schemaKey.version.asString))
+      .map(_.setBasePath(source.schemaKey.name))
+      .map(_.setBasePath(source.schemaKey.vendor))
   }
 }

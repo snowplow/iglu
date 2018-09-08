@@ -16,28 +16,25 @@ package com.snowplowanalytics.iglu.ctl
 import java.io.File
 import java.util.UUID
 
-// scalaz
-import scalaz._
-import Scalaz._
-
 // cats
+import cats.instances.list._
+import cats.instances.either._
 import cats.syntax.either._
+import cats.syntax.traverse._
 
 // json4s
 import org.json4s._
 import org.json4s.jackson.JsonMethods.compact
 
 // iglu scala client
-import com.snowplowanalytics.iglu.client.{ Resolver, ValidatedNel }
+import com.snowplowanalytics.iglu.client.Resolver
 import com.snowplowanalytics.iglu.client.validation.ValidatableJValue.validate
-import com.snowplowanalytics.iglu.client.validation.ProcessingMessageMethods._
 import com.snowplowanalytics.iglu.client.repositories.{ RepositoryRefConfig, EmbeddedRepositoryRef }
 
 // this project
 import FileUtils.getJsonFromFile
 import IgluctlConfig.IgluctlAction
 import Utils.extractKey
-
 
 case class DeployCommand(config: File) extends Command.CtlCommand {
   import DeployCommand._
@@ -48,21 +45,20 @@ case class DeployCommand(config: File) extends Command.CtlCommand {
     * Short-circuits on first failed step
     */
   def process(): Unit = {
-
     val igluctlConfig = for {
-      configDoc <- getJsonFromFile(config).toProcessingMessageNel
-      config <- validate(configDoc, true)(resolver)
-      igluctlConfig <- extractConfig(config)
+      configDoc <- getJsonFromFile(config)
+      config <- validate(configDoc, true)(resolver).toEither.leftMap(_.list.mkString(", "))
+      igluctlConfig <- extractConfig(config).leftMap(_.toList.mkString(", "))
     } yield igluctlConfig
 
     igluctlConfig match {
-      case Success(ctlConfig) =>
+      case Right(ctlConfig) =>
         ctlConfig.lintCommand.process()
         ctlConfig.generateCommand.processDdl()
         ctlConfig.actions.foreach { action => action.process() }
-      case Failure(err) =>
+      case Left(err) =>
         System.err.println("Invalid configuration")
-        err.list.map(_.toString).foreach(System.err.println)
+        System.err.println(err)
         sys.exit(1)
     }
   }
@@ -119,7 +115,7 @@ object DeployCommand {
   implicit val formats: Formats = DefaultFormats + ApiKeySecret.Serializer
 
   /** Parse igluctl config object from JSON */
-  def extractConfig(config: JValue): ValidatedNel[IgluctlConfig] = {
+  def extractConfig(config: JValue): Either[String, IgluctlConfig] = {
     val description = (config \ "description").extractOpt[String]
     val jLint: JValue = config \ "lint"
     val jGenerate: JValue = config \ "generate"
@@ -135,24 +131,22 @@ object DeployCommand {
           actions <- extractActions(input, jActions)
         } yield IgluctlConfig(description, lint, generate, actions)
       case Left(err) =>
-        err.toProcessingMessageNel.failure
+        err.asLeft
     }
   }
 
   /** Extract `lint` command options from igluctl config */
-  def extractLint(input: String, doc: JValue): ValidatedNel[LintCommand] = {
-    val command: Either[String, LintCommand] = for {
+  def extractLint(input: String, doc: JValue): Either[String, LintCommand] = {
+    for {
       skipWarnings <- extractKey[Boolean](doc, "skipWarnings")
       includedChecks <- extractKey[List[String]](doc, "includedChecks")
       linters <- LintCommand.includeLinters(includedChecks.mkString(","))
     } yield LintCommand(new File(input), skipWarnings, linters)
-
-    command.fold(err => err.toProcessingMessageNel.failure, lint => lint.success)
   }
 
   /** Extract `static generate` options from igluctl config */
-  def extractGenerate(input: String, doc: JValue): ValidatedNel[GenerateCommand] = {
-    val command: Either[String, GenerateCommand] = for {
+  def extractGenerate(input: String, doc: JValue): Either[String, GenerateCommand] = {
+    for {
       output <- extractKey[String](doc, "output")
       withJsonPaths <-  extractKey[Boolean](doc, "withJsonPaths")
       dbSchema <- extractKey[Option[String]](doc, "dbSchema")
@@ -162,41 +156,36 @@ object DeployCommand {
       owner <- extractKey[Option[String]](doc, "owner")
     } yield GenerateCommand(new File(input), new File(output), "redshift", withJsonPaths, false, dbSchema, varcharSize,
       false, noHeader.getOrElse(false), force, owner)
-
-    command.fold(err => err.toProcessingMessageNel.failure, generate => generate.success)
   }
 
   /** Extract `s3cp` or `push` commands from igluctl config */
-  def extractAction(input: String, actionDoc: JValue): ValidatedNel[IgluctlAction] = {
+  def extractAction(input: String, actionDoc: JValue): Either[String, IgluctlAction] = {
     actionDoc \ "action" match {
       case JString("s3cp") =>
-        val command: Either[String, S3cpCommand] = for {
+        for {
           bucket <- extractKey[String](actionDoc, "bucketPath")
           profile <- extractKey[Option[String]](actionDoc, "profile")
           region <- extractKey[Option[String]](actionDoc, "region")
         } yield S3cpCommand(new File(input), bucket, None, None, None, profile, region)
 
-        command.fold(err => err.toProcessingMessageNel.failure, s3cp => s3cp.success)
       case JString("push") =>
-        val command: Either[String, PushCommand] = for {
+        for {
           registryRoot <- extractKey[String](actionDoc, "registry")
           secret <- extractKey[ApiKeySecret](actionDoc, "apikey")
           masterApiKey <- secret.value
           isPublic <- extractKey[Boolean](actionDoc, "isPublic")
         } yield PushCommand(PushCommand.parseRegistryRoot(registryRoot).toOption.get, masterApiKey, new File(input), isPublic)
-
-        command.fold(err => err.toProcessingMessageNel.failure, push => push.success)
-      case JString(action) => s"Unrecognized action $action".toProcessingMessageNel.failure
-      case _ => "Action can only be a string".toProcessingMessageNel.failure
+      case JString(action) => s"Unrecognized action $action".asLeft
+      case _ => "Action can only be a string".asLeft
     }
   }
 
   /** Extract list of actions from igluctl config */
-  def extractActions(input: String, actions: JValue): ValidatedNel[List[IgluctlAction]] = {
+  def extractActions(input: String, actions: JValue): Either[String, List[IgluctlAction]] = {
     actions match {
-      case JNull => List.empty[IgluctlAction].success
+      case JNull => List.empty[IgluctlAction].asRight
       case JArray(actions: List[JValue]) => actions.traverse(extractAction(input, _))
-      case _ => "Actions can be either array or null".toProcessingMessageNel.failure
+      case _ => "Actions can be either array or null".asLeft
     }
   }
 }

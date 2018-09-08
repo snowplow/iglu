@@ -25,8 +25,7 @@ import org.specs2.Specification
 import FileUtils.JsonFile
 
 // scalaz
-import scalaz._
-import Scalaz._
+import cats.syntax.either._
 
 class PushCommandSpec extends Specification { def is = s2"""
   Registry sync command (sync) specification
@@ -91,14 +90,14 @@ class PushCommandSpec extends Specification { def is = s2"""
       """.stripMargin)
     val jsonFile4 = JsonFile(schema4, new File("/event/jsonschema/1-0-2"))
 
-    (Utils.extractSchema(jsonFile1).toEither must beRight).and(
-      Utils.extractSchema(jsonFile2).toEither must beLeft.like {
+    (Utils.extractSchema(jsonFile1) must beRight).and(
+      Utils.extractSchema(jsonFile2) must beLeft.like {
         case error => error must beEqualTo("Error: JSON Schema [iglu:com.acme/event/jsonschema/1-0-1] doesn't conform path [com.acme/event/jsonschema/1-0-2]")
       }
     ).and(
-      Utils.extractSchema(jsonFile3).toEither must beLeft("Cannot extract Self-describing JSON Schema from JSON file [/path/to/schemas/com.acme/event/jsonschema/1-0-2]")
+      Utils.extractSchema(jsonFile3) must beLeft("Cannot extract Self-describing JSON Schema from JSON file [/path/to/schemas/com.acme/event/jsonschema/1-0-2]")
     ).and(
-      Utils.extractSchema(jsonFile4).toEither must beLeft("Error: JSON Schema [iglu:com.acme/event/jsonschema/1-0-2] doesn't conform path [/event/jsonschema/1-0-2]")
+      Utils.extractSchema(jsonFile4) must beLeft("Error: JSON Schema [iglu:com.acme/event/jsonschema/1-0-2] doesn't conform path [/event/jsonschema/1-0-2]")
     )
   }
 
@@ -118,7 +117,7 @@ class PushCommandSpec extends Specification { def is = s2"""
     val stubFile = JsonFile(schema, new File("/path/to/schemas/com.acme/event/jsonschema/1-0-2"))
 
     val command = PushCommand(null, null, new File("."), true)
-    val failedStream = command.buildRequests("error".left, Stream(stubFile.right, stubFile.right, stubFile.right, stubFile.right))
-    failedStream must beEqualTo(Stream("error".left))
+    val failedStream = command.buildRequests("error".asLeft, Stream(stubFile.asRight, stubFile.asRight, stubFile.asRight, stubFile.asRight))
+    failedStream must beEqualTo(Stream("error".asLeft))
   }
 }

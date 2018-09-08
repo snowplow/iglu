@@ -15,9 +15,10 @@ package com.snowplowanalytics.iglu.ctl
 // java
 import java.io.File
 
-// scalaz
-import scalaz._
-import Scalaz._
+// cats
+import cats.data.EitherT
+import cats.syntax.either._
+import cats.instances.stream._
 
 // awscala
 import awscala._
@@ -58,18 +59,18 @@ case class S3cpCommand(
    * 2. From profile name passed to igluctl (searched by AWS SDK)
    * 3. From default sources provided by AWS SDK
    */
-  lazy val credentials: String \/ Credentials = {
+  lazy val credentials: Either[String, Credentials] = {
     val xor = (accessKeyId, secretAccessKey, profile) match {
       case (Some(keyId), Some(secret), None) =>
-        Credentials(keyId, secret).right
+        Credentials(keyId, secret).asRight
       case (None, None, Some(p)) =>
         val provider = new ProfileCredentialsProvider(p)
-        \/.fromTryCatch(provider.getCredentials).map { c =>
+        Either.catchNonFatal(provider.getCredentials).map { c =>
           Credentials(c.getAWSAccessKeyId, c.getAWSSecretKey)
         }
       case _ =>
         val provider = DefaultCredentialsProvider()
-        \/.fromTryCatch(provider.getCredentials)
+        Either.catchNonFatal(provider.getCredentials)
     }
     xor.leftMap(t => Option(t.getMessage).getOrElse(t.toString))
   }
@@ -82,13 +83,13 @@ case class S3cpCommand(
 
   def process(): Unit = {
     val schemasT = for {
-      service <- fromXor(s3)
-      file    <- fromXors(getFiles)
+      service <- EitherT.fromEither(s3)
+      file    <- EitherT(getFiles)
       key      = getS3Path(file)
-      result  <- fromXor(upload(file, key, service))
+      result  <- EitherT.fromEither(upload(file, key, service))
     } yield result
 
-    val results = schemasT.run
+    val results = schemasT.value
 
     val total = results.foldLeft(Total.empty)((total, report) => total.add(report))
     total.exit()
@@ -97,9 +98,9 @@ case class S3cpCommand(
   /**
    * Stream all files of get single file is `inputDir` isn't directory
    */
-  def getFiles: Stream[String \/ File] = {
-    if (inputDir.isDirectory) streamAllFiles(inputDir).map(_.right)
-    else Stream(inputDir.right)
+  def getFiles: Stream[Either[String, File]] = {
+    if (inputDir.isDirectory) streamAllFiles(inputDir).map(_.asRight)
+    else Stream(inputDir.asRight)
   }
 
   /**
@@ -110,13 +111,13 @@ case class S3cpCommand(
     val jsons = getJsonFilesStream(inputDir, Some(filterJsonSchemas))
 
     val schemasT = for {
-      service <- fromXor(s3)
-      json    <- fromXors(jsons.map(_.disjunction))
-      schema  <- fromXor(extractSchema(json))
-      result  <- fromXor(upload(json.origin, schema.self.toPath, service))
+      service <- EitherT.fromEither(s3)
+      json    <- EitherT(jsons)
+      schema  <- EitherT.fromEither(extractSchema(json))
+      result  <- EitherT.fromEither(upload(json.origin, schema.self.schemaKey.toPath, service))
     } yield result
 
-    val results = schemasT.run
+    val results = schemasT.value
 
     val total = results.foldLeft(Total.empty)((total, report) => total.add(report))
     total.exit()
@@ -131,13 +132,13 @@ case class S3cpCommand(
    * @param service S3 client object
    * @return either error or successful message
    */
-  def upload(file: File, path: String, service: S3): String \/ String = {
+  def upload(file: File, path: String, service: S3): Either[String, String] = {
     try {
       val result = service.put(bucket, path, file)
-      s"File [${file.getPath}] uploaded as [s3://${bucketName + "/" + result.key}]".right
+      s"File [${file.getPath}] uploaded as [s3://${bucketName + "/" + result.key}]".asRight
     } catch {
-      case e: AmazonClientException => e.toString.left
-      case e: AmazonServiceException => e.toString.left
+      case e: AmazonClientException => e.toString.asLeft
+      case e: AmazonServiceException => e.toString.asLeft
     }
   }
 
@@ -198,12 +199,12 @@ object S3cpCommand {
      * @param report file processing result
      * @return modified total object
      */
-    def add(report: String \/ String): Total = {
+    def add(report: Either[String, String]): Total = {
       report match {
-        case \/-(s) =>
+        case Right(s) =>
           println(s"SUCCESS: $s")
           copy(successes = successes + 1)
-        case -\/(f) =>
+        case Left(f) =>
           println(s"FAILURE: $f")
           copy(failures = failures + 1)
       }

@@ -16,7 +16,7 @@ object Dependencies {
 
   object V {
     // Java
-    val jsonValidator    = "2.2.6"
+    val jsonValidator    = "2.2.10"
     val awsJava          = "1.11.250"
     // JAXB APIs aren't resolved by default as of Java 9
     // https://docs.oracle.com/javase/9/migrate/#GUID-F640FA9D-FB66-4D85-AD2B-D931174C09A3
@@ -25,7 +25,7 @@ object Dependencies {
     val jaxbImpl         = "2.3.0"
     val activation       = "1.1.1"
     // Scala
-    val schemaddl        = "0.8.0"
+    val schemaddl        = "0.9.0"
     val igluClient       = "0.5.0"
     val scopt            = "3.5.0"
     val scalajHttp       = "2.3.0"
@@ -38,7 +38,7 @@ object Dependencies {
 
   object Libraries {
     // Java
-    val jsonValidator    = "com.github.fge"             %  "json-schema-validator"     % V.jsonValidator
+    val jsonValidator    = "com.github.java-json-tools" % "json-schema-validator"      % V.jsonValidator
     val awsJava          = "com.amazonaws"              %  "aws-java-sdk-s3"           % V.awsJava
     // JAXB APIs
     val javaxXmlBind     = "javax.xml.bind"             %  "jaxb-api"                  % V.javaxXmlBind

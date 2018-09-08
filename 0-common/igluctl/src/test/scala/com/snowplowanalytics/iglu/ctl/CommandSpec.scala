@@ -17,7 +17,7 @@ import java.io.File
 import java.util.UUID
 
 // Schema DDL
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.{ allLinters, lintUnknownFormats, lintRootObject }
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.Linter.{ unknownFormats, rootObject, allLintersMap }
 
 // specs2
 import org.specs2.Specification
@@ -37,7 +37,7 @@ class CommandSpec extends Specification { def is = s2"""
       .parse("lint .".split(" "), Command())
       .flatMap(_.toCommand)
 
-    lint must beSome(LintCommand(new File("."), false, allLinters.values.toList))
+    lint must beSome(LintCommand(new File("."), false, allLintersMap.values.toList))
   }
 
   def e2 = {
@@ -46,7 +46,7 @@ class CommandSpec extends Specification { def is = s2"""
       .parse("static push .. http://54.165.217.26:8081/ 1af851ab-ef1b-4109-a8e2-720ac706334c --public".split(" "), Command())
       .flatMap(_.toCommand)
 
-    val url = PushCommand.parseRegistryRoot("http://54.165.217.26:8081/").toOption.get
+    val url = PushCommand.parseRegistryRoot("http://54.165.217.26:8081/").fold(x => throw x, identity)
     staticPush must beSome(PushCommand(url, UUID.fromString("1af851ab-ef1b-4109-a8e2-720ac706334c"), new File(".."), true))
   }
 
@@ -65,8 +65,8 @@ class CommandSpec extends Specification { def is = s2"""
       .parse("lint . --skip-checks unknownFormats,rootObject".split(" "), Command())
       .flatMap(_.toCommand)
 
-    val skippedChecks = List(lintUnknownFormats, lintRootObject)
+    val skippedChecks = List(unknownFormats, rootObject)
 
-    lint must beSome(LintCommand(new File("."), false, allLinters.values.toList.diff(skippedChecks)))
+    lint must beSome(LintCommand(new File("."), false, allLintersMap.values.toList.diff(skippedChecks)))
   }
 }
