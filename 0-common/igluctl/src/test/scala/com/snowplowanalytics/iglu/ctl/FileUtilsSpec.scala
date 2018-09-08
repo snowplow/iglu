@@ -15,9 +15,6 @@ package com.snowplowanalytics.iglu.ctl
 // java
 import java.io.File
 
-// scalaz
-import scalaz.Success
-
 // json4s
 import org.json4s.jackson.JsonMethods.parse
 
@@ -95,9 +92,6 @@ class FileUtilsSpec extends Specification { def is = s2"""
       """.stripMargin)
 
 
-    schemaFile.extractSelfDescribingSchema must beEqualTo(
-      Success(SelfDescribingSchema(schemaKey, body))
-    )
+    schemaFile.extractSelfDescribingSchema must beRight(SelfDescribingSchema(schemaKey, body))
   }
-
 }
