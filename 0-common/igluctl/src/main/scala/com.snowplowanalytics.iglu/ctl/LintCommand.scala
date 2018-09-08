@@ -12,32 +12,23 @@
  */
 package com.snowplowanalytics.iglu.ctl
 
-// Scala
-import scala.collection.JavaConverters._
-
-// scalaz
-import scalaz._
-import Scalaz._
-
-// json4s
-import org.json4s.{JValue, JString}
-import org.json4s.jackson.JsonMethods.{ asJsonNode, fromJsonNode }
+// cats
+import cats.data.{ Validated, NonEmptyList }
+import cats.implicits._
 
 // Java
 import java.io.File
 
-// JSON Schema Validator
-import com.github.fge.jsonschema.core.report.{ ListProcessingReport, ProcessingMessage }
-
 // Schema DDL
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.{ allLinters, Linter, lint }
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.{ Schema, Linter }
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.{ lint, Report => LinterReport }
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.SelfSyntaxChecker
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s.implicits._
 
 // This library
 import GenerateCommand.{Result, Errors, VersionSuccess, Warnings}
 import FileUtils.{ getJsonFilesStream, JsonFile, filterJsonSchemas }
-import Utils.{ extractSchema, splitValidations }
+import Utils.extractSchema
 
 case class LintCommand(inputDir: File, skipWarnings: Boolean, linters: List[Linter]) extends Command.CtlCommand {
   import LintCommand._
@@ -48,7 +39,7 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean, linters: List[Lint
   def process(): Unit = {
     val jsons = getJsonFilesStream(inputDir, Some(filterJsonSchemas))
 
-    val (failures, validatedJsons) = splitValidations(jsons.toList)
+    val (failures, validatedJsons) = jsons.toList.separate
     if (failures.nonEmpty) {
       println("JSON Parsing errors:")
       println(failures.mkString("\n"))
@@ -58,13 +49,10 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean, linters: List[Lint
     // lint schema versions
     val stubFile: File = new File(inputDir.getAbsolutePath)
     val stubCommand = GenerateCommand(stubFile, stubFile)
-    val (_, schemas) = splitValidations(validatedJsons.map(_.extractSelfDescribingSchema))
+    val (_, schemas) = validatedJsons.map(_.extractSelfDescribingSchema).separate
     val schemaVerValidation: Result = stubCommand.validateSchemaVersions(schemas)
 
-    val reports = jsons.map { file =>
-      val report = file.map(check)
-      flattenReport(report)
-    }
+    val reports = jsons.map { file => file.map(check).fold(Failure.apply, x => x) }
 
     // strip GenerateCommand related parts off & prepare LintCommand messages & create a Total per schema version check
     schemaVerValidation match {
@@ -87,32 +75,29 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean, linters: List[Lint
    * @return [[Report]] ADT, indicating successful lint or containing errors
    */
   def check(jsonFile: JsonFile): Report = {
-    val pathCheck = extractSchema(jsonFile).map(_ => ()).validation.toValidationNel
-    val syntaxCheck = validateSchema(jsonFile.content, skipWarnings)
+    val pathCheck = extractSchema(jsonFile).void.toValidatedNel
+    val syntaxCheck = SelfSyntaxChecker.validateSchema(jsonFile.content, skipWarnings).leftMap(_.map(_.message))
+    val lintCheck = Schema.parse(jsonFile.content).map { schema => lint(schema, linters) match {
+      case e if e == Map.empty => ().validNel[String]
+      case report => NonEmptyList.fromListUnsafe(prettifyReport(report)).invalid[Unit]
+    } } getOrElse NonEmptyList.of("Doesn't contain JSON Schema").invalid[Unit]
 
-    val lintCheck = Schema.parse(jsonFile.content).map { schema => lint(schema, 0, linters) }
-
-    val fullValidation = syntaxCheck |+| pathCheck |+| lintCheck.getOrElse("Doesn't contain JSON Schema".failureNel)
+    val fullValidation = syntaxCheck.combine(pathCheck).combine(lintCheck)
 
     fullValidation match {
-      case scalaz.Success(_) =>
+      case Validated.Valid(_) =>
         Success(jsonFile.getKnownPath)
-      case scalaz.Failure(list) =>
-        SchemaFailure(jsonFile.getKnownPath, list.toList)
+      case Validated.Invalid(issues) =>
+        SchemaFailure(jsonFile.getKnownPath, issues.toList)
     }
   }
 }
 
 object LintCommand {
 
-  /**
-   * FGE validator for Self-describing schemas
-   */
-  lazy val validator = SelfSyntaxChecker.getSyntaxValidator
-
   /** All lintings that user can skip */
   val OptionalChecks: List[String] =
-    List("rootObject", "unknownFormats", "numericMinMax", "stringLength", "optionalNull", "description", "stringMaxLengthRange")
+    Linter.allLintersMap.values.filter(l => l.level != Linter.Level.Error).map(_.getName).toList
 
   /**
    * End-of-the-world class, containing info about success/failure of execution
@@ -142,13 +127,13 @@ object LintCommand {
      */
     def add(report: Report): Total = report match {
       case s: Success =>
-        println(s"SUCCESS: ${s.asString}")
+        println(s"SUCCESS: ${s.asString}\n")
         copy(successes = successes + 1)
       case f: Failure =>
-        println(s"FAILURE: ${f.asString}")
+        println(s"FAILURE: ${f.asString}\n")
         copy(failedSchemas = failedSchemas + 1)
       case f: SchemaFailure =>
-        println(s"FAILURE: ${f.asString}")
+        println(s"FAILURE: ${f.asString}\n")
         copy(failedSchemas = failedSchemas + 1, totalFailures = totalFailures + f.errors.size)
     }
   }
@@ -183,62 +168,13 @@ object LintCommand {
   }
 
   /**
-   * Transform failing [[Report]] to plain [[Report]] by transforming
-   * left into [[Failure]] (IO/parsing/runtime error)
-   *
-   * @param result disjunction of string with report
-   * @return plain report
-   */
-  def flattenReport(result: Validation[String, Report]): Report =
-    result match {
-      case scalaz.Success(status) => status
-      case scalaz.Failure(failure) => Failure(failure)
-    }
-
-  /**
-   * Validate syntax of JSON Schema using FGE JSON Schema Validator
-   *
-   * @param json JSON supposed to be JSON Schema
-   * @param skipWarnings whether to count warning (such as unknown keywords) as
-   *                    errors or silently ignore them
-   * @return non-empty list of error messages in case of invalid Schema
-   *         or unit if case of successful
-   */
-  def validateSchema(json: JValue, skipWarnings: Boolean): ValidationNel[String, Unit] = {
-    val jsonNode = asJsonNode(json)
-    val report = validator.validateSchema(jsonNode)
-                          .asInstanceOf[ListProcessingReport]
-
-    report.iterator.asScala.toList.filter(filterMessages(skipWarnings)).map(_.toString) match {
-      case Nil => ().success
-      case h :: t => NonEmptyList(h, t: _*).failure
-    }
-  }
-
-  /**
-   * Build predicate to filter messages with log level less than WARNING
-   *
-   * @param skipWarning curried arg to produce predicate
-   * @param message validation message produced by FGE validator
-   * @return always true if `skipWarnings` is false, otherwise depends on loglevel
-   */
-  def filterMessages(skipWarning: Boolean)(message: ProcessingMessage): Boolean =
-    if (skipWarning) fromJsonNode(message.asJson()) \ "level" match {
-      case JString("warning") => false
-      case JString("info") => false
-      case JString("debug") => false
-      case _ => true
-    }
-    else true
-
-  /**
     * Validates if user provided --skip-checks with a valid string
     * @param lintersString command line input for --skip-checks
     * @return Either error concatenated error messages or valid list of linters
     */
   def skipLinters(lintersString: String): Either[String, List[Linter]] =
     validateOptionalLinters(lintersString).map { toSkip =>
-      allLinters.filterKeys(linter => !toSkip.contains(linter)).values.toList
+      Linter.allLintersMap.filterKeys(linter => !toSkip.contains(linter)).values.toList
     }
 
   /**
@@ -248,13 +184,13 @@ object LintCommand {
     */
   def includeLinters(lintersString: String): Either[String, List[Linter]] =
     validateOptionalLinters(lintersString).map { toInclude =>
-      allLinters.filterKeys(toInclude.contains).values.toList
+      Linter.allLintersMap.filterKeys(toInclude.contains).values.toList
     }
 
   /** Check that comma-separated list passed by --skip-checks is list of optional linters */
   def validateOptionalLinters(string: String): Either[String, List[String]] = {
     val linters = string.split(',').toList
-    val invalidLinters = linters.filterNot(allLinters.isDefinedAt)
+    val invalidLinters = linters.filterNot(Linter.allLintersMap.isDefinedAt)
 
     val knownLinters: Either[String, List[String]] = invalidLinters match {
       case Nil => Right(linters)
@@ -268,5 +204,55 @@ object LintCommand {
         case nonOptional => Left(s"Unknown linters [${nonOptional.mkString(", ")}]")
       }
     } yield list
+  }
+
+  def prettifyReport(report: LinterReport): List[String] = {
+    // Regroup issues by linter
+    val groupedReport = report
+      .flatMap { case (pointer, issues) => issues.toList.map(issue => (pointer, issue)) }
+      .groupBy { case (_, issue) => issue.linter }
+      .map { case (linter, issues) => (linter, issues.toList) }
+
+    val reports = groupedReport.map { case (linter, issues) =>
+      val longestPointer = (issues.map { case (k, _) => k.show.length } maximumOption).getOrElse(0)
+      val sortedIssues = issues.sortBy { case (k, _) => (k.show, k.show.length) }
+      val skipMessage = s" (add --skip-checks ${linter.getName} to omit this check)"
+      def leftPad(str: String): String = str ++ ("\t" * (longestPointer - str.length))
+      def getMessage(issue: Linter.Issue): String = if (issue.productArity == 0) "" else issue.show
+
+      linter match {
+        case Linter.rootObject => "Root of schema should have type object and contain properties"
+        case Linter.numericMinimumMaximum => s"Following numeric properties have invalid boundaries:\n" ++
+          (sortedIssues.map { case (pointer, issue) => s" - ${leftPad(pointer.show)} ${getMessage(issue)}" } mkString "\n")
+        case Linter.stringMinMaxLength => s"Following string properties have invalid length:\n" ++
+          (sortedIssues.map { case (pointer, issue) => s" - ${leftPad(pointer.show)} ${getMessage(issue)}" } mkString "\n")
+        case Linter.stringMaxLengthRange => s"Following string properties have too big maxLength$skipMessage:\n" ++
+          (sortedIssues.map { case (pointer, issue) => s" - ${leftPad(pointer.show)} ${getMessage(issue)}" } mkString "\n")
+        case Linter.arrayMinMaxItems => s"Following array properties have invalid boundaries:\n" ++
+          (sortedIssues.map { case (pointer, issue) => s" - ${leftPad(pointer.show)} ${getMessage(issue)}" } mkString "\n")
+        case Linter.numericProperties => s"Following numeric properties are missing explicit type:\n" ++
+          (sortedIssues.map { case (pointer, issue) => s" - ${leftPad(pointer.show)} ${getMessage(issue)}" } mkString "\n")
+        case Linter.stringProperties => s"Following string properties are missing explicit type:\n" ++
+          (sortedIssues.map { case (pointer, issue) => s" - ${leftPad(pointer.show)} ${getMessage(issue)}" } mkString "\n")
+        case Linter.arrayProperties => s"Following array properties are missing explicit type:\n" ++
+          (sortedIssues.map { case (pointer, issue) => s" - ${leftPad(pointer.show)} ${getMessage(issue)}" } mkString "\n")
+        case Linter.objectProperties => s"Following object properties are missing explicit type:\n" ++
+          (sortedIssues.map { case (pointer, issue) => s" - ${leftPad(pointer.show)} ${getMessage(issue)}" } mkString "\n")
+        case Linter.requiredPropertiesExist => s"Following required properties are unknown:\n" ++
+          (sortedIssues.map { case (pointer, issue) => s" - ${leftPad(pointer.show)} ${getMessage(issue)}" } mkString "\n")
+        case Linter.unknownFormats => s"Following formats are unknown$skipMessage:\n" ++
+          (sortedIssues.map { case (pointer, issue) => s" - ${leftPad(pointer.show)} ${getMessage(issue)}" } mkString "\n")
+        case Linter.numericMinMax => s"Following numeric properties are unbounded$skipMessage:\n" ++
+          (sortedIssues.map { case (pointer, _) => s" - ${leftPad(pointer.show)}" } mkString "\n")
+        case Linter.stringLength => s"Following string properties provide no clues about maximum length$skipMessage:\n" ++
+          (sortedIssues.map { case (pointer, _) => s" - ${leftPad(pointer.show)}" } mkString "\n")
+        case Linter.optionalNull => s"Following optional properties don't allow null type$skipMessage:\n" ++
+          (sortedIssues.map { case (pointer, issue) => s" - ${leftPad(pointer.show)} ${getMessage(issue)}" } mkString "\n")
+        case Linter.description => s"Following properties don't include description$skipMessage:\n" ++
+          (sortedIssues.map { case (pointer, _) => s" - ${leftPad(pointer.show)}" } mkString "\n")
+      }
+
+    }
+    reports.toList
   }
 }

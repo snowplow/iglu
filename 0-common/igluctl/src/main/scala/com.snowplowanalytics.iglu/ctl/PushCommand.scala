@@ -12,9 +12,10 @@
  */
 package com.snowplowanalytics.iglu.ctl
 
-// scalaz
-import scalaz._
-import Scalaz._
+// cats
+import cats.data._
+import cats.instances.stream._
+import cats.syntax.either._
 
 // scalaj-http
 import scalaj.http.{ Http, HttpRequest, HttpResponse }
@@ -25,7 +26,7 @@ import org.json4s.jackson.JsonMethods.parse
 
 // Java
 import java.io.File
-import java.net.URL
+import java.net.URI
 import java.util.UUID
 
 // Iglu core
@@ -54,18 +55,18 @@ case class PushCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File
    */
   def process(): Unit = {
     val apiKeys = getApiKeys(buildCreateKeysRequest)
-    val jsons = getJsonFilesStream(inputDir, Some(filterJsonSchemas)).map(_.disjunction)
+    val jsons = getJsonFilesStream(inputDir, Some(filterJsonSchemas))
 
     val resultsT = for {    // disjunctions nested into list
-      request  <- fromXors(buildRequests(apiKeys, jsons))
-      response <- fromXor(postSchema(request))
+      request  <- EitherT(buildRequests(apiKeys, jsons))
+      response <- EitherT.fromEither(postSchema(request))
     } yield response
-    val results = resultsT.run.map(flattenResult)
+    val results = resultsT.value.map(flattenResult)
 
     // Sink results-stream into end-of-the-app
     val total = results.foldLeft(Total.empty)((total, report) => total.add(report))
     total.clean { () => apiKeys match {
-      case \/-(keys) =>
+      case Right(keys) =>
         deleteKey(keys.read, "Read")
         deleteKey(keys.write, "Write")
       case _ => println("INFO: No keys were created")
@@ -79,12 +80,10 @@ case class PushCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File
    *
    * @return HTTP POST-request ready to be sent
    */
-  def buildCreateKeysRequest: HttpRequest @@ CreateKeys = {
-    val request = Http(s"$registryRoot/api/auth/keygen")
+  def buildCreateKeysRequest: HttpRequest =
+    Http(s"$registryRoot/api/auth/keygen")
       .header("apikey", masterApiKey.toString)
       .postForm(List(("vendor_prefix", "*")))
-    Tag.of[CreateKeys](request)
-  }
 
   /**
    * Build stream of HTTP requests with auth and Schema as POST data
@@ -95,13 +94,13 @@ case class PushCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File
    *              (parsing, non-self-describing, etc)
    * @return lazy stream of requests ready to be sent
    */
-  def buildRequests(apiKeys: String \/ ApiKeys, jsons: JsonStream): RequestStream = {
+  def buildRequests(apiKeys: Either[String, ApiKeys], jsons: JsonStream): RequestStream = {
     val resultsT = for {
-      writeKey <- fromXor(apiKeys.map(_.write))
-      json     <- fromXors(jsons)
-      schema   <- fromXor(Utils.extractSchema(json))
+      writeKey <- EitherT.fromEither(apiKeys.map(_.write))
+      json     <- EitherT(jsons)
+      schema   <- EitherT.fromEither(Utils.extractSchema(json))
     } yield buildRequest(schema, writeKey)
-    resultsT.run
+    resultsT.value
   }
 
   /**
@@ -112,13 +111,11 @@ case class PushCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File
    * @param writeKey temporary apikey allowed to write any Schema
    * @return HTTP POST-request ready to be sent
    */
-  def buildRequest(schema: IgluSchema, writeKey: String): HttpRequest @@ PostSchema = {
-    val request = Http(s"$registryRoot/api/schemas/${schema.self.toPath}")
+  def buildRequest(schema: IgluSchema, writeKey: String): HttpRequest =
+    Http(s"$registryRoot/api/schemas/${schema.self.schemaKey.toPath}")
       .header("apikey", writeKey)
       .param("isPublic", isPublic.toString)
       .put(schema.asString)
-    Tag.of[PostSchema](request)
-  }
 
   /**
    * Send DELETE request for temporary key.
@@ -133,10 +130,10 @@ case class PushCommand(registryRoot: HttpUrl, masterApiKey: UUID, inputDir: File
       .param("key", key)
       .method("DELETE")
 
-    Validation.fromTryCatch(request.asString) match {
-      case Success(response) if response.isSuccess => println(s"$purpose key $key deleted")
-      case Success(response) => println(s"FAILURE: DELETE $purpose $key response: ${response.body}")
-      case Failure(throwable) => println(s"FAILURE: $purpose $key: ${throwable.toString}")
+    Validated.catchNonFatal(request.asString) match {
+      case Validated.Valid(response) if response.isSuccess => println(s"$purpose key $key deleted")
+      case Validated.Valid(response) => println(s"FAILURE: DELETE $purpose $key response: ${response.body}")
+      case Validated.Invalid(throwable) => println(s"FAILURE: $purpose $key: ${throwable.toString}")
     }
   }
 
@@ -201,7 +198,7 @@ object PushCommand {
   /**
    * Anything that can bear error message
    */
-  type Failing[A] = String \/ A
+  type Failing[A] = Either[String, A]
 
   /**
    * Lazy stream of JSON files, containing possible error, file info and valid JSON
@@ -211,7 +208,7 @@ object PushCommand {
   /**
    * Lazy stream of HTTP requests ready to be sent, which also can be errors
    */
-  type RequestStream = Stream[Failing[HttpRequest @@ PostSchema]]
+  type RequestStream = Stream[Failing[HttpRequest]]
 
   // json4s serialization
   private implicit val formats = DefaultFormats
@@ -278,7 +275,7 @@ object PushCommand {
    */
   sealed trait HttpUrlTag
 
-  type HttpUrl = URL @@ HttpUrlTag
+  type HttpUrl = URI
 
   /**
    * Transform failing [[Result]] to plain [[Result]] by inserting exception
@@ -289,8 +286,8 @@ object PushCommand {
    */
   def flattenResult(result: Failing[Result]): Result =
     result match {
-      case \/-(status) => status
-      case -\/(failure) => Result(Left(failure), Failed)
+      case Right(status) => status
+      case Left(failure) => Result(Left(failure), Failed)
     }
 
   /**
@@ -302,12 +299,12 @@ object PushCommand {
    */
   def getUploadStatus(response: HttpResponse[String]): Result = {
     if (response.isSuccess)
-      \/.fromTryCatch(parse(response.body).extract[ServerMessage]) match {
-        case \/-(serverMessage) if serverMessage.message.contains("updated") =>
+      Either.catchNonFatal(parse(response.body).extract[ServerMessage]) match {
+        case Right(serverMessage) if serverMessage.message.contains("updated") =>
           Result(Right(serverMessage), Updated)
-        case \/-(serverMessage) =>
+        case Right(serverMessage) =>
           Result(Right(serverMessage), Created)
-        case -\/(_) =>
+        case Left(_) =>
           Result(Left(response.body), Unknown)
       }
     else {
@@ -325,11 +322,11 @@ object PushCommand {
    * @return pair of apikeys for successful creation and extraction
    *         error message otherwise
    */
-  def getApiKeys(request: HttpRequest @@ CreateKeys): Failing[ApiKeys] = {
+  def getApiKeys(request: HttpRequest): Failing[ApiKeys] = {
     val apiKeys = for {
-      response  <- \/.fromTryCatch(request.asString)
-      json      <- \/.fromTryCatch(parse(response.body))
-      extracted <- \/.fromTryCatch(json.extract[ApiKeys])
+      response  <- Either.catchNonFatal(request.asString)
+      json      <- Either.catchNonFatal(parse(response.body))
+      extracted <- Either.catchNonFatal(json.extract[ApiKeys])
     } yield extracted
 
     apiKeys.leftMap(e => cutString(e.toString))
@@ -344,27 +341,10 @@ object PushCommand {
    * @param request HTTP POST-request with JSON Schema (tagged with [[PostSchema]])
    * @return successful parsed message or error message
    */
-  def postSchema(request: HttpRequest @@ PostSchema): Failing[Result] =
+  def postSchema(request: HttpRequest): Failing[Result] =
     for {
-      response <- \/.fromTryCatch(request.asString)
-                    .leftMap(_.toString)
+      response <- Either.catchNonFatal(request.asString).leftMap(_.toString)
     } yield getUploadStatus(response)
-
-  /**
-   * Convert disjunction value into `EitherT`
-   * Used in for-comprehensions to mimic disjunction as `Stream[String \/ A]`
-   * and extract A
-   */
-  private def fromXor[A](value: Failing[A]): EitherT[Stream, String, A] =
-    EitherT[Stream, String, A](value.point[Stream])
-
-  /**
-   * Convert stream of disjunctions into `EitherT`
-   * Used in for-comprehensions to mimic disjunction as `Stream[String \/ A]`
-   * and extract A
-   */
-  private def fromXors[A, B](value: Stream[Failing[A]]): EitherT[Stream, String, A] =
-    EitherT[Stream, String, A](value)
 
   /**
    * Cut possibly long string (as compressed HTML) to a string with three dots
@@ -382,12 +362,12 @@ object PushCommand {
    *            Registry root is URL **without** /api
    * @return either error or URL tagged as HTTP in case of success
    */
-  def parseRegistryRoot(url: String): Throwable \/ HttpUrl =
-    \/.fromTryCatch {
+  def parseRegistryRoot(url: String): Either[Throwable, HttpUrl] =
+    Either.catchNonFatal {
       if (url.startsWith("http://") || url.startsWith("https://")) {
-        Tag.of[HttpUrlTag](new URL(url.stripSuffix("/")))
+        new URI(url.stripSuffix("/"))
       } else {
-        Tag.of[HttpUrlTag](new URL("http://" + url.stripSuffix("/")))
+        new URI("http://" + url.stripSuffix("/"))
       }
     }
 }
