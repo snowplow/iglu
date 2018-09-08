@@ -17,7 +17,7 @@ object Formats {
   /**
     * json4s formats for all JSON Schema properties
     */
-  implicit val allFormats: org.json4s.Formats =
+  implicit lazy val allFormats: org.json4s.Formats =
     org.json4s.DefaultFormats ++ List(
       StringSerializers.FormatSerializer,
       StringSerializers.MinLengthSerializer,

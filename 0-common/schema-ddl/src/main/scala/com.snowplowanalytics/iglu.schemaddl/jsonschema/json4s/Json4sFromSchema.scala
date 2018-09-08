@@ -20,16 +20,6 @@ import org.json4s.{ JValue, Extraction }
  * Module containing type class instance with all Schema properties' Serializers
  */
 trait Json4sFromSchema {
-  import Formats._
-
-  /**
-   * Type class instance allowing to convert [[Schema]] to JValue
-   *
-   * So far this is single implementation, but still need
-   * to be imported into scope to get Schema.parse method work
-   */
-  implicit object Json4sFromSchema extends FromSchema[JValue] {
-    def normalize(schema: Schema): JValue =
-      Extraction.decompose(schema)
-  }
 }
+
+object Json4sFromSchema extends Json4sFromSchema

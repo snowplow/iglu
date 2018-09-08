@@ -25,8 +25,6 @@ import org.specs2.Specification
 import json4s.implicits._
 import SanityLinter._
 
-import com.snowplowanalytics.iglu.schemaddl.Linter
-
 class SanityLinterSpec extends Specification { def is = s2"""
   Check SanityLinter specification
     recognize minLength and object type incompatibility $e1
@@ -42,7 +40,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
   """
 
   def showReport(kv: (JsonPointer, NonEmptyList[Linter.Issue])): (String, NonEmptyList[String]) =
-    kv match { case (k, v) => (k.show, v.map(_.getMessage)) }
+    kv match { case (k, v) => (k.show, v.map(_.show)) }
 
   def e1 = {
     val schema = Schema.parse(parse(
@@ -128,7 +126,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
     val expected = Map(
       "/" -> NonEmptyList.of(
         "Schema doesn't contain description property",
-        "Required properties [twoKey] doesn't exist in properties",
+        "Required elements [twoKey] don't exist in properties",
         "Root of schema should have type object and contain properties"),
       "/properties/oneKey" ->
         NonEmptyList.of("Schema doesn't contain description property")
@@ -407,6 +405,6 @@ class SanityLinterSpec extends Specification { def is = s2"""
     val expected = Map("/" ->
       NonEmptyList.of("Optional fields [name,currency,category,unitPrice] don't allow null type"))
 
-    lint(schema, Linter.allLintersMap.values.toList.diff(skippedLinters)).map { case (k, v) => (k.show, v.map(_.getMessage)) } must beEqualTo(expected)
+    lint(schema, Linter.allLintersMap.values.toList.diff(skippedLinters)).map { case (k, v) => (k.show, v.map(_.show)) } must beEqualTo(expected)
   }
 }

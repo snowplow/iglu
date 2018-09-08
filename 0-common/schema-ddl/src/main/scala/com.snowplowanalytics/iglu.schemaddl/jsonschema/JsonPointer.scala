@@ -12,10 +12,16 @@
  */
 package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
+import cats.syntax.either._
+
+import scala.annotation.tailrec
+
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.JsonPointer._
 
 case class JsonPointer private(value: List[Cursor]) extends AnyVal {
   def get: List[Cursor] = value.reverse
+
+  def last = value.headOption
 
   def show: String = "/" ++ (get.map {
     case Cursor.DownField(key) => key
@@ -35,7 +41,24 @@ object JsonPointer {
 
   val Root = JsonPointer(Nil)
 
-  sealed trait SchemaProperty { def key: Symbol }
+  sealed trait SchemaProperty extends Product with Serializable {
+    import SchemaProperty._
+
+    def key: Symbol
+
+    /** Get a parse function that will enforce correct Cursor
+      * (e.g. only indexes allowed in Items and OneOf as they're arrays)
+      */
+    def next: String => Either[String, Cursor] = this match {
+      case Items => i => Either.catchNonFatal(i.toInt).leftMap(_.getMessage).map(Cursor.At.apply)
+      case OneOf => i => Either.catchNonFatal(i.toInt).leftMap(_.getMessage).map(Cursor.At.apply)
+      case Properties        => i => Cursor.DownField(i).asRight
+      case PatternProperties => i => Cursor.DownField(i).asRight
+      case AdditionalItems      => i => fromString(i).map(Cursor.DownProperty.apply)
+      case AdditionalProperties => i => fromString(i).map(Cursor.DownProperty.apply)
+    }
+
+  }
   object SchemaProperty {
     case object Items extends SchemaProperty { def key = 'items }
     case object AdditionalItems extends SchemaProperty { def key = 'additionalItems }
@@ -43,7 +66,48 @@ object JsonPointer {
     case object AdditionalProperties extends SchemaProperty { def key = 'additionalProperties }
     case object PatternProperties extends SchemaProperty { def key = 'patternProperties }
     case object OneOf extends SchemaProperty { def key = 'oneOf }
+
+    val all = List(Items, AdditionalItems, Properties, AdditionalProperties, PatternProperties, OneOf)
+
+    def fromString(s: String): Either[String, SchemaProperty] =
+      all.find(x => x.key.name == s).toRight(s)
   }
+
+  /**
+    * Parse function, that tries to preserve correct cursors
+    * In case structure of fields is incorrect it fallbacks to Left all-DownField,
+    * which gives same string representation, but can be wrong semantically
+    */
+  def parse(string: String): Either[JsonPointer, JsonPointer] = {
+    @tailrec def go(remaining: List[String], acc: JsonPointer): Either[JsonPointer, JsonPointer] = {
+      remaining match {
+        case Nil => acc.asRight
+        case current :: tail =>
+          def giveUp =
+            JsonPointer((current :: tail).reverse.map(Cursor.DownField.apply) ++ acc.value).asLeft
+          acc match {
+            case Root => SchemaProperty.fromString(current) match {
+              case Right(property) => go(tail, Root.downProperty(property))
+              case Left(_) => giveUp
+            }
+            case JsonPointer(previousCursor :: old) => previousCursor match {
+              case Cursor.DownProperty(property) =>
+                property.next(current) match {
+                  case Right(next) => go(tail, JsonPointer(next :: previousCursor :: old))
+                  case Left(_) => giveUp
+                }
+              case _ => SchemaProperty.fromString(current) match {
+                case Right(next) => go(tail, JsonPointer(Cursor.DownProperty(next) :: previousCursor :: old))
+                case Left(_) => giveUp
+              }
+            }
+          }
+      }
+    }
+
+    go(string.split("/").filter(_.nonEmpty).toList, Root)
+  }
+
 
   sealed trait Cursor
   object Cursor {
