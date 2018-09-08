@@ -15,9 +15,15 @@ package com.snowplowanalytics.iglu.ctl
 // Scala
 import scala.collection.JavaConverters._
 
-// scalaz
-import scalaz._
-import Scalaz._
+// cats
+import cats.data.{ Validated, ValidatedNel, NonEmptyList }
+import cats.syntax.alternative._
+import cats.syntax.validated._
+import cats.syntax.either._
+import cats.syntax.functor._
+import cats.instances.unit._
+import cats.instances.either._
+import cats.instances.list._
 
 // json4s
 import org.json4s.{JValue, JString}
@@ -30,14 +36,14 @@ import java.io.File
 import com.github.fge.jsonschema.core.report.{ ListProcessingReport, ProcessingMessage }
 
 // Schema DDL
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.{ allLinters, Linter, lint }
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.{ Schema, Linter }
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.lint
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s.implicits._
 
 // This library
 import GenerateCommand.{Result, Errors, VersionSuccess, Warnings}
 import FileUtils.{ getJsonFilesStream, JsonFile, filterJsonSchemas }
-import Utils.{ extractSchema, splitValidations }
+import Utils.extractSchema
 
 case class LintCommand(inputDir: File, skipWarnings: Boolean, linters: List[Linter]) extends Command.CtlCommand {
   import LintCommand._
@@ -48,7 +54,7 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean, linters: List[Lint
   def process(): Unit = {
     val jsons = getJsonFilesStream(inputDir, Some(filterJsonSchemas))
 
-    val (failures, validatedJsons) = splitValidations(jsons.toList)
+    val (failures, validatedJsons) = jsons.toList.separate
     if (failures.nonEmpty) {
       println("JSON Parsing errors:")
       println(failures.mkString("\n"))
@@ -58,13 +64,10 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean, linters: List[Lint
     // lint schema versions
     val stubFile: File = new File(inputDir.getAbsolutePath)
     val stubCommand = GenerateCommand(stubFile, stubFile)
-    val (_, schemas) = splitValidations(validatedJsons.map(_.extractSelfDescribingSchema))
+    val (_, schemas) = validatedJsons.map(_.extractSelfDescribingSchema).separate
     val schemaVerValidation: Result = stubCommand.validateSchemaVersions(schemas)
 
-    val reports = jsons.map { file =>
-      val report = file.map(check)
-      flattenReport(report)
-    }
+    val reports = jsons.map { file => file.map(check).fold(Failure.apply, x => x) }
 
     // strip GenerateCommand related parts off & prepare LintCommand messages & create a Total per schema version check
     schemaVerValidation match {
@@ -87,17 +90,19 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean, linters: List[Lint
    * @return [[Report]] ADT, indicating successful lint or containing errors
    */
   def check(jsonFile: JsonFile): Report = {
-    val pathCheck = extractSchema(jsonFile).map(_ => ()).validation.toValidationNel
+    val pathCheck = extractSchema(jsonFile).void.toValidatedNel
     val syntaxCheck = validateSchema(jsonFile.content, skipWarnings)
+    val lintCheck = Schema.parse(jsonFile.content).map { schema => lint(schema, linters).toList match {
+      case Nil => ().validNel[String]
+      case errors => NonEmptyList.fromListUnsafe(errors.flatMap(_._2.toList.map(_.getMessage))).invalid
+    } } getOrElse "Doesn't contain JSON Schema".invalidNel[Unit]
 
-    val lintCheck = Schema.parse(jsonFile.content).map { schema => lint(schema, 0, linters) }
-
-    val fullValidation = syntaxCheck |+| pathCheck |+| lintCheck.getOrElse("Doesn't contain JSON Schema".failureNel)
+    val fullValidation = syntaxCheck.combine(pathCheck).combine(lintCheck)
 
     fullValidation match {
-      case scalaz.Success(_) =>
+      case Validated.Valid(_) =>
         Success(jsonFile.getKnownPath)
-      case scalaz.Failure(list) =>
+      case Validated.Invalid(list) =>
         SchemaFailure(jsonFile.getKnownPath, list.toList)
     }
   }
@@ -189,10 +194,10 @@ object LintCommand {
    * @param result disjunction of string with report
    * @return plain report
    */
-  def flattenReport(result: Validation[String, Report]): Report =
+  def flattenReport(result: Validated[String, Report]): Report =
     result match {
-      case scalaz.Success(status) => status
-      case scalaz.Failure(failure) => Failure(failure)
+      case Validated.Valid(status) => status
+      case Validated.Invalid(failure) => Failure(failure)
     }
 
   /**
@@ -204,14 +209,14 @@ object LintCommand {
    * @return non-empty list of error messages in case of invalid Schema
    *         or unit if case of successful
    */
-  def validateSchema(json: JValue, skipWarnings: Boolean): ValidationNel[String, Unit] = {
+  def validateSchema(json: JValue, skipWarnings: Boolean): ValidatedNel[String, Unit] = {
     val jsonNode = asJsonNode(json)
     val report = validator.validateSchema(jsonNode)
                           .asInstanceOf[ListProcessingReport]
 
     report.iterator.asScala.toList.filter(filterMessages(skipWarnings)).map(_.toString) match {
-      case Nil => ().success
-      case h :: t => NonEmptyList(h, t: _*).failure
+      case Nil => ().valid
+      case h :: t => NonEmptyList.of(h, t: _*).invalid
     }
   }
 
@@ -238,7 +243,7 @@ object LintCommand {
     */
   def skipLinters(lintersString: String): Either[String, List[Linter]] =
     validateOptionalLinters(lintersString).map { toSkip =>
-      allLinters.filterKeys(linter => !toSkip.contains(linter)).values.toList
+      Linter.allLintersMap.filterKeys(linter => !toSkip.contains(linter)).values.toList
     }
 
   /**
@@ -248,13 +253,13 @@ object LintCommand {
     */
   def includeLinters(lintersString: String): Either[String, List[Linter]] =
     validateOptionalLinters(lintersString).map { toInclude =>
-      allLinters.filterKeys(toInclude.contains).values.toList
+      Linter.allLintersMap.filterKeys(toInclude.contains).values.toList
     }
 
   /** Check that comma-separated list passed by --skip-checks is list of optional linters */
   def validateOptionalLinters(string: String): Either[String, List[String]] = {
     val linters = string.split(',').toList
-    val invalidLinters = linters.filterNot(allLinters.isDefinedAt)
+    val invalidLinters = linters.filterNot(Linter.allLintersMap.isDefinedAt)
 
     val knownLinters: Either[String, List[String]] = invalidLinters match {
       case Nil => Right(linters)
