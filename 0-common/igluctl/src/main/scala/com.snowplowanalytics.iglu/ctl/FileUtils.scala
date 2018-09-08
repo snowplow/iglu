@@ -12,9 +12,9 @@
  */
 package com.snowplowanalytics.iglu.ctl
 
-// Scalaz
-import scalaz._
-import Scalaz._
+// cats
+import cats.syntax.either._
+import cats.instances.either._
 
 // Json4s
 import org.json4s._
@@ -25,19 +25,21 @@ import com.fasterxml.jackson.core.JsonParseException
 
 // Scala
 import scala.io.Source
+import scala.util.control.NonFatal
 
 // Java
 import java.io.{ IOException, PrintWriter, File }
 
 // Iglu Core
 import com.snowplowanalytics.iglu.core._
+import com.snowplowanalytics.iglu.core.SelfDescribingSchema
 import com.snowplowanalytics.iglu.core.json4s.implicits._
 
 object FileUtils {
 
-  type ValidJsonFileList = List[Validation[String, JsonFile]]
+  type ValidJsonFileList = List[Either[String, JsonFile]]
 
-  type ValidJsonFileStream = Stream[Validation[String, JsonFile]]
+  type ValidJsonFileStream = Stream[Either[String, JsonFile]]
 
   val separator = System.getProperty("file.separator", "/")
 
@@ -63,7 +65,7 @@ object FileUtils {
      *
      * @return validation with success or error message
      */
-    def write(force: Boolean = false): Validation[String, String] = {
+    def write(force: Boolean = false): Either[String, String] = {
       writeToFile(file.getName, file.getParentFile.getAbsolutePath, content, force)
     }
   }
@@ -90,10 +92,11 @@ object FileUtils {
      *
      * @return validation JSON Schema
      */
-    def extractSelfDescribingSchema: Validation[String, SelfDescribingSchema[JValue]] = {
-      val optionalSchema = content.toSchema.map(_.success[String])
-      optionalSchema.getOrElse(s"Cannot extract Self-describing JSON Schema from JSON file [$getKnownPath]".failure)
-    }
+    def extractSelfDescribingSchema: Either[String, SelfDescribingSchema[JValue]] =
+      SelfDescribingSchema.parse(content).leftMap {
+        case ParseError.InvalidSchema => s"Cannot extract Self-describing JSON Schema from JSON file [${origin.getAbsolutePath}]"
+        case other => s"JSON Schema in file [${origin.getAbsolutePath}] is not valid, ${other.code}"
+      }
 
     def fileName: String = origin.getName
 
@@ -121,7 +124,7 @@ object FileUtils {
    * @param content Content of file
    * @return a success or failure string about the process
    */
-  def writeToFile(fileName: String, fileDir: String, content: String, force: Boolean = false): Validation[String, String] = {
+  def writeToFile(fileName: String, fileDir: String, content: String, force: Boolean = false): Either[String, String] = {
     val path = fileDir + "/" + fileName
     try {
       makeDir(fileDir) match {
@@ -131,21 +134,21 @@ object FileUtils {
           val contentChanged = isNewContent(file, content)
           if (!file.exists()) {
             printToFile(file)(_.println(content))
-            s"File [${file.getAbsolutePath}] was written successfully!".success
+            s"File [${file.getAbsolutePath}] was written successfully!".asRight
           } else if (contentChanged && !force) {
-            s"File [${file.getAbsolutePath}] already exists and probably was modified manually. You can use --force to override".failure
+            s"File [${file.getAbsolutePath}] already exists and probably was modified manually. You can use --force to override".asRight
           } else if (force) {
             printToFile(file)(_.println(content))
-            s"File [${file.getAbsolutePath}] was overridden successfully (no change)!".success
+            s"File [${file.getAbsolutePath}] was overridden successfully (no change)!".asRight
           } else {
-            s"File [${file.getAbsolutePath}] was not modified".success
+            s"File [${file.getAbsolutePath}] was not modified".asRight
           }
-        case false => s"Could not make new directory to store files in [$fileDir] - Check write permissions".failure
+        case false => s"Could not make new directory to store files in [$fileDir] - Check write permissions".asLeft
       }
     } catch {
       case e: Exception =>
         val exception = e.toString
-        s"File [$path] failed to write: [$exception]".failure
+        s"File [$path] failed to write: [$exception]".asLeft
     }
   }
 
@@ -199,12 +202,12 @@ object FileUtils {
    * @return list of validated JsonFiles
    */
   def getJsonFilesStream(file: File, predicate: Option[File => Boolean] = None): ValidJsonFileStream =
-    if (!file.exists()) Failure(s"Path [${file.getAbsolutePath}] doesn't exist") #:: Stream.empty[Validation[String, JsonFile]]
+    if (!file.exists()) s"Path [${file.getAbsolutePath}] doesn't exist".asLeft #:: Stream.empty[Either[String, JsonFile]]
     else if (file.isDirectory) predicate match {
       case Some(p) => streamAllFiles(file).filter(p).map(getJsonFile)
       case None    => streamAllFiles(file).map(getJsonFile)
     }
-    else getJsonFile(file) #:: Stream.empty[Validation[String, JsonFile]]
+    else getJsonFile(file) #:: Stream.empty[Either[String, JsonFile]]
 
   /**
    * Recursively and lazily get all files in ``dir`` except hidden
@@ -226,11 +229,9 @@ object FileUtils {
    * @param file Java File object
    * @return validated Json File or failure message
    */
-  def getJsonFile(file: File): Validation[String, JsonFile] =
-    getJsonFromFile(file) match {
-      case Success(json) => JsonFile(json, file).success
-      case Failure(str) => str.failure
-    }
+  def getJsonFile(file: File): Either[String, JsonFile] = {
+    cats.Functor[Either[String, ?]].tupleRight(getJsonFromFile(file), file).map(x => JsonFile.apply(x._1, x._2))
+  }
 
   /**
    * Returns a validated JSON from the specified path
@@ -238,17 +239,17 @@ object FileUtils {
    * @param file file object with JSON
    * @return a validation either be correct JValue or error as String
    */
-  def getJsonFromFile(file: File): Validation[String, JValue] = {
+  def getJsonFromFile(file: File): Either[String, JValue] = {
     try {
       val content = Source.fromFile(file).mkString
-      parse(content).success
+      parse(content).asRight
     } catch {
       case e: JsonParseException =>
         val exception = e.getMessage
-        s"File [${file.getAbsolutePath}] contents failed to parse into JSON: [$exception]".failure
-      case e: Exception =>
+        s"File [${file.getAbsolutePath}] contents failed to parse into JSON: [$exception]".asLeft
+      case NonFatal(e) =>
         val exception = e.getMessage
-        s"File [${file.getAbsolutePath}] fetching and parsing failed: [$exception]".failure
+        s"File [${file.getAbsolutePath}] fetching and parsing failed: [$exception]".asLeft
     }
   }
 
@@ -280,7 +281,7 @@ object FileUtils {
       oldContent != newContent
 
     } catch {
-      case e: IOException => true
+      case _: IOException => true
     }
   }
 

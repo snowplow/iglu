@@ -12,12 +12,13 @@
  */
 package com.snowplowanalytics.iglu.ctl
 
-import scalaz._
-import Scalaz._
+import cats.data.Validated
 
 import org.specs2.Specification
 
 import org.json4s.jackson.JsonMethods.parse
+
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.SelfSyntaxChecker
 
 class LintCommandSpec extends Specification { def is = s2"""
   Linter command (lint) specification
@@ -54,8 +55,8 @@ class LintCommandSpec extends Specification { def is = s2"""
 
     val jsonSchema = parse(schema)
 
-    val result = LintCommand.validateSchema(jsonSchema, false)
-    val expected = ().successNel
+    val result = SelfSyntaxChecker.validateSchema(jsonSchema, false)
+    val expected = Validated.Valid(())
     result must beEqualTo(expected)
   }
 }

@@ -34,9 +34,11 @@ import com.snowplowanalytics.iglu.schemaddl.redshift.generators.{
   DdlFile
 }
 
-// Scalaz
-import scalaz._
-import Scalaz._
+// cats
+import cats.data._
+import cats.syntax.alternative._
+import cats.instances.list._
+import cats.instances.either._
 
 // This library
 import FileUtils._
@@ -65,7 +67,7 @@ case class GenerateCommand(
    */
   def processDdl(): Unit = {
     val allFiles = getJsonFiles(input)
-    val (failures, jsons) = splitValidations(allFiles)
+    val (failures, jsons) = allFiles.separate
 
     if (failures.nonEmpty) {
       println("JSON Parsing errors:")
@@ -94,7 +96,7 @@ case class GenerateCommand(
   private[ctl] def transformSelfDescribing(files: List[JsonFile]): DdlOutput = {
     val dbSchemaStr = dbSchema.getOrElse("atomic")
     // Parse Self-describing Schemas
-    val (schemaErrors, schemas) = splitValidations(files.map(_.extractSelfDescribingSchema))
+    val (schemaErrors, schemas) = files.map(_.extractSelfDescribingSchema).separate
 
     val schemaVerValidation: Result = validateSchemaVersions(schemas)
 
@@ -106,14 +108,14 @@ case class GenerateCommand(
 
     // Build table definitions from JSON Schemas
     val validatedDdls = schemas.map(schema => selfDescSchemaToDdl(schema, dbSchemaStr).map(ddl => (schema.self, ddl)))
-    val (ddlErrors, ddlPairs) = splitValidations(validatedDdls)
+    val (ddlErrors, ddlPairs) = validatedDdls.separate
     val ddlMap = groupWithLast(ddlPairs)
 
     // Build migrations and order-related data
     val migrationMap = buildMigrationMap(schemas)
     val validOrderingMap = Migration.getOrdering(migrationMap)
-    val orderingMap = validOrderingMap.collect { case (k, Success(v)) => (k, v) }
-    val (_, migrations) = splitValidations(Migrations.reifyMigrationMap(migrationMap, Some(dbSchemaStr), varcharSize))
+    val orderingMap = validOrderingMap.collect { case (k, Validated.Valid(v)) => (k, v) }
+    val (_, migrations) = Migrations.reifyMigrationMap(migrationMap, Some(dbSchemaStr), varcharSize).separate
 
     // Order table-definitions according with migrations
     val ddlFiles = ddlMap.map { case (description, table) =>
@@ -150,12 +152,12 @@ case class GenerateCommand(
       if (numOfMaps == 1){
         false
       } else {
-        val prevModel    = schemaMaps.head.version.model
-        val prevRevision = schemaMaps.head.version.revision
-        val prevAddition = schemaMaps.head.version.addition
-        val curModel     = schemaMaps.tail.head.version.model
-        val curRevision  = schemaMaps.tail.head.version.revision
-        val curAddition  = schemaMaps.tail.head.version.addition
+        val prevModel    = schemaMaps.head.schemaKey.version.model
+        val prevRevision = schemaMaps.head.schemaKey.version.revision
+        val prevAddition = schemaMaps.head.schemaKey.version.addition
+        val curModel     = schemaMaps.tail.head.schemaKey.version.model
+        val curRevision  = schemaMaps.tail.head.schemaKey.version.revision
+        val curAddition  = schemaMaps.tail.head.schemaKey.version.addition
 
         if (curModel == prevModel && curRevision == prevRevision && curAddition == prevAddition + 1 ||
             curModel == prevModel && curRevision == prevRevision + 1 && curAddition == 0 ||
@@ -164,33 +166,33 @@ case class GenerateCommand(
       }
     }
 
-    if (schemas.empty) {
+    if (schemas.isEmpty) {
       VersionSuccess(List.empty[String])
     } else {
       if (input.isFile) {
-        val schemaVerWarning = schemas.head.self.version match {
+        val schemaVerWarning = schemas.head.self.schemaKey.version match {
           case SchemaVer.Full(1, 0, 0) => List.empty[String]
           case _                       => List(s"Warning: File [${input.getAbsolutePath}] contains a schema " +
                                                 s"whose version is NOT 1-0-0. Migrations can be inconsistent.")
         }
         Warnings(schemaVerWarning)
       } else {
-        val schemaMapsGroupByVendor: Map[String, List[SchemaMap]] = schemas.map(schema => schema.self).groupBy(_.vendor)
+        val schemaMapsGroupByVendor: Map[String, List[SchemaMap]] = schemas.map(schema => schema.self).groupBy(_.schemaKey.vendor)
 
         val versionErrors: List[List[String]] =
           for ((vendor, schemaMapsOfVendor) <- schemaMapsGroupByVendor.toList) yield {
-            val schemaMapsGroupByName: Map[String, List[SchemaMap]] = schemaMapsOfVendor.groupBy(_.name)
+            val schemaMapsGroupByName: Map[String, List[SchemaMap]] = schemaMapsOfVendor.groupBy(_.schemaKey.name)
             val firstVersionNotFoundErrors: List[String] =
               for {
                 (name, schemaMaps) <- schemaMapsGroupByName.toList
-                if !schemaMaps.exists(sm => sm.version == SchemaVer.Full(1, 0, 0)) && !force
+                if !schemaMaps.map(_.schemaKey).exists(sm => sm.version == SchemaVer.Full(1, 0, 0)) && !force
               } yield s"Error: Directory [${input.getAbsolutePath}] contains schemas of [$vendor/$name] without version 1-0-0." +
                       " Migrations can be inconsistent." + " Use --force to switch off schema version check."
             val schemaVerGapErrors: List[String] =
               for {
                 (name, schemaMaps) <- schemaMapsGroupByName.toList
-                sortedSchemaMaps = schemaMaps.sortWith(_.version.asString < _.version.asString)
-                if sortedSchemaMaps.head.version == SchemaVer.Full(1, 0, 0) && existMissingSchemaVersion(sortedSchemaMaps) && !force
+                sortedSchemaMaps = schemaMaps.sortWith(_.schemaKey.version.asString < _.schemaKey.version.asString)
+                if sortedSchemaMaps.head.schemaKey.version == SchemaVer.Full(1, 0, 0) && existMissingSchemaVersion(sortedSchemaMaps) && !force
               } yield s"Error: Directory [${input.getAbsolutePath}] contains schemas of [$vendor/$name] which has gaps between schema versions." +
                       " Migrations can be inconsistent." + " Use --force to switch off schema version check."
 
@@ -209,14 +211,11 @@ case class GenerateCommand(
    * @param dbSchema DB schema name ("atomic")
    * @return validation of either table definition or error message
    */
-  private[ctl] def selfDescSchemaToDdl(schema: IgluSchema, dbSchema: String): Validation[String, TableDefinition] = {
+  private[ctl] def selfDescSchemaToDdl(schema: IgluSchema, dbSchema: String): Validated[String, TableDefinition] = {
     val ddl = for {
       flatSchema <- FlatSchema.flattenJsonSchema(schema.schema, splitProduct)
     } yield produceTable(flatSchema, schema.self, dbSchema, owner)
-    ddl match {
-      case Failure(fail) => (fail + s" in [${schema.self.toPath}] Schema").failure
-      case success => success
-    }
+    ddl.leftMap(fail => s"$fail in [${schema.self.schemaKey.toPath}] Schema")
   }
 
   // Header Section for a Redshift DDL File
@@ -263,7 +262,7 @@ case class GenerateCommand(
    * @return transformation result containing all data to output
    */
   private[ctl] def transformRaw(files: List[JsonFile]): DdlOutput = {
-    val (schemaErrors, ddlFiles) = splitValidations(files.map(jsonToRawTable))
+    val (schemaErrors, ddlFiles) = files.map(jsonToRawTable).separate
     val ddlWarnings = ddlFiles.flatMap(_.ddlFile.warnings)
 
     val outputPair = for {
@@ -279,14 +278,11 @@ case class GenerateCommand(
    * @param json JSON Schema
    * @return validated table definition object
    */
-  private def jsonToRawTable(json: JsonFile): Validation[String, TableDefinition] = {
+  private def jsonToRawTable(json: JsonFile): Validated[String, TableDefinition] = {
     val ddl = FlatSchema.flattenJsonSchema(json.content, splitProduct).map { flatSchema =>
       produceRawTable(flatSchema, json.fileName, owner)
     }
-    ddl match {
-      case Failure(fail) => (fail + s" in [${json.fileName}] file").failure
-      case success => success
-    }
+    ddl.leftMap(fail => fail + s" in [${json.fileName}] file")
   }
 
   /**
@@ -340,7 +336,7 @@ case class GenerateCommand(
    * @return text file with JSON Paths if option is set
    */
   private def makeJsonPaths(ddl: TableDefinition): Option[TextFile] = {
-    val jsonPath = withJsonPaths.option(JsonPathGenerator.getJsonPathsFile(ddl.getCreateTable.columns, rawMode))
+    val jsonPath = if (withJsonPaths) Some(JsonPathGenerator.getJsonPathsFile(ddl.getCreateTable.columns, rawMode)) else None
     jsonPath.map { content =>
       TextFile(new File(new File(ddl.path), ddl.fileName + ".json"), content)
     }
@@ -481,24 +477,24 @@ object GenerateCommand {
    */
   def getFileName(flatSelfElems: SchemaMap): (String, String) = {
     // Make the file name
-    val version = "_".concat(flatSelfElems.version.asString.replaceAll("-[0-9]+-[0-9]+", ""))
-    val file = flatSelfElems.name
+    val version = "_".concat(flatSelfElems.schemaKey.version.asString.replaceAll("-[0-9]+-[0-9]+", ""))
+    val file = flatSelfElems.schemaKey.name
                             .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
                             .replaceAll("([a-z\\d])([A-Z])", "$1_$2")
                             .replaceAll("-", "_")
                             .toLowerCase.concat(version)
 
     // Return the vendor and the file name together
-    (flatSelfElems.vendor, file)
+    (flatSelfElems.schemaKey.vendor, file)
   }
 
   /**
-   * Print value extracted from scalaz Validation or any other message
+   * Print value extracted from Validated or any other message
    */
   private def printMessage(any: Any): Unit = {
     any match {
-      case Success(m) => println(m)
-      case Failure(m) => println(m)
+      case Validated.Valid(m) => println(m)
+      case Validated.Invalid(m) => println(m)
       case m => println(m)
     }
   }
@@ -515,10 +511,10 @@ object GenerateCommand {
     val aggregated = ddls.foldLeft(Map.empty[ModelGroup, (SchemaMap, TableDefinition)]) {
       case (acc, (description, definition)) =>
         acc.get(modelGroup(description)) match {
-          case Some((desc, defn)) if desc.version.revision < description.version.revision =>
+          case Some((desc, defn)) if desc.schemaKey.version.revision < description.schemaKey.version.revision =>
             acc ++ Map((modelGroup(description), (description, definition)))
-          case Some((desc, defn)) if desc.version.revision == description.version.revision &&
-            desc.version.addition < description.version.addition =>
+          case Some((desc, defn)) if desc.schemaKey.version.revision == description.schemaKey.version.revision &&
+            desc.schemaKey.version.addition < description.schemaKey.version.addition =>
             acc ++ Map((modelGroup(description), (description, definition)))
           case None =>
             acc ++ Map((modelGroup(description), (description, definition)))
