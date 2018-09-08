@@ -1,44 +1,79 @@
-package com.snowplowanalytics.iglu.schemaddl
+/*
+ * Copyright (c) 2016-2018 Snowplow Analytics Ltd. All rights reserved.
+ *
+ * This program is licensed to you under the Apache License Version 2.0,
+ * and you may not use this file except in compliance with the Apache License Version 2.0.
+ * You may obtain a copy of the Apache License Version 2.0 at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the Apache License Version 2.0 is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
+ */
+package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
-import scala.reflect.runtime.{universe => ru}
+import cats.Show
 import cats.data._
 import cats.implicits._
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.{ArrayProperty, NumberProperty, ObjectProperty, StringProperty}
+
+import scala.reflect.runtime.{universe => ru}
 
 // This library
-import jsonschema._
-import StringProperty._
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.CommonProperties._
-import ObjectProperty.{ AdditionalProperties, Properties, Required }
-
 import Linter._
+import properties.{ArrayProperty, NumberProperty, ObjectProperty, StringProperty}
+import properties.CommonProperties._
+import properties.ObjectProperty._
+import properties.StringProperty._
 
 /** Schema validation logic */
 sealed trait Linter extends Product with Serializable {
   def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Issue, Unit]
   def getName: String = toString
+  def level: Level
 }
 
 object Linter {
+
+  sealed trait Level extends Product with Serializable
+  object Level {
+    case object Info extends Level
+    case object Warning extends Level
+    case object Error extends Level
+  }
 
   sealed trait Issue extends Product with Serializable {
     /** Linter revealed this issue */
     def linter: Linter
 
     /** Transform into human-readable message */
-    def getMessage: String
+    def show: String
 
     /** Name of the linter revealed this issues */
     def getLinterName: String = linter.getName
+
+    /** To linter-agnostic message */
+    def toMessage(pointer: JsonPointer): Message =
+      Message(pointer, show, linter.level)
   }
+
+  object Issue {
+    implicit val issueShow: Show[Issue] =
+      Show.show((i: Issue) => i.show)
+  }
+
+  /** Linter-agnostic message */
+  final case class Message(jsonPointer: JsonPointer, message: String, level: Linter.Level)
 
   def allLintersMap: Map[String, Linter] =
     sealedDescendants[Linter].map(x => (x.getName, x)).toMap
 
-  case object rootObject extends Linter { self =>
+  final case object rootObject extends Linter { self =>
+
+    val level: Level = Level.Warning
+
     case object Details extends Issue {
       val linter = self
-      def getMessage: String =
+      def show: String =
         "Root of schema should have type object and contain properties"
     }
 
@@ -48,11 +83,13 @@ object Linter {
       else noIssues
   }
 
-  case object numericMinimumMaximum extends Linter { self =>
+  final case object numericMinimumMaximum extends Linter { self =>
+
+    val level: Level = Level.Error
 
     case class Details(min: BigDecimal, max: BigDecimal) extends Issue {
       val linter = self
-      def getMessage: String = s"Schema with numeric type has minimum property [$min] greater than maximum [$max]"
+      def show: String = s"Schema with numeric type has minimum property [$min] greater than maximum [$max]"
     }
 
     def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Details, Unit] =
@@ -63,10 +100,13 @@ object Linter {
       }
   }
 
-  case object stringMinMaxLength extends Linter { self =>
+  final case object stringMinMaxLength extends Linter { self =>
+
+    val level: Level = Level.Error
+
     case class Details(min: BigInt, max: BigInt) extends Issue {
       val linter = self
-      def getMessage: String = s"Schema with string type has minLength property [$min] greater than maxLength [$max]"
+      def show: String = s"Schema with string type has minLength property [$min] greater than maxLength [$max]"
     }
 
     def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Details, Unit] =
@@ -77,10 +117,13 @@ object Linter {
       }
   }
 
-  case object stringMaxLengthRange extends Linter { self =>
+  final case object stringMaxLengthRange extends Linter { self =>
+
+    val level: Level = Level.Warning
+
     case class Details(maximum: BigInt) extends Issue {
       val linter = self
-      def getMessage: String =
+      def show: String =
         s"Schema with string type has maxLength property [$maximum] greater than Redshift VARCHAR(max) 65535"
     }
 
@@ -95,10 +138,13 @@ object Linter {
       else noIssues
   }
 
-  case object arrayMinMaxItems extends Linter { self =>
+  final case object arrayMinMaxItems extends Linter { self =>
+
+    val level: Level = Level.Error
+
     case class Details(minimum: BigInt, maximum: BigInt) extends Issue {
       val linter = self
-      def getMessage: String =
+      def show: String =
         s"Schema with array type has minItems property [$minimum] greater than maxItems [$maximum]"
     }
 
@@ -110,10 +156,13 @@ object Linter {
       }
   }
 
-  case object numericProperties extends Linter { self =>
+  final case object numericProperties extends Linter { self =>
+
+    val level: Level = Level.Error
+
     case class Details(keys: List[String]) extends Issue {
       val linter = self
-      def getMessage: String =
+      def show: String =
         s"Numeric properties [${keys.mkString(",")}] require number, integer or absent type"
     }
 
@@ -126,10 +175,13 @@ object Linter {
     }
   }
 
-  case object stringProperties extends Linter { self =>
+  final case object stringProperties extends Linter { self =>
+
+    val level: Level = Level.Error
+
     case class Details(keys: List[String]) extends Issue {
       val linter = self
-      def getMessage: String =
+      def show: String =
         s"String properties [${keys.mkString(",")}] require string or absent type"
     }
 
@@ -142,10 +194,13 @@ object Linter {
     }
   }
 
-  case object arrayProperties extends Linter { self =>
+  final case object arrayProperties extends Linter { self =>
+
+    val level: Level = Level.Error
+
     case class Details(keys: Set[String]) extends Issue {
       val linter = self
-      def getMessage: String =
+      def show: String =
         s"Array properties [${keys.mkString(",")}] require array or absent type"
     }
 
@@ -158,10 +213,13 @@ object Linter {
     }
   }
 
-  case object objectProperties extends Linter { self =>
+  final case object objectProperties extends Linter { self =>
+
+    val level: Level = Level.Error
+
     case class Details(keys: Set[String]) extends Issue {
       val linter = self
-      def getMessage: String =
+      def show: String =
         s"Object properties [${keys.mkString(",")}] require object or absent type"
     }
 
@@ -174,11 +232,14 @@ object Linter {
     }
   }
 
-  case object requiredPropertiesExist extends Linter { self =>
+  final case object requiredPropertiesExist extends Linter { self =>
+
+    val level: Level = Level.Error
+
     case class Details(keys: Set[String]) extends Issue {
       val linter = self
-      def getMessage: String =
-        s"Required properties [${keys.mkString(",")}] doesn't exist in properties"
+      def show: String =
+        s"Required elements [${keys.mkString(",")}] don't exist in properties"
     }
 
     def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Details, Unit] =
@@ -192,10 +253,13 @@ object Linter {
       }
   }
 
-  case object unknownFormats extends Linter { self =>
+  final case object unknownFormats extends Linter { self =>
+
+    val level: Level = Level.Warning
+
     case class Details(name: String) extends Issue {
       val linter = self
-      def getMessage: String =
+      def show: String =
         s"Unknown format [$name] detected. Known formats are: date-time, date, email, hostname, ipv4, ipv6, uri"
     }
 
@@ -207,10 +271,13 @@ object Linter {
       }
   }
 
-  case object numericMinMax extends Linter { self =>
+  final case object numericMinMax extends Linter { self =>
+
+    val level: Level = Level.Warning
+
     case object Details extends Issue {
       val linter = self
-      def getMessage: String = "Schema with numeric type doesn't contain minimum and maximum properties"
+      def show: String = "Schema with numeric type doesn't contain minimum and maximum properties"
     }
 
     def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Issue, Unit] =
@@ -223,10 +290,13 @@ object Linter {
       else noIssues
   }
 
-  case object stringLength extends Linter { self =>
+  final case object stringLength extends Linter { self =>
+
+    val level: Level = Level.Warning
+
     case object Details extends Issue {
       val linter = self
-      def getMessage: String =
+      def show: String =
         "Schema with string type doesn't contain maxLength property or other ways to extract max length"
     }
 
@@ -239,10 +309,13 @@ object Linter {
       } else { noIssues }
   }
 
-  case object optionalNull extends Linter { self =>
+  final case object optionalNull extends Linter { self =>
+
+    val level: Level = Level.Info
+
     case class Details(keys: Set[String]) extends Issue {
       val linter = self
-      def getMessage: String =
+      def show: String =
         s"Optional fields [${keys.mkString(",")}] don't allow null type"
     }
 
@@ -261,10 +334,13 @@ object Linter {
       }
   }
 
-  case object description extends Linter { self =>
+  final case object description extends Linter { self =>
+
+    val level: Level = Level.Info
+
     case object Details extends Issue {
       val linter = self
-      def getMessage: String = "Schema doesn't contain description property"
+      def show: String = "Schema doesn't contain description property"
     }
 
     def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Issue, Unit] =
