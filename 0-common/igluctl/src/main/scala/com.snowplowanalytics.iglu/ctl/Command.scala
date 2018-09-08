@@ -12,9 +12,6 @@
  */
 package com.snowplowanalytics.iglu.ctl
 
-// scalaz
-import scalaz._
-
 // Java
 import java.io.File
 import java.util.UUID
@@ -26,7 +23,7 @@ import scopt.OptionParser
 import PushCommand._
 
 // Schema DDL
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.{ Linter, allLinters }
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.Linter
 
 /**
  * Common command container
@@ -58,7 +55,7 @@ case class Command(
 
   // lint
   skipWarnings:    Boolean         = false,
-  linters:         List[Linter]    = allLinters.values.toList,
+  linters:         List[Linter]    = Linter.allLintersMap.values.toList,
 
   // s3
   bucket:          Option[String]  = None,
@@ -90,8 +87,8 @@ object Command {
   
   implicit val httpUrlRead: scopt.Read[HttpUrl] = scopt.Read.reads { s =>
     PushCommand.parseRegistryRoot(s) match {
-      case \/-(httpUrl) => httpUrl
-      case -\/(e) => throw e
+      case Right(httpUrl) => httpUrl
+      case Left(e) => throw e
     }
   }
 

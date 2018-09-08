@@ -34,9 +34,11 @@ import com.snowplowanalytics.iglu.schemaddl.redshift.generators.{
   DdlFile
 }
 
-// Scalaz
-import scalaz._
-import Scalaz._
+// cats
+import cats.data._
+import cats.syntax.alternative._
+import cats.instances.list._
+import cats.instances.either._
 
 // This library
 import FileUtils._
@@ -65,7 +67,7 @@ case class GenerateCommand(
    */
   def processDdl(): Unit = {
     val allFiles = getJsonFiles(input)
-    val (failures, jsons) = splitValidations(allFiles)
+    val (failures, jsons) = allFiles.separate
 
     if (failures.nonEmpty) {
       println("JSON Parsing errors:")
@@ -94,7 +96,7 @@ case class GenerateCommand(
   private[ctl] def transformSelfDescribing(files: List[JsonFile]): DdlOutput = {
     val dbSchemaStr = dbSchema.getOrElse("atomic")
     // Parse Self-describing Schemas
-    val (schemaErrors, schemas) = splitValidations(files.map(_.extractSelfDescribingSchema))
+    val (schemaErrors, schemas) = files.map(_.extractSelfDescribingSchema).separate
 
     val schemaVerValidation: Result = validateSchemaVersions(schemas)
 
@@ -106,14 +108,14 @@ case class GenerateCommand(
 
     // Build table definitions from JSON Schemas
     val validatedDdls = schemas.map(schema => selfDescSchemaToDdl(schema, dbSchemaStr).map(ddl => (schema.self, ddl)))
-    val (ddlErrors, ddlPairs) = splitValidations(validatedDdls)
+    val (ddlErrors, ddlPairs) = validatedDdls.separate
     val ddlMap = groupWithLast(ddlPairs)
 
     // Build migrations and order-related data
     val migrationMap = buildMigrationMap(schemas)
     val validOrderingMap = Migration.getOrdering(migrationMap)
-    val orderingMap = validOrderingMap.collect { case (k, Success(v)) => (k, v) }
-    val (_, migrations) = splitValidations(Migrations.reifyMigrationMap(migrationMap, Some(dbSchemaStr), varcharSize))
+    val orderingMap = validOrderingMap.collect { case (k, Validated.Valid(v)) => (k, v) }
+    val (_, migrations) = Migrations.reifyMigrationMap(migrationMap, Some(dbSchemaStr), varcharSize).separate
 
     // Order table-definitions according with migrations
     val ddlFiles = ddlMap.map { case (description, table) =>
@@ -164,7 +166,7 @@ case class GenerateCommand(
       }
     }
 
-    if (schemas.empty) {
+    if (schemas.isEmpty) {
       VersionSuccess(List.empty[String])
     } else {
       if (input.isFile) {
@@ -209,14 +211,11 @@ case class GenerateCommand(
    * @param dbSchema DB schema name ("atomic")
    * @return validation of either table definition or error message
    */
-  private[ctl] def selfDescSchemaToDdl(schema: IgluSchema, dbSchema: String): Validation[String, TableDefinition] = {
+  private[ctl] def selfDescSchemaToDdl(schema: IgluSchema, dbSchema: String): Validated[String, TableDefinition] = {
     val ddl = for {
       flatSchema <- FlatSchema.flattenJsonSchema(schema.schema, splitProduct)
     } yield produceTable(flatSchema, schema.self, dbSchema, owner)
-    ddl match {
-      case Failure(fail) => (fail + s" in [${schema.self.toPath}] Schema").failure
-      case success => success
-    }
+    ddl.leftMap(fail => s" in [${schema.self.toPath}] Schema")
   }
 
   // Header Section for a Redshift DDL File
@@ -263,7 +262,7 @@ case class GenerateCommand(
    * @return transformation result containing all data to output
    */
   private[ctl] def transformRaw(files: List[JsonFile]): DdlOutput = {
-    val (schemaErrors, ddlFiles) = splitValidations(files.map(jsonToRawTable))
+    val (schemaErrors, ddlFiles) = files.map(jsonToRawTable).separate
     val ddlWarnings = ddlFiles.flatMap(_.ddlFile.warnings)
 
     val outputPair = for {
@@ -279,14 +278,11 @@ case class GenerateCommand(
    * @param json JSON Schema
    * @return validated table definition object
    */
-  private def jsonToRawTable(json: JsonFile): Validation[String, TableDefinition] = {
+  private def jsonToRawTable(json: JsonFile): Validated[String, TableDefinition] = {
     val ddl = FlatSchema.flattenJsonSchema(json.content, splitProduct).map { flatSchema =>
       produceRawTable(flatSchema, json.fileName, owner)
     }
-    ddl match {
-      case Failure(fail) => (fail + s" in [${json.fileName}] file").failure
-      case success => success
-    }
+    ddl.leftMap(fail => fail + s" in [${json.fileName}] file")
   }
 
   /**
@@ -340,7 +336,7 @@ case class GenerateCommand(
    * @return text file with JSON Paths if option is set
    */
   private def makeJsonPaths(ddl: TableDefinition): Option[TextFile] = {
-    val jsonPath = withJsonPaths.option(JsonPathGenerator.getJsonPathsFile(ddl.getCreateTable.columns, rawMode))
+    val jsonPath = if (withJsonPaths) Some(JsonPathGenerator.getJsonPathsFile(ddl.getCreateTable.columns, rawMode)) else None
     jsonPath.map { content =>
       TextFile(new File(new File(ddl.path), ddl.fileName + ".json"), content)
     }
@@ -493,12 +489,12 @@ object GenerateCommand {
   }
 
   /**
-   * Print value extracted from scalaz Validation or any other message
+   * Print value extracted from Validated or any other message
    */
   private def printMessage(any: Any): Unit = {
     any match {
-      case Success(m) => println(m)
-      case Failure(m) => println(m)
+      case Validated.Valid(m) => println(m)
+      case Validated.Invalid(m) => println(m)
       case m => println(m)
     }
   }
