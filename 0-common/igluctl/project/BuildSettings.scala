@@ -72,7 +72,14 @@ object BuildSettings {
     assemblyJarName in assembly := { name.value },
 
     // Make this executable
-    mainClass in assembly := Some("com.snowplowanalytics.iglu.ctl.Main")
+    mainClass in assembly := Some("com.snowplowanalytics.iglu.ctl.Main"),
+
+    assemblyMergeStrategy in assembly := {
+      case PathList("com", "github", "fge", tail@_*) => MergeStrategy.first
+      case x =>
+        val oldStrategy = (assemblyMergeStrategy in assembly).value
+        oldStrategy(x)
+    }
   )
 
   lazy val buildSettings = basicSettings ++ scalifySettings ++ sbtAssemblySettings
