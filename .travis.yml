@@ -5,34 +5,38 @@ jdk:
 - oraclejdk8
 script:
 - cd 2-repositories/iglu-server
-- ./scripts/create-test-user.bash
+- "./scripts/create-test-user.bash"
+- sbt test
 - cd ../..
 before_deploy:
-  - pip install --user release-manager==0.3.0
+- pip install --user release-manager==0.3.0
 deploy:
 - provider: script
   skip_cleanup: true
-  script: ./.travis/deploy_scala_core.sh $TRAVIS_TAG
+  script: "./.travis/deploy_scala_core.sh $TRAVIS_TAG"
   on:
     condition: '"$(.travis/is_core_release_tag.sh $TRAVIS_TAG)" == "" && $? == 0'
     tags: true
 - provider: script
   skip_cleanup: true
-  script: ./.travis/deploy_schema_ddl.sh $TRAVIS_TAG
+  script: "./.travis/deploy_schema_ddl.sh $TRAVIS_TAG"
   on:
-    condition: '"$(.travis/is_schemaddl_release_tag.sh $TRAVIS_TAG)" == "" && $? == 0'
+    condition: '"$(.travis/is_schemaddl_release_tag.sh $TRAVIS_TAG)" == "" && $? ==
+      0'
     tags: true
 - provider: script
   skip_cleanup: true
-  script: ./.travis/deploy_igluctl.sh $TRAVIS_TAG
+  script: "./.travis/deploy_igluctl.sh $TRAVIS_TAG"
   on:
-    condition: '"$(.travis/is_igluctl_release_tag.sh $TRAVIS_TAG)" == "" && $? == 0'
+    condition: '"$(.travis/is_igluctl_release_tag.sh $TRAVIS_TAG)" == "" && $? ==
+      0'
     tags: true
 - provider: script
   skip_cleanup: true
-  script: ./.travis/deploy_iglu_server.sh $TRAVIS_TAG
+  script: "./.travis/deploy_iglu_server.sh $TRAVIS_TAG"
   on:
-    condition: '"$(.travis/is_iglu_server_release_tag.sh $TRAVIS_TAG)" == "" && $? == 0'
+    condition: '"$(.travis/is_iglu_server_release_tag.sh $TRAVIS_TAG)" == "" && $?
+      == 0'
     tags: true
 env:
   global:
@@ -42,3 +46,5 @@ env:
   - secure: JycPiwXieJVIgpN1O1tJrnK3UPeq0JICe2MYVylMSVK4/VxxpvA8a9Op1DOb8yYg5Jws1t48nmJaiW+vseiIU2AD/9I2YKZ7dAuU8MgGe644QvCXiy/H3KNw7vO5G0zHJuRmVGvzIrCqv34OKp+V9jk3zXclJEB7csqlt1PSkcE=
   - secure: J4P9lwDqK0vcKOSsLodMOH2ob8lRySQCyK3gBZ4dQ23lMw3AvnuHO4OlZoBgO6l5We2dSJMduDq8cLvSvV7sZwmSEesz2VUgnaT87ciDG4yi+TWqebbvGkV/gkvoVhe6AnIOx9sM8WLg5XdwFpZoV6Ss6QLImG+Tg4xrxJr7nCU=
   - secure: PlkOwsrnw7u1LmLsdOabxCTmHWoziFy3rQCMbbykOyhKE9QutobONYSVJinQ0LnkCorXd+asr8EfyC+UCAUqyPVWnzF+OLUrcHGgcsIlxuNH6sBkuqpufH0jc526uYDIpR0tSvCrQLRc4ZtP456cBBflPeb2Qy3BYt5BVapGusg=
+  - secure: YdDMiFhKvtNlsVlNbDdD9Yh/iam24mAcGZ7erpjlMhvnbp0kp6r7fC1QjUtsmEu9rVmUqPqhzdhw36Qz4DgHY320PdOjFuUpmw4uW0SFFS+h6nmk6KwOVdjWgWvFqubtiqQRKE0Z1uhmaTbaa/uHV/AbFTza04YO2Ce01eMDsg4=
+  - secure: e0jUVwwpiONjT1sywAbi5u9ERkErInz0T940s5OnVBQW+KWc71b61GExFBDQ+bkcCGjhUc/e9mxxh5ryUZUdY0X8aGHHvmztUSceHLss4mu8OoiG2gAcHOGsBUkBMsAsgTE08Bzzss4BwolfL8rODo4uuSzR/Snz9m9+ynEtydk=
