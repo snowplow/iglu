@@ -525,7 +525,6 @@ class SchemaDAO(val db: Database) extends DAO {
         .list
         .map(prepare) match {
         case Nil => (NotFound, result(404, "There are no schemas available here"))
-        case single :: Nil => (OK, writePretty(single))
         case multiple => (OK, writePretty(multiple))
       }
     }
@@ -538,7 +537,6 @@ class SchemaDAO(val db: Database) extends DAO {
         .list
         .map(s => MetadataResult.fromSchema(s, owner, permission, isDraft)) match {
         case Nil => (NotFound, result(404, "There are no schemas available here"))
-        case single :: Nil => (OK, writePretty(single))
         case multiple => (OK, writePretty(multiple))
       }
     }
