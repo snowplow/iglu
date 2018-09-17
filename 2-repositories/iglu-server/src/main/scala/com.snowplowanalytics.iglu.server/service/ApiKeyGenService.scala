@@ -37,7 +37,7 @@ import akka.http.scaladsl.server.Directive1
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.model.headers.HttpChallenges
-import akka.http.scaladsl.server.AuthenticationFailedRejection
+import akka.http.scaladsl.server.{ AuthenticationFailedRejection, MalformedHeaderRejection }
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 
 // javax
@@ -63,9 +63,10 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
     * Directive to authenticate a user using the authenticator.
     */
   def auth(key: String): Directive1[(String, String)] = {
-    val credentialsRequest = (apiKeyActor ? GetKey(key)).mapTo[Option[(String, String)]].map {
-      case Some(t) => Right(t)
-      case None => Left(AuthenticationFailedRejection(CredentialsRejected, HttpChallenges.basic("Iglu Server")))
+    val credentialsRequest = (apiKeyActor ? GetKey(key)).mapTo[Either[String, Option[(String, String)]]].map {
+      case Right(Some(t)) => Right(t)
+      case Left(error) => Left(MalformedHeaderRejection("apikey", error))
+      case Right(None) => Left(AuthenticationFailedRejection(CredentialsRejected, HttpChallenges.basic("Iglu Server")))
     }
     onSuccess(credentialsRequest).flatMap {
       case Right(user) => provide(user)
