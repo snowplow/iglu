@@ -173,8 +173,7 @@ class SchemaService(val schemaActor: ActorRef, val apiKeyActor: ActorRef)
         (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
             validateSchema(f) { case (_, schema) =>
               val schemaUpdated: Future[(StatusCode, String)] =
-                (schemaActor ? UpdateSchema(v, n, f, vs, draftNumOfVersionedSchemas, schema, owner, permission,
-                  isPublic.contains("true"), isDraft = false)).mapTo[(StatusCode, String)]
+                (schemaActor ? UpdateSchema(v, n, f, vs, draftNumOfVersionedSchemas, schema, owner, permission, isPublic.contains("true"), isDraft = false)).mapTo[(StatusCode, String)]
               sendResponse(schemaUpdated)
             }
           }
