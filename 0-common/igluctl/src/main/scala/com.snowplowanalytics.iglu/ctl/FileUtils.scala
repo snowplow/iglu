@@ -14,6 +14,8 @@ package com.snowplowanalytics.iglu.ctl
 
 // cats
 import cats.syntax.either._
+import cats.instances.either._
+import cats.syntax.functor._
 
 // Json4s
 import org.json4s._
@@ -226,8 +228,9 @@ object FileUtils {
    * @param file Java File object
    * @return validated Json File or failure message
    */
-  def getJsonFile(file: File): Either[String, JsonFile] =
-    getJsonFromFile(file).map(JsonFile(_, file))
+  def getJsonFile(file: File): Either[String, JsonFile] = {
+    cats.Functor[Either[String, ?]].tupleRight(getJsonFromFile(file), file)
+  }
 
   /**
    * Returns a validated JSON from the specified path

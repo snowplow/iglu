@@ -46,7 +46,9 @@ object BuildSettings {
       "-source", "1.8",
       "-target", "1.8"
     ),
-    scalacOptions in Test := Seq("-Yrangepos")
+    scalacOptions in Test := Seq("-Yrangepos"),
+
+    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.7")
   )
 
   lazy val scalifySettings = Seq(
