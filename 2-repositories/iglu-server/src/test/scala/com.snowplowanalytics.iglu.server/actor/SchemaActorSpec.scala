@@ -135,17 +135,17 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
     "for GetPublicSchemas" should {
 
       "return a 200 if there are public schemas available" in {
-        val future = schema ? GetPublicSchemas(owner, permission, includeMetadata = false, isDraft = false)
+        val future = schema ? GetAllSchemas(owner, permission, includeMetadata = false, isDraft = false, false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
-        result must contain(innerSchema)
+        result must contain("iglu:com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0")
       }
     }
 
     "for GetPublicMetadata" should {
 
       "return a 200 if there are public schemas available" in {
-        val future = schema ? GetPublicMetadata(owner, permission, isDraft = false)
+        val future = schema ? GetAllMetadata(owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         result must contain(otherVendor) and contain(otherName) and
           contain(format) and contain(version)
