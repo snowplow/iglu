@@ -99,22 +99,18 @@ object SchemaActor {
    * @param owner the owner of the API key the request was made with
    * @param permission API key's permission
    */
-  case class GetSchema(vendors: List[String], names: List[String],
-    formats: List[String], versions: List[String], draftNumbers: List[String], owner: String,
+  case class GetSchema(vendors: String, names: String,
+    formats: String, versions: String, draftNumbers: String, owner: String,
     permission: String, includeMetadata: Boolean, isDraft: Boolean)
 
   /**
    * Message to send in order to retrieve metadata about a schema based on its
    * (vendor, name, format, version) tuple.
-   * @param vendors list of schemas' vendors
-   * @param names list of schemas' names
-   * @param formats list of schemas' formats
-   * @param versions list of schemas' versions
    * @param owner the owner of the API key the request was made with
    * @param permission API key's permission
    */
-  case class GetMetadata(vendors: List[String], names: List[String],
-    formats: List[String], versions: List[String], draftNumbers: List[String], owner: String,
+  case class GetMetadata(vendors: String, names: String,
+    formats: String, versions: String, draftNumbers: String, owner: String,
     permission: String, isDraft: Boolean)
 
   /**
@@ -125,8 +121,8 @@ object SchemaActor {
    * @param owner the owner of the API key the request was made with
    * @param permission API key's permission
    */
-  case class GetSchemasFromFormat(vendors: List[String], names: List[String],
-    formats: List[String], owner: String, permission: String, includeMetadata: Boolean, isDraft: Boolean)
+  case class GetSchemasFromFormat(vendors: String, names: String,
+    formats: String, owner: String, permission: String, includeMetadata: Boolean, isDraft: Boolean)
 
   /**
    * Message to send in order to get metadata about every version of a schema.
@@ -136,8 +132,8 @@ object SchemaActor {
    * @param owner the owner of the API key the request was made with
    * @param permission API key's permission
    */
-  case class GetMetadataFromFormat(vendors: List[String], names: List[String],
-    formats: List[String], owner: String, permission: String, isDraft: Boolean)
+  case class GetMetadataFromFormat(vendors: String, names: String,
+    formats: String, owner: String, permission: String, isDraft: Boolean)
 
   /**
    * Message to send in order to retrieve every format, version combination of
@@ -147,7 +143,7 @@ object SchemaActor {
    * @param owner the owner of the API key the request was made with
    * @param permission API key's permission
    */
-  case class GetSchemasFromName(vendors: List[String], names: List[String],
+  case class GetSchemasFromName(vendors: String, names: String,
     owner: String, permission: String, includeMetadata: Boolean, isDraft: Boolean)
 
   /**
@@ -158,7 +154,7 @@ object SchemaActor {
    * @param owner the owner of the API key the request was made with
    * @param permission API key's permission
    */
-  case class GetMetadataFromName(vendors: List[String], names: List[String],
+  case class GetMetadataFromName(vendors: String, names: String,
     owner: String, permission: String, isDraft: Boolean)
 
   /**
@@ -167,7 +163,7 @@ object SchemaActor {
    * @param owner the owner of the API key the request was made with
    * @param permission API key's permission
    */
-  case class GetSchemasFromVendor(vendors: List[String], owner: String,
+  case class GetSchemasFromVendor(vendors: String, owner: String,
     permission: String, includeMetadata: Boolean, isDraft: Boolean)
 
   /**
@@ -177,18 +173,15 @@ object SchemaActor {
    * @param owner the owner of the API key the request was made with
    * @param permission API key's permission
    */
-  case class GetMetadataFromVendor(vendors: List[String], owner: String,
-    permission: String, isDraft: Boolean)
+  case class GetMetadataFromVendor(vendors: String, owner: String, permission: String, isDraft: Boolean)
 
   /**
    * Message to send in order to validate that a schema is self-describing.
    * @param schema schema to be validated
    * @param format schema's format
-   * @param provideSchema returns the schema if true or a validation message
    * otherwise
    */
-  case class ValidateSchema(schema: String, format: String,
-    provideSchema: Boolean = true)
+  case class ValidateSchema(schema: String, format: String)
 
   /**
    * Message to send in order to validate an instance against a schema.
@@ -252,7 +245,7 @@ class SchemaActor(serverConfig: ServerConfig) extends Actor {
     case GetMetadataFromVendor(v, o, p, i) =>
       sender ! schema.getMetadataFromVendor(v, o, p, i)
 
-    case ValidateSchema(s, f, p) => sender ! schema.validateSchema(s, f, p)
+    case ValidateSchema(s, f) => sender ! schema.lintSchema(s, f)
 
     case Validate(v, n, f, vs, i) => sender ! schema.validate(v, n, f, vs, i)
   }

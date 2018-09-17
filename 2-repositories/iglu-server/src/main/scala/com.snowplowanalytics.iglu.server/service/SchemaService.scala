@@ -15,6 +15,11 @@
 package com.snowplowanalytics.iglu.server
 package service
 
+import cats.data.Validated
+
+// json4s
+import org.json4s.jackson.JsonMethods.compact
+
 // This project
 import actor.SchemaActor._
 import actor.ApiKeyActor._
@@ -46,6 +51,8 @@ import io.swagger.annotations._
 // javax
 import javax.ws.rs.Path
 
+import com.snowplowanalytics.iglu.server.model.SchemaDAO.{ validateJsonSchema, reportToJson }
+
 /**
  * Service to interact with schemas.
  * @constructor creates a new schema service with a schema and apiKey actors
@@ -56,7 +63,7 @@ import javax.ws.rs.Path
 @Path("/api/schemas")
 class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                    (implicit executionContext: ExecutionContext)
-                   extends Directives with Service {
+                   extends Directives with SchemaLinting with Service {
 
   /**
    * Directive to authenticate a user.
@@ -69,31 +76,6 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     onSuccess(credentialsRequest).flatMap {
       case Right(user) => provide(user)
       case Left(rejection) => reject(rejection)
-    }
-  }
-
-  /**
-   * Directive to validate the schema provided (either by query param or form
-   * data) is self-describing.
-   */
-  def validateSchema(format: String): Directive1[String] =
-    formField('schema) | parameter('schema) | entity(as[String]) flatMap { schema =>
-      onSuccess((schemaActor ? ValidateSchema(schema, format))
-          .mapTo[(StatusCode, String)]) tflatMap  {
-              case (OK, j) => provide(j)
-              case rej => complete(rej)
-            }
-      }
-
-  /**
-    * Negotiate Content-Type header
-    */
-  def contentTypeNegotiator(routes: Route): Route = {
-    optionalHeaderValueByType[Accept]() {
-      case Some(x) =>
-        if (x.acceptsAll() || x.mediaRanges.exists(_.matches(`application/json`))) routes
-        else reject(UnacceptedResponseContentTypeRejection(Set(ContentNegotiator.Alternative(`application/json`))))
-      case None => routes
     }
   }
 
@@ -140,26 +122,25 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     path("public") {
       publicSchemasRoute(owner, permission)
     } ~
-      path((VendorPattern / NamePattern / FormatPattern / VersionPattern).repeat(1, Int.MaxValue, ",")) { schemaKeys =>
-        val List(vendors, names, formats, versions) = schemaKeys.map(k => List(k._1, k._2, k._3, k._4)).transpose
-        readRoute(vendors, names, formats, versions, owner, permission)
+      path((VendorPattern / NamePattern / FormatPattern / VersionPattern)) { case (vendor, name, format, ver) =>
+        readRoute(vendor, name, format, ver, owner, permission)
       } ~
-      pathPrefix(VendorPattern.repeat(1, Int.MaxValue, ",")) { vendors: List[String] =>
-        pathPrefix(NamePattern.repeat(1, Int.MaxValue, ",")) { names: List[String] =>
-          pathPrefix(FormatPattern.repeat(1, Int.MaxValue, ",")) { formats: List[String] =>
-            path(VersionPattern.repeat(1, Int.MaxValue, ",")) { versions: List[String] =>
-              readRoute(vendors, names, formats, versions, owner, permission)
+      pathPrefix(VendorPattern) { vendor: String =>
+        pathPrefix(NamePattern) { names: String =>
+          pathPrefix(FormatPattern) { formats: String =>
+            path(VersionPattern) { versions: String =>
+              readRoute(vendor, names, formats, versions, owner, permission)
             } ~
               pathEnd {
-                readFormatRoute(vendors, names, formats, owner, permission)
+                readFormatRoute(vendor, names, formats, owner, permission)
               }
           } ~
             pathEnd {
-              readNameRoute(vendors, names, owner, permission)
+              readNameRoute(vendor, names, owner, permission)
             }
         } ~
           pathEnd {
-            readVendorRoute(vendors, owner, permission)
+            readVendorRoute(vendor, owner, permission)
           }
       }
 
@@ -206,10 +187,9 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                @ApiParam(hidden = true) permission: String): Route =
       path(VendorPattern / NamePattern / FormatPattern / VersionPattern) { (v, n, f, vs) =>
         (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
-            validateSchema(f) { schema =>
+            validateSchema(f) { case (_, schema) =>
               val schemaAdded: Future[(StatusCode, String)] =
-                (schemaActor ? AddSchema(v, n, f, vs, draftNumOfVersionedSchemas, schema, owner, permission,
-                  isPublic.contains("true"), isDraft = false)).mapTo[(StatusCode, String)]
+                (schemaActor ? AddSchema(v, n, f, vs, draftNumOfVersionedSchemas, schema, owner, permission, isPublic.contains("true"), isDraft = false)).mapTo[(StatusCode, String)]
               sendResponse(schemaAdded)
             }
           }
@@ -258,7 +238,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                   @ApiParam(hidden = true) permission: String): Route =
       path(VendorPattern / NamePattern / FormatPattern / VersionPattern) { (v, n, f, vs) =>
         (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
-            validateSchema(f) { schema =>
+            validateSchema(f) { case (_, schema) =>
               val schemaUpdated: Future[(StatusCode, String)] =
                 (schemaActor ? UpdateSchema(v, n, f, vs, draftNumOfVersionedSchemas, schema, owner, permission,
                   isPublic.contains("true"), isDraft = false)).mapTo[(StatusCode, String)]
@@ -307,7 +287,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                                           "which was not supplied with the request"),
     new ApiResponse(code = 404, message = "There are no schemas for this vendor")
   ))
-  def readVendorRoute(@ApiParam(hidden = true) v: List[String],
+  def readVendorRoute(@ApiParam(hidden = true) v: String,
                       @ApiParam(hidden = true) o: String,
                       @ApiParam(hidden = true) p: String): Route =
     (parameter('filter.?) | formField('filter.?)) {
@@ -356,8 +336,8 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                                           "which was not supplied with the request"),
     new ApiResponse(code = 404, message = "There are no schemas for this vendor + name combination")
   ))
-  def readNameRoute(@ApiParam(hidden = true) v: List[String],
-                    @ApiParam(hidden = true) n: List[String],
+  def readNameRoute(@ApiParam(hidden = true) v: String,
+                    @ApiParam(hidden = true) n: String,
                     @ApiParam(hidden = true) o: String,
                     @ApiParam(hidden = true) p: String): Route =
     (parameter('filter.?) | formField('filter.?)) {
@@ -410,9 +390,9 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                                           "which was not supplied with the request"),
     new ApiResponse(code = 404, message = "There are no schemas for this vendor + name + format combination")
   ))
-  def readFormatRoute(@ApiParam(hidden = true) v: List[String],
-                      @ApiParam(hidden = true) n: List[String],
-                      @ApiParam(hidden = true) f: List[String],
+  def readFormatRoute(@ApiParam(hidden = true) v: String,
+                      @ApiParam(hidden = true) n: String,
+                      @ApiParam(hidden = true) f: String,
                       @ApiParam(hidden = true) o: String,
                       @ApiParam(hidden = true) p: String): Route =
     (parameter('filter.?) | formField('filter.?)) {
@@ -467,27 +447,27 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                                           "which was not supplied with the request"),
     new ApiResponse(code = 404, message = "There are no schemas available here")
   ))
-  def readRoute(@ApiParam(hidden = true) v: List[String],
-                @ApiParam(hidden = true) n: List[String],
-                @ApiParam(hidden = true) f: List[String],
-                @ApiParam(hidden = true) vs: List[String],
+  def readRoute(@ApiParam(hidden = true) v: String,
+                @ApiParam(hidden = true) n: String,
+                @ApiParam(hidden = true) f: String,
+                @ApiParam(hidden = true) vs: String,
                 @ApiParam(hidden = true) o: String,
                 @ApiParam(hidden = true) p: String): Route =
     (parameter('filter.?) | formField('filter.?)) {
       case Some("metadata") =>
         val getMetadata: Future[(StatusCode, String)] =
-          (schemaActor ? GetMetadata(v, n, f, vs, List.empty[String], o, p, isDraft = false)).mapTo[(StatusCode, String)]
+          (schemaActor ? GetMetadata(v, n, f, vs, "", o, p, isDraft = false)).mapTo[(StatusCode, String)]
         sendResponse(getMetadata)
       case _ =>
         (parameter('metadata.?) | formField('metadata.?)) {
           case Some("1") =>
             val getSchemaWithMetadata: Future[(StatusCode, String)] =
-              (schemaActor ? GetSchema(v, n, f, vs, List.empty[String], o, p, includeMetadata = true, isDraft = false)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetSchema(v, n, f, vs, "", o, p, includeMetadata = true, isDraft = false)).mapTo[(StatusCode, String)]
             sendResponse(getSchemaWithMetadata)
           case Some(m) => throw new IllegalArgumentException(s"metadata can NOT be $m")
           case None =>
             val getSchema: Future[(StatusCode, String)] =
-              (schemaActor ? GetSchema(v, n, f, vs, List.empty[String], o, p, includeMetadata = false, isDraft = false)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetSchema(v, n, f, vs, "", o, p, includeMetadata = false, isDraft = false)).mapTo[(StatusCode, String)]
             sendResponse(getSchema)
         }
     }
@@ -534,11 +514,4 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
             sendResponse(getPublicSchema)
         }
     }
-
-  private def sendResponse(action: Future[(StatusCode, String)]): Route = {
-    val future = onSuccess(action) { (status, performed) =>
-      complete(status, HttpEntity(ContentTypes.`application/json` , performed))
-    }
-    future
-  }
 }
