@@ -1,6 +1,7 @@
 package com.snowplowanalytics.iglu.server
 package service
 
+import akka.http.scaladsl.server.MalformedQueryParamRejection
 import cats.data.Validated
 
 // json4s
@@ -22,6 +23,7 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.{ContentNegotiator, UnacceptedResponseContentTypeRejection}
 import akka.http.scaladsl.model.headers.HttpChallenges
 import akka.http.scaladsl.server.{ Directive1, Directives }
+import akka.http.scaladsl.server.MalformedHeaderRejection
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 import akka.http.scaladsl.server.{AuthenticationFailedRejection, Route}
 
@@ -45,29 +47,22 @@ trait Common extends Directives { self: Service =>
     rejectEmptyResponse {
       (get | post | put | delete) {
         contentTypeNegotiator {
-          get {
-            optionalHeaderValueByName("apikey") {
-              case Some(apikey) =>
-                auth(apikey) { case (owner, permission) =>
-                  getRoute(owner, permission)
-                }
-              case None =>
-                getRoute("-", "-")
-            }
-          } ~
-            headerValueByName("apikey") { apikey =>
-              auth(apikey) { case (owner, permission) =>
-                post {
-                  addRoute(owner, permission)
-                } ~
-                  put {
-                    updateRoute(owner, permission)
-                  } ~
-                  delete {
-                    deleteRoute(owner, permission)
-                  }
+          headerValueByName('apikey) { apikey =>
+            auth(apikey) { case (owner, permission) =>
+              get {
+                getRoute(owner, permission)
+              } ~
+              post {
+                addRoute(owner, permission)
+              } ~
+              put {
+                updateRoute(owner, permission)
+              } ~
+              delete {
+                deleteRoute(owner, permission)
               }
             }
+          } ~ getRoute("-", "-")
         }
       }
     }
@@ -76,9 +71,10 @@ trait Common extends Directives { self: Service =>
     * Directive to authenticate a user.
     */
   def auth(key: String): Directive1[(String, String)] = {
-    val credentialsRequest = (apiKeyActor ? GetKey(key)).mapTo[Option[(String, String)]].map {
-      case Some(t) => Right(t)
-      case None => Left(AuthenticationFailedRejection(CredentialsRejected, HttpChallenges.basic("Iglu Server")))
+    val credentialsRequest = (apiKeyActor ? GetKey(key)).mapTo[Either[String, Option[(String, String)]]].map {
+      case Right(Some(t)) => Right(t)
+      case Left(e) => Left(MalformedQueryParamRejection("apikey", e))
+      case Right(None) => Left(AuthenticationFailedRejection(CredentialsRejected, HttpChallenges.basic("Iglu Server")))
     }
     onSuccess(credentialsRequest).flatMap {
       case Right(user) => provide(user)

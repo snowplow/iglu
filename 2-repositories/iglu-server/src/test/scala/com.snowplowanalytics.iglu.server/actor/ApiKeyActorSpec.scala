@@ -87,7 +87,7 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a valid (vendor prefix, permission) pair" in {
         val future = key ? GetKey(readKey)
-        val Success(Some((vp: String, permission: String))) =
+        val Success(Right(Some((vp: String, permission: String)))) =
           future.value.get
         vp must contain(vendorPrefix)
         permission must contain("read")
@@ -95,13 +95,13 @@ class ApiKeyActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return None if the API key is not found" in {
         val future = key ? GetKey(UUID.randomUUID.toString)
-        val Success(Some(("-", "-"))) = future.value.get
+        val Success(Right(None)) = future.value.get
         success
       }
 
       "return None if the API key is not an uuid" in {
         val future = key ? GetKey(notUuidKey)
-        val Success(Some(("-", "-"))) = future.value.get
+        val Success(Left(_)) = future.value.get
         success
       }
     }
