@@ -23,6 +23,7 @@ object Dependencies {
   object V {
     // Scala
     val scopt = "3.7.0"
+    val schemaDdl = "0.9.0"
     val akka  = "2.4.20"
     val joda = "1.6"
     val jodaTime = "2.3"
@@ -41,20 +42,20 @@ object Dependencies {
 
   object Libraries {
     // Scala
-    val scopt         = "com.github.scopt"     %% "scopt"                 % V.scopt
-    val akkaActor     = "com.typesafe.akka"    %% "akka-actor"            % V.akka
-    val akkaSlf4j     = "com.typesafe.akka"    %% "akka-slf4j"            % V.akka
-    val joda          = "org.joda"             %  "joda-convert"          % V.joda
-    val jodaTime      = "joda-time"            %  "joda-time"             % V.jodaTime
-    val json4s        = "org.json4s"           %% "json4s-jackson"        % V.json4s
-    val json4sScalaz  = "org.json4s"           %% "json4s-scalaz"         % V.json4s
-    val jsonValidator = "com.github.fge"       %  "json-schema-validator" % V.jsonValidator
-    val postgres      = "postgresql"           %  "postgresql"            % V.postgres
-    val slick         = "com.typesafe.slick"   %% "slick"                 % V.slick
-    val slickpg       = "com.github.tminglei"  %% "slick-pg"              % V.slickpg
-    val slickpgJoda   = "com.github.tminglei"  %% "slick-pg_joda-time"    % V.slickpg
-    val slf4j         = "org.slf4j"            %  "slf4j-simple"          % V.slf4j
-    val akkaHttp      = "com.typesafe.akka"    %% "akka-http"             % V.akkaHttp
+    val scopt         = "com.github.scopt"      %% "scopt"                 % V.scopt
+    val schemaDdl     = "com.snowplowanalytics" %% "schema-ddl"            % V.schemaDdl
+    val akkaActor     = "com.typesafe.akka"     %% "akka-actor"            % V.akka
+    val akkaSlf4j     = "com.typesafe.akka"     %% "akka-slf4j"            % V.akka
+    val joda          = "org.joda"              %  "joda-convert"          % V.joda
+    val jodaTime      = "joda-time"             %  "joda-time"             % V.jodaTime
+    val json4s        = "org.json4s"            %% "json4s-jackson"        % V.json4s
+    val jsonValidator = "com.github.fge"        %  "json-schema-validator" % V.jsonValidator
+    val postgres      = "postgresql"            %  "postgresql"            % V.postgres
+    val slick         = "com.typesafe.slick"    %% "slick"                 % V.slick
+    val slickpg       = "com.github.tminglei"   %% "slick-pg"              % V.slickpg
+    val slickpgJoda   = "com.github.tminglei"   %% "slick-pg_joda-time"    % V.slickpg
+    val slf4j         = "org.slf4j"             %  "slf4j-simple"          % V.slf4j
+    val akkaHttp      = "com.typesafe.akka"     %% "akka-http"             % V.akkaHttp
     val swaggerAkkaHttp = "com.github.swagger-akka-http" %% "swagger-akka-http" % V.swaggerAkkaHttp
 
     // Scala (test only)
