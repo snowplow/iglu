@@ -45,34 +45,38 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
   val isPublic = false
 
   val vendor = "com.unittest"
-  val vendors = List(vendor)
+  val vendors = vendor
   val otherVendor = "com.benfradet"
-  val otherVendors = List(otherVendor)
+  val otherVendors = otherVendor
   val faultyVendor = "com.test"
-  val faultyVendors = List(faultyVendor)
+  val faultyVendors = faultyVendor
   val name = "unit_test3"
-  val names = List(name)
+  val names = name
   val name2 = "unit_test6"
   val faultyName = "unit_test4"
-  val faultyNames = List(faultyName)
+  val faultyNames = faultyName
   val otherName = "unit_test5"
-  val otherNames = List(otherName)
+  val otherNames = otherName
   val format = "jsonschema"
   val notSupportedFormat = "notSupportedFormat"
-  val formats = List(format)
+  val formats = format
   val version = "1-0-0"
-  val versions = List(version)
+  val versions = version
 
   val invalidSchema = """{ "some" : "json" }"""
   val innerSchema = "\"some\" : \"json\""
   val validSchema = 
   """{
+    "$schema" : "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
     "self": {
       "vendor": "com.snowplowanalytics.snowplow",
       "name": "ad_click",
       "format": "jsonschema",
       "version": "1-0-0"
-    }
+    },
+    "description": "Example valid schema",
+    "type": "object",
+    "properties": {}
   }"""
   val notJson = "not json"
   val validInstance = """{ "targetUrl": "somestr" }"""
@@ -88,7 +92,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
           invalidSchema, owner, permission, isPublic, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === Created
-        result must contain("Schema successfully added") and contain(vendor)
+        result must contain("The schema has been successfully added") and contain(vendor)
       }
 
       "return a 201 if the schema doesnt already exist and is public" in {
@@ -96,7 +100,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
           invalidSchema, otherOwner, permission, !isPublic, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === Created
-        result must contain("Schema successfully added") and
+        result must contain("The schema has been successfully added") and
           contain(otherVendor)
       }
 
@@ -116,15 +120,15 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
           invalidSchema, owner, permission, isPublic, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
-        result must contain("Schema successfully updated") and contain(vendor)
+        result must contain("The schema has been successfully updated") and contain(vendor)
       }
 
-      "returna 201 if the schema doesnt already exist" in {
+      "returns 201 if the schema doesnt already exist" in {
         val future = schema ? UpdateSchema(vendor, name2, format, version, draftNumOfVersionedSchemas,
           invalidSchema, owner, permission, isPublic, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === Created
-        result must contain("Schema successfully added") and contain(vendor)
+        result must contain("The schema has been successfully added") and contain(vendor)
       }
     }
 
@@ -152,7 +156,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if the schema exists and is private" in {
         val future = schema ?
-          GetSchema(vendors, names, formats, versions, List(draftNumOfVersionedSchemas), owner, permission,
+          GetSchema(vendors, names, formats, versions, draftNumOfVersionedSchemas, owner, permission,
             includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
@@ -161,7 +165,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if the schema exists and is public" in {
         val future = schema ? GetSchema(otherVendors, otherNames, formats,
-          versions, List(draftNumOfVersionedSchemas), owner, permission, includeMetadata = false, isDraft = false)
+          versions, draftNumOfVersionedSchemas, owner, permission, includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(innerSchema)
@@ -170,7 +174,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
       """return a 404 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val future = schema ?
-          GetSchema(vendors, names, formats, versions, List(draftNumOfVersionedSchemas), otherOwner, permission,
+          GetSchema(vendors, names, formats, versions, draftNumOfVersionedSchemas, otherOwner, permission,
             includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
@@ -179,7 +183,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 404 if the schema doesnt exist" in {
         val future = schema ?
-          GetSchema(vendors, faultyNames, formats, versions, List(draftNumOfVersionedSchemas), owner, permission,
+          GetSchema(vendors, faultyNames, formats, versions, draftNumOfVersionedSchemas, owner, permission,
             includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
@@ -191,7 +195,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if the schema exists" in {
         val future = schema ?
-          GetMetadata(vendors, names, formats, versions, List(draftNumOfVersionedSchemas),
+          GetMetadata(vendors, names, formats, versions, draftNumOfVersionedSchemas,
             owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
@@ -201,7 +205,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 200 if the schema exists and is public" in {
         val future = schema ? GetMetadata(otherVendors, otherNames, formats,
-          versions, List(draftNumOfVersionedSchemas), owner, permission, isDraft = false)
+          versions, draftNumOfVersionedSchemas, owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
         result must contain(otherVendor) and contain(otherName) and
@@ -211,7 +215,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
       """return a 401 if the owner is not a prefix of the vendor and the schema
       is private""" in {
         val future = schema ?
-          GetSchema(vendors, names, formats, versions, List(draftNumOfVersionedSchemas), otherOwner, permission,
+          GetSchema(vendors, names, formats, versions, draftNumOfVersionedSchemas, otherOwner, permission,
             includeMetadata = false, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
@@ -220,7 +224,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
 
       "return a 404 if the schema doesnt exist" in {
         val future = schema ? GetMetadata(vendors, faultyNames, formats,
-          versions, List.empty[String], owner, permission, isDraft = false)
+          versions, "", owner, permission, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === NotFound
         result must contain("There are no schemas available here")
@@ -488,23 +492,20 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
         val future = schema ? ValidateSchema(validSchema, format)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
-        result must contain(validSchema)
       }
 
       "return a 200 if the schema provided is self-describing" in {
-        val future = schema ? ValidateSchema(validSchema, format, false)
+        val future = schema ? ValidateSchema(validSchema, format)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
-        result must
-          contain("The schema provided is a valid self-describing schema")
+        result must contain("The schema provided is a valid self-describing schema")
       }
 
-      "return a 400 if the schema provided is not self-describing" in {
+      "return a 200 if the schema provided is not self-describing" in {
         val future = schema ? ValidateSchema(invalidSchema, format)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status === BadRequest
-        result must
-          contain("The schema provided is not a valid self-describing")
+        status === OK
+        result must contain("Schema is not self-describing")
       }
 
       "return a 400 if the string provided is not valid" in {
