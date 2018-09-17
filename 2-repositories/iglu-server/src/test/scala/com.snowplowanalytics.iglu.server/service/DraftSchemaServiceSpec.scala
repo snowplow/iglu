@@ -176,27 +176,6 @@ class DraftSchemaServiceSpec extends Specification
 
     "for GET requests" should {
 
-      "for the /api/draft/public endpoint" should {
-
-        "return a proper catalog of public schemas" in {
-          Get(publicSchemasUrl) ~> addHeader("apikey", readKey) ~> routes ~>
-            check {
-              status === OK
-              contentType === `application/json`
-              responseAs[String] must contain(otherVendor)
-            }
-        }
-
-        "return proper metadata for every public schema" in {
-          Get(metaPublicSchemasUrl) ~> addHeader("apikey", readKey) ~>
-            routes ~> check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(otherVendor)
-          }
-        }
-      }
-
       "for version based urls" should {
 
         "return a proper json for well-formed single GET requests" +
@@ -208,7 +187,7 @@ class DraftSchemaServiceSpec extends Specification
           }
         }
 
-        s"return a proper json for a public draft schema (${publicUrl})" in {
+        s"return a proper json for a public draft schema ($publicUrl)" in {
           Get(publicUrl) ~> addHeader("apikey", wrongVendorKey) ~> routes ~> check {
             status === OK
             contentType === `application/json`
