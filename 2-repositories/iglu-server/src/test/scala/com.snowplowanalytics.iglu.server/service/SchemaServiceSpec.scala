@@ -117,30 +117,18 @@ class SchemaServiceSpec extends Specification
 
   val vendorUrl = s"${start}${vendor}"
   val vendorPublicUrl = s"${start}${otherVendor}"
-  val multiVendorUrl = s"${vendorUrl},${vendor2}"
-  val multiVendorPublicUrl = s"${vendorPublicUrl},${otherVendor2}"
   val metaVendorUrl = s"${vendorUrl}?filter=metadata"
   val metaVendorPublicUrl = s"${vendorPublicUrl}?filter=metadata"
-  val metaMultiVendorUrl = s"${multiVendorUrl}?filter=metadata"
-  val metaMultiVendorPublicUrl = s"${multiVendorPublicUrl}?filter=metadata"
 
   val nameUrl = s"${start}${vendor}/${name}"
   val namePublicUrl = s"${start}${otherVendor}/${name}"
-  val multiNameUrl = s"${nameUrl},${name2}"
-  val multiNamePublicUrl = s"${namePublicUrl},${name2}"
   val metaNameUrl = s"${nameUrl}?filter=metadata"
   val metaNamePublicUrl = s"${namePublicUrl}?filter=metadata"
-  val metaMultiNameUrl = s"${multiNameUrl}?filter=metadata"
-  val metaMultiNamePublicUrl = s"${multiNamePublicUrl}?filter=metadata"
 
   val formatUrl = s"${start}${vendor}/${name}/${format}"
   val formatPublicUrl = s"${start}${otherVendor}/${name}/${format}"
-  val multiFormatUrl = s"${formatUrl},${format2}"
-  val multiFormatPublicUrl = s"${formatPublicUrl},${format2}"
   val metaFormatUrl = s"${formatUrl}?filter=metadata"
   val metaFormatPublicUrl = s"${formatPublicUrl}?filter=metadata"
-  val metaMultiFormatUrl = s"${multiFormatUrl}?filter=metadata"
-  val metaMultiFormatPublicUrl = s"${multiFormatPublicUrl}?filter=metadata"
 
   val otherVendorUrl = s"${start}com.benfradet.project"
   val otherNameUrl = s"${start}com.benfradet.project/${name}"
@@ -354,16 +342,6 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return the catalog of available schemas for those vendors" +
-        s"(${multiVendorUrl})" in {
-          Get(multiVendorUrl) ~> addHeader("apikey", readKey) ~> routes ~>
-          check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(vendor) and contain(vendor2)
-          }
-        }
-
         "return metadata about every schema for this vendor" +
         s"(${metaVendorUrl})" in {
           Get(metaVendorUrl) ~> addHeader("apikey", readKey) ~> routes ~>
@@ -381,16 +359,6 @@ class SchemaServiceSpec extends Specification
             status === OK
             contentType === `application/json`
             responseAs[String] must contain(otherVendor)
-          }
-        }
-
-        "return metadata about every schema for those vendors" +
-        s"(${metaMultiVendorUrl})" in {
-          Get(metaMultiVendorUrl) ~> addHeader("apikey", readKey) ~> routes ~>
-          check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(vendor) and contain(vendor2)
           }
         }
 
@@ -441,54 +409,12 @@ class SchemaServiceSpec extends Specification
           }
         }
 
-        "return the catalog of available schemas for those names" +
-        s"(${multiNameUrl})" in {
-          Get(multiNameUrl) ~> addHeader("apikey", readKey) ~> routes ~>
-          check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(name) and contain(name2)
-          }
-        }
-
-        "return the catalog of available public schemas for those names" +
-        s"(${multiNamePublicUrl})" in {
-          Get(multiNamePublicUrl) ~> addHeader("apikey", readKey) ~> routes ~>
-          check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(otherVendor) and contain(name) and
-              contain(name2)
-          }
-        }
-
         "return metadata about every schema having this vendor, name" +
         s"(${metaNameUrl})" in {
           Get(metaNameUrl) ~> addHeader("apikey", readKey) ~> routes ~> check {
             status === OK
             contentType === `application/json`
             responseAs[String] must contain(vendor) and contain(name)
-          }
-        }
-
-        "return metadata about every schema having those names" +
-        s"(${metaMultiNameUrl})" in {
-          Get(metaMultiNameUrl) ~> addHeader("apikey", readKey) ~> routes ~>
-          check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(name) and contain(name2)
-          }
-        }
-
-        "return metadata about every public schema having those names" +
-        s"(${metaMultiNamePublicUrl})" in {
-          Get(metaMultiNamePublicUrl) ~> addHeader("apikey", readKey) ~>
-          routes ~> check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(otherVendor) and contain(name) and
-              contain(name2)
           }
         }
 

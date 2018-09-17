@@ -186,17 +186,17 @@ class SchemaDAO(val db: Database) extends DAO {
 
   /**
     * Gets every schema belonging to a specific vendor.
-    * @param vendors schemas' vendors
+    * @param vendor schemas' vendor
     * @param owner the owner of the API key the request was made with
     * @param permission API key's permission
     * @return a status code and json pair containing the list of all schemas
     * of this vendor
     */
-  def getFromVendor(vendors: List[String], owner: String,
+  def getFromVendor(vendor: String, owner: String,
                     permission: String, includeMetadata: Boolean, isDraft: Boolean): (StatusCode, String) =
       db withDynSession {
         val preliminaryList = (for {
-          s <- schemas if (s.vendor inSet vendors) && draftNumberCheck(s.draftNumber, isDraft)
+          s <- schemas if (s.vendor === vendor) && draftNumberCheck(s.draftNumber, isDraft)
         } yield s).list
 
         if (preliminaryList.isEmpty) {
@@ -238,11 +238,11 @@ class SchemaDAO(val db: Database) extends DAO {
     * @return a status code and json pair containing metadata about every schema
     * of this vendor
     */
-  def getMetadataFromVendor(vendors: List[String], owner: String,
+  def getMetadataFromVendor(vendors: String, owner: String,
                             permission: String, isDraft: Boolean): (StatusCode, String) =
     db withDynSession {
       val preliminaryList = (for {
-        s <- schemas if (s.vendor inSet vendors) && draftNumberCheck(s.draftNumber, isDraft)
+        s <- schemas if (s.vendor === vendors) && draftNumberCheck(s.draftNumber, isDraft)
       } yield s).list
 
       if(preliminaryList.isEmpty) {
@@ -273,19 +273,19 @@ class SchemaDAO(val db: Database) extends DAO {
 
   /**
     * Gets every schemas for this vendor, names combination.
-    * @param vendors schemas' vendors
-    * @param names schemas' names
+    * @param vendor schemas' vendors
+    * @param name schemas' names
     * @param owner the owner of the API key the request was made with
     * @param permission API key's permission
     * @return a status code and json pair containing the list of all schemas
     * satifsfying the query
     */
-  def getFromName(vendors: List[String], names: List[String], owner: String,
+  def getFromName(vendor: String, name: String, owner: String,
                   permission: String, includeMetadata: Boolean, isDraft: Boolean): (StatusCode, String) =
     db withDynSession {
       val preliminaryList = (for {
-        s <- schemas if (s.vendor inSet vendors) &&
-          (s.name inSet names) && draftNumberCheck(s.draftNumber, isDraft)
+        s <- schemas if (s.vendor === vendor) &&
+          (s.name === name) && draftNumberCheck(s.draftNumber, isDraft)
       } yield s).list
 
       if (preliminaryList.isEmpty) {
@@ -321,19 +321,19 @@ class SchemaDAO(val db: Database) extends DAO {
 
   /**
     * Gets metadata about every schemas for this vendor, names combination.
-    * @param vendors schemas' vendors
-    * @param names schemas' names
+    * @param vendor schemas' vendors
+    * @param name schemas' names
     * @param owner the owner of the API key the request was made with
     * @param permission API key's permission
     * @return a status code and json pair containing metadata about the schemas
     * satifsfying the query
     */
-  def getMetadataFromName(vendors: List[String], names: List[String],
+  def getMetadataFromName(vendor: String, name: String,
                           owner: String, permission: String, isDraft: Boolean): (StatusCode, String) =
     db withDynSession {
       val preliminaryList = (for {
-        s <- schemas if (s.vendor inSet vendors) &&
-          (s.name inSet names) && draftNumberCheck(s.draftNumber, isDraft)
+        s <- schemas if (s.vendor === vendor) &&
+          (s.name === name) && draftNumberCheck(s.draftNumber, isDraft)
       } yield s).list
 
       if (preliminaryList.isEmpty) {
@@ -365,23 +365,23 @@ class SchemaDAO(val db: Database) extends DAO {
 
   /**
     * Retrieves every version of a schema.
-    * @param vendors schemas' vendors
-    * @param names schenas' names
-    * @param schemaFormats schemas' formats
+    * @param vendor schemas' vendors
+    * @param name schenas' names
+    * @param format schemas' formats
     * @param owner the owner of the API key the request was made with
     * @param permission API key's permission
     * @return a status code and json pair containing the list of every version of
     * a schema
     */
-  def getFromFormat(vendors: List[String], names: List[String],
-                    schemaFormats: List[String], owner: String,
+  def getFromFormat(vendor: String, name: String,
+                    format: String, owner: String,
                     permission: String, includeMetadata: Boolean, isDraft: Boolean):
     (StatusCode, String) =
       db withDynSession {
         val preliminaryList = (for {
-          s <- schemas if (s.vendor inSet vendors) &&
-            (s.name inSet names) &&
-            (s.format inSet schemaFormats) &&
+          s <- schemas if (s.vendor === vendor) &&
+            (s.name === name) &&
+            (s.format === format) &&
             draftNumberCheck(s.draftNumber, isDraft)
         } yield s).list
 
@@ -419,21 +419,21 @@ class SchemaDAO(val db: Database) extends DAO {
 
   /**
     * Gets metadata about every version of a schema.
-    * @param vendors schemas' vendors
-    * @param names schemas' names
-    * @param schemaFormats schemas' formats
+    * @param vendor schemas' vendors
+    * @param name schemas' names
+    * @param format schemas' formats
     * @param owner the owner of the API key the request was made with
     * @param permission API key's permission
     * @return a status code and json pair containing metadata about every version
     * of a schema
     */
-  def getMetadataFromFormat(vendors: List[String], names: List[String], schemaFormats: List[String], owner: String,
+  def getMetadataFromFormat(vendor: String, name: String, format: String, owner: String,
                             permission: String, isDraft: Boolean): (StatusCode, String) =
       db withDynSession {
         val preliminaryList = (for {
-          s <- schemas if (s.vendor inSet vendors) &&
-            (s.name inSet names) &&
-            (s.format inSet schemaFormats) &&
+          s <- schemas if (s.vendor === vendor) &&
+            (s.name === name) &&
+            (s.format === format) &&
             draftNumberCheck(s.draftNumber, isDraft)
         } yield s).list
 
@@ -474,15 +474,15 @@ class SchemaDAO(val db: Database) extends DAO {
     * @param permission API key's permission
     * @return a status code and json pair containing the schema
     */
-  def get(vendors: List[String], names: List[String], schemaFormats: List[String], versions: List[String],
-          draftNumbers: List[String], owner: String, permission: String, includeMetadata: Boolean,isDraft: Boolean):
+  def get(vendors: String, names: String, schemaFormats: String, versions: String,
+          draftNumbers: String, owner: String, permission: String, includeMetadata: Boolean, isDraft: Boolean):
   (StatusCode, String) =
     db withDynSession {
       val preliminaryList = (for {
-        s <- schemas if (s.vendor inSet vendors) &&
-          (s.name inSet names) &&
-          (s.format inSet schemaFormats) &&
-          (if (isDraft) s.draftNumber inSet draftNumbers else s.version inSet versions) &&
+        s <- schemas if (s.vendor === vendors) &&
+          (s.name === names) &&
+          (s.format === schemaFormats) &&
+          (if (isDraft) s.draftNumber === draftNumbers else s.version === versions) &&
           draftNumberCheck(s.draftNumber, isDraft)
       } yield s).list
 
@@ -519,23 +519,23 @@ class SchemaDAO(val db: Database) extends DAO {
 
   /**
     * Gets only metadata about the schema: its vendor, name, format and version.
-    * @param vendors the schema's vendors
-    * @param names the schema's names
-    * @param schemaFormats the schea's formats
-    * @param versions the schema's versions
+    * @param vendor the schema's vendors
+    * @param name the schema's names
+    * @param format the schea's formats
+    * @param version the schema's versions
     * @param owner the owner of the API key the request was made with
     * @param permission API key's permission
     * @return a status code and json pair containing the metadata
     */
-  def getMetadata(vendors: List[String], names: List[String],
-                  schemaFormats: List[String], versions: List[String], draftNumbers: List[String], owner: String,
+  def getMetadata(vendor: String, name: String,
+                  format: String, version: String, draftNumbers: String, owner: String,
                   permission: String, isDraft: Boolean): (StatusCode, String) =
     db withDynSession {
       val preliminaryList = (for {
-        s <- schemas if (s.vendor inSet vendors) &&
-          (s.name inSet names) &&
-          (s.format inSet schemaFormats) &&
-          (if (isDraft) s.draftNumber inSet draftNumbers else s.version inSet versions) &&
+        s <- schemas if (s.vendor === vendor) &&
+          (s.name === name) &&
+          (s.format === format) &&
+          (if (isDraft) s.draftNumber === draftNumbers else s.version === version) &&
           draftNumberCheck(s.draftNumber, isDraft)
       } yield s).list
 
@@ -655,8 +655,7 @@ class SchemaDAO(val db: Database) extends DAO {
           isPublic: Boolean = false, isDraft: Boolean): (StatusCode, String) =
     if ((permission == "write" || permission == "super") && (vendor.startsWith(owner) || owner == "*")) {
       db withDynSession {
-        get(List(vendor), List(name), List(format), List(version), List(draftNumber), owner,
-          permission, includeMetadata = false, isDraft) match {
+        get(vendor, name, format, version, draftNumber, owner, permission, includeMetadata = false, isDraft) match {
           case (OK, j) => (Unauthorized, result(401, "This schema already exists"))
           case _ => {
             val now = new LocalDateTime()
@@ -690,8 +689,7 @@ class SchemaDAO(val db: Database) extends DAO {
              isPublic: Boolean = false, isDraft: Boolean): (StatusCode, String) = {
     if (permission == "write" &&( (vendor startsWith owner) || owner == "*")) {
       db withDynSession {
-        get(List(vendor), List(name), List(format), List(version), List(draftNumber),
-          owner, permission, includeMetadata = false, isDraft) match {
+        get(vendor, name, format, version, draftNumber, owner, permission, includeMetadata = false, isDraft) match {
           case (OK, _) =>
             schemas
               .filter(s => s.vendor === vendor &&

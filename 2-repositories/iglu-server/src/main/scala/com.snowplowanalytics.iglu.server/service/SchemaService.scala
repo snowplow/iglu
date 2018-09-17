@@ -122,26 +122,25 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     path("public") {
       publicSchemasRoute(owner, permission)
     } ~
-      path((VendorPattern / NamePattern / FormatPattern / VersionPattern).repeat(1, Int.MaxValue, ",")) { schemaKeys =>
-        val List(vendors, names, formats, versions) = schemaKeys.map(k => List(k._1, k._2, k._3, k._4)).transpose
-        readRoute(vendors, names, formats, versions, owner, permission)
+      path((VendorPattern / NamePattern / FormatPattern / VersionPattern)) { case (vendor, name, format, ver) =>
+        readRoute(vendor, name, format, ver, owner, permission)
       } ~
-      pathPrefix(VendorPattern.repeat(1, Int.MaxValue, ",")) { vendors: List[String] =>
-        pathPrefix(NamePattern.repeat(1, Int.MaxValue, ",")) { names: List[String] =>
-          pathPrefix(FormatPattern.repeat(1, Int.MaxValue, ",")) { formats: List[String] =>
-            path(VersionPattern.repeat(1, Int.MaxValue, ",")) { versions: List[String] =>
-              readRoute(vendors, names, formats, versions, owner, permission)
+      pathPrefix(VendorPattern) { vendor: String =>
+        pathPrefix(NamePattern) { names: String =>
+          pathPrefix(FormatPattern) { formats: String =>
+            path(VersionPattern) { versions: String =>
+              readRoute(vendor, names, formats, versions, owner, permission)
             } ~
               pathEnd {
-                readFormatRoute(vendors, names, formats, owner, permission)
+                readFormatRoute(vendor, names, formats, owner, permission)
               }
           } ~
             pathEnd {
-              readNameRoute(vendors, names, owner, permission)
+              readNameRoute(vendor, names, owner, permission)
             }
         } ~
           pathEnd {
-            readVendorRoute(vendors, owner, permission)
+            readVendorRoute(vendor, owner, permission)
           }
       }
 
@@ -288,7 +287,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                                           "which was not supplied with the request"),
     new ApiResponse(code = 404, message = "There are no schemas for this vendor")
   ))
-  def readVendorRoute(@ApiParam(hidden = true) v: List[String],
+  def readVendorRoute(@ApiParam(hidden = true) v: String,
                       @ApiParam(hidden = true) o: String,
                       @ApiParam(hidden = true) p: String): Route =
     (parameter('filter.?) | formField('filter.?)) {
@@ -337,8 +336,8 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                                           "which was not supplied with the request"),
     new ApiResponse(code = 404, message = "There are no schemas for this vendor, name combination")
   ))
-  def readNameRoute(@ApiParam(hidden = true) v: List[String],
-                    @ApiParam(hidden = true) n: List[String],
+  def readNameRoute(@ApiParam(hidden = true) v: String,
+                    @ApiParam(hidden = true) n: String,
                     @ApiParam(hidden = true) o: String,
                     @ApiParam(hidden = true) p: String): Route =
     (parameter('filter.?) | formField('filter.?)) {
@@ -391,9 +390,9 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                                           "which was not supplied with the request"),
     new ApiResponse(code = 404, message = "There are no schemas for this vendor, name, format combination")
   ))
-  def readFormatRoute(@ApiParam(hidden = true) v: List[String],
-                      @ApiParam(hidden = true) n: List[String],
-                      @ApiParam(hidden = true) f: List[String],
+  def readFormatRoute(@ApiParam(hidden = true) v: String,
+                      @ApiParam(hidden = true) n: String,
+                      @ApiParam(hidden = true) f: String,
                       @ApiParam(hidden = true) o: String,
                       @ApiParam(hidden = true) p: String): Route =
     (parameter('filter.?) | formField('filter.?)) {
@@ -448,27 +447,27 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                                           "which was not supplied with the request"),
     new ApiResponse(code = 404, message = "There are no schemas available here")
   ))
-  def readRoute(@ApiParam(hidden = true) v: List[String],
-                @ApiParam(hidden = true) n: List[String],
-                @ApiParam(hidden = true) f: List[String],
-                @ApiParam(hidden = true) vs: List[String],
+  def readRoute(@ApiParam(hidden = true) v: String,
+                @ApiParam(hidden = true) n: String,
+                @ApiParam(hidden = true) f: String,
+                @ApiParam(hidden = true) vs: String,
                 @ApiParam(hidden = true) o: String,
                 @ApiParam(hidden = true) p: String): Route =
     (parameter('filter.?) | formField('filter.?)) {
       case Some("metadata") =>
         val getMetadata: Future[(StatusCode, String)] =
-          (schemaActor ? GetMetadata(v, n, f, vs, List.empty[String], o, p, isDraft = false)).mapTo[(StatusCode, String)]
+          (schemaActor ? GetMetadata(v, n, f, vs, "", o, p, isDraft = false)).mapTo[(StatusCode, String)]
         sendResponse(getMetadata)
       case _ =>
         (parameter('metadata.?) | formField('metadata.?)) {
           case Some("1") =>
             val getSchemaWithMetadata: Future[(StatusCode, String)] =
-              (schemaActor ? GetSchema(v, n, f, vs, List.empty[String], o, p, includeMetadata = true, isDraft = false)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetSchema(v, n, f, vs, "", o, p, includeMetadata = true, isDraft = false)).mapTo[(StatusCode, String)]
             sendResponse(getSchemaWithMetadata)
           case Some(m) => throw new IllegalArgumentException(s"metadata can NOT be $m")
           case None =>
             val getSchema: Future[(StatusCode, String)] =
-              (schemaActor ? GetSchema(v, n, f, vs, List.empty[String], o, p, includeMetadata = false, isDraft = false)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetSchema(v, n, f, vs, "", o, p, includeMetadata = false, isDraft = false)).mapTo[(StatusCode, String)]
             sendResponse(getSchema)
         }
     }
