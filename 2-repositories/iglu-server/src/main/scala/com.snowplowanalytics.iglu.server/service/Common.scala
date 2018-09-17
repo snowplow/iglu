@@ -23,7 +23,6 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.{ContentNegotiator, UnacceptedResponseContentTypeRejection}
 import akka.http.scaladsl.model.headers.HttpChallenges
 import akka.http.scaladsl.server.{ Directive1, Directives }
-import akka.http.scaladsl.server.MalformedHeaderRejection
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 import akka.http.scaladsl.server.{AuthenticationFailedRejection, Route}
 
