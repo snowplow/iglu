@@ -122,31 +122,25 @@ class ApiKeyGenServiceSpec extends Specification
 
       "return a 401 if the key provided is not an uuid with query param" in {
         Post(postUrl1) ~> addHeader("apikey", notUuidKey) ~>
-        Route.seal(routes) ~> check {
-          status === Unauthorized
+          Route.seal(routes) ~> check {
+          status === BadRequest
           contentType === `text/plain(UTF-8)`
-          responseAs[String] must
-            contain("You do not have sufficient privileges")
         }
       }
 
       "return a 401 if the key provided is not an uuid with form data" in {
         Post(postUrl2, FormData(Map("vendor_prefix" -> HttpEntity(`application/json`, vendorPrefix2)))) ~>
         addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
-          status === Unauthorized
+          status === BadRequest
           contentType === `text/plain(UTF-8)`
-          responseAs[String] must
-            contain("You do not have sufficient privileges")
         }
       }
 
       "return a 401 if the key provided is not an uuid with body request" in {
         Post(postUrl2, HttpEntity(`application/json`, vendorPrefix3)) ~>
         addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
-          status === Unauthorized
+          status === BadRequest
           contentType === `text/plain(UTF-8)`
-          responseAs[String] must
-            contain("You do not have sufficient privileges")
         }
       }
       
