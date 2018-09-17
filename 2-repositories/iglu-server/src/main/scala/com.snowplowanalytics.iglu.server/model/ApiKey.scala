@@ -105,7 +105,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
     * @param uid the API key's uuid
     * @return an option containing a (vendorPrefix, permission) pair
     */
-  def get(uid: String): Option[(String, String)] = {
+  def get(uid: String): Either[String, Option[(String, String)]] = {
     if (uid matches uidRegex) {
       val uuid = UUID.fromString(uid)
       db withDynSession {
@@ -115,13 +115,12 @@ class ApiKeyDAO(val db: Database) extends DAO {
             .map(k => (k.vendorPrefix, k.permission))
             .list
         tupleList match {
-          case single :: Nil => Some(single)
-          case _ => Some("-" -> "-")
+          case single :: Nil => Right(Some(single))
+          case Nil => Right(None)
+          case _ => throw new RuntimeException("Multiple UUID keys")
         }
       }
-    } else {
-      Some("-" -> "-")
-    }
+    } else Left(s"apikey [$uid] does not match UUID format")
   }
 
   /**

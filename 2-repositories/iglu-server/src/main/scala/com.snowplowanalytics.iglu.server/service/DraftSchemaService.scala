@@ -34,56 +34,8 @@ import javax.ws.rs.Path
   */
 @Api(value = "/api/draft", tags = Array("draft"))
 @Path("/api/draft")
-class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit executionContext: ExecutionContext)
-  extends Directives with SchemaLinting with Service {
-
-  /**
-    * Directive to authenticate a user.
-    */
-  def auth(key: String): Directive1[(String, String)] = {
-    val credentialsRequest = (apiKeyActor ? GetKey(key)).mapTo[Option[(String, String)]].map {
-      case Some(t) => Right(t)
-      case None => Left(AuthenticationFailedRejection(CredentialsRejected, HttpChallenges.basic("Iglu Server")))
-    }
-    onSuccess(credentialsRequest).flatMap {
-      case Right(user) => provide(user)
-      case Left(rejection) => reject(rejection)
-    }
-  }
-
-  /**
-    * Draft Schema Service's route
-    */
-  lazy val routes: Route =
-    rejectEmptyResponse {
-      (get | post | put | delete) {
-        contentTypeNegotiator {
-          get {
-            optionalHeaderValueByName("apikey") {
-              case Some(apikey) =>
-                auth(apikey) { case (owner, permission) =>
-                  getDraftRoute(owner, permission)
-                }
-              case None =>
-                getDraftRoute("-", "-")
-            }
-          } ~
-            headerValueByName("apikey") { apikey =>
-              auth(apikey) { case (owner, permission) =>
-                post {
-                  addDraftRoute(owner, permission)
-                } ~
-                  put {
-                    updateDraftRoute(owner, permission)
-                  } ~
-                  delete {
-                    deleteDraftRoute(owner, permission)
-                  }
-              }
-            }
-        }
-      }
-    }
+class DraftSchemaService(val schemaActor: ActorRef, val apiKeyActor: ActorRef) (implicit val executionContext: ExecutionContext)
+  extends Directives with Common with Service {
 
   /**
     * Post route
@@ -124,8 +76,8 @@ class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit
       authentication, which was not supplied with the request"""),
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
-  def addDraftRoute(@ApiParam(hidden = true) owner: String,
-                    @ApiParam(hidden = true) permission: String): Route =
+  def addRoute(@ApiParam(hidden = true) owner: String,
+               @ApiParam(hidden = true) permission: String): Route =
     path(VendorPattern / NamePattern / FormatPattern / DraftNumberPattern) { (v, n, f, dn) =>
       (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
         validateSchema(f) { case (_, schema) =>
@@ -176,8 +128,8 @@ class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit
       authentication, which was not supplied with the request"""),
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
-  def updateDraftRoute(@ApiParam(hidden = true) owner: String,
-                       @ApiParam(hidden = true) permission: String): Route =
+  def updateRoute(@ApiParam(hidden = true) owner: String,
+                  @ApiParam(hidden = true) permission: String): Route =
     path(VendorPattern / NamePattern / FormatPattern / DraftNumberPattern) { (v, n, f, dn) =>
       (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
         validateSchema(f) { case (_, schema) =>
@@ -194,7 +146,7 @@ class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit
     * @param owner the owner of the API key the request was made with
     * @param permission API key's permission
     */
-  def deleteDraftRoute(@ApiParam(hidden = true) owner: String,
+  def deleteRoute(@ApiParam(hidden = true) owner: String,
                   @ApiParam(hidden = true) permission: String): Route =
     path(VendorPattern / NamePattern / FormatPattern / DraftNumberPattern) { (v, n, f, dn) =>
       parameter('isPublic.?) { isPublic =>
@@ -211,13 +163,10 @@ class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit
     * @param owner the owner of the API key the request was made with
     * @param permission API key's permission
     */
-  def getDraftRoute(owner: String, permission: String): Route =
-    path("public") {
-      publicDraftSchemasRoute(owner, permission)
+  def getRoute(owner: String, permission: String): Route =
+    path(VendorPattern / NamePattern / FormatPattern / DraftNumberPattern) { case (vendor, name, format, draftNum) =>
+      readDraftRoute(vendor, name, format, draftNum, owner, permission)
     } ~
-      path((VendorPattern / NamePattern / FormatPattern / DraftNumberPattern)) { case (vendor, name, format, draftNum) =>
-        readDraftRoute(vendor, name, format, draftNum, owner, permission)
-      } ~
       pathPrefix(VendorPattern) { vendor: String =>
         pathPrefix(NamePattern) { name: String =>
           pathPrefix(FormatPattern) { format: String =>
@@ -236,49 +185,6 @@ class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit
             readDraftVendorRoute(vendor, owner, permission)
           }
       }
-
-  /**
-    * Route to retrieve every public draft schemas
-    * @param owner the owner of the API key the request was made with
-    * @param permission API key's permission
-    */
-  @Path(value = "/public")
-  @ApiOperation(value = "Retrieves every public schema", httpMethod = "GET",
-    notes = "Returns a collection of schemas", produces = "application/json", response = classOf[List[Schema]])
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "filter", value = "Get only schema or only metadata",
-      required = false, dataType = "string", paramType = "query", allowableValues = "metadata"),
-    new ApiImplicitParam(name = "metadata", value = "Include/exclude metadata, choose 1 to include metadata in schemas",
-      required = false, dataType = "string", paramType = "query", allowableValues = "1")
-  ))
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "{...}", response = classOf[Schema]),
-    new ApiResponse(code = 404, message = "There are no public schemas available"),
-    new ApiResponse(code = 401, message = "The supplied authentication is invalid"),
-    new ApiResponse(code = 401, message = "The resource requires authentication," +
-      "which was not supplied with the request"),
-    new ApiResponse(code = 404, message = "There are no schemas available here")
-  ))
-  def publicDraftSchemasRoute(@ApiParam(hidden = true) owner: String,
-                              @ApiParam(hidden = true) permission: String): Route =
-    (parameter('filter.?) | formField('filter.?)) {
-      case Some("metadata") =>
-        val getPublicMetadata: Future[(StatusCode, String)] =
-          (schemaActor ? GetPublicMetadata(owner, permission, isDraft = true)).mapTo[(StatusCode, String)]
-        sendResponse(getPublicMetadata)
-      case _ =>
-        (parameter('metadata.?) | formField('metadata.?)) {
-          case Some("1") =>
-            val getPublicSchemaWithMetadata: Future[(StatusCode, String)] =
-              (schemaActor ? GetPublicSchemas(owner, permission, includeMetadata = true, isDraft = true)).mapTo[(StatusCode, String)]
-            sendResponse(getPublicSchemaWithMetadata)
-          case Some(m) => throw new IllegalArgumentException(s"metadata can NOT be $m")
-          case None =>
-            val getPublicSchema: Future[(StatusCode, String)] =
-              (schemaActor ? GetPublicSchemas(owner, permission, includeMetadata = false, isDraft = true)).mapTo[(StatusCode, String)]
-            sendResponse(getPublicSchema)
-        }
-    }
 
   /**
     * Route to retrieve single schemas.
