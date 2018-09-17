@@ -178,27 +178,6 @@ class DraftSchemaServiceSpec extends Specification
 
     "for GET requests" should {
 
-      "for the /api/draft/public endpoint" should {
-
-        "return a proper catalog of public schemas" in {
-          Get(publicSchemasUrl) ~> addHeader("apikey", readKey) ~> routes ~>
-            check {
-              status === OK
-              contentType === `application/json`
-              responseAs[String] must contain(otherVendor)
-            }
-        }
-
-        "return proper metadata for every public schema" in {
-          Get(metaPublicSchemasUrl) ~> addHeader("apikey", readKey) ~>
-            routes ~> check {
-            status === OK
-            contentType === `application/json`
-            responseAs[String] must contain(otherVendor)
-          }
-        }
-      }
-
       "for version based urls" should {
 
         "return a proper json for well-formed single GET requests" +
@@ -210,7 +189,7 @@ class DraftSchemaServiceSpec extends Specification
           }
         }
 
-        s"return a proper json for a public draft schema (${publicUrl})" in {
+        s"return a proper json for a public draft schema ($publicUrl)" in {
           Get(publicUrl) ~> addHeader("apikey", wrongVendorKey) ~> routes ~> check {
             status === OK
             contentType === `application/json`
@@ -597,64 +576,6 @@ class DraftSchemaServiceSpec extends Specification
         }
       }
 
-      "return a 400 if no apikey is specified with query param" in {
-        Post(postUrl4) ~> Route.seal(routes) ~> check {
-          status === BadRequest
-          contentType === `text/plain(UTF-8)`
-          responseAs[String] must contain("Request is missing required HTTP header 'apikey'")
-        }
-      }
-
-      "return a 400 if no apikey is specified with form data" in {
-        Post(postUrl3, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
-          Route.seal(routes) ~> check {
-          status === BadRequest
-          contentType === `text/plain(UTF-8)`
-          responseAs[String] must
-            contain("Request is missing required HTTP header 'apikey'")
-        }
-      }
-
-      "return a 400 if no apikey is specified with body request" in {
-        Post(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
-          Route.seal(routes) ~> check {
-          status === BadRequest
-          contentType === `text/plain(UTF-8)`
-          responseAs[String] must
-            contain("Request is missing required HTTP header 'apikey'")
-        }
-      }
-
-      "return a 401 if the API key is not an uuid with query param" in {
-        Post(postUrl4) ~> addHeader("apikey", notUuidKey) ~>
-          Route.seal(routes) ~> check {
-          status === Unauthorized
-          contentType === `application/json`
-          responseAs[String] must
-            contain("You do not have sufficient privileges")
-        }
-      }
-
-      "return a 401 if the API key is not an uuid with form data" in {
-        Post(postUrl3, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
-          addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
-          status === Unauthorized
-          contentType === `application/json`
-          responseAs[String] must
-            contain("You do not have sufficient privileges")
-        }
-      }
-
-      "return a 401 if the API key is not an uuid with body request" in {
-        Post(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
-          addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
-          status === Unauthorized
-          contentType === `application/json`
-          responseAs[String] must
-            contain("You do not have sufficient privileges")
-        }
-      }
-
       """return a 401 if the owner of the API key is not a prefix of the
       schema's vendor with query param""" in {
         Post(postUrl6) ~> addHeader("apikey", wrongVendorKey) ~>
@@ -787,65 +708,6 @@ class DraftSchemaServiceSpec extends Specification
       body request""" in {
         Put(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
           addHeader("apikey", readKey) ~> Route.seal(routes) ~> check {
-          status === Unauthorized
-          contentType === `application/json`
-          responseAs[String] must
-            contain("You do not have sufficient privileges")
-        }
-      }
-
-      "return a 400 if no apikey is specified with query param" in {
-        Put(postUrl4) ~> Route.seal(routes) ~> check {
-          status === BadRequest
-          contentType === `text/plain(UTF-8)`
-          responseAs[String] must
-            contain("Request is missing required HTTP header 'apikey'")
-        }
-      }
-
-      "return a 400 if no apikey is specified with form data" in {
-        Put(postUrl3, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
-          Route.seal(routes) ~> check {
-          status === BadRequest
-          contentType === `text/plain(UTF-8)`
-          responseAs[String] must
-            contain("Request is missing required HTTP header 'apikey'")
-        }
-      }
-
-      "return a 400 if no apikey is specified with body request" in {
-        Put(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
-          Route.seal(routes) ~> check {
-          status === BadRequest
-          contentType === `text/plain(UTF-8)`
-          responseAs[String] must
-            contain("Request is missing required HTTP header 'apikey'")
-        }
-      }
-
-      "return a 401 if the API key is not an uuid with query param" in {
-        Put(postUrl4) ~> addHeader("apikey", notUuidKey) ~>
-          Route.seal(routes) ~> check {
-          status === Unauthorized
-          contentType === `application/json`
-          responseAs[String] must
-            contain("You do not have sufficient privileges")
-        }
-      }
-
-      "return a 401 if the API key is not an uuid with form data" in {
-        Put(postUrl3, FormData(Map("schema" -> HttpEntity(`application/json`, validSchema)))) ~>
-          addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
-          status === Unauthorized
-          contentType === `application/json`
-          responseAs[String] must
-            contain("You do not have sufficient privileges")
-        }
-      }
-
-      "return a 401 if the API key is not an uuid with body request" in {
-        Put(postUrl3, HttpEntity(`application/json`, validSchema)) ~>
-          addHeader("apikey", notUuidKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
           contentType === `application/json`
           responseAs[String] must

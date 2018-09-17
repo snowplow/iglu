@@ -76,18 +76,18 @@ object SchemaActor {
     owner: String, permission: String, isPublic: Boolean = false, isDraft: Boolean)
 
   /**
-   * Message to send in order to retrieve every public schema.
-   * @param owner the owner of the API key the request was made with
-   * @param permission API key's permission
-   */
-  case class GetPublicSchemas(owner: String, permission: String, includeMetadata: Boolean, isDraft: Boolean)
+    * Message to send in order to retrieve all schemas with appropriate permissions
+    * @param owner the owner of the API key the request was made with
+    * @param permission API key's permission
+    */
+  case class GetAllSchemas(owner: String, permission: String, includeMetadata: Boolean, isDraft: Boolean, withBody: Boolean)
 
   /**
-   * Message to send in order to retrieve every public schema's metadata.
-   * @param owner the owner of the API key the request was made with
-   * @param permission API key's permission
-   */
-  case class GetPublicMetadata(owner: String, permission: String, isDraft: Boolean)
+    * Message to send in order to retrieve all schema's metadata.
+    * @param owner the owner of the API key the request was made with
+    * @param permission API key's permission
+    */
+  case class GetAllMetadata(owner: String, permission: String, isDraft: Boolean)
 
   /**
    * Message to send in order to retrieve a schema based on its
@@ -219,9 +219,9 @@ class SchemaActor(serverConfig: ServerConfig) extends Actor {
     case DeleteSchema(v, n, f, vs, dn, o, p, i, d) =>
       sender ! schema.delete(v, n, f, vs, dn, o, p, i, d)
 
-    case GetPublicSchemas(o, p, i, d) => sender ! schema.getPublicSchemas(o, p, i, d)
+    case GetAllSchemas(o, p, i, d, b) => sender ! schema.getAllSchemas(o, p, includeMetadata=i, isDraft=d, body=b)
 
-    case GetPublicMetadata(o, p, i) => sender ! schema.getPublicMetadata(o, p, i)
+    case GetAllMetadata(o, p, i) => sender ! schema.getAllMetadata(o, p, i)
 
     case GetSchema(v, n, f, vs, dn, o, p, i, d) => sender ! schema.get(v, n, f, vs, dn, o, p, i, d)
 
