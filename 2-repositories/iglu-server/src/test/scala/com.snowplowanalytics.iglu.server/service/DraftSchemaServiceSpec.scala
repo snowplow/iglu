@@ -754,42 +754,6 @@ class DraftSchemaServiceSpec extends Specification
         }
       }
 
-      """return a 400 if the supplied schema is not self-describing with query
-      param and contain a validation failure report""" in {
-        Post(postUrl7) ~> addHeader("apikey", writeKey) ~> Route.seal(routes) ~>
-          check {
-            status === BadRequest
-            contentType === `text/plain(UTF-8)`
-            responseAs[String] must
-              contain("The schema provided is not a valid self-describing") and
-              contain("report")
-          }
-      }
-
-      """return a 400 if the supplied schema is not self-describing with form
-      data and contain a validation failure report""" in {
-        Post(postUrl3, FormData(Map("schema" -> HttpEntity(`application/json`, invalidSchema)))) ~>
-          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
-          status === BadRequest
-          contentType === `text/plain(UTF-8)`
-          responseAs[String] must
-            contain("The schema provided is not a valid self-describing") and
-            contain("report")
-        }
-      }
-
-      """return a 400 if the supplied schema is not self-describing with body
-      request and contain a validation failure report""" in {
-        Post(postUrl3, HttpEntity(`application/json`, invalidSchema)) ~>
-          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
-          status === BadRequest
-          contentType === `text/plain(UTF-8)`
-          responseAs[String] must
-            contain("The schema provided is not a valid self-describing") and
-            contain("report")
-        }
-      }
-
       "return a 400 if the supplied string is not a schema with query param" in
         {
           Post(postUrl8) ~> addHeader("apikey", writeKey) ~> Route.seal(routes) ~>
@@ -985,42 +949,6 @@ class DraftSchemaServiceSpec extends Specification
           contentType === `application/json`
           responseAs[String] must
             contain("You do not have sufficient privileges")
-        }
-      }
-
-      """return a 400 if the supplied schema is not self-describing with query
-      param and contain a validation failure report""" in {
-        Put(postUrl7) ~> addHeader("apikey", writeKey) ~> Route.seal(routes) ~>
-          check {
-            status === BadRequest
-            contentType === `text/plain(UTF-8)`
-            responseAs[String] must
-              contain("The schema provided is not a valid self-describing") and
-              contain("report")
-          }
-      }
-
-      """return a 400 if the supplied schema is not self-describing with form
-      data and contain a validation failure report""" in {
-        Put(postUrl3, FormData(Map("schema" -> HttpEntity(`application/json`, invalidSchema)))) ~>
-          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
-          status === BadRequest
-          contentType === `text/plain(UTF-8)`
-          responseAs[String] must
-            contain("The schema provided is not a valid self-describing") and
-            contain("report")
-        }
-      }
-
-      """return a 400 if the supplied schema is not self-describing with body
-      request and contain a validation failure report""" in {
-        Put(postUrl3, HttpEntity(`application/json`, invalidSchema)) ~>
-          addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
-          status === BadRequest
-          contentType === `text/plain(UTF-8)`
-          responseAs[String] must
-            contain("The schema provided is not a valid self-describing") and
-            contain("report")
         }
       }
 

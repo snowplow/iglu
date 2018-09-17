@@ -72,7 +72,10 @@ class SchemaSpec extends Specification with SetupAndDestroy {
       "name": "ad_click",
       "format": "jsonschema",
       "version": "1-0-0"
-    }
+    },
+    "description": "Example valid schema",
+    "type": "object",
+    "properties": {}
   }"""
   val validSchema2 =
     """{
@@ -821,88 +824,28 @@ class SchemaSpec extends Specification with SetupAndDestroy {
 
     "for validateSchema" should {
 
-      "return the schema if it is self-describing" in {
-
-        schema.add("com.snowplowanalytics.self-desc", "schema", format, version, draftNumOfVersionedSchemas,
-          """{
-            "$schema": "http://json-schema.org/draft-04/schema#",
-            "description": "Meta-schema for self-describing JSON schema",
-            "self": {
-              "vendor": "com.snowplowanalytics.self-desc",
-              "name": "schema",
-              "format": "jsonschema",
-              "version": "1-0-0"
-            },
-            "allOf": [
-            {
-              "properties": {
-                "self": {
-                  "type": "object",
-                  "properties": {
-                    "vendor": {
-                      "type": "string",
-                      "pattern": "^[a-zA-Z0-9-_.]+$"
-                    },
-                    "name": {
-                      "type": "string",
-                      "pattern": "^[a-zA-Z0-9-_]+$"
-                    },
-                    "format": {
-                      "type": "string",
-                      "pattern": "^[a-zA-Z0-9-_]+$"
-                    },
-                    "version": {
-                      "type": "string",
-                      "pattern": "^[0-9]+-[0-9]+-[0-9]+$"
-                    }
-                  },
-                  "required": [
-                  "vendor",
-                  "name",
-                  "format",
-                  "version"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "required": [
-              "self"
-              ]
-            },
-            {
-              "$ref": "http://json-schema.org/draft-04/schema#"
-            }
-            ]
-          }
-          """, owner, permission, isPublic, isDraft = false)
-
-        val (status, res) = schema.validateSchema(validSchema, format)
-        status === OK
-        res must contain(validSchema)
-      }
-
       "return a 200 if the schema provided is self-describing" in {
-        val (status, res) = schema.validateSchema(validSchema, format, false)
+        val (status, res) = schema.lintSchema(validSchema, format)
         status === OK
         res must
           contain("The schema provided is a valid self-describing schema")
       }
 
-      "return a 400 if the schema is not self-describing" in {
-        val (status, res) = schema.validateSchema(invalidSchema, format)
-        status === BadRequest
-        res must contain("The schema provided is not a valid self-describing")
+      "return a 200 if the schema is not self-describing" in {
+        val (status, res) = schema.lintSchema(invalidSchema, format)
+        status === OK
+        res must contain("Schema is not self-describing")
       }
 
       "return a 400 if the string provided is not valid" in {
-        val (status, res) = schema.validateSchema(notJson, format)
+        val (status, res) = schema.lintSchema(notJson, format)
         status === BadRequest
         res must contain("The schema provided is not valid")
       }
 
       "return a 400 if the schema format provided is not supported" in {
         val (status, res) =
-          schema.validateSchema(validSchema, notSupportedFormat)
+          schema.lintSchema(validSchema, notSupportedFormat)
         status === BadRequest
         res must contain("The schema format provided is not supported")
       }

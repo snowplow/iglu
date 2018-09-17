@@ -184,11 +184,9 @@ object SchemaActor {
    * Message to send in order to validate that a schema is self-describing.
    * @param schema schema to be validated
    * @param format schema's format
-   * @param provideSchema returns the schema if true or a validation message
    * otherwise
    */
-  case class ValidateSchema(schema: String, format: String,
-    provideSchema: Boolean = true)
+  case class ValidateSchema(schema: String, format: String)
 
   /**
    * Message to send in order to validate an instance against a schema.
@@ -252,7 +250,7 @@ class SchemaActor(serverConfig: ServerConfig) extends Actor {
     case GetMetadataFromVendor(v, o, p, i) =>
       sender ! schema.getMetadataFromVendor(v, o, p, i)
 
-    case ValidateSchema(s, f, p) => sender ! schema.validateSchema(s, f, p)
+    case ValidateSchema(s, f) => sender ! schema.lintSchema(s, f)
 
     case Validate(v, n, f, vs, i) => sender ! schema.validate(v, n, f, vs, i)
   }

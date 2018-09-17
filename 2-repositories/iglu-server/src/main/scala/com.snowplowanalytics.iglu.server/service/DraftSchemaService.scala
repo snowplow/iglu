@@ -4,7 +4,6 @@ package service
 // This project
 import actor.SchemaActor._
 import actor.ApiKeyActor._
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import model.Schema
 
 // Akka
@@ -15,13 +14,8 @@ import akka.pattern.ask
 import scala.concurrent.{ExecutionContext, Future}
 
 // Akka Http
-import akka.http.scaladsl.model.MediaTypes.`application/json`
-import akka.http.scaladsl.model.headers.Accept
-import akka.http.scaladsl.server.{ContentNegotiator, UnacceptedResponseContentTypeRejection}
 import akka.http.scaladsl.model.StatusCode
-import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.server.Directive1
-import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.server.{ Directive1, Directives }
 import akka.http.scaladsl.model.headers.HttpChallenges
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 import akka.http.scaladsl.server.{AuthenticationFailedRejection, Route}
@@ -41,7 +35,7 @@ import javax.ws.rs.Path
 @Api(value = "/api/draft", tags = Array("draft"))
 @Path("/api/draft")
 class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit executionContext: ExecutionContext)
-  extends Directives with Service {
+  extends Directives with SchemaLinting with Service {
 
   /**
     * Directive to authenticate a user.
@@ -54,31 +48,6 @@ class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit
     onSuccess(credentialsRequest).flatMap {
       case Right(user) => provide(user)
       case Left(rejection) => reject(rejection)
-    }
-  }
-
-  /**
-    * Directive to validate the schema provided (either by query param or form
-    * data) is self-describing.
-    */
-  def validateSchema(format: String): Directive1[String] =
-    formField('schema) | parameter('schema) | entity(as[String]) flatMap { schema =>
-      onSuccess((schemaActor ? ValidateSchema(schema, format))
-        .mapTo[(StatusCode, String)]) tflatMap  {
-        case (OK, j) => provide(j)
-        case rej => complete(rej)
-      }
-    }
-
-  /**
-    * Negotiate Content-Type header
-    */
-  def contentTypeNegotiator(routes: Route): Route = {
-    optionalHeaderValueByType[Accept]() {
-      case Some(x) =>
-        if (x.acceptsAll() || x.mediaRanges.exists(_.matches(`application/json`))) routes
-        else reject(UnacceptedResponseContentTypeRejection(Set(ContentNegotiator.Alternative(`application/json`))))
-      case None => routes
     }
   }
 
@@ -521,10 +490,4 @@ class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit
         }
     }
 
-  private def sendResponse(action: Future[(StatusCode, String)]): Route = {
-    val future = onSuccess(action) { (status, performed) =>
-      complete(status, HttpEntity(ContentTypes.`application/json` , performed))
-    }
-    future
-  }
 }

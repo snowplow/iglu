@@ -107,7 +107,7 @@ class ValidationService(schemaActor: ActorRef, apiKeyActor: ActorRef)
   def validateSchemaRoute(@ApiParam(hidden = true) schemaFormat: String): Route =
     formField('schema) { schema =>
       val selfDescSchemaValidated: Future[(StatusCode, String)] =
-        (schemaActor ? ValidateSchema(schema, schemaFormat, provideSchema = false))
+        (schemaActor ? ValidateSchema(schema, schemaFormat))
           .mapTo[(StatusCode, String)]
       onSuccess(selfDescSchemaValidated) { (status, performed) =>
         complete(status, HttpEntity(ContentTypes.`application/json` , performed))

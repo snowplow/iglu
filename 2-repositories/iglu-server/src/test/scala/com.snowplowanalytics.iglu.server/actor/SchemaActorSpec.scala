@@ -72,7 +72,10 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
       "name": "ad_click",
       "format": "jsonschema",
       "version": "1-0-0"
-    }
+    },
+    "description": "Example valid schema",
+    "type": "object",
+    "properties": {}
   }"""
   val notJson = "not json"
   val validInstance = """{ "targetUrl": "somestr" }"""
@@ -488,23 +491,20 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
         val future = schema ? ValidateSchema(validSchema, format)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
-        result must contain(validSchema)
       }
 
       "return a 200 if the schema provided is self-describing" in {
-        val future = schema ? ValidateSchema(validSchema, format, false)
+        val future = schema ? ValidateSchema(validSchema, format)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
-        result must
-          contain("The schema provided is a valid self-describing schema")
+        result must contain("The schema provided is a valid self-describing schema")
       }
 
-      "return a 400 if the schema provided is not self-describing" in {
+      "return a 200 if the schema provided is not self-describing" in {
         val future = schema ? ValidateSchema(invalidSchema, format)
         val Success((status: StatusCode, result: String)) = future.value.get
-        status === BadRequest
-        result must
-          contain("The schema provided is not a valid self-describing")
+        status === OK
+        result must contain("Schema is not self-describing")
       }
 
       "return a 400 if the string provided is not valid" in {

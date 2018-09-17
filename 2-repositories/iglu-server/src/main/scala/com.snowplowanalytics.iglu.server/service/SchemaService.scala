@@ -15,6 +15,11 @@
 package com.snowplowanalytics.iglu.server
 package service
 
+import cats.data.Validated
+
+// json4s
+import org.json4s.jackson.JsonMethods.compact
+
 // This project
 import actor.SchemaActor._
 import actor.ApiKeyActor._
@@ -46,6 +51,8 @@ import io.swagger.annotations._
 // javax
 import javax.ws.rs.Path
 
+import com.snowplowanalytics.iglu.server.model.SchemaDAO.{ validateJsonSchema, reportToJson }
+
 /**
  * Service to interact with schemas.
  * @constructor creates a new schema service with a schema and apiKey actors
@@ -56,7 +63,7 @@ import javax.ws.rs.Path
 @Path("/api/schemas")
 class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                    (implicit executionContext: ExecutionContext)
-                   extends Directives with Service {
+                   extends Directives with SchemaLinting with Service {
 
   /**
    * Directive to authenticate a user.
@@ -69,31 +76,6 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     onSuccess(credentialsRequest).flatMap {
       case Right(user) => provide(user)
       case Left(rejection) => reject(rejection)
-    }
-  }
-
-  /**
-   * Directive to validate the schema provided (either by query param or form
-   * data) is self-describing.
-   */
-  def validateSchema(format: String): Directive1[String] =
-    formField('schema) | parameter('schema) | entity(as[String]) flatMap { schema =>
-      onSuccess((schemaActor ? ValidateSchema(schema, format))
-          .mapTo[(StatusCode, String)]) tflatMap  {
-              case (OK, j) => provide(j)
-              case rej => complete(rej)
-            }
-      }
-
-  /**
-    * Negotiate Content-Type header
-    */
-  def contentTypeNegotiator(routes: Route): Route = {
-    optionalHeaderValueByType[Accept]() {
-      case Some(x) =>
-        if (x.acceptsAll() || x.mediaRanges.exists(_.matches(`application/json`))) routes
-        else reject(UnacceptedResponseContentTypeRejection(Set(ContentNegotiator.Alternative(`application/json`))))
-      case None => routes
     }
   }
 
@@ -208,8 +190,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
         (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
             validateSchema(f) { schema =>
               val schemaAdded: Future[(StatusCode, String)] =
-                (schemaActor ? AddSchema(v, n, f, vs, draftNumOfVersionedSchemas, schema, owner, permission,
-                  isPublic.contains("true"), isDraft = false)).mapTo[(StatusCode, String)]
+                (schemaActor ? AddSchema(v, n, f, vs, draftNumOfVersionedSchemas, schema, owner, permission, isPublic.contains("true"), isDraft = false)).mapTo[(StatusCode, String)]
               sendResponse(schemaAdded)
             }
           }
@@ -534,11 +515,4 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
             sendResponse(getPublicSchema)
         }
     }
-
-  private def sendResponse(action: Future[(StatusCode, String)]): Route = {
-    val future = onSuccess(action) { (status, performed) =>
-      complete(status, HttpEntity(ContentTypes.`application/json` , performed))
-    }
-    future
-  }
 }

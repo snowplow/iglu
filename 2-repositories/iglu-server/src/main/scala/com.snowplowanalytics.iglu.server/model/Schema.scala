@@ -23,7 +23,7 @@ import validation.ValidatableJsonMethods.validateAgainstSchema
 import org.joda.time.LocalDateTime
 
 // Json4s
-import org.json4s.JValue
+import org.json4s._
 import org.json4s.Extraction
 import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.writePretty
@@ -32,8 +32,14 @@ import org.json4s.jackson.Serialization.writePretty
 import scala.annotation.meta.field
 import scala.io.Source
 
-// Scalaz
-import scalaz._
+// cats
+import cats.data.{ Validated, NonEmptyList, ValidatedNel }
+import cats.instances.list._
+import cats.instances.tuple._
+import cats.syntax.either._
+import cats.syntax.traverse._
+import cats.syntax.apply._
+import cats.syntax.validated._
 
 // Slick
 import Database.dynamicSession
@@ -45,7 +51,16 @@ import akka.http.scaladsl.model.StatusCodes._
 // Swagger
 import io.swagger.annotations.{ApiModel, ApiModelProperty}
 
+// Iglu
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.{ Schema => SchemaAst }
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s.implicits._
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.{SelfSyntaxChecker, JsonPointer}
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.{ lint, Report }
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.Linter.allLintersMap
+import com.snowplowanalytics.iglu.core.SelfDescribingSchema
+import com.snowplowanalytics.iglu.core.json4s.implicits._
 
+import SchemaDAO._
 
 /**
   * Case class representing a schema in the database.
@@ -739,17 +754,13 @@ class SchemaDAO(val db: Database) extends DAO {
   def validate(vendor: String, name: String, format: String, version: String,
                instance: String): (StatusCode, String) =
     getNoMetadata(vendor, name, format, version) match {
-      case "not found" => (NotFound,
-        result(404, "The schema to validate against was not found"))
-      case schema => parseOpt(instance) match {
+      case None => (NotFound, result(404, "The schema to validate against was not found"))
+      case Some(schema) => parseOpt(instance) match {
         case Some(jvalue) =>
-          val jsonNode = asJsonNode(jvalue)
-          val schemaNode = asJsonNode(parse(schema))
-
-          validateAgainstSchema(jsonNode, schemaNode) match {
-            case scalaz.Success(_) =>
+          validateAgainstSchema(jvalue, parse(schema)) match {
+            case Validated.Valid(_) =>
               (OK, result(200, "The instance provided is valid against the schema"))
-            case Failure(l) => (BadRequest, result(400,
+            case Validated.Invalid(l) => (BadRequest, result(400,
               "The instance provided is not valid against the schema",
               fromJsonNode(l.head.asJson)))
           }
@@ -765,24 +776,27 @@ class SchemaDAO(val db: Database) extends DAO {
     * @param provideSchema if we return the schema or not
     * @return a status code and schema/validation message pair
     */
-  def validateSchema(schema: String, format: String,
-                     provideSchema: Boolean = true): (StatusCode, String) =
+  def lintSchema(schema: String, format: String): (StatusCode, String) =
     format match {
       case "jsonschema" =>
-        parseOpt(schema) match {
-          case Some(jvalue) =>
-            val jsonNode = asJsonNode(jvalue)
-            val schemaNode =
-              asJsonNode(parse(getNoMetadata(selfDescVendor, selfDescName, selfDescFormat, selfDescVersion)))
-
-            validateAgainstSchema(jsonNode, schemaNode) match {
-              case scalaz.Success(j) =>
-                if (provideSchema) (OK, schema)
-                else (OK, result(200, "The schema provided is a valid self-describing schema"))
-              case Failure(l) => (BadRequest, result(400,
-                "The schema provided is not a valid self-describing schema", fromJsonNode(l.head.asJson)))
+        validateJsonSchema(schema) match {
+          case Right((json, schemaReport)) =>
+            val lintReport = SchemaAst.parse(json)
+              .fold((JsonPointer.Root, "Cannot extract JSON Schema").invalidNel[SchemaAst])(_.validNel[(JsonPointer, String)])
+              .andThen { ast =>
+                val result = lint(ast, allLintersMap.values.toList)
+                  .toList
+                  .flatMap { case (pointer, issues) => issues.toList.map(issue => (pointer, issue.getMessage)) }
+                NonEmptyList.fromList(result).fold(().validNel[(JsonPointer, String)])(_.invalid[Unit])
+              }
+            (schemaReport, lintReport).mapN { (_, _) => () } match {
+              case Validated.Valid(_) =>
+                (OK, result(200, "The schema provided is a valid self-describing schema"))
+              case Validated.Invalid(report) =>
+                (OK, result(200, "The schema has some issues", reportToJson(report)))
             }
-          case None => (BadRequest, result(400, "The schema provided is not valid"))
+          case Left(error) =>
+            (BadRequest, result(400, error))
         }
       case _ => (BadRequest, result(400, "The schema format provided is not supported"))
     }
@@ -795,19 +809,14 @@ class SchemaDAO(val db: Database) extends DAO {
     * @param version the schema's version
     * @return the schema without metadata
     */
-  private def getNoMetadata(vendor: String, name: String, format: String, version: String): String =
+  private def getNoMetadata(vendor: String, name: String, format: String, version: String): Option[String] =
     db withDynSession {
-      val schema: List[String] = schemas.filter(s =>
+      schemas.filter(s =>
         s.vendor === vendor &&
           s.name === name &&
           s.format === format &&
           s.version === version).
-        map(_.schema).list
-
-      schema match {
-        case single :: _ => single
-        case Nil => "not found"
-      }
+        map(_.schema).firstOption
     }
 
   /**
@@ -845,4 +854,37 @@ class SchemaDAO(val db: Database) extends DAO {
       if (isPublic) "public" else "private",
       if ( ((vendor startsWith owner) || owner == "*") && permission == "write") "private" else "none"
     )
+
+}
+
+object SchemaDAO {
+  type LintReport[A] = ValidatedNel[(JsonPointer, String), A]
+
+  def validateJsonSchema(schema: String): Either[String, (JValue, LintReport[SelfDescribingSchema[JValue]])] = {
+    parseOpt(schema) match {
+      case Some(json) =>
+        val generalCheck: LintReport[Unit] =
+          SelfSyntaxChecker.validateSchema(json, true).leftMap(getReport)
+
+        val selfDescribingCheck = SelfDescribingSchema
+          .parse(json)
+          .fold((JsonPointer.Root, "Schema is not self-describing").invalidNel[SelfDescribingSchema[JValue]])(_.validNel[(JsonPointer, String)])
+
+        val result = (generalCheck, selfDescribingCheck).mapN { (_: Unit, schema: SelfDescribingSchema[JValue]) => schema }
+        (json, result).asRight[String]
+      case None =>
+        "The schema provided is not valid JSON".asLeft[(JValue, LintReport[SelfDescribingSchema[JValue]])]
+    }
+  }
+
+  def reportToJson(report: NonEmptyList[(JsonPointer, String)]): JValue = {
+    val fields = report
+      .toList.groupBy(_._1)
+      .map { case (pointer, entries) => (pointer.show, JArray(entries.map { case (_, m) => JString(m)})) }
+      .toList
+    JObject(fields)
+  }
+
+  def getReport(messages: NonEmptyList[SelfSyntaxChecker.CheckerMessage]): NonEmptyList[(JsonPointer, String)] =
+    messages.map { message => (message.jsonPointer, message.message) }
 }
