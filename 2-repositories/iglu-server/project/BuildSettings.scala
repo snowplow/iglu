@@ -15,7 +15,7 @@
 */
 import sbt._
 import Keys._
-import sbt.testing.TaskDef
+import sbtassembly._
 
 object BuildSettings {
   //Basic settings for our app
@@ -57,7 +57,14 @@ object BuildSettings {
 
   lazy val sbtAssemblySettings = assemblySettings ++ Seq(
     // Simple name
-    assemblyJarName in assembly := { s"${name.value}-${version.value}.jar" }
+    assemblyJarName in assembly := { s"${name.value}-${version.value}.jar" },
+
+    assemblyMergeStrategy in assembly := {
+      case PathList("com", "github", "fge", tail@_*) => MergeStrategy.first
+      case x =>
+        val oldStrategy = (assemblyMergeStrategy in assembly).value
+        oldStrategy(x)
+    }
   )
 
   lazy val buildSettings = basicSettings ++ scalifySettings ++
