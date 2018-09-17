@@ -524,7 +524,6 @@ class SchemaDAO(val db: Database) extends DAO {
         .list
         .map(prepare) match {
         case Nil => (NotFound, result(404, "There are no schemas available here"))
-        case single :: Nil => (OK, writePretty(single))
         case multiple => (OK, writePretty(multiple))
       }
     }
@@ -537,7 +536,6 @@ class SchemaDAO(val db: Database) extends DAO {
         .list
         .map(s => MetadataResult.fromSchema(s, owner, permission, isDraft)) match {
         case Nil => (NotFound, result(404, "There are no schemas available here"))
-        case single :: Nil => (OK, writePretty(single))
         case multiple => (OK, writePretty(multiple))
       }
     }
@@ -592,7 +590,7 @@ class SchemaDAO(val db: Database) extends DAO {
   def update(vendor: String, name: String, format: String, version: String, draftNumber: String,
              schema: String, owner: String, permission: String,
              isPublic: Boolean = false, isDraft: Boolean): (StatusCode, String) = {
-    if (permission == "write" &&( (vendor startsWith owner) || owner == "*")) {
+    if ((permission == "write" || permission == "super") && (vendor.startsWith(owner) || owner == "*")) {
       db withDynSession {
         get(vendor, name, format, version, draftNumber, owner, permission, includeMetadata = false, isDraft) match {
           case (OK, _) =>
