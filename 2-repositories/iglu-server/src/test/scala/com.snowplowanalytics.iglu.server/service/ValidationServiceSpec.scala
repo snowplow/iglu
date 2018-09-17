@@ -16,22 +16,26 @@ package com.snowplowanalytics.iglu.server
 package service
 
 // Scala
-import akka.http.scaladsl.model.HttpEntity
-import akka.http.scaladsl.model.Multipart.FormData
-
 import scala.concurrent.duration._
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 // Akka
 import akka.actor.{ActorRef, Props}
+import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
+import akka.http.scaladsl.model.HttpEntity
+import akka.http.scaladsl.model.Multipart.FormData
+import akka.http.scaladsl.model.StatusCodes._
+import akka.http.scaladsl.model.ContentTypes._
+
+// json4s
+import org.json4s.JsonDSL._
+import org.json4s.jackson.JsonMethods.parse
 
 // This project
 import com.snowplowanalytics.iglu.server.actor.{ApiKeyActor, SchemaActor}
 
 // Akka Http
-import akka.http.scaladsl.testkit.{RouteTestTimeout, Specs2RouteTest}
-import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.model.ContentTypes._
-
 // Specs2
 import org.specs2.mutable.Specification
 
@@ -54,21 +58,44 @@ class ValidationServiceSpec extends Specification
   val version = "1-0-0"
 
   val validSchema =
-    s"""{
+    """{
+      "$schema" : "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",""" + s"""
       "self": {
         "vendor": "vendor",
         "name": "name",
         "format": "$format",
         "version": "1-0-0"
-        }
+        },
+      "properties": {
+        "a": {}
+      }
     }"""
   val invalidSchema = """{ "some": "invalid schema" }"""
   val notJson = "notjson"
+  val validSchemaWithIssues =
+    """{
+      "$schema" : "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",""" + s"""
+      "self": {
+        "vendor": "vendor",
+        "name": "name",
+        "format": "$format",
+        "version": "1-0-0"
+        },
+      "properties": {
+        "invalidPrimitive": {
+          "minLength": -1,
+          "type": "integer"
+        },
+        "nested": {
+          "type": "array",
+          "items": [{"minimum": 1, "maximum": 0}]
+        }
+      }
+    }"""
 
   val validInstance = """{ "targetUrl": "somestr" }"""
 
-  val validSchemaUri = validSchema.replaceAll(" ", "%20").
-    replaceAll("\"", "%22").replaceAll("\n", "%0A")
+  val validSchemaUri = URLEncoder.encode(validSchema, StandardCharsets.UTF_8.toString).toLowerCase
   val invalidSchemaUri = invalidSchema.replaceAll(" ", "%20").
     replaceAll("\"", "%22").replaceAll("\n", "%0A")
   val validInstanceUri = validInstance.replaceAll(" ", "%20").
@@ -97,19 +124,15 @@ class ValidationServiceSpec extends Specification
           addHeader("apikey", key) ~> routes ~> check {
           status === OK
           contentType === `application/json`
-          responseAs[String] must
-            contain("The schema provided is a valid self-describing schema")
         }
       }
 
-      "return a 400 if the schema provided is not self-describing" in {
+      "return a 200 and errors if the schema provided is not self-describing" in {
         Post(invalidUrl, FormData(Map("schema" -> HttpEntity(`application/json`, invalidSchema)))) ~>
           addHeader("apikey", key) ~> routes ~> check {
-          status === BadRequest
+          status === OK
           contentType === `application/json`
-          responseAs[String] must contain(
-            "The schema provided is not a valid self-describing schema") and
-            contain("report")
+          responseAs[String] must contain("Schema is not self-describing")
         }
       }
 
@@ -129,6 +152,25 @@ class ValidationServiceSpec extends Specification
           contentType === `application/json`
           responseAs[String] must
             contain("The schema format provided is not supported")
+        }
+      }
+
+      "return a 200 and list of issues if schema has any" in {
+        val expected = parse(""" [
+          { "message" : "Integer value must be strictly positive, in [minLength]", "level" : "ERROR", "pointer" : "/properties/invalidPrimitive" },
+          { "message" : "A field with numeric type has a minimum value [1] greater than the maximum value [0]", "level" : "ERROR", "pointer" : "/properties/nested/items/0" },
+          { "message" : "The schema is missing the \"description\" property", "level" : "INFO", "pointer" : "/properties/nested/items/0" },
+          { "message" : "The schema is missing the \"description\" property", "level" : "INFO", "pointer" : "/properties/nested" },
+          { "message" : "The schema is missing the \"description\" property", "level" : "INFO", "pointer" : "/properties/invalidPrimitive" },
+          { "message" : "A numeric property should have \"minimum\" and \"maximum\" properties", "level" : "WARNING", "pointer" : "/properties/invalidPrimitive" },
+          { "message" : "The schema is missing the \"description\" property", "level" : "INFO", "pointer" : "/" },
+          { "message" : "At the root level, the schema should have a \"type\" property set to \"object\" and have a \"properties\" property", "level" : "WARNING", "pointer" : "/" }
+        ]""")
+        Post(validUrl, FormData(Map("schema" -> HttpEntity(`application/json`, validSchemaWithIssues)))) ~>
+          addHeader("apikey", key) ~> routes ~> check {
+          status === OK
+          contentType === `application/json`
+          (parse(responseAs[String]) \ "report") === expected
         }
       }
     }

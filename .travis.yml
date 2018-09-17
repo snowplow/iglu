@@ -4,6 +4,7 @@ scala:
 jdk:
 - oraclejdk8
 script:
+- .travis/publish_local.sh
 - cd 2-repositories/iglu-server
 - "./scripts/create-test-user.bash"
 - sbt test
