@@ -15,7 +15,7 @@
 */
 import sbt._
 import Keys._
-import sbt.testing.TaskDef
+import sbtassembly._
 
 object BuildSettings {
   //Basic settings for our app
@@ -25,7 +25,7 @@ object BuildSettings {
     description             := "Scala schema server for Iglu",
     scalaVersion            := "2.11.12",
     scalacOptions           := Seq("-deprecation", "-encoding", "utf8",
-                               "-unchecked", "-feature", "-Xcheckinit"),
+                               "-unchecked", "-feature", "-Xcheckinit", "-Ypartial-unification"),
     scalacOptions in Test   := Seq("-Yrangepos", "-deprecation"),
     maxErrors               := 5,
     // http://www.scala-sbt.org/0.13.0/docs/Detailed-Topics/Forking.html
@@ -57,7 +57,14 @@ object BuildSettings {
 
   lazy val sbtAssemblySettings = assemblySettings ++ Seq(
     // Simple name
-    assemblyJarName in assembly := { s"${name.value}-${version.value}.jar" }
+    assemblyJarName in assembly := { s"${name.value}-${version.value}.jar" },
+
+    assemblyMergeStrategy in assembly := {
+      case PathList("com", "github", "fge", tail@_*) => MergeStrategy.first
+      case x =>
+        val oldStrategy = (assemblyMergeStrategy in assembly).value
+        oldStrategy(x)
+    }
   )
 
   lazy val buildSettings = basicSettings ++ scalifySettings ++
