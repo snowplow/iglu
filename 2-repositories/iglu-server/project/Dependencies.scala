@@ -15,11 +15,6 @@
 import sbt._
 
 object Dependencies {
-  val resolutionRepos = Seq(
-    Resolver.typesafeRepo("releases"),
-    Resolver.typesafeIvyRepo("releases")
-  )
-
   object V {
     // Scala
     val scopt = "3.7.0"
@@ -62,6 +57,5 @@ object Dependencies {
     val akkaTestKit   = "com.typesafe.akka"  %%  "akka-testkit"  % V.akka   % "test"
     val specs2        = "org.specs2"         %%  "specs2-core"   % V.specs2 % "test"
     val akkaHttpTestKit = "com.typesafe.akka" %% "akka-http-testkit" % V.akkaHttp % Test
-
   }
 }

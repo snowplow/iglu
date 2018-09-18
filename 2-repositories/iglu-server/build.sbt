@@ -13,35 +13,30 @@
 * governing permissions and limitations there under.
 */
 
-import Dependencies._
-import BuildSettings._
-
-//Configure prompt to show current project
-shellPrompt := { s => Project.extract(s).currentProject.id + " > " }
-
 // Define our project with basic information and library dependencies
-lazy val project = Project("iglu-server", file("."))
-  .settings(buildSettings: _*)
+lazy val root = project.in(file("."))
+  .settings(BuildSettings.buildSettings: _*)
   .settings(
     libraryDependencies ++= Seq(
       // Scala
-      Libraries.scopt,
-      Libraries.schemaDdl,
-      Libraries.akkaActor,
-      Libraries.akkaSlf4j,
-      Libraries.joda,
-      Libraries.jodaTime,
-      Libraries.json4s,
-      Libraries.jsonValidator,
-      Libraries.slf4j,
-      Libraries.slick,
-      Libraries.slickpg,
-      Libraries.slickpgJoda,
-      Libraries.akkaHttp,
-      Libraries.swaggerAkkaHttp,
+      Dependencies.Libraries.scopt,
+      Dependencies.Libraries.schemaDdl,
+      Dependencies.Libraries.akkaActor,
+      Dependencies.Libraries.akkaSlf4j,
+      Dependencies.Libraries.joda,
+      Dependencies.Libraries.jodaTime,
+      Dependencies.Libraries.json4s,
+      Dependencies.Libraries.jsonValidator,
+      Dependencies.Libraries.slf4j,
+      Dependencies.Libraries.slick,
+      Dependencies.Libraries.slickpg,
+      Dependencies.Libraries.slickpgJoda,
+      Dependencies.Libraries.akkaHttp,
+      Dependencies.Libraries.swaggerAkkaHttp,
       // Scala (test only)
-      Libraries.akkaTestKit,
-      Libraries.specs2,
-      Libraries.akkaHttpTestKit
+      Dependencies.Libraries.akkaTestKit,
+      Dependencies.Libraries.specs2,
+      Dependencies.Libraries.akkaHttpTestKit
     )
   )
+  .enablePlugins(JavaAppPackaging)
