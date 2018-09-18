@@ -39,6 +39,12 @@ deploy:
     condition: '"$(.travis/is_iglu_server_release_tag.sh $TRAVIS_TAG)" == "" && $?
       == 0'
     tags: true
+- provider: script
+  skip_cleanup: true
+  script: "./.travis/deploy_iglu_server_docker.sh $TRAVIS_TAG"
+  on:
+    condition: '"$(.travis/is_iglu_server_release_tag.sh $TRAVIS_TAG)" == "" && $? == 0'
+    tags: true
 env:
   global:
   - secure: D5Egj4tqCXpL7H4x/BsPs9tOVX7Q20ooaB5e7+KDBk9PdLFFLHGMJP6+lRjmLNnX89ngWSNmPyu9L5qJ8D4Bmuy+s2bMN8iM/bryJrGvAMUjLXnVEaENn4hd7Xn6zA0JoTvyk8jEiLlTsZakpz8j8N6g9mscZXsMoXtRWFOnE0s=

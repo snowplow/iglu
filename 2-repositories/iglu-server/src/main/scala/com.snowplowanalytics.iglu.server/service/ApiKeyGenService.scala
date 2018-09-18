@@ -130,10 +130,7 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
       dataType = "string", paramType = "query")
   ))
   @ApiResponses(Array(
-    new ApiResponse(code = 201, message = "{\n" +
-                                          "  read : readKey\n" +
-                                          "  write : writeKey\n" +
-                                          "}"),
+    new ApiResponse(code = 201, message = "{read: readKey, write: writeKey}"),
     new ApiResponse(code = 401, message = "This vendor prefix is conflicting with an existing one"),
     new ApiResponse(code = 401, message = "You do not have sufficient privileges"),
     new ApiResponse(code = 401, message = "The supplied authentication is invalid"),
