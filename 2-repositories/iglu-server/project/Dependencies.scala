@@ -18,7 +18,7 @@ object Dependencies {
   object V {
     // Scala
     val scopt = "3.7.0"
-    val schemaDdl = "0.9.0"
+    val schemaDdl = "0.9.0-M1"
     val akka  = "2.4.20"
     val joda = "1.6"
     val jodaTime = "2.3"
