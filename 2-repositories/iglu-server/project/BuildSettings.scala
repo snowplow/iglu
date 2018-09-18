@@ -16,6 +16,10 @@
 import sbt._
 import Keys._
 import sbtassembly._
+import com.typesafe.sbt.packager.Keys.{daemonUser, maintainer}
+import com.typesafe.sbt.packager.docker.{ ExecCmd, Cmd }
+import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport._
+import com.typesafe.sbt.packager.universal.UniversalPlugin.autoImport._
 
 object BuildSettings {
   //Basic settings for our app
@@ -34,7 +38,7 @@ object BuildSettings {
     fork in Test            := true,
     // Ensure that the correct config file is loaded for testing
     javaOptions in Test     += "-Dconfig.file=./test.conf",
-    resolvers               ++= Dependencies.resolutionRepos
+    shellPrompt             := { s => Project.extract(s).currentProject.id + " > " }
   )
 
   // Makes our SBT app settings available from within the app
@@ -52,22 +56,40 @@ object BuildSettings {
     Seq(file)
   })
 
-  // sbt-assembly settings for building an executable
+    // sbt-assembly settings for building an executable
   import sbtassembly.AssemblyKeys._
   import sbtassembly.AssemblyPlugin._
 
   lazy val sbtAssemblySettings = assemblySettings ++ Seq(
-    // Simple name
-    assemblyJarName in assembly := { s"${name.value}-${version.value}.jar" },
-
-    assemblyMergeStrategy in assembly := {
-      case PathList("com", "github", "fge", tail@_*) => MergeStrategy.first
-      case x =>
-        val oldStrategy = (assemblyMergeStrategy in assembly).value
-        oldStrategy(x)
-    }
+	// Simple name
+	assemblyJarName in assembly := { s"${name.value}-${version.value}.jar" },
+	assemblyMergeStrategy in assembly := {
+	  case PathList("com", "github", "fge", tail@_*) => MergeStrategy.first
+	  case x =>
+		val oldStrategy = (assemblyMergeStrategy in assembly).value
+		oldStrategy(x)
+	}
   )
 
-  lazy val buildSettings = basicSettings ++ scalifySettings ++
-    sbtAssemblySettings
+  lazy val dockerPgInstallCmds = Seq(
+    ExecCmd("RUN", "cp", "/opt/docker/docker-entrypoint.sh", "/usr/local/bin/"),
+    Cmd("RUN", "apt update"),
+    Cmd("RUN", "mkdir -p /usr/share/man/man7"),
+    Cmd("RUN", "apt install -y postgresql-client-9.6")
+  )
+
+  lazy val dockerSettings = Seq(
+    // Use single entrypoint script for all apps
+    Universal / sourceDirectory := new File(baseDirectory.value, "scripts"),
+    dockerRepository := Some("snowplow-docker-registry.bintray.io"),
+    dockerUsername := Some("snowplow"),
+    dockerBaseImage := "snowplow-docker-registry.bintray.io/snowplow/base-debian:0.1.0",
+    Docker / maintainer := "Snowplow Analytics Ltd. <support@snowplowanalytics.com>",
+    Docker / daemonUser := "root",  // Will be gosu'ed by docker-entrypoint.sh
+    dockerEntrypoint := Seq("docker-entrypoint.sh"),
+    dockerCommands ++= dockerPgInstallCmds,
+    dockerCmd := Seq("--help")
+  )
+
+  lazy val buildSettings = basicSettings ++ scalifySettings ++ sbtAssemblySettings ++ dockerSettings
 }
