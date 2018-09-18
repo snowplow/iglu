@@ -26,12 +26,11 @@ deploy:
   skip_cleanup: true
   script: "./.travis/deploy_igluctl.sh $TRAVIS_TAG"
   on:
-    condition: '"$(.travis/is_igluctl_release_tag.sh $TRAVIS_TAG)" == "" && $? ==
-      0'
+    condition: '"$(.travis/is_igluctl_release_tag.sh $TRAVIS_TAG)" == "" && $? == 0'
     tags: true
 - provider: script
   skip_cleanup: true
-  script: ./.travis/deploy_iglu_server_docker.sh $TRAVIS_TAG
+  script: "./.travis/deploy_iglu_server_docker.sh $TRAVIS_TAG"
   on:
     condition: '"$(.travis/is_iglu_server_release_tag.sh $TRAVIS_TAG)" == "" && $? == 0'
     tags: true
