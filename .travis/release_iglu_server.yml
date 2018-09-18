@@ -1,6 +1,5 @@
 # Required: local settings
-local:
-  root_dir : <%= ENV['TRAVIS_BUILD_DIR'] %>
+local: root_dir : <%= ENV['TRAVIS_BUILD_DIR'] %>
 
 # Required: deployment targets
 targets:
