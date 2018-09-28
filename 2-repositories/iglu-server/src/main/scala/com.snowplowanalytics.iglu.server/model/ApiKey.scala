@@ -138,6 +138,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
         .exists(o => (o.startsWith(vendorPrefix) || vendorPrefix.startsWith(o) || o == vendorPrefix) && o != "*")
     }
 
+
   /**
     * Adds a new API key.
     * @param vendorPrefix vendorPrefix of the new API key
@@ -151,6 +152,16 @@ class ApiKeyDAO(val db: Database) extends DAO {
         ApiKey(uid, vendorPrefix, permission, new LocalDateTime())) match {
         case 0 => (InternalServerError, "Something went wrong")
         case _ => (OK, uid.toString)
+      }
+    }
+
+  def addRead(vendorPrefix: String): (StatusCode, String) =
+    db withDynSession {
+      if (validate(vendorPrefix)) {
+        val (_, keyRead) = add(vendorPrefix, "read")
+        (Created, writePretty(Map("read" -> keyRead)))
+      } else {
+        (Unauthorized, result(401, "This vendor prefix is conflicting with an existing one"))
       }
     }
 
