@@ -44,6 +44,8 @@ object ApiKeyActor {
    */
   case class AddBothKey(vendorPrefix: String)
 
+  case class AddReadOnly(vendorPrefix: String)
+
   /**
    * Message to send in order to delete a key specifying its uuid.
    * @param uid identifier of the API key to be deleted
@@ -76,6 +78,8 @@ class ApiKeyActor(serverConfig: ServerConfig) extends Actor {
     case GetKey(uid) => sender ! apiKey.get(uid)
 
     case AddBothKey(vendorPrefix) => sender ! apiKey.addReadWrite(vendorPrefix)
+
+    case AddReadOnly(vendorPrefix) => sender ! apiKey.addRead(vendorPrefix)
 
     case DeleteKey(uid) => sender ! apiKey.delete(uid)
 
