@@ -17,6 +17,7 @@ package service
 
 // This project
 import actor.ApiKeyActor._
+import akka.http.scaladsl.server.Directive
 import model.ApiKey
 
 // Akka
@@ -118,6 +119,9 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
       }
     }
 
+  val prefixAndAction: Directive[(String, String)] = (parameter('vendor_prefix) | formField('vendor_prefix)) & parameter("schema_action")
+  val prefixOnly =  parameter('vendor_prefix) | formField('vendor_prefix)
+
   /**
     * Route to generate a pair of read and write API keys.
     */
@@ -137,13 +141,24 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
   def keygen(): Route =
-    (parameter('vendor_prefix) | formField('vendor_prefix) | entity(as[String])) { vendorPrefix =>
+    prefixAndAction { (vendorPrefix, action) =>
+      action match {
+        case "read" =>
+          val keyCreated: Future[(StatusCode, String)] =
+            (apiKeyActor ? AddReadOnly(vendorPrefix)).mapTo[(StatusCode, String)]
+          onSuccess(keyCreated) { (status, performed) =>
+            complete(status, HttpEntity(ContentTypes.`application/json`, performed))
+          }
+        case _ => reject
+      }
+    } ~ prefixOnly { vendorPrefix =>
       val keyCreated: Future[(StatusCode, String)] =
         (apiKeyActor ? AddBothKey(vendorPrefix)).mapTo[(StatusCode, String)]
       onSuccess(keyCreated) { (status, performed) =>
         complete(status, HttpEntity(ContentTypes.`application/json`, performed))
       }
     }
+
 
   /**
     * Route to delete every API key having a specific vendor prefix.

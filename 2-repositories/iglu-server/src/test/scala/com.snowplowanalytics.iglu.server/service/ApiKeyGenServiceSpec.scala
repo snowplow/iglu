@@ -80,6 +80,7 @@ class ApiKeyGenServiceSpec extends Specification
   val postUrl2 = s"${start}keygen"
   val conflictingPostUrl1 =
     s"${start}keygen?vendor_prefix=$faultyVendorPrefix"
+  val postUrl3 = s"${start}keygen?vendor_prefix=*&schema_action=read"
 
   // deleteUrl
   val deleteVendorUrl = s"${start}vendor?vendor_prefix=$vendorPrefix"
@@ -143,9 +144,8 @@ class ApiKeyGenServiceSpec extends Specification
           contentType === `text/plain(UTF-8)`
         }
       }
-      
-      """return a 200 with the keys if the vendor prefix is not colliding with
-      anyone with query param""" in {
+
+      """return a 200 with the keys if the vendor prefix is not colliding with anyone with query param""" in {
         Post(postUrl1) ~> addHeader("apikey", superKey) ~>
         Route.seal(routes) ~> check {
           status === Created
@@ -160,19 +160,8 @@ class ApiKeyGenServiceSpec extends Specification
         }
       }
 
-      """return a 200 with the keys if the vendor prefix is not colliding with
-      anyone with form data""" in {
+      """return a 200 with the keys if the vendor prefix is not colliding with anyone with form data""" in {
         Post(postUrl2, FormData(Map("vendor_prefix" -> HttpEntity(`application/json`, vendorPrefix2)))) ~>
-        addHeader("apikey", superKey) ~> Route.seal(routes) ~> check {
-          status === Created
-          contentType === `application/json`
-          responseAs[String] must contain("read") and contain("write")
-        }
-      }
-
-      """return a 200 with the keys if the vendor prefix is not colliding with
-      anyone with body request""" in {
-        Post(postUrl2, HttpEntity(`application/json`, vendorPrefix3)) ~>
         addHeader("apikey", superKey) ~> Route.seal(routes) ~> check {
           status === Created
           contentType === `application/json`
@@ -200,18 +189,7 @@ class ApiKeyGenServiceSpec extends Specification
         }
       }
 
-      "return a 401 if the vendor prefix already exists with body request" in {
-        Post(postUrl2, HttpEntity(`application/json`, vendorPrefix3)) ~>
-        addHeader("apikey", superKey) ~> Route.seal(routes) ~> check {
-          status === Unauthorized
-          contentType === `application/json`
-          responseAs[String] must
-            contain("This vendor prefix is conflicting with an existing one")
-        }
-      }
-
-      """return a 401 if the new vendor prefix is conflicting with an existing
-      one with query param""" in {
+      """return a 401 if the new vendor prefix is conflicting with an existing one with query param""" in {
         Post(conflictingPostUrl1) ~> addHeader("apikey", superKey) ~>
         Route.seal(routes) ~> check {
           status === Unauthorized
@@ -221,8 +199,7 @@ class ApiKeyGenServiceSpec extends Specification
         }
       }
 
-      """return a 401 if the new vendor prefix is conflicting with an existing
-      one with form data""" in {
+      """return a 401 if the new vendor prefix is conflicting with an existing one with form data""" in {
         Post(postUrl2, FormData(Map("vendor_prefix" -> HttpEntity(`application/json`, faultyVendorPrefix2)))) ~>
         addHeader("apikey", superKey) ~> Route.seal(routes) ~> check {
           status === Unauthorized
@@ -232,16 +209,15 @@ class ApiKeyGenServiceSpec extends Specification
         }
       }
 
-      """return a 401 if the new vendor prefix is conflicting with an existing
-      one with body request""" in {
-        Post(postUrl2, HttpEntity(`application/json`, faultyVendorPrefix3)) ~>
-        addHeader("apikey", superKey) ~> Route.seal(routes) ~> check {
-          status === Unauthorized
+      """return a 200 with the read key for wildcard vendor""" in {
+        Post(postUrl3) ~>
+          addHeader("apikey", superKey) ~> Route.seal(routes) ~> check {
+          status === Created
           contentType === `application/json`
-          responseAs[String] must
-            contain("This vendor prefix is conflicting with an existing one")
+          responseAs[String] must contain("read") and not contain("write")
         }
       }
+
     }
 
     "for DELETE requests with key param" should {
