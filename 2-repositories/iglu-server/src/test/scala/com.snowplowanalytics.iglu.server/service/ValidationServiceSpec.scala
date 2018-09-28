@@ -156,11 +156,16 @@ class ValidationServiceSpec extends Specification
       }
 
       "return a 200 and list of issues if schema has any" in {
-        val expected = parse("""{
-          "/properties/nested" : [ "Schema doesn't contain description property" ],
-          "/properties/invalidPrimitive" : [ "Integer value must be strictly positive, in [minLength]", "Schema doesn't contain description property", "Schema with numeric type doesn't contain minimum and maximum properties" ],
-          "/properties/nested/items/0" : [ "Schema with numeric type has minimum property [1] greater than maximum [0]", "Schema doesn't contain description property" ],
-          "/" : [ "Schema doesn't contain description property", "Root of schema should have type object and contain properties" ]}""")
+        val expected = parse(""" [
+          { "message" : "Integer value must be strictly positive, in [minLength]", "level" : "ERROR", "pointer" : "/properties/invalidPrimitive" },
+          { "message" : "A field with numeric type has a minimum value [1] greater than the maximum value [0]", "level" : "ERROR", "pointer" : "/properties/nested/items/0" },
+          { "message" : "The schema is missing the \"description\" property", "level" : "INFO", "pointer" : "/properties/nested/items/0" },
+          { "message" : "The schema is missing the \"description\" property", "level" : "INFO", "pointer" : "/properties/nested" },
+          { "message" : "The schema is missing the \"description\" property", "level" : "INFO", "pointer" : "/properties/invalidPrimitive" },
+          { "message" : "A numeric property should have \"minimum\" and \"maximum\" properties", "level" : "WARNING", "pointer" : "/properties/invalidPrimitive" },
+          { "message" : "The schema is missing the \"description\" property", "level" : "INFO", "pointer" : "/" },
+          { "message" : "At the root level, the schema should have a \"type\" property set to \"object\" and have a \"properties\" property", "level" : "WARNING", "pointer" : "/" }
+        ]""")
         Post(validUrl, FormData(Map("schema" -> HttpEntity(`application/json`, validSchemaWithIssues)))) ~>
           addHeader("apikey", key) ~> routes ~> check {
           status === OK

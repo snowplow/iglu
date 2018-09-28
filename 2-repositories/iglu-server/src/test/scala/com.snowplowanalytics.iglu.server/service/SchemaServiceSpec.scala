@@ -502,7 +502,7 @@ class SchemaServiceSpec extends Specification
           addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
             status === Created
             contentType === `application/json`
-            responseAs[String] must contain("Schema successfully added") and
+            responseAs[String] must contain("The schema has been successfully added") and
               contain(vendor)
           }
       }
@@ -513,7 +513,7 @@ class SchemaServiceSpec extends Specification
         check {
           status === Created
           contentType === `application/json`
-          responseAs[String] must contain("Schema successfully added") and contain(vendor)
+          responseAs[String] must contain("The schema has been successfully added") and contain(vendor)
         }
       }
 
@@ -523,7 +523,7 @@ class SchemaServiceSpec extends Specification
         addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === Created
           contentType === `application/json`
-          responseAs[String] must contain("Schema successfully added") and
+          responseAs[String] must contain("The schema has been successfully added") and
             contain(vendor)
         }
       }
@@ -534,7 +534,7 @@ class SchemaServiceSpec extends Specification
         addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === Created
           contentType === `application/json`
-          responseAs[String] must contain("Schema successfully added") and
+          responseAs[String] must contain("The schema has been successfully added") and
             contain(vendor)
         }
       }
@@ -545,7 +545,7 @@ class SchemaServiceSpec extends Specification
         Route.seal(routes) ~> check {
           status === Created
           contentType === `application/json`
-          responseAs[String] must contain("Schema successfully added") and
+          responseAs[String] must contain("The schema has been successfully added") and
             contain(vendor)
         }
       }
@@ -557,7 +557,7 @@ class SchemaServiceSpec extends Specification
         addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === Created
           contentType === `application/json`
-          responseAs[String] must contain("Schema successfully added") and
+          responseAs[String] must contain("The schema has been successfully added") and
             contain(vendor)
         }
       }
@@ -699,7 +699,7 @@ class SchemaServiceSpec extends Specification
         addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === Created
           contentType === `application/json`
-          responseAs[String] must contain("Schema successfully added") and
+          responseAs[String] must contain("The schema has been successfully added") and
             contain(vendor)
         }
       }
@@ -709,7 +709,7 @@ class SchemaServiceSpec extends Specification
         check {
           status === Created
           contentType === `application/json`
-          responseAs[String] must contain("Schema successfully added") and
+          responseAs[String] must contain("The schema has been successfully added") and
             contain(vendor)
         }
       }
@@ -719,7 +719,7 @@ class SchemaServiceSpec extends Specification
         addHeader("apikey", writeKey) ~> Route.seal(routes) ~> check {
           status === Created
           contentType === `application/json`
-          responseAs[String] must contain("Schema successfully added") and
+          responseAs[String] must contain("The schema has been successfully added") and
             contain(vendor)
         }
       }

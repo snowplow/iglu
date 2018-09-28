@@ -121,7 +121,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         val (status, res) = schema.add(vendor, name, format, version, draftNumOfVersionedSchemas,
           invalidSchema, owner, permission, isPublic, isDraft = false)
         status === Created
-        res must contain("Schema successfully added") and contain(vendor)
+        res must contain("The schema has been successfully added") and contain(vendor)
 
         database withDynSession {
           Q.queryNA[Int](
@@ -139,7 +139,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         val (status, res) = schema.add(otherVendor, name2, format, version, draftNumOfVersionedSchemas,
           invalidSchema, otherOwner, permission, !isPublic, isDraft = false)
         status === Created
-        res must contain("Schema successfully added") and contain(otherVendor)
+        res must contain("The schema has been successfully added") and contain(otherVendor)
 
         database withDynSession {
           Q.queryNA[Int](
@@ -174,7 +174,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         val (status, res) = schema.add(otherVendor, name, format, version, draftNumOfVersionedSchemas,
           validSchema2, otherOwner, superPermission, isPublic, isDraft = false)
         status === Created
-        res must contain("Schema successfully added") and contain(otherVendor)
+        res must contain("The schema has been successfully added") and contain(otherVendor)
 
         database withDynSession {
           Q.queryNA[Int](
@@ -195,7 +195,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         val (status, res) = schema.update(vendor, name, format, version, draftNumOfVersionedSchemas,
           invalidSchema2, owner, permission, isDraft = false)
         status === OK
-        res must contain("Schema successfully updated") and contain(vendor)
+        res must contain("The schema has been successfully updated") and contain(vendor)
 
         database withDynSession {
           Q.queryNA[String](
@@ -212,7 +212,7 @@ class SchemaSpec extends Specification with SetupAndDestroy {
         val (status, res) = schema.update(vendor, name3, format, version, draftNumOfVersionedSchemas,
           invalidSchema, owner, permission, isDraft = false)
         status === Created
-        res must contain("Schema successfully added") and contain(vendor)
+        res must contain("The schema has been successfully added") and contain(vendor)
 
         database withDynSession {
           Q.queryNA[Int](

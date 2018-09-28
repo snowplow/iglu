@@ -92,7 +92,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
           invalidSchema, owner, permission, isPublic, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === Created
-        result must contain("Schema successfully added") and contain(vendor)
+        result must contain("The schema has been successfully added") and contain(vendor)
       }
 
       "return a 201 if the schema doesnt already exist and is public" in {
@@ -100,7 +100,7 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
           invalidSchema, otherOwner, permission, !isPublic, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === Created
-        result must contain("Schema successfully added") and
+        result must contain("The schema has been successfully added") and
           contain(otherVendor)
       }
 
@@ -120,15 +120,15 @@ class SchemaActorSpec extends TestKit(ActorSystem()) with SetupAndDestroy
           invalidSchema, owner, permission, isPublic, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === OK
-        result must contain("Schema successfully updated") and contain(vendor)
+        result must contain("The schema has been successfully updated") and contain(vendor)
       }
 
-      "returna 201 if the schema doesnt already exist" in {
+      "returns 201 if the schema doesnt already exist" in {
         val future = schema ? UpdateSchema(vendor, name2, format, version, draftNumOfVersionedSchemas,
           invalidSchema, owner, permission, isPublic, isDraft = false)
         val Success((status: StatusCode, result: String)) = future.value.get
         status === Created
-        result must contain("Schema successfully added") and contain(vendor)
+        result must contain("The schema has been successfully added") and contain(vendor)
       }
     }
 
