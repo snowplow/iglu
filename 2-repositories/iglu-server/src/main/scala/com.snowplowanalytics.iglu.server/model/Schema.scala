@@ -21,6 +21,7 @@ import validation.ValidatableJsonMethods.validateAgainstSchema
 
 // Joda
 import org.joda.time.LocalDateTime
+import org.joda.time.format.ISODateTimeFormat
 
 // Json4s
 import org.json4s._
@@ -165,8 +166,10 @@ class SchemaDAO(val db: Database) extends DAO {
     }
   }
 
+  private val fmt = ISODateTimeFormat.dateTime()
+
   def formatDate(dateTime: LocalDateTime): String =
-    dateTime.toString("MM/dd/yyyy HH:mm:ss")
+    fmt.print(dateTime)
 
   def toIgluUri(schema: Schema): String =
     s"iglu:${schema.vendor}/${schema.name}/${schema.format}/${schema.version}"
@@ -754,7 +757,6 @@ class SchemaDAO(val db: Database) extends DAO {
       if (isPublic) "public" else "private",
       if ( ((vendor startsWith owner) || owner == "*") && permission == "write") "private" else "none"
     )
-
 }
 
 object SchemaDAO {
