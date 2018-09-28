@@ -24,6 +24,7 @@ import org.joda.time.LocalDateTime
 
 // Json4s
 import org.json4s._
+import org.json4s.JsonDSL._
 import org.json4s.Extraction
 import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.writePretty
@@ -55,7 +56,7 @@ import io.swagger.annotations.{ApiModel, ApiModelProperty}
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.{ Schema => SchemaAst }
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s.implicits._
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.{SelfSyntaxChecker, JsonPointer}
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.Linter.{ allLintersMap, Message }
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.Linter.{ allLintersMap, Message, Level }
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.lint
 import com.snowplowanalytics.iglu.core.SelfDescribingSchema
 import com.snowplowanalytics.iglu.core.json4s.implicits._
@@ -683,12 +684,12 @@ class SchemaDAO(val db: Database) extends DAO {
         validateJsonSchema(schema) match {
           case Right((json, schemaReport)) =>
             val lintReport = SchemaAst.parse(json)
-              .fold((JsonPointer.Root, "Cannot extract JSON Schema").invalidNel[SchemaAst])(_.validNel[(JsonPointer, String)])
+              .fold(NotSchema.invalidNel[SchemaAst])(_.validNel[Message])
               .andThen { ast =>
                 val result = lint(ast, allLintersMap.values.toList)
                   .toList
-                  .flatMap { case (pointer, issues) => issues.toList.map(issue => (pointer, issue.show)) }
-                NonEmptyList.fromList(result).fold(().validNel[(JsonPointer, String)])(_.invalid[Unit])
+                  .flatMap { case (pointer, issues) => issues.toList.map(_.toMessage(pointer)) }
+                NonEmptyList.fromList(result).fold(().validNel[Message])(_.invalid[Unit])
               }
             (schemaReport, lintReport).mapN { (_, _) => () } match {
               case Validated.Valid(_) =>
@@ -760,17 +761,20 @@ class SchemaDAO(val db: Database) extends DAO {
 
 object SchemaDAO {
 
-  type LintReport[A] = ValidatedNel[(JsonPointer, String), A]
+  type LintReport[A] = ValidatedNel[Message, A]
+
+  val NotSelfDescribing = Message(JsonPointer.Root, "JSON Schema is not self-describing", Level.Error)
+  val NotSchema = Message(JsonPointer.Root, "Cannot extract JSON Schema", Level.Error)
 
   def validateJsonSchema(schema: String): Either[String, (JValue, LintReport[SelfDescribingSchema[JValue]])] = {
     parseOpt(schema) match {
       case Some(json) =>
-        val generalCheck: LintReport[Unit] =
-          SelfSyntaxChecker.validateSchema(json, false).leftMap(getReport)
+        val generalCheck =
+          SelfSyntaxChecker.validateSchema(json, false)
 
         val selfDescribingCheck = SelfDescribingSchema
           .parse(json)
-          .fold((JsonPointer.Root, "Schema is not self-describing").invalidNel[SelfDescribingSchema[JValue]])(_.validNel[(JsonPointer, String)])
+          .fold(NotSelfDescribing.invalidNel[SelfDescribingSchema[JValue]])(_.validNel[Message])
 
         val result = (generalCheck, selfDescribingCheck).mapN { (_: Unit, schema: SelfDescribingSchema[JValue]) => schema }
         (json, result).asRight[String]
@@ -779,14 +783,8 @@ object SchemaDAO {
     }
   }
 
-  def reportToJson(report: NonEmptyList[(JsonPointer, String)]): JValue = {
-    val fields = report
-      .toList.groupBy(_._1)
-      .map { case (pointer, entries) => (pointer.show, JArray(entries.map { case (_, m) => JString(m)})) }
-      .toList
-    JObject(fields)
-  }
-
-  def getReport(messages: NonEmptyList[Message]): NonEmptyList[(JsonPointer, String)] =
-    messages.map { message => (message.jsonPointer, message.message) }
+  def reportToJson(report: NonEmptyList[Message]): JValue =
+    JArray(report.toList.map { message =>
+      ("message" -> message.message) ~ ("level" -> message.level.toString.toUpperCase) ~ ("pointer" -> message.jsonPointer.show)
+    })
 }
