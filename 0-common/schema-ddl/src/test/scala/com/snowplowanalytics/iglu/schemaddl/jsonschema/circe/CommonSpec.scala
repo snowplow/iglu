@@ -41,7 +41,7 @@ class CommonSpec extends Specification { def is = s2"""
 
     val schema = json"""{ "type": ["string", "null"]}"""
 
-    Schema.parse(schema) must beSome(Schema(`type` = Some(CommonProperties.Type.Product(List(CommonProperties.Type.String, CommonProperties.Type.Null)))))
+    Schema.parse(schema) must beSome(Schema(`type` = Some(CommonProperties.Type.Union(List(CommonProperties.Type.String, CommonProperties.Type.Null)))))
   }
 
   def e3 = {

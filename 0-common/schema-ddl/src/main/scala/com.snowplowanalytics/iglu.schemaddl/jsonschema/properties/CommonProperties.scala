@@ -60,11 +60,12 @@ object CommonProperties {
       def asJson = Json.fromString("object")
     }
 
-    case class Product(value: List[Type]) extends Type {
+    case class Union(value: List[Type]) extends Type {
       def asJson = Json.fromValues(value.map(_.asJson))
 
       def hasNull: Boolean = value.contains(Null)
     }
+
 
     private[jsonschema] def fromString(s: String): Either[String, Type] = s match {
       case "null"    => Right(Type.Null)
@@ -80,7 +81,7 @@ object CommonProperties {
     private[jsonschema] def fromProduct(arr: List[String]): Either[String, Type] =
       arr.map(fromString).map(_.toValidatedNel).sequence[ValidatedNel[String, ?], Type] match {
         case Validated.Valid(List(single)) => single.asRight
-        case Validated.Valid(product) => Product(product).asRight
+        case Validated.Valid(product) => Union(product).asRight
         case Validated.Invalid(invalid) if invalid.size == 1 => s"${invalid.head} is invalid type".asLeft
         case Validated.Invalid(invalid) => s"${invalid.toList.mkString(",")} are invalid types".asLeft
       }
