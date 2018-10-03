@@ -43,7 +43,7 @@ object CommonSerializers {
         val union = if (types.exists(_.isEmpty)) None else Some(types.map(_.get))
         union match {
           case Some(List(t)) => t
-          case Some(u)       => Product(u)
+          case Some(u)       => Union(u)
           case None          => throw new MappingException(ts + " is not valid list of types")
         }
       case str @ JString(t) =>

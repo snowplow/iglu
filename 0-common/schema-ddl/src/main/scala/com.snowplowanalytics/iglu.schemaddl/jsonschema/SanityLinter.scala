@@ -80,7 +80,7 @@ object SanityLinter {
      */
     def withoutType(jsonType: Type): Boolean =
       value.`type` match {
-        case Some(Product(types)) => !types.contains(jsonType)
+        case Some(Union(types)) => !types.contains(jsonType)
         case Some(t) => t != jsonType
         case None => false            // absent type is ok
       }
@@ -90,7 +90,7 @@ object SanityLinter {
      */
     def withType(jsonType: Type): Boolean =
       value.`type` match {
-        case Some(Product(types)) => types.contains(jsonType)
+        case Some(Union(types)) => types.contains(jsonType)
         case Some(t) => t == jsonType
         case None => false            // absent type is ok
       }
