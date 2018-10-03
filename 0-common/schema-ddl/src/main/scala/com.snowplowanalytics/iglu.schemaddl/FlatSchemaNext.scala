@@ -87,7 +87,7 @@ object FlatSchemaNext {
    *
    * @param properties list of mixed properties
    * @param initPath accumulated path of current subschema
-   * @return pair of flat and complext lists of subschemas
+   * @return pair of flat and complex lists of subschemas
    */
   private def splitPrimitives(properties: FlatProperties, initPath: List[String]): (FlatProperties, FlatProperties) = {
     val (c, p) = properties.partition { field => isObject(field._2) }
@@ -109,7 +109,7 @@ object FlatSchemaNext {
    */
   private def isObject(schema: Schema): Boolean =
     schema.`type` match {
-      case Some(Product(types)) => types.contains(Object)
+      case Some(Union(types)) => types.contains(Object)
       case Some(Object) => true
       case _ => false
     }
