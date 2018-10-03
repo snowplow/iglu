@@ -6,13 +6,13 @@ package object jsonschema {
       jsonType == matchingType
     def nullable: Boolean =
       jsonType match {
-        case CommonProperties.Product(union) => union.toSet.contains(CommonProperties.Null)
+        case CommonProperties.Union(union) => union.toSet.contains(CommonProperties.Null)
         case CommonProperties.Null => true
         case _ => false
       }
     def nullable(matchingType: CommonProperties.Type): Boolean =
       jsonType match {
-        case CommonProperties.Product(union) => union.toSet == Set(CommonProperties.Null, matchingType)
+        case CommonProperties.Union(union) => union.toSet == Set(CommonProperties.Null, matchingType)
         case _ => false
       }
     def possiblyWithNull(matchingType: CommonProperties.Type): Boolean =

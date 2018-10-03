@@ -57,7 +57,7 @@ object CommonProperties {
     def asJson = JString("object")
   }
 
-  case class Product(value: List[Type]) extends Type {
+  case class Union(value: List[Type]) extends Type {
     def asJson = JArray(value.map(_.asJson))
 
     def hasNull: Boolean = value.contains(Null)
@@ -90,6 +90,3 @@ object CommonProperties {
   }
 
 }
-
-
-
