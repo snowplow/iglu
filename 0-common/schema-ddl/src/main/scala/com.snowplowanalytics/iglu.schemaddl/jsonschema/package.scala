@@ -19,7 +19,7 @@ package object jsonschema {
     /** Check that type has exact type */
     def precisely(matchingType: CommonProperties.Type): Boolean =
       (jsonType, matchingType) match {
-        case (CommonProperties.Type.Product(x), CommonProperties.Type.Product(y)) =>
+        case (CommonProperties.Type.Union(x), CommonProperties.Type.Union(y)) =>
           x.toSet == y.toSet
         case _ => jsonType == matchingType
       }
@@ -27,7 +27,7 @@ package object jsonschema {
     /** Check if type can be `null` */
     def nullable: Boolean =
       jsonType match {
-        case CommonProperties.Type.Product(union) => union.toSet.contains(CommonProperties.Type.Null)
+        case CommonProperties.Type.Union(union) => union.toSet.contains(CommonProperties.Type.Null)
         case CommonProperties.Type.Null => true
         case _ => false
       }
@@ -35,7 +35,7 @@ package object jsonschema {
     /** Check if type is known type with `null` */
     def nullable(matchingType: CommonProperties.Type): Boolean =
       jsonType match {
-        case CommonProperties.Type.Product(union) => union.toSet == Set(CommonProperties.Type.Null, matchingType)
+        case CommonProperties.Type.Union(union) => union.toSet == Set(CommonProperties.Type.Null, matchingType)
         case _ => false
       }
 
@@ -46,7 +46,7 @@ package object jsonschema {
     /** Check that type cannot be object or array */
     def isPrimitive: Boolean =
       jsonType match {
-        case CommonProperties.Type.Product(types) =>
+        case CommonProperties.Type.Union(types) =>
           val withoutNull = types.toSet - CommonProperties.Type.Null
           !withoutNull.contains(CommonProperties.Type.Array) && !withoutNull.contains(CommonProperties.Type.Object)
         case CommonProperties.Type.Object => false

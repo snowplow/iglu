@@ -391,7 +391,7 @@ object Linter {
     /** Check if Schema has no specific type *OR* has no type at all */
     def withoutType(jsonType: Type): Boolean =
       value.`type` match {
-        case Some(Type.Product(types)) => !types.contains(jsonType)
+        case Some(Type.Union(types)) => !types.contains(jsonType)
         case Some(t) => t != jsonType
         case None => false            // absent type is ok
       }
@@ -399,7 +399,7 @@ object Linter {
     /** Check if Schema has no specific type *OR* has no type at all */
     def withType(jsonType: Type): Boolean =
       value.`type` match {
-        case Some(Type.Product(types)) => types.contains(jsonType)
+        case Some(Type.Union(types)) => types.contains(jsonType)
         case Some(t) => t == jsonType
         case None => false            // absent type is ok
       }
