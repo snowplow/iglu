@@ -32,7 +32,7 @@ object Suggestion {
     schema.`type` match {
       case Some(CommonProperties.Type.Boolean) =>
         Some(name => Field(name, Type.Boolean, Mode.required(required)))
-      case Some(CommonProperties.Type.Product(types)) if withNull(types, CommonProperties.Type.Boolean) =>
+      case Some(CommonProperties.Type.Union(types)) if withNull(types, CommonProperties.Type.Boolean) =>
         Some(name => Field(name, Type.Boolean, Mode.Nullable))
       case _ => None
     }
@@ -41,7 +41,7 @@ object Suggestion {
     schema.`type` match {
       case Some(CommonProperties.Type.Integer) =>
         Some(name => Field(name, Type.Integer, Mode.required(required)))
-      case Some(CommonProperties.Type.Product(types)) if withNull(types, CommonProperties.Type.Integer) =>
+      case Some(CommonProperties.Type.Union(types)) if withNull(types, CommonProperties.Type.Integer) =>
         Some(name => Field(name, Type.Integer, Mode.Nullable))
       case _ => None
     }
@@ -50,11 +50,11 @@ object Suggestion {
     schema.`type` match {
       case Some(CommonProperties.Type.Number) =>
         Some(name => Field(name, Type.Float, Mode.required(required)))
-      case Some(CommonProperties.Type.Product(types)) if onlyNumeric(types.toSet, true) =>
+      case Some(CommonProperties.Type.Union(types)) if onlyNumeric(types.toSet, true) =>
         Some(name => Field(name, Type.Float, Mode.Nullable))
-      case Some(CommonProperties.Type.Product(types)) if onlyNumeric(types.toSet, false)  =>
+      case Some(CommonProperties.Type.Union(types)) if onlyNumeric(types.toSet, false)  =>
         Some(name => Field(name, Type.Float, Mode.required(required)))
-      case Some(CommonProperties.Type.Product(types)) if withNull(types, CommonProperties.Type.Number) =>
+      case Some(CommonProperties.Type.Union(types)) if withNull(types, CommonProperties.Type.Number) =>
         Some(name => Field(name, Type.Float, Mode.Nullable))
       case _ => None
     }
@@ -71,12 +71,12 @@ object Suggestion {
     (schema.`type`, schema.format) match {
       case (Some(CommonProperties.Type.String), Some(StringProperty.Format.DateFormat)) =>
         Some(name => Field(name, Type.Date, Mode.required(required)))
-      case (Some(CommonProperties.Type.Product(types)), Some(StringProperty.Format.DateFormat)) if withNull(types, CommonProperties.Type.String) =>
+      case (Some(CommonProperties.Type.Union(types)), Some(StringProperty.Format.DateFormat)) if withNull(types, CommonProperties.Type.String) =>
         Some(name => Field(name, Type.Date, Mode.Nullable))
 
       case (Some(CommonProperties.Type.String), Some(StringProperty.Format.DateTimeFormat)) =>
         Some(name => Field(name, Type.Timestamp, Mode.required(required)))
-      case (Some(CommonProperties.Type.Product(types)), Some(StringProperty.Format.DateTimeFormat)) if withNull(types, CommonProperties.Type.String) =>
+      case (Some(CommonProperties.Type.Union(types)), Some(StringProperty.Format.DateTimeFormat)) if withNull(types, CommonProperties.Type.String) =>
         Some(name => Field(name, Type.Timestamp, Mode.Nullable))
 
       case _ => None

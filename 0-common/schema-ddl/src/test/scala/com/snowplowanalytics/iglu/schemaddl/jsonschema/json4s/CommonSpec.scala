@@ -53,7 +53,7 @@ class CommonSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    Schema.parse(schema) must beSome(Schema(`type` = Some(CommonProperties.Type.Product(List(CommonProperties.Type.String, CommonProperties.Type.Null)))))
+    Schema.parse(schema) must beSome(Schema(`type` = Some(CommonProperties.Type.Union(List(CommonProperties.Type.String, CommonProperties.Type.Null)))))
   }
 
   def e3 = {
@@ -68,15 +68,15 @@ class CommonSpec extends Specification { def is = s2"""
 
     Schema.parse(schema) must beSome(Schema(format = Some(Format.Ipv4Format)))
   }
-  
+
   def e4 = {
-    
+
     val schema = parse(
       """
         |{
         |	 "type": "object",
         | 		"oneOf": [
-        |   
+        |
         |			{
         |				"properties": {
         |					"embedded": {
@@ -93,7 +93,7 @@ class CommonSpec extends Specification { def is = s2"""
         |				"required": ["embedded"],
         |				"additionalProperties": false
         |			},
-        |   
+        |
         |			{
         |				"properties": {
         |					"http": {
@@ -116,7 +116,7 @@ class CommonSpec extends Specification { def is = s2"""
         |			}
         |  ]
         |}
-        |				
+        |
       """.stripMargin
     )
 
