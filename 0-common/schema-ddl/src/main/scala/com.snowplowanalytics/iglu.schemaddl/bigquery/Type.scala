@@ -21,6 +21,7 @@ object Type {
   case object Bytes extends Type
   case object Integer extends Type
   case object Float extends Type
+  case object Numeric extends Type
   case object Date extends Type
   case object DateTime extends Type
   case object Timestamp extends Type
