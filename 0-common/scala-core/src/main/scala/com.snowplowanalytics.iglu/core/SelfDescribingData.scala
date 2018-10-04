@@ -19,8 +19,8 @@ import typeclasses.{ NormalizeData, StringifyData, ToData }
   * Used to eliminate need of Option container when extracting
   * `SchemaKey` with `ExtractSchemaKey` type class
   *
-  * @param data reference to Schema
-  * @param schema attached data instance itself
+  * @param schema reference to Schema
+  * @param data attached data instance itself
   * @tparam D generic type to represent data instance type
   *           (usually it is some JSON-library's base trait)
   */
