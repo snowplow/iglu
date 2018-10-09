@@ -12,7 +12,7 @@
  */
 package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
-import scalaz.{Failure, NonEmptyList}
+import scalaz.{Failure, Success, NonEmptyList}
 
 // json4s
 import org.json4s._
@@ -37,6 +37,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
     recognize unknown formats $e8
     recognize maxLength is greater than Redshift VARCHAR(max) $e9
     recognize skipped checks (description) $e10
+    selected formats will not fail with warning for 'no maxLength' $e11
   """
 
   def e1 = {
@@ -392,6 +393,46 @@ class SanityLinterSpec extends Specification { def is = s2"""
       Failure(NonEmptyList(
         "Optional field doesn't allow null type"
       ))
+    )
+  }
+
+  def e11 = {
+    val schema = Schema.parse(parse(
+      """
+        |{
+        |   "type": "object",
+        |   "description": "desc text",
+        |   "properties": {
+        |       "emailField": {
+        |           "type": "string",
+        |           "format": "email"
+        |       },
+        |       "dateField": {
+        |           "type": "string",
+        |           "format": "date"
+        |       },
+        |       "uriField": {
+        |           "type": "string",
+        |           "format": "uri"
+        |       },
+        |       "hostnameField": {
+        |           "type": "string",
+        |           "format": "hostname"
+        |       },
+        |       "uuidField": {
+        |           "type": "string",
+        |           "format": "uuid"
+        |       }
+        |   },
+        |   "additionalProperties": false    
+        |}
+      """.stripMargin
+    )).get
+
+    val skippedLinters = List(lintDescription)
+
+    lint(schema, 0, allLinters.values.toList.diff(skippedLinters)) must beEqualTo(
+      Success(())
     )
   }
 }

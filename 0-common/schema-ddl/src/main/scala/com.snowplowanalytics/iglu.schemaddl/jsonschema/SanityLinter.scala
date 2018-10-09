@@ -329,7 +329,9 @@ object SanityLinter {
    */
   val lintStringLength: Linter = (schema: Schema) => {
     if (schema.withType(String) && schema.enum.isEmpty && schema.maxLength.isEmpty) {
-      if (schema.withFormat(Ipv4Format) || schema.withFormat(Ipv6Format) || schema.withFormat(DateTimeFormat)) {
+      if (schema.withFormat(Ipv4Format) || schema.withFormat(Ipv6Format) || schema.withFormat(DateTimeFormat) ||
+          schema.withFormat(DateFormat) || schema.withFormat(EmailFormat) || schema.withFormat(UriFormat) ||
+          schema.withFormat(HostNameFormat) || schema.withFormat(UuidFormat)) {
         propertySuccess
       } else {
         "Schema with string type doesn't contain maxLength property or other ways to extract max length".failure
