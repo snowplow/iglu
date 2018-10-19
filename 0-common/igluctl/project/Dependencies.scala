@@ -29,7 +29,6 @@ object Dependencies {
     val igluClient       = "0.5.0"
     val scopt            = "3.5.0"
     val scalajHttp       = "2.3.0"
-    val awscala          = "0.5.9"
     // Scala (test only)
     val specs2           = "4.0.1"
     val scalaCheck       = "1.13.5"
@@ -50,7 +49,6 @@ object Dependencies {
     val schemaddl        = "com.snowplowanalytics"      %% "schema-ddl"                % V.schemaddl
     val scopt            = "com.github.scopt"           %% "scopt"                     % V.scopt
     val scalajHttp       = "org.scalaj"                 %% "scalaj-http"               % V.scalajHttp
-    val awscala          = "com.github.seratch"         %% "awscala"                   % V.awscala
     // Scala (test only)
     val specs2           = "org.specs2"                 %% "specs2-core"               % V.specs2         % "test"
     val scalaCheck       = "org.scalacheck"             %% "scalacheck"                % V.scalaCheck     % "test"
