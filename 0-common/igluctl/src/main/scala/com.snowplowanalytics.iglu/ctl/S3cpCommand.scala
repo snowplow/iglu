@@ -20,11 +20,12 @@ import cats.data.EitherT
 import cats.syntax.either._
 import cats.instances.stream._
 
-// awscala
-import awscala._
-import awscala.s3._
-import com.amazonaws.auth.profile.ProfileCredentialsProvider
+// AWS SDK
 import com.amazonaws.{AmazonClientException, AmazonServiceException}
+import com.amazonaws.auth.{ BasicAWSCredentials, DefaultAWSCredentialsProviderChain, AWSCredentialsProvider, AWSStaticCredentialsProvider }
+import com.amazonaws.auth.profile.ProfileCredentialsProvider
+import com.amazonaws.regions.Regions
+import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 
 // This project
 import FileUtils._
@@ -59,27 +60,26 @@ case class S3cpCommand(
    * 2. From profile name passed to igluctl (searched by AWS SDK)
    * 3. From default sources provided by AWS SDK
    */
-  lazy val credentials: Either[String, Credentials] = {
+  lazy val credentials: Either[String, AWSCredentialsProvider] = {
     val xor = (accessKeyId, secretAccessKey, profile) match {
       case (Some(keyId), Some(secret), None) =>
-        Credentials(keyId, secret).asRight
+        new AWSStaticCredentialsProvider(new BasicAWSCredentials(keyId, secret)).asRight
       case (None, None, Some(p)) =>
-        val provider = new ProfileCredentialsProvider(p)
-        Either.catchNonFatal(provider.getCredentials).map { c =>
-          Credentials(c.getAWSAccessKeyId, c.getAWSSecretKey)
-        }
+        Either.catchNonFatal(new ProfileCredentialsProvider(p))
       case _ =>
-        val provider = DefaultCredentialsProvider()
-        Either.catchNonFatal(provider.getCredentials)
+        DefaultAWSCredentialsProviderChain.getInstance().asRight
     }
     xor.leftMap(t => Option(t.getMessage).getOrElse(t.toString))
   }
 
-  lazy val awsRegion = region.map(Region.apply).getOrElse(Region.default())
+  lazy val awsRegion = region.map(Regions.fromName).getOrElse(Regions.DEFAULT_REGION)
 
-  lazy val s3 = for { creds <- credentials } yield S3(creds)(awsRegion)
-
-  lazy val bucket = Bucket(bucketName)
+  lazy val s3 = for {
+    creds <- credentials
+  } yield AmazonS3ClientBuilder.standard()
+    .withCredentials(creds)
+    .withRegion(awsRegion)
+    .build()
 
   def process(): Unit = {
     val schemasT = for {
@@ -132,10 +132,10 @@ case class S3cpCommand(
    * @param service S3 client object
    * @return either error or successful message
    */
-  def upload(file: File, path: String, service: S3): Either[String, String] = {
+  def upload(file: File, path: String, service: AmazonS3): Either[String, String] = {
     try {
-      val result = service.put(bucket, path, file)
-      s"File [${file.getPath}] uploaded as [s3://${bucketName + "/" + result.key}]".asRight
+      service.putObject(bucketName, path, file)
+      s"File [${file.getPath}] uploaded as [s3://${bucketName + "/" + path}]".asRight
     } catch {
       case e: AmazonClientException => e.toString.asLeft
       case e: AmazonServiceException => e.toString.asLeft
