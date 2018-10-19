@@ -38,7 +38,6 @@ lazy val root = project.in(file("."))
       Libraries.igluClient,
       Libraries.scopt,
       Libraries.scalajHttp,
-      Libraries.awscala,
       // Scala (test only)
       Libraries.specs2,
       Libraries.scalaCheck
