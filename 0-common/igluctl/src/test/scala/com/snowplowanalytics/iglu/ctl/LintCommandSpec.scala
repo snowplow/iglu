@@ -18,6 +18,8 @@ import org.specs2.Specification
 
 import org.json4s.jackson.JsonMethods.parse
 
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.SelfSyntaxChecker
+
 class LintCommandSpec extends Specification { def is = s2"""
   Linter command (lint) specification
     lint iglu:com.snowplowanalytics.self-desc/instance-iglu-only/jsonschema/1-0-0 $e1
@@ -53,7 +55,7 @@ class LintCommandSpec extends Specification { def is = s2"""
 
     val jsonSchema = parse(schema)
 
-    val result = LintCommand.validateSchema(jsonSchema, false)
+    val result = SelfSyntaxChecker.validateSchema(jsonSchema, false)
     val expected = Validated.Valid(())
     result must beEqualTo(expected)
   }

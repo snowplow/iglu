@@ -12,26 +12,17 @@
  */
 package com.snowplowanalytics.iglu.ctl
 
-// Scala
-import scala.collection.JavaConverters._
-
 // cats
-import cats.data.{ Validated, ValidatedNel, NonEmptyList }
+import cats.data.{ Validated, NonEmptyList }
 import cats.implicits._
-
-// json4s
-import org.json4s.{JValue, JString}
-import org.json4s.jackson.JsonMethods.{ asJsonNode, fromJsonNode }
 
 // Java
 import java.io.File
 
-// JSON Schema Validator
-import com.github.fge.jsonschema.core.report.{ ListProcessingReport, ProcessingMessage }
-
 // Schema DDL
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.{ Schema, Linter }
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.SanityLinter.{ lint, Report => LinterReport }
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.SelfSyntaxChecker
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s.implicits._
 
 // This library
@@ -85,7 +76,7 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean, linters: List[Lint
    */
   def check(jsonFile: JsonFile): Report = {
     val pathCheck = extractSchema(jsonFile).void.toValidatedNel
-    val syntaxCheck = validateSchema(jsonFile.content, skipWarnings)
+    val syntaxCheck = SelfSyntaxChecker.validateSchema(jsonFile.content, skipWarnings).leftMap(_.map(_.message))
     val lintCheck = Schema.parse(jsonFile.content).map { schema => lint(schema, linters) match {
       case e if e == Map.empty => ().validNel[String]
       case report => NonEmptyList.fromListUnsafe(prettifyReport(report)).invalid[Unit]
@@ -103,11 +94,6 @@ case class LintCommand(inputDir: File, skipWarnings: Boolean, linters: List[Lint
 }
 
 object LintCommand {
-
-  /**
-   * FGE validator for Self-describing schemas
-   */
-  lazy val validator = SelfSyntaxChecker.getSyntaxValidator
 
   /** All lintings that user can skip */
   val OptionalChecks: List[String] =
@@ -180,42 +166,6 @@ object LintCommand {
   case class Success(filePath: String) extends Report {
     def asString = s"Schema [$filePath] is successfully validated"
   }
-
-  /**
-   * Validate syntax of JSON Schema using FGE JSON Schema Validator
-   *
-   * @param json JSON supposed to be JSON Schema
-   * @param skipWarnings whether to count warning (such as unknown keywords) as
-   *                    errors or silently ignore them
-   * @return non-empty list of error messages in case of invalid Schema
-   *         or unit if case of successful
-   */
-  def validateSchema(json: JValue, skipWarnings: Boolean): ValidatedNel[String, Unit] = {
-    val jsonNode = asJsonNode(json)
-    val report = validator.validateSchema(jsonNode)
-                          .asInstanceOf[ListProcessingReport]
-
-    report.iterator.asScala.toList.filter(filterMessages(skipWarnings)).map(_.toString) match {
-      case Nil => ().valid
-      case h :: t => NonEmptyList.of(h, t: _*).invalid
-    }
-  }
-
-  /**
-   * Build predicate to filter messages with log level less than WARNING
-   *
-   * @param skipWarning curried arg to produce predicate
-   * @param message validation message produced by FGE validator
-   * @return always true if `skipWarnings` is false, otherwise depends on loglevel
-   */
-  def filterMessages(skipWarning: Boolean)(message: ProcessingMessage): Boolean =
-    if (skipWarning) fromJsonNode(message.asJson()) \ "level" match {
-      case JString("warning") => false
-      case JString("info") => false
-      case JString("debug") => false
-      case _ => true
-    }
-    else true
 
   /**
     * Validates if user provided --skip-checks with a valid string
