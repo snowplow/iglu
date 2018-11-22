@@ -23,7 +23,7 @@ object Dependencies {
 
   object Libraries {
     val json4s           = "org.json4s"                 %% "json4s-jackson"            % V.json4s
-    val circe            = "io.circe"                   %% "circe-core"                % V.circe
+    val circe            = "io.circe"                   %% "circe-core"                % V.circe    % "provided"
     val cats             = "org.typelevel"              %% "cats-core"                 % V.cats
 
     // Scala (test only)

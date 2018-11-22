@@ -13,10 +13,14 @@
 
 import sbt._
 
+import org.scalajs.sbtplugin.ScalaJSPlugin
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
+import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
+
 object Dependencies {
   object V {
     // Scala
-    val igluCore         = "0.3.0"
+    val igluCore         = "0.4.0-rc1"
     val circe            = "0.9.3"
     val jsonValidator    = "2.2.10"
 
@@ -27,8 +31,6 @@ object Dependencies {
 
   object Libraries {
     // Scala
-    val igluCoreJson4s   = "com.snowplowanalytics"      %% "iglu-core-json4s"       % V.igluCore
-    val igluCoreCirce    = "com.snowplowanalytics"      %% "iglu-core-circe"        % V.igluCore
     val circeGeneric     = "io.circe"                   %% "circe-generic"          % V.circe
     // Java
     val jsonValidator    = "com.github.java-json-tools" %  "json-schema-validator"  % V.jsonValidator

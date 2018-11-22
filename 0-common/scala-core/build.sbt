@@ -2,8 +2,7 @@
  * Copyright (c) 2012-2017 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
- * and you may not use this file except in compliance with the Apache License Version 2.0.
- * You may obtain a copy of the Apache License Version 2.0 at http://www.apache.org/licenses/LICENSE-2.0.
+ * and you may not use this file except in compliance with the Apache License Version 2.0.  You may obtain a copy of the Apache License Version 2.0 at http://www.apache.org/licenses/LICENSE-2.0.
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the Apache License Version 2.0 is distributed on an
@@ -20,6 +19,7 @@ shellPrompt in ThisBuild := { state => Project.extract(state).get(sbt.Keys.name)
 
 // Define our project, with basic project information and library dependencies
 lazy val igluCore = (project in file("."))
+  .enablePlugins(ScalaJSPlugin)
   .settings(buildSettings: _*)
   .settings(
     name := "iglu-core",
@@ -33,11 +33,12 @@ lazy val igluCore = (project in file("."))
 
 lazy val igluCoreJson4s = (project in file("iglu-core-json4s"))
   .dependsOn(igluCore)
+  .enablePlugins(ScalaJSPlugin)
   .settings(json4sBuildSettings: _*)
   .settings(
     name := "iglu-core-json4s",
     libraryDependencies ++= Seq(
-       Libraries.json4s,
+       Libraries.json4s % "provided",
        // Scala (test only)
        Libraries.specs2
     )
@@ -45,6 +46,7 @@ lazy val igluCoreJson4s = (project in file("iglu-core-json4s"))
 
 lazy val igluCoreCirce = (project in file("iglu-core-circe"))
   .dependsOn(igluCore)
+  .enablePlugins(ScalaJSPlugin)
   .settings(circeBuildSettings: _*)
   .settings(
     name := "iglu-core-circe",

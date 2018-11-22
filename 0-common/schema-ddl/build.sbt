@@ -15,21 +15,22 @@ lazy val root = project.in(file("."))
   .settings(
     organization       := "com.snowplowanalytics",
     name               := "schema-ddl",
-    version            := "0.9.0-M3",
+    version            := "0.9.0-M4",
     description        := "Set of Abstract Syntax Trees for various DDL and Schema formats",
     scalaVersion       := "2.12.6",
     crossScalaVersions := Seq("2.11.12", "2.12.6"),
     scalacOptions      := BuildSettings.compilerOptions,
     javacOptions       := BuildSettings.javaCompilerOptions
   )
+  .enablePlugins(ScalaJSPlugin)
   .settings(BuildSettings.buildSettings)
   .settings(libraryDependencies ++= Seq(
-    Dependencies.Libraries.igluCoreJson4s,
-    Dependencies.Libraries.igluCoreCirce,
     Dependencies.Libraries.circeGeneric,
     Dependencies.Libraries.circeLiteral,
     Dependencies.Libraries.circeParser,
     Dependencies.Libraries.jsonValidator,
+    "com.snowplowanalytics"      %%% "iglu-core-json4s"       % Dependencies.V.igluCore,
+    "com.snowplowanalytics"      %%% "iglu-core-circe"        % Dependencies.V.igluCore,
     // Scala (test only)
     Dependencies.Libraries.specs2,
     Dependencies.Libraries.specs2Cats
