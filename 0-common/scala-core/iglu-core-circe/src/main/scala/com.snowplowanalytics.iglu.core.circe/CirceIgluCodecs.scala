@@ -67,6 +67,25 @@ trait CirceIgluCodecs {
       Json.obj("self" -> schema.self.asJson(encodeSchemaMap)).deepMerge(schema.schema)
     }
 
+  final implicit val decodeData: Decoder[SelfDescribingData[Json]] =
+    Decoder.instance { hCursor =>
+      for {
+        map <- hCursor.as[JsonObject].map(_.toMap)
+        schema <- map.get("schema") match {
+          case None => Left(DecodingFailure("schema key is not available", hCursor.history))
+          case Some(schema) => for {
+            schemaString <- schema.as[String]
+            schemaKey <- SchemaKey.fromUri(schemaString).toRight(DecodingFailure("schema key has invalid format", hCursor.history))
+          } yield schemaKey
+        }
+        data <- map.get("data") match {
+          case None => Left(DecodingFailure("data key is not available", hCursor.history))
+          case Some(data) => Right(data)
+        }
+      } yield SelfDescribingData(schema, data)
+    }
+
+
   final implicit val encodeData: Encoder[SelfDescribingData[Json]] =
     Encoder.instance { data =>
       Json.obj("schema" -> Json.fromString(data.schema.toSchemaUri), "data" -> data.data)

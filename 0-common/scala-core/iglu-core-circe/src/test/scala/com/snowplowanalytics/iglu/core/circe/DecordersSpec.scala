@@ -28,6 +28,7 @@ import org.specs2.Specification
 class DecordersSpec extends Specification { def is = s2"""
   Circe decoders
     decode SelfDescribingSchema $e1
+    decode SelfDescribingData $e2
   """
 
   def e1 = {
@@ -62,5 +63,22 @@ class DecordersSpec extends Specification { def is = s2"""
 
     // With AttachTo[JValue] with ToData[JValue] in scope .toSchema won't be even available
     result.as[SelfDescribingSchema[Json]] must beRight(SelfDescribingSchema(self, schema))
+  }
+
+  def e2 = {
+    val input: Json =
+      json"""
+        {
+        	"schema": "iglu:com.acme/event/jsonschema/1-0-4",
+        	"data": {}
+        }
+      """
+
+    val expected = SelfDescribingData(
+      SchemaKey("com.acme", "event", "jsonschema", SchemaVer.Full(1,0,4)),
+      Json.fromFields(List.empty)
+    )
+
+    input.as[SelfDescribingData[Json]] must beRight(expected)
   }
 }
