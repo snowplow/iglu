@@ -12,7 +12,7 @@
  */
 package com.snowplowanalytics.iglu.core
 
-import typeclasses.ExtractSchemaMap
+import typeclasses.{ ExtractSchemaMap, AttachSchemaMap }
 
 /**
   * Entity describing a schema object itself
@@ -42,6 +42,11 @@ final case class SchemaMap(
   /** Convert to its data-duality - `SchemaKey` */
   def toSchemaKey: SchemaKey =
     SchemaKey(vendor, name, format, version)
+
+  /** Attach SchemaMap, without changing structure of `E` */
+  def attachTo[E: AttachSchemaMap](entity: E): E =
+    implicitly[AttachSchemaMap[E]].attachSchemaMap(this, entity)
+
 }
 
 object SchemaMap {
@@ -114,8 +119,8 @@ object SchemaMap {
     case _ => None
   }
 
-  /** Try to decode `E` as `SchemaMap[E]` */
-  def parse[E: ExtractSchemaMap](e: E): Option[SchemaMap] =
+  /** Try to get `SchemaMap` from `E` as */
+  def extract[E: ExtractSchemaMap](e: E): Option[SchemaMap] =
     implicitly[ExtractSchemaMap[E]].extractSchemaMap(e)
 
 }

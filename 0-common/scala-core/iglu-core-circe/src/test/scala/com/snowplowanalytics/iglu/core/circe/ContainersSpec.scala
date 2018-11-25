@@ -60,7 +60,7 @@ class ContainersSpec extends Specification { def is = s2"""
         }
       """
 
-    result.toData must beSome(SelfDescribingData(key, data))
+    SelfDescribingData.parse(result) must beSome(SelfDescribingData(key, data))
   }
 
   def e2 = {
@@ -95,7 +95,7 @@ class ContainersSpec extends Specification { def is = s2"""
       """
 
     // With AttachTo[JValue] with ToData[JValue] in scope .toSchema won't be even available
-    result.toSchema must beSome(SelfDescribingSchema(self, schema))
+    SelfDescribingSchema.parse(result) must beSome(SelfDescribingSchema(self, schema))
   }
 
   def e3 = {

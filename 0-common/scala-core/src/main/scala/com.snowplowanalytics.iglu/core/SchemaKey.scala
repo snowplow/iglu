@@ -15,7 +15,7 @@ package core
 
 import scala.util.matching.Regex
 
-import typeclasses.ExtractSchemaKey
+import typeclasses.{ ExtractSchemaKey, AttachSchemaKey }
 
 /**
  * Entity describing schema of data, Duality of `SchemaMap`
@@ -27,17 +27,24 @@ final case class SchemaKey(
   format: String,
   version: SchemaVer.Full) {
 
-  /**
-   * Converts the SchemaKey back to an Iglu-format schema URI
-   *
-   * @return the SchemaKey as a Iglu-format schema URI
-   */
+  /** Converts the SchemaKey back to an Iglu-format schema URI */
   def toSchemaUri: String =
     s"iglu:$vendor/$name/$format/${version.asString}"
+
+  /**
+    * Converts a SchemaKey into a path which is compatible
+    * with most local and remote Iglu schema repositories.
+    */
+  def toPath: String =
+    s"$vendor/$name/$format/${version.asString}"
 
   /** Lossy conversion to partial schema key */
   def asPartial: PartialSchemaKey =
     PartialSchemaKey(vendor, name, format, version)
+
+  /** Attach SchemaKey, without changing structure of `E` */
+  def attachTo[E: AttachSchemaKey](entity: E): E =
+    implicitly[AttachSchemaKey[E]].attachSchemaKey(this, entity)
 }
 
 /**
@@ -56,6 +63,14 @@ object SchemaKey {
     "(?:-(?:0|[1-9][0-9]*)){2})$").r    // REVISION and ADDITION
                                         // Extract whole SchemaVer within single group
 
+  /** Regular expression to extract SchemaKey from path */
+  val schemaPathRegex = (
+    "^([a-zA-Z0-9-_.]+)/" +
+      "([a-zA-Z0-9-_]+)/" +
+      "([a-zA-Z0-9-_]+)/" +
+      "([1-9][0-9]*" +
+      "(?:-(?:0|[1-9][0-9]*)){2})$").r
+
   /**
    * Default `Ordering` instance for [[SchemaKey]]
    * Sort keys alphabetically AND by ascending SchemaVer
@@ -69,7 +84,7 @@ object SchemaKey {
    * }}}
    */
   val ordering: Ordering[SchemaKey] =
-    Ordering.by { (key: SchemaKey) =>
+    Ordering.by { key: SchemaKey =>
       (key.vendor, key.name, key.format, key.version)
     }
 
@@ -92,7 +107,25 @@ object SchemaKey {
     case _ => None
   }
 
-  /** Try to decode `E` as `SchemaKey[E]` */
-  def parse[E: ExtractSchemaKey](e: E): Option[SchemaKey] =
+  /** Try to get `SchemaKey` from `E` as */
+  def extract[E: ExtractSchemaKey](e: E): Option[SchemaKey] =
     implicitly[ExtractSchemaKey[E]].extractSchemaKey(e)
+
+  /**
+    * Custom constructor for an Iglu SchemaMap from
+    * an Iglu-format Schema path, which looks like:
+    * com.snowplowanalytics.snowplow/mobile_context/jsonschema/1-0-0
+    * Can be used get Schema key by path on file system
+    *
+    * @param schemaPath an Iglu-format Schema path
+    * @return some SchemaMap for Success, and none for failure
+    */
+  def fromPath(schemaPath: String): Option[SchemaMap] = schemaPath match {
+    case schemaPathRegex(vnd, n, f, ver) =>
+      SchemaVer.parse(ver).flatMap {
+        case v: SchemaVer.Full => Some(SchemaMap(vnd, n, f, v))
+        case _: SchemaVer.Partial => None   // Partial SchemaVer cannot be used
+      }
+    case _ => None
+  }
 }

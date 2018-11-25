@@ -57,7 +57,7 @@ class AttachSchemaKeySpec extends Specification { def is = s2"""
         }
       """
 
-    val result = data.attachSchemaKey(SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)))
+    val result = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)).attachTo(data)
     result must beEqualTo(expected)
   }
 
@@ -140,7 +140,7 @@ class AttachSchemaKeySpec extends Specification { def is = s2"""
         }
       """
 
-    val result = schema.attachSchemaMap(SchemaMap("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)))
+    val result = SchemaMap("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)).attachTo(schema)
     result must beJson(expected)
   }
 
@@ -160,8 +160,8 @@ class AttachSchemaKeySpec extends Specification { def is = s2"""
       """
 
     val key = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
-    val result = schema.attachSchemaKey(key)
-    result.getSchemaKey must beSome(key)
+    val result = key.attachTo(schema)
+    SchemaKey.extract(result) must beSome(key)
   }
 
   import org.specs2.matcher.Matcher

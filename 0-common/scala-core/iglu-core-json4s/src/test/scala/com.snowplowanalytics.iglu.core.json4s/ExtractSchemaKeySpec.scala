@@ -26,13 +26,11 @@ import com.snowplowanalytics.iglu.core._
 class ExtractSchemaKeySpec extends Specification { def is = s2"""
   Specification ExtractFrom type class for instances
     extract SchemaKey using postfix method $e1
-    extract SchemaKey using unsafe postfix method $e2
     extract SchemaKey using AttachTo type class $e3
-    throw exception on calling unsafe method $e4
     fail to extract SchemaKey with invalid SchemaVer $e7
 
   Specification ExtractFrom type class for Schemas
-    extract SchemaKey using postfix method $e5
+    extract SchemaKey $e5
     fail to extract SchemaKey with invalid SchemaVer $e6
   """
 
@@ -46,22 +44,9 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    json.getSchemaKey must beSome(
+    SchemaKey.extract(json) must beSome(
       SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer.Full(2,0,3))
     )
-  }
-
-  def e2 = {
-
-    val json: JValue = parse(
-      """
-        |{
-        |  "schema": "iglu:com.acme.useless/null/jsonschema/2-0-3",
-        |  "data": null
-        |}
-      """.stripMargin)
-
-    json.getSchemaKeyUnsafe must beEqualTo(SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer.Full(2,0,3)))
   }
 
   def e3 = {
@@ -74,21 +59,9 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    json.getSchemaKey must beSome(
+    SchemaKey.extract(json) must beSome(
       SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer.Full(2,0,3))
     )
-  }
-
-  def e4 = {
-
-    val json: JValue = parse(
-      """
-        |{ "data": null }
-      """.stripMargin)
-
-    json.getSchemaKeyUnsafe must throwA[RuntimeException].like {
-      case e => e.getMessage must beEqualTo("Cannot extract SchemaKey from object [JObject(List((data,JNull)))]")
-    }
   }
 
   def e5 = {
@@ -110,7 +83,7 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    json.getSchemaMap must beSome(
+    SchemaMap.extract(json) must beSome(
       SchemaMap("com.acme", "keyvalue", "jsonschema", SchemaVer.Full(1,1,0))
     )
   }
@@ -135,7 +108,7 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    json.getSchemaKey must beNone
+    SchemaKey.extract(json) must beNone
   }
 
   def e7 = {
@@ -149,6 +122,6 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    json.getSchemaKey must beNone
+    SchemaKey.extract(json) must beNone
   }
 }

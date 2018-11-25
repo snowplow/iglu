@@ -33,8 +33,6 @@ class SchemaKeySpec extends Specification { def is = s2"""
     sort entities with SchemaKey $e6
   """
 
-  import syntax._
-
   def e1 = {
     val uri = "iglu:com.snowplowanalytics.snowplow/mobile_context/jsonschema/1-0-0"
     SchemaKey.fromUri(uri) must beSome(
@@ -72,7 +70,6 @@ class SchemaKeySpec extends Specification { def is = s2"""
     SchemaKey.fromUri(uri) must beNone
   }
 
-
   def e6 = {
 
     implicit val ordering = SchemaKey.ordering
@@ -86,7 +83,7 @@ class SchemaKeySpec extends Specification { def is = s2"""
       DescribedString("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", 1, 1, 1, "111")
     )
 
-    describedData.sortBy(_.getSchemaKeyUnsafe) must beEqualTo(Seq(
+    describedData.sortBy(SchemaKey.extract(_).getOrElse(throw new RuntimeException("Not possible")) ) must beEqualTo(Seq(
       DescribedString("com.snowplowanalytics.snowplow", "aobile_context", "jsonschema", 2, 1, 0, "210"),
       DescribedString("com.snowplowanalytics.snowplow", "mobile_context", "avro", 2, 1, 0, "210"),
       DescribedString("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", 1, 0, 0, "100"),
