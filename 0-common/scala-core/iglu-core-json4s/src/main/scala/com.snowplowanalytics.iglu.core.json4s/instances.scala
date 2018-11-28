@@ -23,8 +23,8 @@ trait instances {
 
   private implicit val codecs = Json4sIgluCodecs.formats
 
-  final implicit val igluAttachToDataJValue: AttachSchemaKey[JValue] with ToData[JValue] with ExtractSchemaKey[JValue] =
-    new AttachSchemaKey[JValue] with ToData[JValue] {
+  final implicit val igluAttachToDataJValue: ExtractSchemaKey[JValue] with ToData[JValue] with ExtractSchemaKey[JValue] =
+    new ExtractSchemaKey[JValue] with ToData[JValue] {
 
       def extractSchemaKey(entity: JValue): Option[SchemaKey] =
         entity \ "schema" match {
@@ -32,20 +32,14 @@ trait instances {
           case _               => None
         }
 
-      def attachSchemaKey(schemaKey: SchemaKey, instance: JValue): JValue =
-        ("schema" -> schemaKey.toSchemaUri) ~ ("data" -> instance)
-
       def getContent(json: JValue): JValue = json \ "data"
     }
 
-  final implicit val igluAttachToSchema: AttachSchemaMap[JValue] with ToSchema[JValue] with ExtractSchemaMap[JValue] =
-    new AttachSchemaMap[JValue] with ToSchema[JValue] with ExtractSchemaMap[JValue] {
+  final implicit val igluAttachToSchema: ExtractSchemaMap[JValue] with ToSchema[JValue] with ExtractSchemaMap[JValue] =
+    new ToSchema[JValue] with ExtractSchemaMap[JValue] {
 
       def extractSchemaMap(entity: JValue): Option[SchemaMap] =
-        (entity \ "self").extractOpt[SchemaMap]
-
-      def attachSchemaMap(schemaMap: SchemaMap, schema: JValue): JValue =
-        (("self", Extraction.decompose(schemaMap)): JObject).merge(schema)
+        (entity \ "self").extractOpt[SchemaKey].map(key => SchemaMap(key))
 
       def getContent(schema: JValue): JValue = schema match {
         case JObject(fields) =>

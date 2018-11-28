@@ -20,8 +20,8 @@ import io.circe._
 import com.snowplowanalytics.iglu.core.typeclasses._
 
 trait instances {
-  final implicit val igluAttachToDataCirce: AttachSchemaKey[Json] with ToData[Json] with ExtractSchemaKey[Json] =
-    new AttachSchemaKey[Json] with ToData[Json] {
+  final implicit val igluAttachToDataCirce: ExtractSchemaKey[Json] with ToData[Json] with ExtractSchemaKey[Json] =
+    new ExtractSchemaKey[Json] with ToData[Json] {
 
       def extractSchemaKey(entity: Json): Option[SchemaKey] =
         for {
@@ -31,14 +31,6 @@ trait instances {
           schemaKey <- SchemaKey.fromUri(schemaUriString)
         } yield schemaKey
 
-      def attachSchemaKey(schemaKey: SchemaKey, instance: Json): Json =
-        Json.fromJsonObject(JsonObject.fromMap(
-          Map(
-            "schema" -> Json.fromString(schemaKey.toSchemaUri),
-            "data" -> instance
-          )
-        ))
-
       def getContent(json: Json): Json = json
         .asObject
         .getOrElse(throw new RuntimeException("Iglu Core getContent: cannot parse into JSON object"))
@@ -46,8 +38,8 @@ trait instances {
         .getOrElse(throw new RuntimeException("Iglu Core getContent: cannot get `data`"))
     }
 
-  final implicit val igluAttachToSchema: AttachSchemaMap[Json] with ToSchema[Json] with ExtractSchemaMap[Json] =
-    new AttachSchemaMap[Json] with ToSchema[Json] with ExtractSchemaMap[Json] {
+  final implicit val igluAttachToSchema: ToSchema[Json] with ExtractSchemaMap[Json] =
+    new ToSchema[Json] with ExtractSchemaMap[Json] {
 
       def extractSchemaMap(entity: Json): Option[SchemaMap] =
         CirceIgluCodecs.parseSchemaMap(entity.hcursor) match {
@@ -56,16 +48,6 @@ trait instances {
             println(err)
             None
         }
-
-      def attachSchemaMap(schemaMap: SchemaMap, schema: Json): Json = {
-        val json = for {
-          jsonSchema <- schema.asObject
-          jsonObject = JsonObject.fromMap(
-            Map("self" -> CirceIgluCodecs.encodeSchemaMap(schemaMap)) ++ jsonSchema.toMap
-          )
-        } yield Json.fromJsonObject(jsonObject)
-        json.getOrElse(Json.Null)
-      }
 
       def getContent(schema: Json): Json =
         Json.fromJsonObject {

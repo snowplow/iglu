@@ -12,54 +12,15 @@
  */
 package com.snowplowanalytics.iglu.core
 
-import typeclasses.{ ExtractSchemaMap, AttachSchemaMap }
+import typeclasses.ExtractSchemaMap
 
 /**
-  * Entity describing a schema object itself
-  * Has known `SchemaVer`, extracted from `self` Schema's subobject
-  * Duality of `SchemaKey`
+  * Entity describing a schema object itself, duality of `SchemaKey`
+  * **Should be used only with schemas**
   */
-final case class SchemaMap(
-  vendor: String,
-  name: String,
-  format: String,
-  version: SchemaVer.Full) {
-
-  /**
-    * Converts a SchemaMap into a path which is compatible
-    * with most local and remote Iglu schema repositories.
-    *
-    * @return a path usable for addressing local and remote
-    *         Iglu schema lookups
-    */
-  def toPath: String =
-    s"$vendor/$name/$format/${version.asString}"
-
-  /** Convert the SchemaMap back to an Iglu-format schema URI */
-  def toSchemaUri: String =
-    s"iglu:$vendor/$name/$format/${version.asString}"
-
-  /** Convert to its data-duality - `SchemaKey` */
-  def toSchemaKey: SchemaKey =
-    SchemaKey(vendor, name, format, version)
-
-  /** Attach SchemaMap, without changing structure of `E` */
-  def attachTo[E: AttachSchemaMap](entity: E): E =
-    implicitly[AttachSchemaMap[E]].attachSchemaMap(this, entity)
-
-}
+final case class SchemaMap(schemaKey: SchemaKey) extends AnyVal
 
 object SchemaMap {
-
-  /** Canonical regular expression for SchemaKey/SchemaMap */
-  val schemaUriRegex = (
-    "^iglu:" +                          // Protocol
-      "([a-zA-Z0-9-_.]+)/" +            // Vendor
-      "([a-zA-Z0-9-_]+)/" +             // Name
-      "([a-zA-Z0-9-_]+)/" +             // Format
-      "([1-9][0-9]*" +                  // MODEL (cannot start with 0)
-      "(?:-(?:0|[1-9][0-9]*)){2})$").r  // REVISION and ADDITION
-                                        // Extract whole SchemaVer within single group
 
   /** Regular expression to extract SchemaKey from path */
   val schemaPathRegex = (
@@ -69,43 +30,15 @@ object SchemaMap {
       "([1-9][0-9]*" +
       "(?:-(?:0|[1-9][0-9]*)){2})$").r
 
-  /**
-    * Default `Ordering` instance for [[SchemaKey]]
-    * Sort keys alphabetically AND by ascending SchemaVer
-    * (so initial Schemas will be in the beginning)
-    *
-    * Usage:
-    * {{{
-    *   import com.snowplowanalytics.iglu.core.SchemaKey
-    *   implicit val schemaOrdering = SchemaKey.ordering
-    *   keys.sorted
-    * }}}
-    */
-  val ordering = Ordering.by { (key: SchemaKey) =>
-    (key.vendor, key.name, key.format, key.version)
-  }
-
-  /**
-    * Custom constructor for an Iglu SchemaKey from
-    * an Iglu-format schema URI, which looks like:
-    * iglu:com.snowplowanalytics.snowplow/mobile_context/jsonschema/1-0-0
-    * Default for Schema reference
-    *
-    * @param schemaUri an Iglu-format Schema URI
-    * @return a Validation-boxed SchemaKey for
-    *         Success, and an error String on Failure
-    */
-  def fromUri(schemaUri: String): Option[SchemaMap] = schemaUri match {
-    case schemaUriRegex(vnd, n, f, ver) =>
-      SchemaVer.parseFull(ver).map(SchemaMap(vnd, n, f, _))
-    case _ => None
-  }
+  def apply(vendor: String, name: String, format: String, version: SchemaVer.Full): SchemaMap =
+    SchemaMap(SchemaKey(vendor, name, format, version))
 
   /**
     * Custom constructor for an Iglu SchemaMap from
     * an Iglu-format Schema path, which looks like:
     * com.snowplowanalytics.snowplow/mobile_context/jsonschema/1-0-0
     * Can be used get Schema key by path on file system
+    * Exists only in `SchemaMap` because schemas are stored at certain paths
     *
     * @param schemaPath an Iglu-format Schema path
     * @return some SchemaMap for Success, and none for failure
@@ -122,5 +55,4 @@ object SchemaMap {
   /** Try to get `SchemaMap` from `E` as */
   def extract[E: ExtractSchemaMap](e: E): Option[SchemaMap] =
     implicitly[ExtractSchemaMap[E]].extractSchemaMap(e)
-
 }

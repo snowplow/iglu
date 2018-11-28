@@ -51,7 +51,7 @@ object Json4sIgluCodecs {
   object SchemaSerializer extends CustomSerializer[SelfDescribingSchema[JValue]](_ => (
     {
       case fullSchema: JObject =>
-        val schemaMap = (fullSchema \ "self").extract[SchemaMap]
+        val schemaMap = SchemaMap((fullSchema \ "self").extract[SchemaKey])
         val schema = removeSelf(fullSchema)
         SelfDescribingSchema(schemaMap, schema)
       case _ => throw new MappingException("Not an JSON object")
@@ -59,7 +59,7 @@ object Json4sIgluCodecs {
 
     {
       case SelfDescribingSchema(self, schema: JValue) =>
-        (("self", Extraction.decompose(self)): JObject).merge(schema)
+        (("self", Extraction.decompose(self.schemaKey)): JObject).merge(schema)
     }
     ))
 

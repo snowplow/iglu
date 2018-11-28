@@ -15,7 +15,7 @@ package core
 
 import scala.util.matching.Regex
 
-import typeclasses.{ ExtractSchemaKey, AttachSchemaKey }
+import typeclasses.{ ExtractSchemaKey, NormalizeData }
 
 /**
  * Entity describing schema of data, Duality of `SchemaMap`
@@ -42,9 +42,13 @@ final case class SchemaKey(
   def asPartial: PartialSchemaKey =
     PartialSchemaKey(vendor, name, format, version)
 
+  /** Convert to schema-duality */
+  def toSchemaMap: SchemaMap =
+    SchemaMap(this)
+
   /** Attach SchemaKey, without changing structure of `E` */
-  def attachTo[E: AttachSchemaKey](entity: E): E =
-    implicitly[AttachSchemaKey[E]].attachSchemaKey(this, entity)
+  def attachTo[E: NormalizeData](entity: E): E =
+    implicitly[NormalizeData[E]].normalize(SelfDescribingData(this, entity))
 }
 
 /**
@@ -62,14 +66,6 @@ object SchemaKey {
     "([1-9][0-9]*" +                    // MODEL (cannot start with 0)
     "(?:-(?:0|[1-9][0-9]*)){2})$").r    // REVISION and ADDITION
                                         // Extract whole SchemaVer within single group
-
-  /** Regular expression to extract SchemaKey from path */
-  val schemaPathRegex = (
-    "^([a-zA-Z0-9-_.]+)/" +
-      "([a-zA-Z0-9-_]+)/" +
-      "([a-zA-Z0-9-_]+)/" +
-      "([1-9][0-9]*" +
-      "(?:-(?:0|[1-9][0-9]*)){2})$").r
 
   /**
    * Default `Ordering` instance for [[SchemaKey]]
@@ -110,22 +106,4 @@ object SchemaKey {
   /** Try to get `SchemaKey` from `E` as */
   def extract[E: ExtractSchemaKey](e: E): Option[SchemaKey] =
     implicitly[ExtractSchemaKey[E]].extractSchemaKey(e)
-
-  /**
-    * Custom constructor for an Iglu SchemaMap from
-    * an Iglu-format Schema path, which looks like:
-    * com.snowplowanalytics.snowplow/mobile_context/jsonschema/1-0-0
-    * Can be used get Schema key by path on file system
-    *
-    * @param schemaPath an Iglu-format Schema path
-    * @return some SchemaMap for Success, and none for failure
-    */
-  def fromPath(schemaPath: String): Option[SchemaMap] = schemaPath match {
-    case schemaPathRegex(vnd, n, f, ver) =>
-      SchemaVer.parse(ver).flatMap {
-        case v: SchemaVer.Full => Some(SchemaMap(vnd, n, f, v))
-        case _: SchemaVer.Partial => None   // Partial SchemaVer cannot be used
-      }
-    case _ => None
-  }
 }

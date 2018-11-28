@@ -41,12 +41,12 @@ trait CirceIgluCodecs {
     Decoder.instance(parseSchemaMap)
 
   final implicit val encodeSchemaMap: Encoder[SchemaMap] =
-    Encoder.instance { key =>
+    Encoder.instance { schemaMap =>
       Json.obj(
-        "vendor"  -> Json.fromString(key.vendor),
-        "name"    -> Json.fromString(key.name),
-        "format"  -> Json.fromString(key.format),
-        "version" -> Json.fromString(key.version.asString)
+        "vendor"  -> Json.fromString(schemaMap.schemaKey.vendor),
+        "name"    -> Json.fromString(schemaMap.schemaKey.name),
+        "format"  -> Json.fromString(schemaMap.schemaKey.format),
+        "version" -> Json.fromString(schemaMap.schemaKey.version.asString)
       )
     }
 

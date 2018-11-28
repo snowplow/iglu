@@ -93,8 +93,6 @@ class ContainersSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    org.json4s.jackson.JsonMethods.compact(result)
-
     SelfDescribingSchema.parse(result) must beSome(SelfDescribingSchema(self, schema))
   }
 

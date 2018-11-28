@@ -73,42 +73,15 @@ object IgluCoreCommon {
 
   // Schemas
 
-  /**
-   * Example of simple [[AttachSchemaKey]] JSON *Schema* for json4s
-   */
-  implicit object Json4SAttachSchemaKeySchema extends AttachSchemaKey[JValue] {
-    def attachSchemaKey(schemaKey: SchemaKey, schema: JValue): JValue =
-      (("self", Extraction.decompose(schemaKey)): JObject).merge(schema)
-
-    /**
-     * Extract SchemaKey using serialization formats defined at [[IgluJson4sCodecs]]
-     * `extractSchemaKey` is also required to be implemented in [[AttachSchemaKey]] because it
-     * is supreme type class
-     */
+  implicit object Json4SAttachSchemaKeySchema extends ExtractSchemaKey[JValue] {
     def extractSchemaKey(entity: JValue): Option[SchemaKey] =
       (entity \ "self").extractOpt[SchemaKey]
   }
 
-  /**
-   * Example of full-featured [[AttachSchemaKey]] JSON *Schema* for json4s
-   * Unlike almost identical [[Json4SAttachSchemaKeySchema]] it also extends
-   * [[ToSchema]] which makes possible to use `toSchema` method
-   */
-  implicit object Json4SAttachSchemaMapComplex extends AttachSchemaMap[JValue] with ToSchema[JValue] {
-    def attachSchemaMap(schemaMap: SchemaMap, schema: JValue): JValue = {
-      (("self", Extraction.decompose(schemaMap)): JObject).merge(schema)
-    }
-
-    /**
-     * Extract SchemaKey using serialization formats defined at [[IgluJson4sCodecs]]
-     * `extractSchemaKey` is also required to be implemented in [[AttachSchemaKey]] because it
-     * is supreme type class
-     */
+  implicit object Json4SAttachSchemaMapComplex extends ExtractSchemaMap[JValue] with ToSchema[JValue] {
     def extractSchemaMap(entity: JValue): Option[SchemaMap] = {
-
       implicit val formats = IgluJson4sCodecs.formats
-
-      (entity \ "self").extractOpt[SchemaMap]
+      (entity \ "self").extractOpt[SchemaKey].map(key => SchemaMap(key))
     }
 
     /**
@@ -124,11 +97,7 @@ object IgluCoreCommon {
 
   // Data
 
-  /**
-   * Example of full-featured [[AttachSchemaKey]] JSON *instance* for json4s
-   * Contains all available mix-ins
-   */
-  implicit object Json4SAttachSchemaKeyData extends AttachSchemaKey[JValue] with ToData[JValue] with Json4SExtractSchemaKeyData {
+  implicit object Json4SAttachSchemaKeyData extends ExtractSchemaKey[JValue] with ToData[JValue] with Json4SExtractSchemaKeyData {
 
     def getContent(json: JValue): JValue =
       json \ "data" match {
