@@ -26,7 +26,7 @@ object Dependencies {
     val activation       = "1.1.1"
     // Scala
     val catsEffect       = "1.1.0"
-    val schemaddl        = "0.9.0"
+    val schemaddl        = "0.9.0-M4"
     val igluClient       = "0.5.0"
     val decline          = "0.6.0"
     val scalajHttp       = "2.3.0"
