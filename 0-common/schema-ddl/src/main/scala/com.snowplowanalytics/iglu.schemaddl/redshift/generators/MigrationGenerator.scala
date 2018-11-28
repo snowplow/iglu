@@ -45,9 +45,9 @@ object MigrationGenerator {
       tableSchema: Option[String] = Some("atomic"))
   : DdlFile = {
 
-    val schemaKey     = SchemaMap(migration.vendor, migration.name, "jsonschema", migration.to)
-    val oldSchemaUri  = SchemaMap(migration.vendor, migration.name, "jsonschema", migration.from).toSchemaUri
-    val tableName     = getTableName(schemaKey)                            // e.g. com_acme_event_1
+    val schemaMap     = SchemaMap(migration.vendor, migration.name, "jsonschema", migration.to)
+    val oldSchemaUri  = SchemaMap(migration.vendor, migration.name, "jsonschema", migration.from).schemaKey.toSchemaUri
+    val tableName     = getTableName(schemaMap)                            // e.g. com_acme_event_1
     val tableNameFull = tableSchema.map(_ + ".").getOrElse("") + tableName   // e.g. atomic.com_acme_event_1
 
     val transaction =
@@ -58,7 +58,7 @@ object MigrationGenerator {
     }
 
     val header = getHeader(tableName, oldSchemaUri)
-    val comment = CommentOn(tableNameFull, schemaKey.toSchemaUri)
+    val comment = CommentOn(tableNameFull, schemaMap.schemaKey.toSchemaUri)
     DdlFile(List(header, Empty, Begin(None, None), Empty) ++ transaction :+ Empty :+ comment :+ Empty :+ End)
   }
 

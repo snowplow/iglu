@@ -56,7 +56,7 @@ case class Migration(
 
 object Migration {
 
-  implicit val schemaOrdering = implicitly[Order[Int]].contramap[IgluSchema](_.self.version.addition)
+  implicit val schemaOrdering = implicitly[Order[Int]].contramap[IgluSchema](_.self.schemaKey.version.addition)
 
   /**
    * This class represents differences between two Schemas
@@ -102,10 +102,10 @@ object Migration {
     (flatSource, flatSuccessive).mapN { (source: ListMap[String, Map[String, String]], successive: List[FlatSchema]) =>
       val diff = diffMaps(source, successive.map(_.elems))
       Migration(
-        sourceSchema.self.vendor,
-        sourceSchema.self.name,
-        sourceSchema.self.version,
-        target.self.version, diff)
+        sourceSchema.self.schemaKey.vendor,
+        sourceSchema.self.schemaKey.name,
+        sourceSchema.self.schemaKey.version,
+        target.self.schemaKey.version, diff)
     }
   }
 
@@ -207,7 +207,7 @@ object Migration {
    * @return map of revision criterion to list with all added columns
    */
   def getOrdering(migrationMap: ValidMigrationMap): Map[RevisionGroup, Validated[String, List[String]]] =
-    migrationMap.filterKeys(_.version.addition == 0).map {
+    migrationMap.filterKeys(_.schemaKey.version.addition == 0).map {
       case (description, Validated.Valid(migrations)) =>
         val longestMigration = migrations.map(_.diff.added.keys.toList).maxBy(x => x.length)
         (revisionCriterion(description), longestMigration.valid)
@@ -260,5 +260,5 @@ object Migration {
    * @return tuple of vendor, name, model, revision
    */
   private def revisionCriterion(schemaMap: SchemaMap): RevisionGroup =
-    (schemaMap.vendor, schemaMap.name, schemaMap.version.model, schemaMap.version.revision)
+    (schemaMap.schemaKey.vendor, schemaMap.schemaKey.name, schemaMap.schemaKey.version.model, schemaMap.schemaKey.version.revision)
 }
