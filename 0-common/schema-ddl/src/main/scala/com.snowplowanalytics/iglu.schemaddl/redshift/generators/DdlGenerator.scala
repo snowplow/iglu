@@ -41,7 +41,7 @@ object DdlGenerator {
    */
   def getTableComment(tableName: String, schemaName: Option[String], schemaMap: SchemaMap): CommentOn = {
     val schema = schemaName.map(_ + ".").getOrElse("")
-    CommentOn(schema + tableName, schemaMap.toSchemaUri)
+    CommentOn(schema + tableName, schemaMap.schemaKey.toSchemaUri)
   }
 
   /**
