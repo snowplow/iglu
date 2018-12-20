@@ -16,8 +16,9 @@ package com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s
 import org.json4s._
 import org.json4s.jackson.JsonMethods.parse
 
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.ObjectProperty.{Properties, Required}
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.{Schema, StringProperty}
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.StringProperty
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.ObjectProperty.{Properties, Required}
 
 import implicits._
 

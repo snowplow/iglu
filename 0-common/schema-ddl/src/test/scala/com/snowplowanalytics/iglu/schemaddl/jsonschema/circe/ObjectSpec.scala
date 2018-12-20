@@ -14,8 +14,9 @@ package com.snowplowanalytics.iglu.schemaddl.jsonschema.circe
 
 import io.circe.literal._
 
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.ObjectProperty.{Properties, Required}
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.{Schema, StringProperty}
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.ObjectProperty.{Properties, Required}
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.StringProperty.MinLength
 
 import implicits._
 
@@ -62,7 +63,7 @@ class ObjectSpec extends Specification { def is = s2"""
         }
       """
 
-    Schema.parse(schema) must beSome(Schema(properties = Some(Properties(Map("innerKey" -> Schema(minLength = Some(StringProperty.MinLength(32))))))))
+    Schema.parse(schema) must beSome(Schema(properties = Some(Properties(Map("innerKey" -> Schema(minLength = Some(MinLength(32))))))))
   }
 
   def e4 = {

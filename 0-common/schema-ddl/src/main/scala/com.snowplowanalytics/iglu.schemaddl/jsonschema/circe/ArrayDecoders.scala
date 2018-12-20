@@ -17,7 +17,7 @@ import cats.implicits._
 
 import io.circe._
 
-import ArrayProperty._
+import properties.ArrayProperty._
 
 trait ArrayDecoders {
 

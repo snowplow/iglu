@@ -19,9 +19,9 @@ import io.circe.{ Decoder, Json }
 import io.circe.generic.semiauto._
 
 trait implicits extends StringDecoders with NumberDecoders with ObjectDecoders with ArrayDecoders with CommonDecoders {
-  implicit val schemaDecoder: Decoder[Schema] = deriveDecoder[Schema]
+  implicit lazy val schemaDecoder: Decoder[Schema] = deriveDecoder[Schema]
 
-  implicit val toSchema: ToSchema[Json] = new ToSchema[Json] {
+  implicit lazy val toSchema: ToSchema[Json] = new ToSchema[Json] {
     def parse(json: Json): Option[Schema] =
       json.as[Schema].toOption
   }

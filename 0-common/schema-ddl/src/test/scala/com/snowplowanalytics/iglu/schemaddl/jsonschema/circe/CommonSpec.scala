@@ -14,9 +14,8 @@ package com.snowplowanalytics.iglu.schemaddl.jsonschema.circe
 
 // circe
 import io.circe.literal._
-
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.{CommonProperties, Schema}
-
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.CommonProperties
 import implicits._
 
 // specs2

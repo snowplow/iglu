@@ -17,7 +17,7 @@ package jsonschema.json4s
 import org.json4s._
 
 // This library
-import jsonschema.StringProperty._
+import jsonschema.properties.StringProperty._
 
 object StringSerializers {
 

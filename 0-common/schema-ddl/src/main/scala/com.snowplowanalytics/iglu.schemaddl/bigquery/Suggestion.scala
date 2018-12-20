@@ -14,7 +14,8 @@ package com.snowplowanalytics.iglu.schemaddl.bigquery
 
 import io.circe._
 
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.{CommonProperties, Schema, StringProperty}
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.{CommonProperties, StringProperty}
 
 object Suggestion {
 

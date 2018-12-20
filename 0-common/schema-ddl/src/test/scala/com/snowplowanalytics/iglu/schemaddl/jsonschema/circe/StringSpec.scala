@@ -16,7 +16,7 @@ package com.snowplowanalytics.iglu.schemaddl.jsonschema.circe
 import io.circe.literal._
 
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.StringProperty.{Format, MaxLength, MinLength}
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.StringProperty.{Format, MaxLength, MinLength}
 
 import implicits._
 
