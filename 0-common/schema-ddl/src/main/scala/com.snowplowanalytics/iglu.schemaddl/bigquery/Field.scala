@@ -13,7 +13,8 @@
 package com.snowplowanalytics.iglu.schemaddl.bigquery
 
 import com.snowplowanalytics.iglu.schemaddl.StringUtils
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.{ArrayProperty, CommonProperties, Schema}
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.{CommonProperties,ArrayProperty}
 
 /**
   * Type-safe AST proxy to `com.google.cloud.bigquery.Field` schema type

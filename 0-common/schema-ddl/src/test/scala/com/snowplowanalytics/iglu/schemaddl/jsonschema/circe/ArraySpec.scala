@@ -15,8 +15,8 @@ package com.snowplowanalytics.iglu.schemaddl.jsonschema.circe
 // circe
 import io.circe.literal._
 
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.ArrayProperty.{MaxItems, MinItems}
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.ArrayProperty.{MaxItems, MinItems}
 
 import implicits._
 

@@ -13,7 +13,7 @@
 package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
 import com.github.fge.jackson.NodeType
-import com.github.fge.jackson.jsonpointer.JsonPointer
+import com.github.fge.jackson.jsonpointer.{ JsonPointer => FgeJsonPointer }
 import com.github.fge.jsonschema.cfg.ValidationConfiguration
 import com.github.fge.jsonschema.core.exceptions.ProcessingException
 import com.github.fge.jsonschema.core.keyword.syntax.checkers.AbstractSyntaxChecker
@@ -34,10 +34,13 @@ import cats.syntax.validated._
 // json4s
 import org.json4s._
 import org.json4s.jackson.JsonMethods.{ fromJsonNode, asJsonNode }
+import org.json4s.jackson.compactJson
 
 // Iglu Core
 import com.snowplowanalytics.iglu.core.SchemaMap
 import com.snowplowanalytics.iglu.core.json4s.Json4sIgluCodecs.SchemaVerSerializer
+
+import Linter.Message
 
 /** Specific to FGE Validator logic, responsible for linting schemas against meta-schema */
 object SelfSyntaxChecker extends AbstractSyntaxChecker("self", NodeType.OBJECT) {
@@ -45,6 +48,32 @@ object SelfSyntaxChecker extends AbstractSyntaxChecker("self", NodeType.OBJECT) 
   private implicit val schemaFormats: Formats = DefaultFormats + SchemaVerSerializer
 
   private lazy val instance = SelfSyntaxChecker.getSyntaxValidator
+
+  /** Transform typical `ProcessingMessage` into a message accompanied with `JsonPointer` */
+  def extractCheckerMessage(json: JValue): Message =
+    json match {
+      case JObject(fields) =>
+        val jsonObject = fields.toMap
+        val pointer = for {
+          JObject(schemaFields) <- jsonObject.get("schema")
+          JString(pointer) <- schemaFields.toMap.get("pointer")
+        } yield JsonPointer.parse(pointer).fold(identity, identity)
+        val keyword = jsonObject.get("keyword").flatMap {
+          case JString(kw) => Some(kw)
+          case _ => None
+        }
+        val message = jsonObject.getOrElse("message", JString("Unknown message from SelfSyntaxChecker")) match {
+          case JString(m) => m.capitalize + keyword.map(x => s", in [$x]").getOrElse("")
+          case unknown => s"Unrecognized message from SelfSyntaxChecker [${compactJson(unknown)}]"
+        }
+        val level = extractLevel(json)
+        Message(pointer.getOrElse(JsonPointer.Root), message, level)
+      case _ =>
+        Message(JsonPointer.Root, "Unknown message from SelfSyntaxChecker", Linter.Level.Info)
+    }
+
+  def extractReport(processingMessage: ProcessingMessage) =
+    extractCheckerMessage(fromJsonNode(processingMessage.asJson))
 
   /**
     * Validate syntax of JSON Schema using FGE JSON Schema Validator
@@ -56,16 +85,24 @@ object SelfSyntaxChecker extends AbstractSyntaxChecker("self", NodeType.OBJECT) 
     * @return non-empty list of error messages in case of invalid Schema
     *         or unit if case of successful
     */
-  def validateSchema(json: JValue, skipWarnings: Boolean): ValidatedNel[String, Unit] = {
+  def validateSchema(json: JValue, skipWarnings: Boolean): ValidatedNel[Message, Unit] = {
     val jsonNode = asJsonNode(json)
     val report = instance.validateSchema(jsonNode)
       .asInstanceOf[ListProcessingReport]
 
-    report.iterator.asScala.filter(filterMessages(skipWarnings)).map(_.toString).toList match {
+      report.iterator.asScala.map(extractReport).filter(filterMessages(skipWarnings)).toList match {
       case Nil => ().valid
       case h :: t => NonEmptyList.of(h, t: _*).invalid
     }
   }
+
+  private def extractLevel(message: JValue): Linter.Level =
+    message \ "level" match {
+      case JString(l) if l.toLowerCase == "error" => Linter.Level.Error
+      case JString(l) if l.toLowerCase == "warning" => Linter.Level.Warning
+      case JString(l) if l.toLowerCase == "info" => Linter.Level.Info
+      case _ => Linter.Level.Info
+    }
 
   /**
     * Build predicate to filter messages with log level less than WARNING
@@ -74,15 +111,13 @@ object SelfSyntaxChecker extends AbstractSyntaxChecker("self", NodeType.OBJECT) 
     * @param message validation message produced by FGE validator
     * @return always true if `skipWarnings` is false, otherwise depends on loglevel
     */
-  private def filterMessages(skipWarning: Boolean)(message: ProcessingMessage): Boolean =
-    if (skipWarning) fromJsonNode(message.asJson()) \ "level" match {
-      case JString("warning") => false
-      case JString("info") => false
-      case JString("debug") => false
+  private def filterMessages(skipWarning: Boolean)(message: Message): Boolean =
+    if (skipWarning) message.level match {
+      case Linter.Level.Warning => false
+      case Linter.Level.Info => false
       case _ => true
     }
     else true
-
 
   /**
     * Default `SyntaxChecker` method to process key
@@ -94,7 +129,7 @@ object SelfSyntaxChecker extends AbstractSyntaxChecker("self", NodeType.OBJECT) 
     * @param tree currently processing part of Schema
     */
   @throws[ProcessingException]("If key is invalid")
-  def checkValue(pointers: java.util.Collection[JsonPointer],
+  def checkValue(pointers: java.util.Collection[FgeJsonPointer],
                  bundle: MessageBundle,
                  report: ProcessingReport,
                  tree: SchemaTree): Unit = {

@@ -17,7 +17,7 @@ import io.circe._
 
 import cats.implicits._
 
-import ObjectProperty._
+import properties.ObjectProperty._
 
 trait ObjectDecoders {
   private val PropertiesExpectation = "properties expected to be a map of JSON schemas"

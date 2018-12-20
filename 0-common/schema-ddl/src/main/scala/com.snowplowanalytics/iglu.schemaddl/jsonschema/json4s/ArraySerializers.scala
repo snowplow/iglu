@@ -18,7 +18,7 @@ import org.json4s._
 
 // this library
 import jsonschema.Schema
-import jsonschema.ArrayProperty._
+import jsonschema.properties.ArrayProperty._
 
 object ArraySerializers {
 
@@ -71,7 +71,6 @@ object ArraySerializers {
       case MinItems(value) => JInt(value)
     }
     ))
-
 
   object MaxItemsSerializer extends CustomSerializer[MaxItems](_ => (
     {

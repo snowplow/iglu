@@ -26,7 +26,9 @@ import cats.syntax.traverse._
 import io.circe.Json
 
 // This library
-import CommonProperties._
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.CommonProperties._
+
+import implicits._
 
 object CommonSerializers {
 
@@ -46,8 +48,6 @@ object CommonSerializers {
       case JNull => Json.Null
       case JNothing => Json.Null
     }
-
-  import implicits._
 
   object TypeSerializer extends CustomSerializer[Type](_ => (
     {

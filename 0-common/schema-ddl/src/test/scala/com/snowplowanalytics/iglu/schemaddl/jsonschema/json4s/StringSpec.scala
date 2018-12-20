@@ -17,9 +17,10 @@ import org.json4s._
 import org.json4s.jackson.JsonMethods.parse
 
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.StringProperty.{Format, MaxLength, MinLength}
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.ToSchema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.StringProperty.{Format, MaxLength, MinLength}
 
-import implicits._
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s.implicits._
 
 // specs2
 import org.specs2.Specification
@@ -50,6 +51,7 @@ class StringSpec extends Specification { def is = s2"""
   }
 
   def e3 = {
+    implicitly[ToSchema[JValue]]
     val schema = parse(
       """
         |{"maxLength": 32, "format": "unknown"}

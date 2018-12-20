@@ -21,7 +21,7 @@ import org.json4s._
 
 // This library
 import jsonschema.Schema
-import jsonschema.ObjectProperty._
+import jsonschema.properties.ObjectProperty._
 
 
 object ObjectSerializers {

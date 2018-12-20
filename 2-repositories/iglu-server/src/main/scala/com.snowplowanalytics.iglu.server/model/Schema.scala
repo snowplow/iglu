@@ -642,13 +642,13 @@ class SchemaDAO(val db: Database) extends DAO {
       db withDynSession {
         get(List(vendor), List(name), List(format), List(version), List(draftNumber), owner,
           permission, includeMetadata = false, isDraft) match {
-          case (OK, j) => (Unauthorized, result(401, "This schema already exists"))
+          case (OK, j) => (Unauthorized, result(401, "This schema already exists in the registry"))
           case _ => {
             val now = new LocalDateTime()
             schemas.insert(Schema(0, vendor, name, format, version, draftNumber, schema, now, now, isPublic))
           } match {
-            case 0 => (InternalServerError, result(500, "Something went wrong"))
-            case _ => (Created, result(201, "Schema successfully added",
+            case 0 => (InternalServerError, result(500, "Something went wrong, we could not create the schema"))
+            case _ => (Created, result(201, "The schema has been successfully added",
                 if (isDraft) buildDraftLoc(vendor, name, format, draftNumber)
                 else buildLoc(vendor, name, format, version)))
           }
@@ -685,18 +685,18 @@ class SchemaDAO(val db: Database) extends DAO {
                 (if (isDraft) s.draftNumber === draftNumber else s.version === version))
               .map(s => (s.schema, s.isPublic, s.updatedAt))
               .update(schema, isPublic, new LocalDateTime()) match {
-                case 1 => (OK, result(200, "Schema successfully updated",
+                case 1 => (OK, result(200, "The schema has been successfully updated",
                   if (isDraft) buildDraftLoc(vendor, name, format, draftNumber)
                   else buildLoc(vendor, name, format, version)))
                 case _ => (InternalServerError,
-                  result(500, "Something went wrong"))
+                  result(500, "Something went wrong, we could not update the schema"))
             }
           case (NotFound, _) => {
             val now = new LocalDateTime()
             schemas.insert(Schema(0, vendor, name, format, version, draftNumber, schema, now, now, isPublic))
           } match {
-              case 0 => (InternalServerError, result(500, "Something went wrong"))
-              case _ => (Created, result(201, "Schema successfully added",
+              case 0 => (InternalServerError, result(500, "Something went wrong, we could not update the schema"))
+              case _ => (Created, result(201, "The schema has been successfully added",
                 if (isDraft) buildDraftLoc(vendor, name, format, draftNumber)
                 else buildLoc(vendor, name, format, version)))
             }
@@ -719,7 +719,7 @@ class SchemaDAO(val db: Database) extends DAO {
             (if (isDraft) s.draftNumber === draftNumber else s.version === version))
           .delete match {
           case 0 => (404, result(404, "Schema not found"))
-          case 1 => (OK, result(200, "Schema successfully deleted"))
+          case 1 => (OK, result(200, "The schema has been successfully deleted"))
           case n => (OK, result(200, s"$n schemas successfully deleted"))
         }
       }

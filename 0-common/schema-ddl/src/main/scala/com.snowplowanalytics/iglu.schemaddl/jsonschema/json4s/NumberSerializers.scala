@@ -17,7 +17,7 @@ package jsonschema.json4s
 import org.json4s._
 
 // This library
-import jsonschema.NumberProperty._
+import jsonschema.properties.NumberProperty._
 
 object NumberSerializers {
 
