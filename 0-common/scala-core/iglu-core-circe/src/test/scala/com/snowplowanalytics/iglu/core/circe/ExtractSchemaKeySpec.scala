@@ -32,7 +32,7 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
 
   Specification ExtractFrom type class for Schemas
     extract SchemaMap $e5
-    fail to extract SchemaKey with invalid SchemaVer $e6
+    fail to extract SchemaMap with invalid SchemaVer $e6
   """
 
   import implicits._
@@ -47,7 +47,7 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
         }
       """
 
-    SchemaKey.extract(json) must beSome(
+    SchemaKey.extract(json) must beRight(
       SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer.Full(2,0,3))
     )
   }
@@ -62,7 +62,7 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
         }
       """
 
-    SchemaKey.extract(json) must beSome(
+    SchemaKey.extract(json) must beRight(
       SchemaKey("com.acme.useless", "null", "jsonschema", SchemaVer.Full(2,0,3))
     )
   }
@@ -86,7 +86,7 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
         }
       """
 
-    SchemaMap.extract(json) must beSome(
+    SchemaMap.extract(json) must beRight(
       SchemaMap("com.acme", "keyvalue", "jsonschema", SchemaVer.Full(1,1,0))
     )
   }
@@ -111,7 +111,7 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
         }
       """
 
-    SchemaKey.extract(json) must beNone
+    SchemaMap.extract(json) must beLeft(ParseError.InvalidSchemaVer)
   }
 
   def e7 = {
@@ -125,6 +125,6 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
         }
       """
 
-    SchemaKey.extract(json) must beNone
+    SchemaKey.extract(json) must beLeft
   }
 }

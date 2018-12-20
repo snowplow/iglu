@@ -23,23 +23,30 @@ trait instances {
 
   private implicit val codecs = Json4sIgluCodecs.formats
 
-  final implicit val igluAttachToDataJValue: ExtractSchemaKey[JValue] with ToData[JValue] with ExtractSchemaKey[JValue] =
+  final implicit val igluAttachToDataJValue: ExtractSchemaKey[JValue] with ToData[JValue] =
     new ExtractSchemaKey[JValue] with ToData[JValue] {
 
-      def extractSchemaKey(entity: JValue): Option[SchemaKey] =
+      def extractSchemaKey(entity: JValue) =
         entity \ "schema" match {
           case JString(schema) => SchemaKey.fromUri(schema)
-          case _               => None
+          case _               => Left(ParseError.InvalidData)
         }
 
-      def getContent(json: JValue): JValue = json \ "data"
+      def getContent(json: JValue): Either[ParseError, JValue] =
+        json \ "data" match {
+          case JNothing => Left(ParseError.InvalidData)
+          case data => Right(data)
+        }
     }
 
   final implicit val igluAttachToSchema: ExtractSchemaMap[JValue] with ToSchema[JValue] with ExtractSchemaMap[JValue] =
     new ToSchema[JValue] with ExtractSchemaMap[JValue] {
 
-      def extractSchemaMap(entity: JValue): Option[SchemaMap] =
-        (entity \ "self").extractOpt[SchemaKey].map(key => SchemaMap(key))
+      def extractSchemaMap(entity: JValue): Either[ParseError, SchemaMap] =
+        (entity \ "self").extractOpt[SchemaKey].map(key => SchemaMap(key)) match {
+          case Some(map) => Right(map)
+          case None => Left(ParseError.InvalidSchema)
+        }
 
       def getContent(schema: JValue): JValue = schema match {
         case JObject(fields) =>

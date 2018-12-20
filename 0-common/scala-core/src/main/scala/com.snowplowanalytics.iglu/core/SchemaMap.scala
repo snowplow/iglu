@@ -30,6 +30,13 @@ object SchemaMap {
       "([1-9][0-9]*" +
       "(?:-(?:0|[1-9][0-9]*)){2})$").r
 
+  /** Regex to extract SchemaVer separately */
+  private val schemaPathRigidRegex = (
+    "^([a-zA-Z0-9-_.]+)/" +
+      "([a-zA-Z0-9-_]+)/" +
+      "([a-zA-Z0-9-_]+)/" +
+      "([0-9]*(?:-(?:[0-9]*)){2})$").r
+
   def apply(vendor: String, name: String, format: String, version: SchemaVer.Full): SchemaMap =
     SchemaMap(SchemaKey(vendor, name, format, version))
 
@@ -43,16 +50,17 @@ object SchemaMap {
     * @param schemaPath an Iglu-format Schema path
     * @return some SchemaMap for Success, and none for failure
     */
-  def fromPath(schemaPath: String): Option[SchemaMap] = schemaPath match {
-    case schemaPathRegex(vnd, n, f, ver) =>
-      SchemaVer.parse(ver).flatMap {
-        case v: SchemaVer.Full => Some(SchemaMap(vnd, n, f, v))
-        case _: SchemaVer.Partial => None   // Partial SchemaVer cannot be used
+  def fromPath(schemaPath: String): Either[ParseError, SchemaMap] = schemaPath match {
+    case schemaPathRigidRegex(vnd, n, f, ver) =>
+      SchemaVer.parse(ver) match {
+        case Right(v: SchemaVer.Full) => Right(SchemaMap(vnd, n, f, v))
+        case Right(_: SchemaVer.Partial) => Left(ParseError.InvalidSchemaVer)
+        case Left(other) => Left(other)
       }
-    case _ => None
+    case _ => Left(ParseError.InvalidSchema)
   }
 
   /** Try to get `SchemaMap` from `E` as */
-  def extract[E: ExtractSchemaMap](e: E): Option[SchemaMap] =
+  def extract[E: ExtractSchemaMap](e: E): Either[ParseError, SchemaMap] =
     implicitly[ExtractSchemaMap[E]].extractSchemaMap(e)
 }

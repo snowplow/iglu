@@ -26,7 +26,7 @@ class SchemaVerSpec extends Specification { def is = s2"""
     SchemaVer.isValid("2-42-0") must beTrue
 
   def e2 =
-    SchemaVer.parse("1-12-1") must beSome(SchemaVer(1,12,1))
+    SchemaVer.parse("1-12-1") must beRight(SchemaVer(1,12,1))
 
   def e3 =
     SchemaVer.isValid("0-12-1") must beFalse

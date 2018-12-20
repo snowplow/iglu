@@ -21,11 +21,11 @@ class PartialSchemaKeySpec extends Specification { def is = s2"""
 
   def e1 = {
     val expected = PartialSchemaKey("com.acme.foo", "event", "jsonschema", SchemaVer(1,0,0))
-    PartialSchemaKey.fromUri("iglu:com.acme.foo/event/jsonschema/1-0-0") must beSome(expected)
+    PartialSchemaKey.fromUri("iglu:com.acme.foo/event/jsonschema/1-0-0") must beRight(expected)
   }
 
   def e2 = {
     val expected = PartialSchemaKey("com.acme.foo", "event", "jsonschema", SchemaVer.Partial(Some(1),None,None))
-    PartialSchemaKey.fromUri("iglu:com.acme.foo/event/jsonschema/1-?-?") must beSome(expected)
+    PartialSchemaKey.fromUri("iglu:com.acme.foo/event/jsonschema/1-?-?") must beRight(expected)
   }
 }

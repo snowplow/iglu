@@ -58,7 +58,7 @@ final case class SchemaCriterion(
   def pickFrom[E: ExtractSchemaKey](entities: Seq[E]): Seq[E] =
     entities.foldLeft(Seq.empty[E]) { (acc, cur) =>
       SchemaKey.extract(cur) match {
-        case Some(key) if this.matches(key) => cur +: acc
+        case Right(key) if this.matches(key) => cur +: acc
         case _ => acc
       }
     }

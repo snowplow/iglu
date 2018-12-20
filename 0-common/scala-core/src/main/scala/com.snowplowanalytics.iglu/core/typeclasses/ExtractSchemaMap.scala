@@ -29,5 +29,5 @@ trait ExtractSchemaMap[E] {
   /**
    * Try to extract [[SchemaKey]] from entity
    */
-  def extractSchemaMap(entity: E): Option[SchemaMap]
+  def extractSchemaMap(entity: E): Either[ParseError, SchemaMap]
 }

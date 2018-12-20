@@ -67,6 +67,14 @@ object SchemaKey {
     "(?:-(?:0|[1-9][0-9]*)){2})$").r    // REVISION and ADDITION
                                         // Extract whole SchemaVer within single group
 
+  /** Regex to extract SchemaVer separately */
+  private val schemaUriRigidRegex: Regex = (
+    "^iglu:" +                          // Protocol
+      "([a-zA-Z0-9-_.]+)/" +              // Vendor
+      "([a-zA-Z0-9-_]+)/" +               // Name
+      "([a-zA-Z0-9-_]+)/" +               // Format
+      "([0-9]*(?:-(?:[0-9]*)){2})$").r    // SchemaVer
+
   /**
    * Default `Ordering` instance for [[SchemaKey]]
    * Sort keys alphabetically AND by ascending SchemaVer
@@ -94,16 +102,16 @@ object SchemaKey {
    * @return a Validation-boxed SchemaKey for
    *         Success, and an error String on Failure
    */
-  def fromUri(schemaUri: String): Option[SchemaKey] = schemaUri match {
-    case schemaUriRegex(vnd, n, f, ver) =>
-      SchemaVer.parse(ver).flatMap {
-        case full: SchemaVer.Full => Some(SchemaKey(vnd, n, f, full))
-        case _ => None
+  def fromUri(schemaUri: String): Either[ParseError, SchemaKey] = schemaUri match {
+    case schemaUriRigidRegex(vnd, n, f, ver) =>
+      SchemaVer.parse(ver) match {
+        case Right(full: SchemaVer.Full) => Right(SchemaKey(vnd, n, f, full))
+        case _ => Left(ParseError.InvalidSchemaVer)
       }
-    case _ => None
+    case _ => Left(ParseError.InvalidIgluUri)
   }
 
   /** Try to get `SchemaKey` from `E` as */
-  def extract[E: ExtractSchemaKey](e: E): Option[SchemaKey] =
+  def extract[E: ExtractSchemaKey](e: E): Either[ParseError, SchemaKey] =
     implicitly[ExtractSchemaKey[E]].extractSchemaKey(e)
 }

@@ -162,6 +162,6 @@ class AttachSchemaKeySpec extends Specification { def is = s2"""
 
     val map = SchemaMap("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
     val result = Json4SNormalizeSchema.normalize(SelfDescribingSchema(map, schema))
-    SchemaMap.extract(result) must beSome(map)
+    SchemaMap.extract(result) must beRight(map)
   }
 }

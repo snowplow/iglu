@@ -71,28 +71,32 @@ object SchemaVer {
    * making initial Schemas first and latest Schemas last
    */
   implicit val ordering: Ordering[SchemaVer] =
-    Ordering.by { (schemaVer: SchemaVer) =>
+    Ordering.by { schemaVer: SchemaVer =>
       (schemaVer.getModel, schemaVer.getRevision, schemaVer.getAddition)
     }
 
   implicit val orderingFull: Ordering[Full] =
-    Ordering.by { (schemaVer: SchemaVer.Full) =>
+    Ordering.by { schemaVer: SchemaVer.Full =>
       (schemaVer.model, schemaVer.revision, schemaVer.addition)
     }
 
   /** Extract the model, revision, and addition of the SchemaVer (possibly unknown) */
-  def parse(version: String): Option[SchemaVer] =
-    parseFull(version).orElse { version match {
-      case schemaVerPartialRegex(IntString(m), IntString(r), IntString(a)) =>
-        Some(SchemaVer.Partial(m, r, a))
-    } }
+  def parse(version: String): Either[ParseError, SchemaVer] =
+    parseFull(version) match {
+      case Left(ParseError.InvalidSchemaVer) => version match {
+        case schemaVerPartialRegex(IntString(m), IntString(r), IntString(a)) =>
+          Right(SchemaVer.Partial(m, r, a))
+        case _ => Left(ParseError.InvalidSchemaVer)
+      }
+      case other => other
+    }
 
   /** Extract the model, revision, and addition of the SchemaVer (always known) */
-  def parseFull(version: String): Option[SchemaVer.Full] = version match {
+  def parseFull(version: String): Either[ParseError, SchemaVer.Full] = version match {
     case schemaVerFullRegex(m, r, a) =>
-      Some(SchemaVer.Full(m.toInt, r.toInt, a.toInt))
+      Right(SchemaVer.Full(m.toInt, r.toInt, a.toInt))
     case _ =>
-      None
+      Left(ParseError.InvalidSchemaVer)
   }
 
   /**

@@ -22,7 +22,7 @@ class SchemaMapSpec extends Specification { def is = s2"""
 
   def e1 = {
     val path = "uk.edu.acme.sub-division/second-event_complex/jsonschema/2-10-32"
-    SchemaMap.fromPath(path) must beSome(
+    SchemaMap.fromPath(path) must beRight(
       SchemaMap("uk.edu.acme.sub-division", "second-event_complex", "jsonschema", SchemaVer.Full(2, 10, 32)))
   }
 }

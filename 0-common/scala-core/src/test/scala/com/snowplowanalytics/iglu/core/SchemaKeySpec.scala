@@ -35,39 +35,39 @@ class SchemaKeySpec extends Specification { def is = s2"""
 
   def e1 = {
     val uri = "iglu:com.snowplowanalytics.snowplow/mobile_context/jsonschema/1-0-0"
-    SchemaKey.fromUri(uri) must beSome(
+    SchemaKey.fromUri(uri) must beRight(
       SchemaKey("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", SchemaVer.Full(1,0,0)))
   }
 
   def e2 = {
     val uri = "iglu:uk.edu.acme.sub-division/second-event_complex/jsonschema/2-10-32"
-    SchemaKey.fromUri(uri) must beSome(
+    SchemaKey.fromUri(uri) must beRight(
       SchemaKey("uk.edu.acme.sub-division", "second-event_complex", "jsonschema", SchemaVer.Full(2,10,32)))
   }
 
   def e3 = {
     val uri = "iglu:com.snowplowanalytics.snowplow/mobile_context/jsonschema/1-01-0"
-    SchemaKey.fromUri(uri) must beNone
+    SchemaKey.fromUri(uri) must beLeft
   }
 
   def e4 = {
     val uri = "iglu:com.snowplowanalytics.snowplow/mobile_context/jsonschema/1--0"
-    SchemaKey.fromUri(uri) must beNone
+    SchemaKey.fromUri(uri) must beLeft
   }
 
   def e5 = {
     val uri = "iglu:com.snowplowanalytics.snowplow/mobile.context/jsonschema/1-2-0"
-    SchemaKey.fromUri(uri) must beNone
+    SchemaKey.fromUri(uri) must beLeft
   }
 
   def e8 = {
     val uri = "iglu:com.snowplowanalytics.snowplow/mobile.context/jsonschema/1-2-"
-    SchemaKey.fromUri(uri) must beNone
+    SchemaKey.fromUri(uri) must beLeft
   }
 
   def e9 = {
     val uri = "iglu:com.snowplowanalytics.snowplow/mobile.context/jsonschema/1-2-?"
-    SchemaKey.fromUri(uri) must beNone
+    SchemaKey.fromUri(uri) must beLeft
   }
 
   def e6 = {
@@ -83,7 +83,7 @@ class SchemaKeySpec extends Specification { def is = s2"""
       DescribedString("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", 1, 1, 1, "111")
     )
 
-    describedData.sortBy(SchemaKey.extract(_).getOrElse(throw new RuntimeException("Not possible")) ) must beEqualTo(Seq(
+    describedData.sortBy(SchemaKey.extract(_).right.getOrElse(throw new RuntimeException("Not possible")) ) must beEqualTo(Seq(
       DescribedString("com.snowplowanalytics.snowplow", "aobile_context", "jsonschema", 2, 1, 0, "210"),
       DescribedString("com.snowplowanalytics.snowplow", "mobile_context", "avro", 2, 1, 0, "210"),
       DescribedString("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", 1, 0, 0, "100"),

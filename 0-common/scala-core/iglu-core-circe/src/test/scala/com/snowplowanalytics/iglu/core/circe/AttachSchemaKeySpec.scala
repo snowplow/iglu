@@ -163,7 +163,7 @@ class AttachSchemaKeySpec extends Specification { def is = s2"""
 
     val key = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
     val result = key.attachTo(schema)
-    SchemaKey.extract(result) must beSome(key)
+    SchemaKey.extract(result) must beRight(key)
   }
 
   import org.specs2.matcher.Matcher

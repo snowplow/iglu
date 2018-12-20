@@ -38,6 +38,6 @@ final case class SelfDescribingData[D](schema: SchemaKey, data: D) {
 
 object SelfDescribingData {
   /** Try to decode `D` as `SelfDescribingData[D]` */
-  def parse[D](data: D)(implicit ev: ToData[D]): Option[SelfDescribingData[D]] =
+  def parse[D](data: D)(implicit ev: ToData[D]): Either[ParseError, SelfDescribingData[D]] =
     ev.toData(data)
 }

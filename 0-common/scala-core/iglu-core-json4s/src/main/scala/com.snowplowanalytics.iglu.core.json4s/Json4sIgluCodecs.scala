@@ -34,7 +34,7 @@ object Json4sIgluCodecs {
   object SchemaVerSerializer extends CustomSerializer[SchemaVer.Full](_ => (
     {
       case JString(version) => SchemaVer.parse(version) match {
-        case Some(schemaVer: SchemaVer.Full) => schemaVer
+        case Right(schemaVer: SchemaVer.Full) => schemaVer
         case _ => throw new MappingException("Can't convert " + version + " to SchemaVer")
       }
       case x => throw new MappingException("Can't convert " + x + " to SchemaVer")
@@ -69,7 +69,7 @@ object Json4sIgluCodecs {
   object DataSerializer extends CustomSerializer[SelfDescribingData[JValue]](_ => (
     {
       case fullInstance: JObject =>
-        val schemaKey = (fullInstance \ "schema").extractOpt[String].flatMap(SchemaKey.fromUri).getOrElse {
+        val schemaKey = (fullInstance \ "schema").extractOpt[String].flatMap(SchemaKey.fromUri(_).right.toOption).getOrElse {
           throw new MappingException("Does not contain schema key with valid Schema URI")
         }
         val data = fullInstance \ "data" match {

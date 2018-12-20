@@ -16,6 +16,8 @@ package com.snowplowanalytics.iglu.core.circe
 import cats.syntax.either._
 import cats.syntax.apply._
 import cats.instances.option._
+import cats.instances.either._
+import cats.syntax.flatMap._
 
 // Circe
 import io.circe._
@@ -28,6 +30,9 @@ import com.snowplowanalytics.iglu.core._
  * Example of Circe codecs for Iglu entities
  */
 trait CirceIgluCodecs {
+
+  def toDecodingFailure(cursor: HCursor)(error: ParseError): DecodingFailure =
+    DecodingFailure(error.code, cursor.history)
 
   final implicit val decodeSchemaVer: Decoder[SchemaVer] =
     Decoder.instance(parseSchemaVer)
@@ -75,7 +80,7 @@ trait CirceIgluCodecs {
           case None => Left(DecodingFailure("schema key is not available", hCursor.history))
           case Some(schema) => for {
             schemaString <- schema.as[String]
-            schemaKey <- SchemaKey.fromUri(schemaString).toRight(DecodingFailure("schema key has invalid format", hCursor.history))
+            schemaKey <- SchemaKey.fromUri(schemaString).leftMap(toDecodingFailure(hCursor))
           } yield schemaKey
         }
         data <- map.get("data") match {
@@ -94,8 +99,7 @@ trait CirceIgluCodecs {
   private[circe] def parseSchemaVer(hCursor: HCursor): Either[DecodingFailure, SchemaVer] =
     for {
       jsonString <- hCursor.as[String]
-      parsed     = SchemaVer.parse(jsonString)
-      schemaVer  <- Either.fromOption(parsed, DecodingFailure("SchemaVer is missing", hCursor.history))
+      schemaVer  <- SchemaVer.parse(jsonString).leftMap(toDecodingFailure(hCursor))
     } yield schemaVer
 
   private[circe] def parseSchemaVerFull(hCursor: HCursor): Either[DecodingFailure, SchemaVer.Full] =
@@ -109,7 +113,7 @@ trait CirceIgluCodecs {
     for {
       map <- hCursor.as[JsonObject].map(_.toMap)
       selfMapJson <- map.get("self") match {
-        case None => Left(DecodingFailure("self-key is not available", hCursor.history))
+        case None => Left(DecodingFailure(ParseError.InvalidSchema.code, hCursor.history))
         case Some(self) => Right(self)
       }
       selfMap <- selfMapJson.as[JsonObject].map(_.toMap)
@@ -120,14 +124,14 @@ trait CirceIgluCodecs {
     val self = (selfMap.get("vendor"), selfMap.get("name"), selfMap.get("format"), selfMap.get("version")).mapN {
       (v, n, f, ver) =>
         for {
-          vendor  <- v.asString
-          name    <- n.asString
-          format  <- f.asString
-          version <- ver.as(Decoder.instance(parseSchemaVerFull)).toOption
+          vendor  <- v.asString.toRight(ParseError.InvalidSchema)
+          name    <- n.asString.toRight(ParseError.InvalidSchema)
+          format  <- f.asString.toRight(ParseError.InvalidSchema)
+          version <- ver.as(Decoder.instance(parseSchemaVerFull)).toOption.toRight(ParseError.InvalidSchemaVer)
         } yield SchemaMap(vendor, name, format, version)
     }
 
-    Either.fromOption(self.flatten, DecodingFailure("SchemaKey has incompatible format", hCursor.history))
+    self.toRight(ParseError.InvalidSchema: ParseError).flatten.leftMap(toDecodingFailure(hCursor))
   }
 }
 

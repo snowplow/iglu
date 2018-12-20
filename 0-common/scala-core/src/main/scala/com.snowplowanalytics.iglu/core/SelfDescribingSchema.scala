@@ -38,7 +38,7 @@ final case class SelfDescribingSchema[S](self: SchemaMap, schema: S) {
 
 object SelfDescribingSchema {
   /** Try to decode `S` as `SelfDescribingSchema[S]` */
-  def parse[S](schema: S)(implicit ev: ToSchema[S]): Option[SelfDescribingSchema[S]] =
+  def parse[S](schema: S)(implicit ev: ToSchema[S]): Either[ParseError, SelfDescribingSchema[S]] =
     ev.toSchema(schema)
 }
 

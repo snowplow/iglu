@@ -18,9 +18,10 @@ package typeclasses
   * for extraction Schemas, not instances
   */
 trait ToSchema[E] { self: ExtractSchemaMap[E] =>
-  def toSchema(schema: E): Option[SelfDescribingSchema[E]] =
-    self.extractSchemaMap(schema).map { map =>
-      SelfDescribingSchema(map, getContent(schema))
+  def toSchema(schema: E): Either[ParseError, SelfDescribingSchema[E]] =
+    self.extractSchemaMap(schema) match {
+      case Right(map) => Right(SelfDescribingSchema(map, getContent(schema)))
+      case Left(error) => Left(error)
     }
 
   /** Cleanup if necessary information about schema */
