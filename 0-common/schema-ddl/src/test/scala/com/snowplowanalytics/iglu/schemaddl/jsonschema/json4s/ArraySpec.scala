@@ -16,8 +16,8 @@ package com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s
 import org.json4s._
 import org.json4s.jackson.JsonMethods.parse
 
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.ArrayProperty.{MaxItems, MinItems}
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.ArrayProperty.{MaxItems, MinItems}
 
 import implicits._
 

@@ -63,6 +63,6 @@ class DdlFileSpec extends Specification { def is = s2"""
          |    "rocket.model"  INT                      NOT NULL,
          |    "rocket.series" INT                      NULL
          |);
-         |COMMENT ON TABLE atomic.launch_missles_1 IS 'Source: iglu:com.acme/event/jsonschema/1-2-1';""".stripMargin)
+         |COMMENT ON TABLE atomic.launch_missles_1 IS 'iglu:com.acme/event/jsonschema/1-2-1';""".stripMargin)
   }
 }

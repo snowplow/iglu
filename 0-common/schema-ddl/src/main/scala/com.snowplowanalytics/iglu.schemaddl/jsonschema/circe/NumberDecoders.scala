@@ -17,7 +17,7 @@ import io.circe._
 
 import cats.syntax.either._
 
-import NumberProperty._
+import properties.NumberProperty._
 
 trait NumberDecoders {
   implicit val multipleOfSerializer = Decoder.instance { cursor: HCursor =>

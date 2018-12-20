@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2016-2018 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -11,12 +11,14 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 package com.snowplowanalytics.iglu.schemaddl.jsonschema
+package properties
 
-// circe
+import cats.data.{Validated, ValidatedNel}
+import cats.syntax.either._
+import cats.syntax.traverse._
+import cats.instances.list._
+
 import io.circe.Json
-
-import cats.data.{ Validated, ValidatedNel }
-import cats.implicits._
 
 object CommonProperties {
 
@@ -79,7 +81,8 @@ object CommonProperties {
       arr.map(fromString).map(_.toValidatedNel).sequence[ValidatedNel[String, ?], Type] match {
         case Validated.Valid(List(single)) => single.asRight
         case Validated.Valid(product) => Product(product).asRight
-        case Validated.Invalid(invalids) => invalids.toList.mkString(",").asLeft
+        case Validated.Invalid(invalid) if invalid.size == 1 => s"${invalid.head} is invalid type".asLeft
+        case Validated.Invalid(invalid) => s"${invalid.toList.mkString(",")} are invalid types".asLeft
       }
   }
 
@@ -108,6 +111,3 @@ object CommonProperties {
     def keyName = "description"
   }
 }
-
-
-

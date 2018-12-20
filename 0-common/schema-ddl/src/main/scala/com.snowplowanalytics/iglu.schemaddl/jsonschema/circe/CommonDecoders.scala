@@ -15,7 +15,7 @@ package circe
 
 import io.circe._
 
-import CommonProperties._
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.CommonProperties._
 
 trait CommonDecoders {
   implicit def schemaDecoder: Decoder[Schema]

@@ -38,21 +38,6 @@ object StringUtils {
   }
 
   /**
-   * Create a Redshift Table name from a file name
-   *
-   * "customerEvent.json" -> "customer_event"
-   *
-   * @param fileName file name with JSON Schema
-   * @return the Redshift Table name
-   */
-  def getTableName(fileName: String): String = {
-    val fileNameWithoutExtension =
-      if (fileName.endsWith(".json")) fileName.dropRight(5)
-      else fileName
-    snakeCase(fileNameWithoutExtension)
-  }
-
-  /**
    * Transforms CamelCase string into snake_case
    * Also replaces all hyphens with underscores
    *

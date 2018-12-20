@@ -16,46 +16,42 @@ package jsonschema
 // Shadow Java Enum
 import java.lang.{ Enum => _}
 
+import cats.Monad
+import cats.instances.list._
+import cats.syntax.flatMap._
+import cats.syntax.functor._
+import cats.syntax.traverse._
+
 // This library
-import ArrayProperty._
-import StringProperty._
-import ObjectProperty._
-import NumberProperty._
-import CommonProperties._
+import properties._
+import JsonPointer.SchemaProperty
 
 /**
  * Class containing all (not yet) possible JSON Schema v4 properties
- */
-case class Schema(
-  // integer and number
-  multipleOf:           Option[MultipleOf]           = None,
-  minimum:              Option[Minimum]              = None,
-  maximum:              Option[Maximum]              = None,
+  */
+case class Schema(multipleOf:           Option[NumberProperty.MultipleOf]           = None,
+                  minimum:              Option[NumberProperty.Minimum]              = None,
+                  maximum:              Option[NumberProperty.Maximum]              = None,
 
-  // string
-  maxLength:            Option[MaxLength]            = None,
-  minLength:            Option[MinLength]            = None,
-  pattern:              Option[Pattern]              = None,
-  format:               Option[Format]               = None,
+                  maxLength:            Option[StringProperty.MaxLength]            = None,
+                  minLength:            Option[StringProperty.MinLength]            = None,
+                  pattern:              Option[StringProperty.Pattern]              = None,
+                  format:               Option[StringProperty.Format]               = None,
 
-  // array
-  items:                Option[Items]                = None,
-  additionalItems:      Option[AdditionalItems]      = None,
-  minItems:             Option[MinItems]             = None,
-  maxItems:             Option[MaxItems]             = None,
+                  items:                Option[ArrayProperty.Items]                 = None,
+                  additionalItems:      Option[ArrayProperty.AdditionalItems]       = None,
+                  minItems:             Option[ArrayProperty.MinItems]              = None,
+                  maxItems:             Option[ArrayProperty.MaxItems]              = None,
 
-  // object
-  properties:           Option[Properties]           = None,
-  additionalProperties: Option[AdditionalProperties] = None,
-  required:             Option[Required]             = None,
-  patternProperties:    Option[PatternProperties]    = None,
+                  properties:           Option[ObjectProperty.Properties]           = None,
+                  additionalProperties: Option[ObjectProperty.AdditionalProperties] = None,
+                  required:             Option[ObjectProperty.Required]             = None,
+                  patternProperties:    Option[ObjectProperty.PatternProperties]    = None,
 
-  // common
-  `type`:               Option[Type]                 = None,
-  enum:                 Option[Enum]                 = None,
-  oneOf:                Option[OneOf]                = None,
-  description:          Option[Description]          = None
-) {
+                  `type`:               Option[CommonProperties.Type]               = None,
+                  enum:                 Option[CommonProperties.Enum]               = None,
+                  oneOf:                Option[CommonProperties.OneOf]              = None,
+                  description:          Option[CommonProperties.Description]        = None) {
 
   private[iglu] val allProperties = List(multipleOf, minimum, maximum, maxLength, minLength,
     pattern, format, items, additionalItems, minItems, maxItems, properties,
@@ -82,4 +78,57 @@ object Schema {
    */
   def normalize[J: FromSchema](schema: Schema): J =
     implicitly[FromSchema[J]].normalize(schema)
+
+  def traverse[F[_], A](schema: Schema, f: (JsonPointer, Schema) => F[A])(implicit F: Monad[F]): F[A] = {
+    def go(current: Schema, pointer: JsonPointer): F[A] =
+      for {
+        schema <- f(pointer, current)
+        _ <- current.items match {
+          case Some(ArrayProperty.Items.ListItems(value)) =>
+            go(value, pointer.downProperty(SchemaProperty.Items))
+          case Some(ArrayProperty.Items.TupleItems(values)) =>
+            values
+              .zipWithIndex
+              .traverse { case (s, i) => go(s, pointer.downProperty(SchemaProperty.Items).at(i)) }
+              .void
+          case None => F.unit
+        }
+        _ <- current.additionalItems match {
+          case Some(ArrayProperty.AdditionalItems.AdditionalItemsSchema(value)) =>
+            go(value, pointer.downProperty(SchemaProperty.AdditionalItems))
+          case _ => F.unit
+        }
+        _ <- current.properties match {
+          case Some(ObjectProperty.Properties(value)) =>
+            value
+              .toList
+              .traverse { case (k, s) => go(s, pointer.downProperty(SchemaProperty.Properties).downField(k)) }
+              .void
+          case _ => F.unit
+        }
+        _ <- current.additionalProperties match {
+          case Some(ObjectProperty.AdditionalProperties.AdditionalPropertiesSchema(value)) =>
+            go(value, pointer.downProperty(SchemaProperty.AdditionalProperties))
+          case _ => F.unit
+        }
+        _ <- current.patternProperties match {
+          case Some(ObjectProperty.PatternProperties(value)) =>
+            value
+              .toList
+              .traverse { case (k, s) => go(s, pointer.downProperty(SchemaProperty.PatternProperties).downField(k)) }
+              .void
+          case _ => F.unit
+        }
+        _ <- current.oneOf match {
+          case Some(CommonProperties.OneOf(values)) =>
+            values
+              .zipWithIndex
+              .traverse { case (s, i) => go(s, pointer.downProperty(SchemaProperty.OneOf).at(i)) }
+              .void
+          case _ => F.unit
+        }
+      } yield schema
+
+    go(schema, JsonPointer.Root)
+  }
 }

@@ -45,19 +45,6 @@ object DdlGenerator {
   }
 
   /**
-   * Make a DDL header from the file name
-   *
-   * @param tableName table name
-   * @param schemaName optional DB schema name
-   * @param fileName JSON Schema file name
-   * @return SQL comment
-   */
-  def getTableComment(tableName: String, schemaName: Option[String], fileName: String): CommentOn = {
-    val schema = schemaName.map(_ + ".").getOrElse("")
-    CommentOn(schema + tableName, "Source: " + fileName)
-  }
-
-  /**
    * Generates Redshift CreateTable object with all columns, attributes and constraints
    *
    * @param flatSchema flat schema produced by the Schema flattening process

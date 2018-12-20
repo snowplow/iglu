@@ -15,7 +15,7 @@ package circe
 
 import io.circe._
 
-import StringProperty._
+import properties.StringProperty._
 
 trait StringDecoders {
   implicit val formatDecoder: Decoder[Format] =
