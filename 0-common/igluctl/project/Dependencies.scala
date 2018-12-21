@@ -25,10 +25,12 @@ object Dependencies {
     val jaxbImpl         = "2.3.0"
     val activation       = "1.1.1"
     // Scala
+    val catsEffect       = "1.1.0"
     val schemaddl        = "0.9.0"
     val igluClient       = "0.5.0"
-    val scopt            = "3.5.0"
+    val decline          = "0.6.0"
     val scalajHttp       = "2.3.0"
+    val fs2              = "1.0.2"
     // Scala (test only)
     val specs2           = "4.0.1"
     val scalaCheck       = "1.13.5"
@@ -45,10 +47,13 @@ object Dependencies {
     val jaxbImpl         = "com.sun.xml.bind"           %  "jaxb-impl"                 % V.jaxbImpl
     val activation       = "javax.activation"           %  "activation"                % V.activation
     // Scala
+    val catsEffect       = "org.typelevel"              %% "cats-effect"               % V.catsEffect
     val igluClient       = "com.snowplowanalytics"      %% "iglu-scala-client"         % V.igluClient
     val schemaddl        = "com.snowplowanalytics"      %% "schema-ddl"                % V.schemaddl
-    val scopt            = "com.github.scopt"           %% "scopt"                     % V.scopt
+    val decline          = "com.monovore"               %% "decline"                   % V.decline
     val scalajHttp       = "org.scalaj"                 %% "scalaj-http"               % V.scalajHttp
+    val fs2              = "co.fs2"                     %% "fs2-core"                  % V.fs2
+    val fs2Io            = "co.fs2"                     %% "fs2-io"                    % V.fs2
     // Scala (test only)
     val specs2           = "org.specs2"                 %% "specs2-core"               % V.specs2         % "test"
     val scalaCheck       = "org.scalacheck"             %% "scalacheck"                % V.scalaCheck     % "test"

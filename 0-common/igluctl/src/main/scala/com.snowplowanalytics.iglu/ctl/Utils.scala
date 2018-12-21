@@ -12,6 +12,8 @@
  */
 package com.snowplowanalytics.iglu.ctl
 
+import java.nio.file.Path
+
 // cats
 import cats.syntax.either._
 
@@ -21,14 +23,13 @@ import org.json4s.jackson.JsonMethods.compact
 
 // Iglu
 import com.snowplowanalytics.iglu.core.SchemaMap
-import com.snowplowanalytics.iglu.schemaddl.{ IgluSchema, RevisionGroup, ModelGroup }
+import com.snowplowanalytics.iglu.schemaddl.{ RevisionGroup, ModelGroup }
 
 // This library
-import FileUtils.{ JsonFile, splitPath }
+import File.splitPath
+import Common.Error
 
 object Utils {
-
-  type Failing[+A] = Either[String, A]
 
   /**
    * Get Iglu-compatible path (com.acme/event/jsonschema/1-0-2) from full
@@ -37,7 +38,7 @@ object Utils {
    * @param fullPath file's absolute path
    * @return four last path entities joined by OS-separator
    */
-  def getPath(fullPath: String): String =
+  def getPath(fullPath: Path): String =
     splitPath(fullPath).takeRight(4).mkString("/")  // Always URL-compatible
 
   /**
@@ -48,32 +49,18 @@ object Utils {
    * @param schemaMap schema key extracted from it
    * @return true if extracted path is equal to FS path
    */
-  def equalPath(jsonFile: JsonFile, schemaMap: SchemaMap): Boolean = {
-    val path = getPath(jsonFile.origin.getAbsolutePath)
+  def equalPath(jsonFile: File[JValue], schemaMap: SchemaMap): Boolean = {
+    val path = getPath(jsonFile.path.toAbsolutePath)
     SchemaMap.fromPath(path).toOption.contains(schemaMap)
   }
 
-  /**
-   * Extract self-describing JSON Schema from JSON file
-   *
-   * @param jsonFile some existing on FS valid JSON file
-   * @return self-describing JSON Schema if successful or error message if
-   *         file is not Schema or self-describing Schema or has invalid
-   *         file path
-   */
-  def extractSchema(jsonFile: JsonFile): Either[String, IgluSchema] =
-    jsonFile.extractSelfDescribingSchema match {
-      case Right(schema) if equalPath(jsonFile, schema.self) => schema.asRight
-      case Right(schema) => s"Error: JSON Schema [${schema.self.schemaKey.toSchemaUri}] doesn't conform path [${getPath(jsonFile.getKnownPath)}]".asLeft
-      case Left(error) => error.asLeft
-    }
-
   /** Json4s method for extracting deserialized data */
-  def extractKey[A](json: JValue, key: String)(implicit ev: Manifest[A], formats: Formats): Either[String, A] =
+  def extractKey[A](json: JValue, key: String)(implicit ev: Manifest[A], formats: Formats): Either[Error, A] =
     try {
       Right((json \ key).extract[A])
     } catch {
-      case _: MappingException => Left(s"Cannot extract key $key from ${compact(json)}")
+      case _: MappingException =>
+        Error.ConfigParseError(s"Cannot extract key $key from ${compact(json)}").asLeft
     }
 
 

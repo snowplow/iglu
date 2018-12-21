@@ -11,16 +11,14 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 package com.snowplowanalytics.iglu.ctl
+package commands
 
 import cats.data.Validated
-
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.SelfSyntaxChecker
+import org.json4s.jackson.JsonMethods.parse
 import org.specs2.Specification
 
-import org.json4s.jackson.JsonMethods.parse
-
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.SelfSyntaxChecker
-
-class LintCommandSpec extends Specification { def is = s2"""
+class LintSpec extends Specification { def is = s2"""
   Linter command (lint) specification
     lint iglu:com.snowplowanalytics.self-desc/instance-iglu-only/jsonschema/1-0-0 $e1
   """

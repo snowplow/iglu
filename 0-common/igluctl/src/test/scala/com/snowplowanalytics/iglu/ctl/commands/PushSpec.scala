@@ -11,9 +11,12 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 package com.snowplowanalytics.iglu.ctl
+package commands
 
 // java
-import java.io.File
+import java.nio.file.Paths
+
+import com.snowplowanalytics.iglu.core.SchemaVer
 
 // json4s
 import org.json4s.jackson.JsonMethods.parse
@@ -22,15 +25,14 @@ import org.json4s.jackson.JsonMethods.parse
 import org.specs2.Specification
 
 // This project
-import FileUtils.JsonFile
+import com.snowplowanalytics.iglu.core.SchemaMap
+import com.snowplowanalytics.iglu.ctl.File.jsonFile
+import com.snowplowanalytics.iglu.ctl.Common.Error
 
-// scalaz
-import cats.syntax.either._
 
-class PushCommandSpec extends Specification { def is = s2"""
+class PushSpec extends Specification { def is = s2"""
   Registry sync command (sync) specification
     check paths on FS and SchemaKey.toPath correspondence $e1
-    short-circuit request-generation on invalid apikey $e2
   """
 
   def e1 = {
@@ -47,7 +49,7 @@ class PushCommandSpec extends Specification { def is = s2"""
         |  "type": "object"
         |}
       """.stripMargin)
-    val jsonFile1 = JsonFile(schema1, new File("/path/to/schemas/com.acme/event/jsonschema/1-0-2"))
+    val jsonFile1 = jsonFile(Paths.get("/path/to/schemas/com.acme/event/jsonschema/1-0-2"), schema1)
 
     ClassLoader.getSystemClassLoader.getResource("")
 
@@ -64,7 +66,7 @@ class PushCommandSpec extends Specification { def is = s2"""
         |  "type": "object"
         |}
       """.stripMargin)
-    val jsonFile2 = JsonFile(schema2, new File("/path/to/schemas/com.acme/event/jsonschema/1-0-2"))
+    val jsonFile2 = jsonFile(Paths.get("/path/to/schemas/com.acme/event/jsonschema/1-0-2"), schema2)
 
     // not self-describing
     val schema3 =  parse(
@@ -73,7 +75,7 @@ class PushCommandSpec extends Specification { def is = s2"""
         |  "type": "object"
         |}
       """.stripMargin)
-    val jsonFile3 = JsonFile(schema3, new File("/path/to/schemas/com.acme/event/jsonschema/1-0-2"))
+    val jsonFile3 = jsonFile(Paths.get("/path/to/schemas/com.acme/event/jsonschema/1-0-2"), schema3)
 
     // not full path
     val schema4 = parse(
@@ -88,36 +90,13 @@ class PushCommandSpec extends Specification { def is = s2"""
         |  "type": "object"
         |}
       """.stripMargin)
-    val jsonFile4 = JsonFile(schema4, new File("/event/jsonschema/1-0-2"))
+    val jsonFile4 = jsonFile(Paths.get("/event/jsonschema/1-0-2"), schema4)
 
-    (Utils.extractSchema(jsonFile1) must beRight).and(
-      Utils.extractSchema(jsonFile2) must beLeft.like {
-        case error => error must beEqualTo("Error: JSON Schema [iglu:com.acme/event/jsonschema/1-0-1] doesn't conform path [com.acme/event/jsonschema/1-0-2]")
-      }
-    ).and(
-      Utils.extractSchema(jsonFile3) must beLeft("Cannot extract Self-describing JSON Schema from JSON file [/path/to/schemas/com.acme/event/jsonschema/1-0-2]")
-    ).and(
-      Utils.extractSchema(jsonFile4) must beLeft("Error: JSON Schema [iglu:com.acme/event/jsonschema/1-0-2] doesn't conform path [/event/jsonschema/1-0-2]")
-    )
-  }
+    val validSchemaExpectation = jsonFile1.asSchema must beRight
+    val mismatchedSchemaVerExpectation = jsonFile2.asSchema must beLeft(Error.PathMismatch(Paths.get("/path/to/schemas/com.acme/event/jsonschema/1-0-2"), SchemaMap("com.acme", "event", "jsonschema", SchemaVer.Full(1,0,1))))
+    val invalidSchemaExpectation = jsonFile3.asSchema must  beLeft(Error.ParseError(Paths.get("/path/to/schemas/com.acme/event/jsonschema/1-0-2"), "Cannot extract Self-describing JSON Schema from JSON file"))
+    val invalidShortPathExpectation = jsonFile4.asSchema must beLeft(Error.PathMismatch(Paths.get("/event/jsonschema/1-0-2"),SchemaMap("com.acme","event","jsonschema",SchemaVer.Full(1,0,2))))
 
-  def e2 = {
-    val schema = parse(
-      """
-        |{
-        |  "self": {
-        |    "vendor": "com.acme",
-        |    "name": "event",
-        |    "format": "jsonschema",
-        |    "version": "1-0-2"
-        |  },
-        |  "type": "object"
-        |}
-      """.stripMargin)
-    val stubFile = JsonFile(schema, new File("/path/to/schemas/com.acme/event/jsonschema/1-0-2"))
-
-    val command = PushCommand(null, null, new File("."), true)
-    val failedStream = command.buildRequests("error".asLeft, Stream(stubFile.asRight, stubFile.asRight, stubFile.asRight, stubFile.asRight))
-    failedStream must beEqualTo(Stream("error".asLeft))
+    validSchemaExpectation and mismatchedSchemaVerExpectation and invalidSchemaExpectation and invalidShortPathExpectation
   }
 }
