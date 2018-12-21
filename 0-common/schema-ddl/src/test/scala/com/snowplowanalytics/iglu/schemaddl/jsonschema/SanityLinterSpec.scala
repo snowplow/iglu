@@ -37,6 +37,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
     recognize unknown formats $e8
     recognize maxLength is greater than Redshift VARCHAR(max) $e9
     recognize skipped checks (description) $e10
+    selected formats will not fail with warning for 'no maxLength' $e11
   """
 
   def showReport(kv: (JsonPointer, NonEmptyList[Linter.Issue])): (String, NonEmptyList[String]) =
@@ -406,5 +407,43 @@ class SanityLinterSpec extends Specification { def is = s2"""
       NonEmptyList.of("Use \"type: null\" to indicate a field as optional for properties name,currency,category,unitPrice"))
 
     lint(schema, Linter.allLintersMap.values.toList.diff(skippedLinters)).map { case (k, v) => (k.show, v.map(_.show)) } must beEqualTo(expected)
+  }
+
+  def e11 = {
+    val schema = Schema.parse(parse(
+      """
+        |{
+        |   "type": "object",
+        |   "description": "desc text",
+        |   "properties": {
+        |       "emailField": {
+        |           "type": "string",
+        |           "format": "email"
+        |       },
+        |       "dateField": {
+        |           "type": "string",
+        |           "format": "date"
+        |       },
+        |       "uriField": {
+        |           "type": "string",
+        |           "format": "uri"
+        |       },
+        |       "hostnameField": {
+        |           "type": "string",
+        |           "format": "hostname"
+        |       },
+        |       "uuidField": {
+        |           "type": "string",
+        |           "format": "uuid"
+        |       }
+        |   },
+        |   "additionalProperties": false    
+        |}
+      """.stripMargin
+    )).get
+ 
+    val skippedLinters = List(Linter.description)
+ 
+    lint(schema, Linter.allLintersMap.values.toList.diff(skippedLinters)) must beEqualTo(Map())
   }
 }

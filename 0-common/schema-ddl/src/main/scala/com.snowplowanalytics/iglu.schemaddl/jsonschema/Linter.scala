@@ -302,10 +302,11 @@ object Linter {
 
     def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Issue, Unit] =
       if (schema.withType(Type.String) && schema.enum.isEmpty && schema.maxLength.isEmpty) {
-        if (schema.withFormat(Format.Ipv4Format) || schema.withFormat(Format.Ipv6Format) || schema.withFormat(Format.DateTimeFormat))
-          noIssues
-        else
-          Details.invalid
+        schema.format match {
+          case Some(Format.CustomFormat(_)) => Details.invalid
+          case None =>  Details.invalid
+          case Some(_) => noIssues
+        }
       } else { noIssues }
   }
 
