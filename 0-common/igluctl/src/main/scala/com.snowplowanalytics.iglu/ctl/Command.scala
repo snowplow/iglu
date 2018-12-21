@@ -13,285 +13,136 @@
 package com.snowplowanalytics.iglu.ctl
 
 // Java
-import java.io.File
 import java.util.UUID
+import java.nio.file.Path
 
-// scopt
-import scopt.OptionParser
+// cats
+import cats.data.{ ValidatedNel, Validated }
+import cats.implicits._
+
+// decline
+import com.monovore.decline.{ Command => Cmd, _ }
 
 // This library
-import PushCommand._
+import com.snowplowanalytics.iglu.ctl.commands.Push
 
 // Schema DDL
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Linter
 
-/**
- * Common command container
- */
-case class Command(
-  // common
-  command:         Option[String]  = None,
-  input:           Option[File]    = None,
-
-  // deploy
-  config:          Option[File]    = None,
-
-  // ddl
-  output:          Option[File]    = None,
-  db:              String          = "redshift",
-  withJsonPaths:   Boolean         = false,
-  rawMode:         Boolean         = false,
-  schema:          Option[String]  = None,
-  varcharSize:     Int             = 4096,
-  splitProduct:    Boolean         = false,
-  noHeader:        Boolean         = false,
-  force:           Boolean         = false,
-  owner:           Option[String]  = None,
-
-  // sync
-  registryRoot:    Option[HttpUrl] = None,
-  apiKey:          Option[UUID]    = None,
-  isPublic:        Boolean         = false,
-
-  // lint
-  skipWarnings:    Boolean         = false,
-  linters:         List[Linter]    = Linter.allLintersMap.values.toList,
-
-  // s3
-  bucket:          Option[String]  = None,
-  s3path:          Option[String]  = None,
-  accessKeyId:     Option[String]  = None,
-  secretAccessKey: Option[String]  = None,
-  profile:         Option[String]  = None,
-  region:          Option[String]  = None
-) {
-  def toCommand: Option[Command.CtlCommand] = command match {
-    case Some("static deploy") => Some(DeployCommand(config.get))
-    case Some("static generate") => Some(
-      GenerateCommand(input.get, output.getOrElse(new File(".")), db, withJsonPaths, rawMode, schema, varcharSize, splitProduct, noHeader, force, owner))
-    case Some("static push") =>
-      Some(PushCommand(registryRoot.get, apiKey.get, input.get, isPublic))
-    case Some("static s3cp") =>
-      Some(S3cpCommand(input.get, bucket.get, s3path, accessKeyId, secretAccessKey, profile, region))
-    case Some("lint") =>
-      Some(LintCommand(input.get, skipWarnings, linters))
-    case _ =>
-      None
-  }
-}
-
 object Command {
 
-  // Type class instance to parse UUID
-  implicit val uuidRead = scopt.Read.reads(UUID.fromString)
-  
-  implicit val httpUrlRead: scopt.Read[HttpUrl] = scopt.Read.reads { s =>
-    PushCommand.parseRegistryRoot(s) match {
-      case Right(httpUrl) => httpUrl
-      case Left(e) => throw e
-    }
+  def parse(args: List[String]) =
+    igluctlCommand.parse(args)
+
+  implicit val readUuid: Argument[UUID] = new Argument[UUID] {
+    def read(string: String): ValidatedNel[String, UUID] =
+      Validated.catchOnly[IllegalArgumentException](UUID.fromString(string)).leftMap(_.getMessage).toValidatedNel
+    def defaultMetavar: String = "uuid"
   }
 
-  implicit val lintersRead: scopt.Read[List[Linter]] = scopt.Read.reads { s =>
-    LintCommand.skipLinters(s) match {
-      case Left(err) => throw new IllegalArgumentException(err)
-      case Right(linters) => linters
-    }
+  implicit val readLinters: Argument[List[Linter]] = new Argument[List[Linter]] {
+    def read(string: String): ValidatedNel[String, List[Linter]] =
+      commands.Lint.parseOptionalLinters(string).leftMap(_.show).toValidatedNel
+    def defaultMetavar: String = "linters"
   }
 
-  private def subcommand(sub: String)(unit: Unit, root: Command): Command =
-    root.copy(command = root.command.map(_ + " " + sub))
-
-  /**
-   * Trait common for all commands
-   */
-  private[ctl] trait CtlCommand
-
-  def inputReadable(c: Command): Either[String, Unit] =
-    c.input match {
-      case Some(input) if input.exists() && input.canRead => Right(())
-      case Some(input) => Left(s"Input [${input.getAbsolutePath}] isn't available for read")
-      case _ => Right(())
-    }
-
-  val cliParser = new OptionParser[Command]("igluctl") {
-
-    head(generated.ProjectSettings.name, generated.ProjectSettings.version)
-    help("help") text "Print this help message"
-    version("version") text "Print version info\n"
-
-    checkConfig(inputReadable)
-
-    cmd("static")
-      .action { (_, c) => c.copy(command = Some("static")) }
-      .text("Static Iglu generator\n")
-      .children(
-        cmd("generate")
-          .action { (_, c) => c.copy(command = c.command.map(_ + " generate")) }
-          .text("Generate DDL out of JSON Schema\n")
-          .children(
-
-            arg[File]("input")
-              action { (x, c) => c.copy(input = Some(x)) } required()
-              text "Path to single JSON schema or directory with JSON Schemas",
-
-            opt[File]("output")
-              action { (x, c) => c.copy(output = Some(x)) }
-              valueName "<path>"
-              text "Directory to put generated data\t\t\t\tDefault: current dir",
-
-            opt[String]("dbschema")
-              action { (x, c) => c.copy(schema = Some(x)) }
-              valueName "<name>"
-              text "Redshift schema name\t\t\t\t\t\tDefault: atomic",
-
-            opt[String]("set-owner")
-              action { (x, c) => c.copy(owner = Some(x)) }
-              valueName "<owner>"
-              text "Redshift table owner\t\t\t\t\t\tDefault: None",
-
-            opt[String]("db")
-              action { (x, c) => c.copy(db = x) }
-              valueName "<name>"
-              text "DB to which we need to generate DDL\t\t\t\tDefault: redshift",
-
-            opt[Int]("varchar-size")
-              action { (x, c) => c.copy(varcharSize = x) }
-              valueName "<n>"
-              text "Default size for varchar data type\t\t\t\tDefault: 4096",
-
-            opt[Unit]("with-json-paths")
-              action { (_, c) => c.copy(withJsonPaths = true) }
-              text "Produce JSON Paths files with DDL",
-
-            opt[Unit]("raw-mode")
-              action { (_, c) => c.copy(rawMode = true) }
-              text "Produce raw DDL without Snowplow-specific data",
-
-            opt[Unit]("split-product")
-              action { (_, c) => c.copy(splitProduct = true) }
-              text "Split product types (like [string,integer]) into separate columns",
-
-            opt[Unit]("no-header")
-              action { (_, c) => c.copy(noHeader = true) }
-              text "Do not place header comments into output DDL",
-
-            opt[Unit]("force")
-              action { (_, c) => c.copy(force = true) }
-              text "Force override existing manually-edited files\n",
-
-            checkConfig {
-              case command: Command if command.withJsonPaths && command.splitProduct =>
-                failure("Options --with-json-paths and --split-product cannot be used together")
-              case _ => success
-            }
-          ),
-
-        cmd("deploy")
-          .action(subcommand("deploy"))
-          .text("Perform usual schema workflow at once\n")
-          .children(
-
-            arg[File]("config") required()
-              action { (x, c) => c.copy(config = Some(x))}
-              text "Path to configuration file\n"
-          ),
-
-        cmd("push")
-          .action(subcommand("push"))
-          .text("Upload Schemas from folder into the Iglu registry\n")
-          .children(
-
-            arg[File]("input") required()
-              action { (x, c) => c.copy(input = Some(x))}
-              text "Path to directory with JSON Schemas",
-
-            arg[HttpUrl]("registryRoot")
-              action { (x, c) => c.copy(registryRoot = Some(x))}
-              text "Iglu Registry registry root to upload Schemas",
-
-            arg[UUID]("apikey")
-              action { (x, c) => c.copy(apiKey = Some(x))}
-              text "Master API Key",
-
-            opt[Unit]("public")
-              action { (_, c) => c.copy(isPublic = true)}
-              text "Upload all schemas as public\n"
-
-          ),
-
-        cmd("s3cp")
-          .action(subcommand("s3cp"))
-          .text("Upload Schema Registry onto Amazon S3\n")
-          .children(
-
-            arg[File]("input") required()
-              action { (x, c) => c.copy(input = Some(x))}
-              text "Path to directory with JSON Schemas",
-
-            arg[String]("bucket") required()
-              action { (x, c) => c.copy(bucket = Some(x))}
-              text "Bucket name to upload Schemas",
-
-            opt[String]("s3path")
-              action { (x, c) => c.copy(s3path = Some(x))}
-              text "Path in the bucket to upload Schemas\t\t\t\tDefault: bucket root",
-
-            opt[String]("accessKeyId") optional()
-              action { (x, c) => c.copy(accessKeyId = Some(x))}
-              valueName "<key>"
-              text "AWS Access Key Id",
-
-            opt[String]("secretAccessKey")
-              action { (x, c) => c.copy(secretAccessKey = Some(x))}
-              valueName "<key>"
-              text "AWS Secret Access Key",
-
-            opt[String]("profile")
-              action { (x, c) => c.copy(profile = Some(x))}
-              valueName "<name>"
-              text "AWS Profile",
-
-            opt[String]("region")
-              action { (x, c) => c.copy(region = Some(x))}
-              valueName "<name>"
-              text "AWS S3 region\t\t\t\t\t\tDefault: us-west-2\n",
-
-            checkConfig { (c: Command) =>
-              (c.secretAccessKey, c.accessKeyId, c.profile) match {
-                case (Some(_), Some(_), None) => success
-                case (None, None, Some(_)) => success
-                case (None, None, None) => success
-                case _ => failure("You need provide either both accessKeyId and secretAccessKey OR just profile OR have credentials in other lookup places")
-              }
-            }
-          )
-    )
-
-    cmd("lint")
-      .action { (_, c) => c.copy(command = Some("lint"))}
-      .text("Lint Schemas\n")
-      .children(
-
-        arg[File]("input") required() action { (x, c) => c.copy(input = Some(x)) }
-          text "Path to directory with JSON Schemas",
-
-        opt[Unit]("skip-warnings")
-          action { (_, c) => c.copy(skipWarnings = true) }
-          text "Don't output messages with log level less than ERROR",
-
-        opt[List[Linter]]("skip-checks")
-          action { (x, c) => c.copy(linters = x) }
-          valueName "<linters>"
-          text "Lint without specified linters, given comma separated\tDefault: None\n" +
-                "\t\t\t   rootObject           - Check that root of schema has object type and contains properties\n" +
-                "\t\t\t   unknownFormats       - Check that schema doesn't contain unknown formats\n" +
-                "\t\t\t   numericMinMax        - Check that schema with numeric type contains both minimum and maximum properties\n" +
-                "\t\t\t   stringLength         - Check that schema with string type contains maxLength property or other ways to extract max length\n" +
-                "\t\t\t   optionalNull         - Check that non-required fields have null type\n" +
-                "\t\t\t   stringMaxLengthRange - Check that possible VARCHAR is in acceptable limits for Redshift\n" +
-                "\t\t\t   description          - Check that property contains description"
-      )
+  implicit val readRegistryRoot: Argument[Push.HttpUrl] = new Argument[Push.HttpUrl] {
+    def read(string: String): ValidatedNel[String, Push.HttpUrl] =
+      Push.HttpUrl.parse(string).leftMap(_.show).toValidatedNel
+    def defaultMetavar: String = "uri"
   }
+
+  // common options
+  val input = Opts.argument[Path]("input")
+
+  // static generate options
+  val output = Opts.argument[Path]("output")
+  val dbschema = Opts.option[String]("dbschema", "Redshift schema name", metavar = "name").withDefault("atomic")
+  val owner = Opts.option[String]("set-owner", "Redshift table owner", metavar = "name").orNone
+  val varcharSize = Opts.option[Int]("varchar-size", "Default size for varchar data type", metavar = "n").withDefault(4096)
+  val withJsonPathsOpt = Opts.flag("with-json-paths", "Produce JSON Paths files with DDL").orFalse
+  val rawMode = Opts.flag("raw-mode", "Produce raw DDL without Snowplow-specific data").orFalse
+  val splitProduct = Opts.flag("raw-mode", "Split product types (e.g. [string,integer]) into separate columns").orFalse
+  val noHeader = Opts.flag("no-header", "Do not place header comments into output DDL").orFalse
+  val force = Opts.flag("force", "Force override existing manually-edited files").orFalse
+
+  // static push options
+  val registryRoot = Opts.argument[Push.HttpUrl]("uri")
+  val apikey = Opts.argument[UUID]("uuid")
+  val public = Opts.flag("public", "Upload schemas as public").orFalse
+
+  // static s3cp options
+  type S3Path = String
+  type Bucket = String
+  val bucket = Opts.argument[Bucket]("bucket")
+  val s3path = Opts.option[S3Path]("s3path", "Path in the bucket to upload Schemas").orNone
+  val accessKeyId = Opts.option[String]("accessKeyId", "AWS Access Key Id", metavar = "key").orNone
+  val secretAccessKey = Opts.option[String]("secretAccessKey", "AWS Secret Access Key", metavar = "key").orNone
+  val profile = Opts.option[String]("profile", "AWS Profile name", metavar = "name").orNone
+  val region = Opts.option[String]("region", "AWS Region", metavar = "name").orNone
+
+  // lint options
+  val lintersListText =
+    "rootObject           - Check that root of schema has object type and contains properties\n" +
+    "unknownFormats       - Check that schema doesn't contain unknown formats\n" +
+    "numericMinMax        - Check that schema with numeric type contains both minimum and maximum properties\n" +
+    "stringLength         - Check that schema with string type contains maxLength property or other ways to extract max length\n" +
+    "optionalNull         - Check that non-required fields have null type\n" +
+    "stringMaxLengthRange - Check that possible VARCHAR is in acceptable limits for Redshift\n" +
+    "description          - Check that property contains description"
+  val skipWarnings = Opts.flag("skip-warnings", "Don't output messages with log level less than ERROR").orFalse
+  val skipChecks = Opts.option[List[Linter]]("skip-checks", s"Lint without specified linters, given comma separated\n$lintersListText").withDefault(List.empty)
+
+  // subcommands
+  val staticGenerate = Opts.subcommand("generate", "Generate DDL and JSON Path files") {
+    (input, output, dbschema, owner, varcharSize, withJsonPathsOpt, rawMode, splitProduct, noHeader, force).mapN(StaticGenerate.apply)
+  }
+  val staticDeploy = Opts.subcommand("deploy", "Master command for schema deployment")(Opts.argument[Path]("config").map(StaticDeploy))
+  val staticPush = Opts.subcommand("push", "Upload Schemas from folder onto the Iglu Server") {
+    (input, registryRoot, apikey, public).mapN(StaticPush.apply)
+  }
+  val staticS3Cp = Opts.subcommand("s3cp", "Upload Schemas or JSON Path files onto S3") {
+    (input, bucket, s3path, accessKeyId, secretAccessKey, profile, region).mapN(StaticS3Cp.apply)
+  }
+  val static = Opts.subcommand("static", "Work with static registry") {
+    staticGenerate.orElse(staticDeploy).orElse(staticPush).orElse(staticS3Cp)
+  }
+  val lint = Opts.subcommand("lint", "Validate JSON schemas") {
+    (input, skipWarnings, skipChecks).mapN(Lint.apply)
+  }
+
+  val igluctlCommand = Cmd(generated.ProjectSettings.name, s"Snowplow Iglu command line utils")(static.orElse(lint))
+
+
+  sealed trait IgluctlCommand extends Product with Serializable
+
+  sealed trait StaticCommand extends IgluctlCommand
+  case class StaticGenerate(input: Path,
+                            output: Path,
+                            dbSchema: String,
+                            owner: Option[String],
+                            varcharSize: Int,
+                            withJsonPaths: Boolean,
+                            rawMode: Boolean,
+                            splitProduct: Boolean,
+                            noHeader: Boolean,
+                            force: Boolean) extends StaticCommand
+  case class StaticDeploy(config: Path) extends StaticCommand
+  case class StaticPush(input: Path,
+                        registryRoot: Push.HttpUrl,
+                        apikey: UUID,
+                        public: Boolean) extends StaticCommand
+  case class StaticS3Cp(input: Path,
+                        bucket: Bucket,
+                        s3Path: Option[S3Path],
+                        accessKeyId: Option[String],
+                        secretKeyId: Option[String],
+                        profile: Option[String],
+                        region: Option[String]) extends StaticCommand
+
+  case class Lint(input: Path,
+                  skipWarnings: Boolean,
+                  skipChecks: List[Linter]) extends IgluctlCommand
+
 }
 

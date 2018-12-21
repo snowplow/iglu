@@ -34,10 +34,13 @@ lazy val root = project.in(file("."))
       Libraries.jaxbImpl,
       Libraries.activation,
       // Scala
+      Libraries.catsEffect,
       Libraries.schemaddl,
       Libraries.igluClient,
-      Libraries.scopt,
+      Libraries.decline,
       Libraries.scalajHttp,
+      Libraries.fs2,
+      Libraries.fs2Io,
       // Scala (test only)
       Libraries.specs2,
       Libraries.scalaCheck
