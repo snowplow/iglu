@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2019 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -11,81 +11,71 @@
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
 package com.snowplowanalytics.iglu.ctl
+package commands
 
-// java
-import java.io.File
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 
-// cats
-import cats.instances.list._
-import cats.instances.either._
-import cats.syntax.either._
-import cats.syntax.traverse._
+import cats.data.{ EitherT, NonEmptyList }
+import cats.effect.IO
+import cats.implicits._
 
-// json4s
+import com.snowplowanalytics.iglu.client.Resolver
+import com.snowplowanalytics.iglu.client.repositories.{EmbeddedRepositoryRef, RepositoryRefConfig}
+import com.snowplowanalytics.iglu.client.validation.ValidatableJValue.validate
+
+import com.snowplowanalytics.iglu.ctl.File.readFile
+import com.snowplowanalytics.iglu.ctl.IgluctlConfig.IgluctlAction
+import com.snowplowanalytics.iglu.ctl.Utils.extractKey
+import com.snowplowanalytics.iglu.ctl.Common.Error
+
 import org.json4s._
 import org.json4s.jackson.JsonMethods.compact
 
-// iglu scala client
-import com.snowplowanalytics.iglu.client.Resolver
-import com.snowplowanalytics.iglu.client.validation.ValidatableJValue.validate
-import com.snowplowanalytics.iglu.client.repositories.{ RepositoryRefConfig, EmbeddedRepositoryRef }
 
-// this project
-import FileUtils.getJsonFromFile
-import IgluctlConfig.IgluctlAction
-import Utils.extractKey
+object Deploy {
 
-case class DeployCommand(config: File) extends Command.CtlCommand {
-  import DeployCommand._
+  lazy val resolver: Resolver = {
+    val embeddedRepo = RepositoryRefConfig("Igluctl Embedded", 1, List("com.snowplowanalytics.iglu"))
+    val embeddedIglu = EmbeddedRepositoryRef(embeddedRepo, "/igluctl")
+    Resolver(5, List(embeddedIglu))
+  }
 
   /**
     * Primary method of static deploy command
     * Performs usual schema workflow at once, per configuration file
     * Short-circuits on first failed step
     */
-  def process(): Unit = {
-    val igluctlConfig = for {
-      configDoc <- getJsonFromFile(config)
-      config <- validate(configDoc, true)(resolver).toEither.leftMap(_.list.mkString(", "))
-      igluctlConfig <- extractConfig(config).leftMap(_.toList.mkString(", "))
-    } yield igluctlConfig
-
-    igluctlConfig match {
-      case Right(ctlConfig) =>
-        ctlConfig.lintCommand.process()
-        ctlConfig.generateCommand.processDdl()
-        ctlConfig.actions.foreach { action => action.process() }
-      case Left(err) =>
-        System.err.println("Invalid configuration")
-        System.err.println(err)
-        sys.exit(1)
-    }
-  }
-}
-
-object DeployCommand {
-
-  val resolver: Resolver = {
-    val embeddedRepo = RepositoryRefConfig("Igluctl Embedded", 1, List("com.snowplowanalytics.iglu"))
-    val embeddedIglu = EmbeddedRepositoryRef(embeddedRepo, "/igluctl")
-    Resolver(5, List(embeddedIglu))
+  def process(configFile: Path): Result = {
+    for {
+      configDoc  <- EitherT(readFile(configFile).map(_.flatMap(_.asJson).toEitherNel))
+      config     <- EitherT(IO(validate(configDoc.content, true)(resolver)
+        .toEither
+        .leftMap(messages => NonEmptyList.fromListUnsafe(messages.list.map(message => Error.ConfigParseError(message.toString))))))
+      cfg        <- EitherT.fromEither[IO](extractConfig(config).toEitherNel)
+      output     <- Lint.process(cfg.lint.input, cfg.lint.skipChecks, cfg.lint.skipWarnings)
+      _          <- Generate.process(cfg.generate.input,
+        cfg.generate.output, cfg.generate.withJsonPaths, cfg.generate.rawMode,
+        cfg.generate.dbSchema, cfg.generate.varcharSize, cfg.generate.splitProduct,
+        cfg.generate.noHeader, cfg.generate.force, cfg.generate.owner)
+      actionsOut <- cfg.actions.traverse[EitherT[IO, NonEmptyList[Common.Error], ?], List[String]](_.process)
+    } yield output ::: actionsOut.flatten
   }
 
   /** Configuration key that can represent either "hard-coded" value or env var with API key */
   private[ctl] sealed trait ApiKeySecret {
-    def value: Either[String, UUID]
+    def value: Either[Error, UUID]
   }
 
   private[ctl] object ApiKeySecret {
     case class Plain(uuid: UUID) extends ApiKeySecret {
-      def value: Either[String, UUID] = uuid.asRight
+      def value: Either[Error, UUID] = uuid.asRight
     }
     case class EnvVar(name: String) extends ApiKeySecret {
-      def value: Either[String, UUID] =
+      def value: Either[Error, UUID] =
         for {
-          value <- Option(System.getenv().get(name)).toRight(s"Environment variable $name is not available")
-          uuid <- Either.catchNonFatal(UUID.fromString(value)).leftMap(_.getMessage)
+          value <- Option(System.getenv().get(name)).toRight(Error.ConfigParseError(s"Environment variable $name is not available"))
+          uuid <- Either.catchNonFatal(UUID.fromString(value)).leftMap(e => Error.ConfigParseError(e.getMessage))
         } yield uuid
     }
 
@@ -115,7 +105,7 @@ object DeployCommand {
   implicit val formats: Formats = DefaultFormats + ApiKeySecret.Serializer
 
   /** Parse igluctl config object from JSON */
-  def extractConfig(config: JValue): Either[String, IgluctlConfig] = {
+  def extractConfig(config: JValue): Either[Error, IgluctlConfig] = {
     val description = (config \ "description").extractOpt[String]
     val jLint: JValue = config \ "lint"
     val jGenerate: JValue = config \ "generate"
@@ -136,16 +126,16 @@ object DeployCommand {
   }
 
   /** Extract `lint` command options from igluctl config */
-  def extractLint(input: String, doc: JValue): Either[String, LintCommand] = {
+  def extractLint(input: String, doc: JValue): Either[Error, Command.Lint] = {
     for {
       skipWarnings <- extractKey[Boolean](doc, "skipWarnings")
       includedChecks <- extractKey[List[String]](doc, "includedChecks")
-      linters <- LintCommand.includeLinters(includedChecks.mkString(","))
-    } yield LintCommand(new File(input), skipWarnings, linters)
+      linters <- Lint.parseOptionalLinters(includedChecks.mkString(","))
+    } yield Command.Lint(Paths.get(input), skipWarnings, linters)
   }
 
   /** Extract `static generate` options from igluctl config */
-  def extractGenerate(input: String, doc: JValue): Either[String, GenerateCommand] = {
+  def extractGenerate(input: String, doc: JValue): Either[Error, Command.StaticGenerate] = {
     for {
       output <- extractKey[String](doc, "output")
       withJsonPaths <-  extractKey[Boolean](doc, "withJsonPaths")
@@ -154,38 +144,43 @@ object DeployCommand {
       noHeader <- extractKey[Option[Boolean]](doc, "noHeader")
       force <- extractKey[Boolean](doc, "force")
       owner <- extractKey[Option[String]](doc, "owner")
-    } yield GenerateCommand(new File(input), new File(output), "redshift", withJsonPaths, false, dbSchema, varcharSize,
-      false, noHeader.getOrElse(false), force, owner)
+    } yield Command.StaticGenerate(Paths.get(input), Paths.get(output), dbSchema.getOrElse("atomic"), owner, varcharSize, withJsonPaths, false,
+      false, noHeader.getOrElse(false), force)
   }
 
   /** Extract `s3cp` or `push` commands from igluctl config */
-  def extractAction(input: String, actionDoc: JValue): Either[String, IgluctlAction] = {
+  def extractAction(input: String, actionDoc: JValue): Either[Error, IgluctlAction] = {
     actionDoc \ "action" match {
       case JString("s3cp") =>
         for {
           bucket <- extractKey[String](actionDoc, "bucketPath")
+          bucketPath <- bucket.stripPrefix("s3://").split("/").toList match {
+            case b :: Nil => (b, None).asRight
+            case b :: p => (b, Some(p.mkString("/"))).asRight
+            case _ => Error.ConfigParseError("bukcetPath has invalid format").asLeft
+          }
+          (b, p) = bucketPath
           profile <- extractKey[Option[String]](actionDoc, "profile")
           region <- extractKey[Option[String]](actionDoc, "region")
-        } yield S3cpCommand(new File(input), bucket, None, None, None, profile, region)
-
+        } yield IgluctlAction.S3Cp(Command.StaticS3Cp(Paths.get(input), b, p, None, None, profile, region))
       case JString("push") =>
         for {
-          registryRoot <- extractKey[String](actionDoc, "registry")
+          registryRoot <- extractKey[String](actionDoc, "registry").flatMap(Push.HttpUrl.parse)
           secret <- extractKey[ApiKeySecret](actionDoc, "apikey")
           masterApiKey <- secret.value
           isPublic <- extractKey[Boolean](actionDoc, "isPublic")
-        } yield PushCommand(PushCommand.parseRegistryRoot(registryRoot).toOption.get, masterApiKey, new File(input), isPublic)
-      case JString(action) => s"Unrecognized action $action".asLeft
-      case _ => "Action can only be a string".asLeft
+        } yield IgluctlAction.Push(Command.StaticPush(Paths.get(input), registryRoot, masterApiKey, isPublic))
+      case JString(action) => Error.ConfigParseError(s"Unrecognized action $action").asLeft
+      case _ => Error.ConfigParseError("Action can only be a string").asLeft
     }
   }
 
   /** Extract list of actions from igluctl config */
-  def extractActions(input: String, actions: JValue): Either[String, List[IgluctlAction]] = {
+  def extractActions(input: String, actions: JValue): Either[Error, List[IgluctlAction]] = {
     actions match {
       case JNull => List.empty[IgluctlAction].asRight
       case JArray(actions: List[JValue]) => actions.traverse(extractAction(input, _))
-      case _ => "Actions can be either array or null".asLeft
+      case _ => Error.ConfigParseError("Actions can be either array or null").asLeft
     }
   }
 }
