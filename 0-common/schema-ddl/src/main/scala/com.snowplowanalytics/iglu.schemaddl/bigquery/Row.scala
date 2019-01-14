@@ -113,7 +113,7 @@ object Row {
 
   /** Try to cast JSON into a list of `fieldType`, fail if JSON is not an array */
   def castRepeated(fieldType: Type, json: Json): CastResult =
-    json.asArray match {
+    json.asArray match {  // TODO: should we case null into empty array?
       case Some(values) => values
         .toList
         .flatMap(castValue(fieldType)(_).eraseNull)

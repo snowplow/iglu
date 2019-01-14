@@ -21,6 +21,7 @@ class FieldSpec extends org.specs2.Specification { def is = s2"""
   build uses string-fallback strategy for union types $e5
   build recognized nullable union type $e6
   build generates repeated string for empty schema in items $e7
+  build generates repeated record for nullable array $e8
   """
 
   def e1 = {
@@ -189,6 +190,24 @@ class FieldSpec extends org.specs2.Specification { def is = s2"""
         |      "imp": {
         |        "type": "array",
         |        "items": {}
+        |      }
+        |    }
+        |  }
+      """.stripMargin)
+
+    val expected = Field("arrayTest",Type.Record(List(Field("imp",Type.String,Mode.Repeated))),Mode.Required)
+    Field.build("arrayTest", input, true) must beEqualTo(expected)
+  }
+
+  def e8 = {
+    val input = SpecHelpers.parseSchema(
+      """
+        |  {
+        |    "type": "object",
+        |    "properties": {
+        |      "imp": {
+        |        "type": ["array", "null"],
+        |        "items": { }
         |      }
         |    }
         |  }
