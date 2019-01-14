@@ -49,7 +49,7 @@ object Field {
           val subFields = fields.toList.sortBy(field => (Mode.sort(field.mode), field.name))
           Field(name, Type.Record(subFields), Mode.required(required))
         }
-      case Some(CommonProperties.Type.Array) =>
+      case Some(types) if types.possiblyWithNull(CommonProperties.Type.Array) =>
         topSchema.items match {
           case Some(ArrayProperty.Items.ListItems(schema)) =>
             build(name, schema, false).copy(mode = Mode.Repeated)
