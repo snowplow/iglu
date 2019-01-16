@@ -36,14 +36,21 @@ project_version=$(sbt version -Dsbt.log.noformat=true | tail -n 1 | perl -ne 'pr
 if [ "${project_version}" == "${release}" ]; then
     # local publish only dependency, scala-core
     cd "${TRAVIS_BUILD_DIR}/0-common/scala-core"
+    echo "DEPLOY: localPublish iglu-core (for schema-ddl)..."
     sbt +publishLocal
+    echo "DEPLOY: localPublish iglu-core-circe (for schema-ddl)..."
     sbt "project igluCoreCirce" +publishLocal --warn
+    echo "DEPLOY: localPublish iglu-core-json4s (for schema-ddl)..."
     sbt "project igluCoreJson4s" +publishLocal --warn
     # universal publish schema-ddl
     cd "${TRAVIS_BUILD_DIR}/0-common/schema-ddl"
+    echo "DEPLOY: testing schema-ddl..."
     sbt +test --warn
+    echo "DEPLOY: publishing schema-ddl..."
     sbt +publish
+    echo "DEPLOY: publishing schema-ddl to Maven Central..."
     sbt +bintraySyncMavenCentral
+    echo "DEPLOY: Schema DDL deployed..."
 
 else
     echo "Tag version '${release}' doesn't match version in scala project ('${project_version}'). Aborting!"
