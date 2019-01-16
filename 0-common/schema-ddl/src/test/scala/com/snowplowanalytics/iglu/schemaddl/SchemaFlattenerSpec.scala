@@ -12,8 +12,8 @@
  */
 package com.snowplowanalytics.iglu.schemaddl
 
-// scalaz
-import scalaz.Success
+// cats
+import cats.data.Validated
 
 // Scala
 import scala.collection.immutable.ListMap
@@ -165,6 +165,6 @@ class SchemaFlattenerSpec extends Specification { def is = s2"""
     // TODO: it should include information about `items`
     val result = ListMap("foo" -> Map("type" -> "array"))
 
-    FlatSchema.flattenJsonSchema(schema, splitProduct = false) mustNotEqual Success(FlatSchema(result, Set.empty))
+    FlatSchema.flattenJsonSchema(schema, splitProduct = false) mustNotEqual Validated.Valid(FlatSchema(result, Set.empty))
   }.orSkip
 }

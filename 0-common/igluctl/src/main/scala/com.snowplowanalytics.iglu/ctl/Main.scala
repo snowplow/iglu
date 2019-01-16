@@ -12,22 +12,65 @@
  */
 package com.snowplowanalytics.iglu.ctl
 
-object Main extends App {
-  Command.cliParser.parse(args, Command()).map(c => (c, c.toCommand)) match {
-    case Some((_, Some(ddl: GenerateCommand))) =>
-      ddl.processDdl()
-    case Some((_, Some(deploy: DeployCommand))) =>
-      deploy.process()
-    case Some((_, Some(sync: PushCommand))) =>
-      sync.process()
-    case Some((_, Some(lint: LintCommand))) =>
-      lint.process()
-    case Some((_, Some(s3cp: S3cpCommand))) =>
-      s3cp.process()
-    case Some((c, _)) if c.command.isEmpty || c.command.contains("static")=>
-      Command.cliParser.showUsageAsError()
-    case _ =>
-      sys.exit(0)
+import cats.Show
+import cats.data.{EitherNel, EitherT}
+import cats.implicits._
+import cats.effect.{ExitCode, IO, IOApp}
 
+import com.snowplowanalytics.iglu.ctl.commands._
+import com.snowplowanalytics.iglu.ctl.Common.Error
+
+object Main extends IOApp {
+
+  // Check -> Folder does not exist. Common. Input folder presence is checked in Main
+
+  // generate
+  // Read -> (inaccessible, not a JSON, not a Schema) -- filter out a file entirely, but do not short-circuit the process
+  // Read -> (incompatible path) -- short-circuit the process
+  // Read -> load everything into memory
+  // Lint -> on very permissive set of checks (only errors)
+  // Write -> short circuits at any point
+  // Write -> takes force into account
+
+  // static push
+  // Read -> (inaccessible, not a JSON, not a Schema) -- filter out a file entirely, but do not short-circuit the process
+  // Read -> (incompatible path) -- short-circuit the process
+  // Read -> load everything into memory
+  // Lint -> on very permissive set of checks (only errors)
+  // Write -> short circuits at any point
+  // Write -> takes force into account
+
+  // static s3cp
+  // Read -> (inaccessible) -- short-circuit the process
+  // Read -> does not load into memory (it can be big)
+  // Read -> does not even parse them
+
+
+
+  def run(args: List[String]): IO[ExitCode] = {
+    val result: Result = Command.parse(args) match {
+      case Right(Command.Lint(input, skipWarnings, skipChecks)) =>
+        Lint.process(input, skipChecks, skipWarnings)
+
+      case Right(Command.StaticGenerate(in, out, schema, own, size, jp, raw, split, noheader, f)) =>
+        Generate.process(in, out, jp, raw, schema, size, split, noheader, f, own)
+      case Right(Command.StaticPush(input, registryRoot, apikey, public)) =>
+        Push.process(input, registryRoot, apikey, public)
+      case Right(Command.StaticS3Cp(input, bucket, s3Path, accessKey, secretKey, profile, region)) =>
+        S3cp.process(input, bucket, s3Path, accessKey, secretKey, profile, region)
+
+      case Right(Command.StaticDeploy(config)) =>
+        Deploy.process(config)
+      case Left(e) =>
+        EitherT.fromEither[IO](Error.Message(e.toString).asLeft[List[String]].toEitherNel)
+    }
+
+    result.value.flatMap(processResult[String])
   }
+
+  def processResult[A: Show](either: EitherNel[Error, List[A]]): IO[ExitCode] =
+    either.fold(
+      errors => errors.traverse_(e => IO(System.err.println(e.show))) *> IO.pure(ExitCode.Error),
+      messages => messages.traverse_(e => IO(System.out.println(e.show))) *> IO.pure(ExitCode.Success)
+    )
 }

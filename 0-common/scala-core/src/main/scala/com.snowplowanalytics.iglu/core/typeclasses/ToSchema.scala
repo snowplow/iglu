@@ -14,13 +14,14 @@ package com.snowplowanalytics.iglu.core
 package typeclasses
 
 /**
-  * Mixin for [[AttachSchemaKey]] marking that this particular instance intended
+  * Mixin for [[ExtractSchemaMap]] marking that this particular instance intended
   * for extraction Schemas, not instances
   */
-trait ToSchema[E] { self: AttachSchemaMap[E] =>
-  def toSchema(schema: E): Option[SelfDescribingSchema[E]] =
-    self.extractSchemaMap(schema).map { map =>
-      SelfDescribingSchema(map, getContent(schema))
+trait ToSchema[E] { self: ExtractSchemaMap[E] =>
+  def toSchema(schema: E): Either[ParseError, SelfDescribingSchema[E]] =
+    self.extractSchemaMap(schema) match {
+      case Right(map) => Right(SelfDescribingSchema(map, getContent(schema)))
+      case Left(error) => Left(error)
     }
 
   /** Cleanup if necessary information about schema */

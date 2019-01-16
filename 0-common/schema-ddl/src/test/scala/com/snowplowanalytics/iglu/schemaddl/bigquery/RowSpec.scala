@@ -15,6 +15,8 @@ package bigquery
 
 import org.json4s.jackson.JsonMethods.parse
 
+import cats.data.{ Validated, NonEmptyList }
+
 import io.circe._
 import io.circe.literal._
 
@@ -32,6 +34,7 @@ class RowSpec extends org.specs2.Specification { def is = s2"""
   cast does not stringify null when mode is Nullable $e6
   cast turns any unexpected type into string, when schema type is string $e7
   castRepeated eleminates nulls $e8
+  castRepeated does not transform null into an empty array $e10
   cast array does not remove it $e9
   """
 
@@ -172,5 +175,16 @@ class RowSpec extends org.specs2.Specification { def is = s2"""
 
     val expected = Row.Record(List(("imp", Row.Null)))
     castObject(fds)(Map.empty) must beValid(expected)
+  }
+
+  def e10 = {
+    val inputJson =
+      json"""null"""
+
+    val inputField = Type.String
+    val expected = NonEmptyList.of(CastError.NotAnArray(Json.Null,Type.String))
+
+    // This can be an invalid behavior depending on what BigQuery does in this case
+    castRepeated(inputField, inputJson) must beInvalid(expected)
   }
 }

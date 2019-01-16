@@ -14,7 +14,6 @@ package com.snowplowanalytics.iglu
 package core
 
 import typeclasses.ExtractSchemaKey
-import syntax._
 
 /**
  * Class to filter Schemas by [[SchemaKey]]
@@ -58,8 +57,8 @@ final case class SchemaCriterion(
    */
   def pickFrom[E: ExtractSchemaKey](entities: Seq[E]): Seq[E] =
     entities.foldLeft(Seq.empty[E]) { (acc, cur) =>
-      cur.getSchemaKey match {
-        case Some(key) if this.matches(key) => cur +: acc
+      SchemaKey.extract(cur) match {
+        case Right(key) if this.matches(key) => cur +: acc
         case _ => acc
       }
     }

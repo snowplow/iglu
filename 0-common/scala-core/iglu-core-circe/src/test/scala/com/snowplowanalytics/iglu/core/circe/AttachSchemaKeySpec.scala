@@ -13,6 +13,7 @@
 package com.snowplowanalytics.iglu.core.circe
 
 // specs2
+import com.snowplowanalytics.iglu.core.typeclasses.NormalizeSchema
 import org.specs2.Specification
 
 // cats (for Scala 2.11)
@@ -57,7 +58,7 @@ class AttachSchemaKeySpec extends Specification { def is = s2"""
         }
       """
 
-    val result = data.attachSchemaKey(SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)))
+    val result = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)).attachTo(data)
     result must beEqualTo(expected)
   }
 
@@ -140,7 +141,8 @@ class AttachSchemaKeySpec extends Specification { def is = s2"""
         }
       """
 
-    val result = schema.attachSchemaMap(SchemaMap("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)))
+    val map = SchemaMap("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
+    val result = implicitly[NormalizeSchema[Json]].normalize(SelfDescribingSchema(map, schema))
     result must beJson(expected)
   }
 
@@ -160,8 +162,8 @@ class AttachSchemaKeySpec extends Specification { def is = s2"""
       """
 
     val key = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
-    val result = schema.attachSchemaKey(key)
-    result.getSchemaKey must beSome(key)
+    val result = key.attachTo(schema)
+    SchemaKey.extract(result) must beRight(key)
   }
 
   import org.specs2.matcher.Matcher

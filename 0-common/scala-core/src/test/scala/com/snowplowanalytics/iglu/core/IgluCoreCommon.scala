@@ -32,15 +32,12 @@ object IgluCoreCommon {
   // ExtractFrom Json4s //
   ////////////////////////
 
-  /**
-   * Example common trait for [[ExtractSchemaKey]] *data* objects
-   * It can also be instantiated or extended by [[AttachSchemaKey]]
-   */
+  /** Example common trait for [[ExtractSchemaKey]] *data* objects */
   trait Json4SExtractSchemaKeyData extends ExtractSchemaKey[JValue] {
-    def extractSchemaKey(entity: JValue): Option[SchemaKey] =
+    def extractSchemaKey(entity: JValue): Either[ParseError, SchemaKey] =
       entity \ "schema" match {
         case JString(schema) => SchemaKey.fromUri(schema)
-        case _               => None
+        case _               => Left(ParseError.InvalidData)
       }
   }
 
@@ -49,16 +46,16 @@ object IgluCoreCommon {
    */
   implicit object Json4SExtractSchemaKeyData extends Json4SExtractSchemaKeyData
 
-  /**
-   * Example common trait for [[ExtractSchemaKey]] *Schemas* objects
-   * It can also be instantiated or extended by [[AttachSchemaKey]]
-   */
+  /** Example common trait for [[ExtractSchemaKey]] *Schemas* objects */
   trait Json4SExtractSchemaKeySchema extends ExtractSchemaKey[JValue] {
     /**
      * Extract SchemaKey usning serialization formats defined at [[IgluJson4sCodecs]]
      */
-    def extractSchemaKey(entity: JValue): Option[SchemaKey] =
-      (entity \ "self").extractOpt[SchemaKey]
+    def extractSchemaKey(entity: JValue): Either[ParseError, SchemaKey] =
+      (entity \ "self").extractOpt[SchemaKey] match {
+        case None => Left(ParseError.InvalidSchema)
+        case Some(self) => Right(self)
+      }
   }
 
   /**
@@ -73,42 +70,21 @@ object IgluCoreCommon {
 
   // Schemas
 
-  /**
-   * Example of simple [[AttachSchemaKey]] JSON *Schema* for json4s
-   */
-  implicit object Json4SAttachSchemaKeySchema extends AttachSchemaKey[JValue] {
-    def attachSchemaKey(schemaKey: SchemaKey, schema: JValue): JValue =
-      (("self", Extraction.decompose(schemaKey)): JObject).merge(schema)
-
-    /**
-     * Extract SchemaKey using serialization formats defined at [[IgluJson4sCodecs]]
-     * `extractSchemaKey` is also required to be implemented in [[AttachSchemaKey]] because it
-     * is supreme type class
-     */
-    def extractSchemaKey(entity: JValue): Option[SchemaKey] =
-      (entity \ "self").extractOpt[SchemaKey]
+  implicit object Json4SAttachSchemaKeySchema extends ExtractSchemaKey[JValue] {
+    def extractSchemaKey(entity: JValue): Either[ParseError, SchemaKey] =
+      (entity \ "self").extractOpt[SchemaKey] match {
+        case Some(self) => Right(self)
+        case None => Left(ParseError.InvalidSchema)
+      }
   }
 
-  /**
-   * Example of full-featured [[AttachSchemaKey]] JSON *Schema* for json4s
-   * Unlike almost identical [[Json4SAttachSchemaKeySchema]] it also extends
-   * [[ToSchema]] which makes possible to use `toSchema` method
-   */
-  implicit object Json4SAttachSchemaMapComplex extends AttachSchemaMap[JValue] with ToSchema[JValue] {
-    def attachSchemaMap(schemaMap: SchemaMap, schema: JValue): JValue = {
-      (("self", Extraction.decompose(schemaMap)): JObject).merge(schema)
-    }
-
-    /**
-     * Extract SchemaKey using serialization formats defined at [[IgluJson4sCodecs]]
-     * `extractSchemaKey` is also required to be implemented in [[AttachSchemaKey]] because it
-     * is supreme type class
-     */
-    def extractSchemaMap(entity: JValue): Option[SchemaMap] = {
-
+  implicit object Json4SAttachSchemaMapComplex extends ExtractSchemaMap[JValue] with ToSchema[JValue] {
+    def extractSchemaMap(entity: JValue): Either[ParseError, SchemaMap] = {
       implicit val formats = IgluJson4sCodecs.formats
-
-      (entity \ "self").extractOpt[SchemaMap]
+      (entity \ "self").extractOpt[SchemaKey].map(key => SchemaMap(key)) match {
+        case Some(map) => Right(map)
+        case None => Left(ParseError.InvalidSchema)
+      }
     }
 
     /**
@@ -124,16 +100,12 @@ object IgluCoreCommon {
 
   // Data
 
-  /**
-   * Example of full-featured [[AttachSchemaKey]] JSON *instance* for json4s
-   * Contains all available mix-ins
-   */
-  implicit object Json4SAttachSchemaKeyData extends AttachSchemaKey[JValue] with ToData[JValue] with Json4SExtractSchemaKeyData {
+  implicit object Json4SAttachSchemaKeyData extends ExtractSchemaKey[JValue] with ToData[JValue] with Json4SExtractSchemaKeyData {
 
-    def getContent(json: JValue): JValue =
+    def getContent(json: JValue): Either[ParseError, JValue] =
       json \ "data" match {
-        case JNothing => JNothing
-        case data => data
+        case data: JObject => Right(data)
+        case _ => Left(ParseError.InvalidData)
       }
 
     def attachSchemaKey(schemaKey: SchemaKey, instance: JValue): JValue =
@@ -160,8 +132,8 @@ object IgluCoreCommon {
    * Example of [[ExtractSchemaKey]] instance for usual case class
    */
   implicit object DescribingStringInstance extends ExtractSchemaKey[DescribedString] {
-    def extractSchemaKey(entity: DescribedString): Option[SchemaKey] =
-      Some(
+    def extractSchemaKey(entity: DescribedString): Either[ParseError, SchemaKey] =
+      Right(
         SchemaKey(
           entity.vendor,
           entity.name,

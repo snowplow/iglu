@@ -15,7 +15,7 @@ package redshift
 package generators
 
 // Scalaz
-import scalaz._
+import cats.data.NonEmptyList
 
 // Scala
 import scala.annotation.tailrec
@@ -41,20 +41,7 @@ object DdlGenerator {
    */
   def getTableComment(tableName: String, schemaName: Option[String], schemaMap: SchemaMap): CommentOn = {
     val schema = schemaName.map(_ + ".").getOrElse("")
-    CommentOn(schema + tableName, schemaMap.toSchemaUri)
-  }
-
-  /**
-   * Make a DDL header from the file name
-   *
-   * @param tableName table name
-   * @param schemaName optional DB schema name
-   * @param fileName JSON Schema file name
-   * @return SQL comment
-   */
-  def getTableComment(tableName: String, schemaName: Option[String], fileName: String): CommentOn = {
-    val schema = schemaName.map(_ + ".").getOrElse("")
-    CommentOn(schema + tableName, "Source: " + fileName)
+    CommentOn(schema + tableName, schemaMap.schemaKey.toSchemaUri)
   }
 
   /**
@@ -116,7 +103,7 @@ object DdlGenerator {
     val tableAttributes  = Set[TableAttribute]( // Snowplow-specific attributes
       Diststyle(Key),
       DistKeyTable("root_id"),
-      SortKeyTable(None, NonEmptyList("root_tstamp"))
+      SortKeyTable(None, NonEmptyList.of("root_tstamp"))
     )
     
     CreateTable(
@@ -148,7 +135,7 @@ object DdlGenerator {
    */
   private def RedshiftDdlDefaultForeignKey(schemaName: String) = {
     val reftable = RefTable(schemaName + ".events", Some("event_id"))
-    ForeignKeyTable(NonEmptyList("root_id"), reftable)
+    ForeignKeyTable(NonEmptyList.of("root_id"), reftable)
   }
 
   /**

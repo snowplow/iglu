@@ -4,7 +4,6 @@ package service
 // This project
 import actor.SchemaActor._
 import actor.ApiKeyActor._
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import model.Schema
 
 // Akka
@@ -15,13 +14,8 @@ import akka.pattern.ask
 import scala.concurrent.{ExecutionContext, Future}
 
 // Akka Http
-import akka.http.scaladsl.model.MediaTypes.`application/json`
-import akka.http.scaladsl.model.headers.Accept
-import akka.http.scaladsl.server.{ContentNegotiator, UnacceptedResponseContentTypeRejection}
 import akka.http.scaladsl.model.StatusCode
-import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.server.Directive1
-import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.server.{ Directive1, Directives }
 import akka.http.scaladsl.model.headers.HttpChallenges
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 import akka.http.scaladsl.server.{AuthenticationFailedRejection, Route}
@@ -40,81 +34,8 @@ import javax.ws.rs.Path
   */
 @Api(value = "/api/draft", tags = Array("draft"))
 @Path("/api/draft")
-class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit executionContext: ExecutionContext)
-  extends Directives with Service {
-
-  /**
-    * Directive to authenticate a user.
-    */
-  def auth(key: String): Directive1[(String, String)] = {
-    val credentialsRequest = (apiKeyActor ? GetKey(key)).mapTo[Option[(String, String)]].map {
-      case Some(t) => Right(t)
-      case None => Left(AuthenticationFailedRejection(CredentialsRejected, HttpChallenges.basic("Iglu Server")))
-    }
-    onSuccess(credentialsRequest).flatMap {
-      case Right(user) => provide(user)
-      case Left(rejection) => reject(rejection)
-    }
-  }
-
-  /**
-    * Directive to validate the schema provided (either by query param or form
-    * data) is self-describing.
-    */
-  def validateSchema(format: String): Directive1[String] =
-    formField('schema) | parameter('schema) | entity(as[String]) flatMap { schema =>
-      onSuccess((schemaActor ? ValidateSchema(schema, format))
-        .mapTo[(StatusCode, String)]) tflatMap  {
-        case (OK, j) => provide(j)
-        case rej => complete(rej)
-      }
-    }
-
-  /**
-    * Negotiate Content-Type header
-    */
-  def contentTypeNegotiator(routes: Route): Route = {
-    optionalHeaderValueByType[Accept]() {
-      case Some(x) =>
-        if (x.acceptsAll() || x.mediaRanges.exists(_.matches(`application/json`))) routes
-        else reject(UnacceptedResponseContentTypeRejection(Set(ContentNegotiator.Alternative(`application/json`))))
-      case None => routes
-    }
-  }
-
-  /**
-    * Draft Schema Service's route
-    */
-  lazy val routes: Route =
-    rejectEmptyResponse {
-      (get | post | put | delete) {
-        contentTypeNegotiator {
-          get {
-            optionalHeaderValueByName("apikey") {
-              case Some(apikey) =>
-                auth(apikey) { case (owner, permission) =>
-                  getDraftRoute(owner, permission)
-                }
-              case None =>
-                getDraftRoute("-", "-")
-            }
-          } ~
-            headerValueByName("apikey") { apikey =>
-              auth(apikey) { case (owner, permission) =>
-                post {
-                  addDraftRoute(owner, permission)
-                } ~
-                  put {
-                    updateDraftRoute(owner, permission)
-                  } ~
-                  delete {
-                    deleteDraftRoute(owner, permission)
-                  }
-              }
-            }
-        }
-      }
-    }
+class DraftSchemaService(val schemaActor: ActorRef, val apiKeyActor: ActorRef) (implicit val executionContext: ExecutionContext)
+  extends Directives with Common with Service {
 
   /**
     * Post route
@@ -155,11 +76,11 @@ class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit
       authentication, which was not supplied with the request"""),
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
-  def addDraftRoute(@ApiParam(hidden = true) owner: String,
-                    @ApiParam(hidden = true) permission: String): Route =
+  def addRoute(@ApiParam(hidden = true) owner: String,
+               @ApiParam(hidden = true) permission: String): Route =
     path(VendorPattern / NamePattern / FormatPattern / DraftNumberPattern) { (v, n, f, dn) =>
       (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
-        validateSchema(f) { schema =>
+        validateSchema(f) { case (_, schema) =>
           val schemaAdded: Future[(StatusCode, String)] =
             (schemaActor ? AddSchema(v, n, f, versionOfDraftSchemas, dn, schema, owner, permission,
               isPublic.contains("true"), isDraft = true)).mapTo[(StatusCode, String)]
@@ -207,11 +128,11 @@ class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit
       authentication, which was not supplied with the request"""),
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
-  def updateDraftRoute(@ApiParam(hidden = true) owner: String,
-                       @ApiParam(hidden = true) permission: String): Route =
+  def updateRoute(@ApiParam(hidden = true) owner: String,
+                  @ApiParam(hidden = true) permission: String): Route =
     path(VendorPattern / NamePattern / FormatPattern / DraftNumberPattern) { (v, n, f, dn) =>
       (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
-        validateSchema(f) { schema =>
+        validateSchema(f) { case (_, schema) =>
           val schemaUpdated: Future[(StatusCode, String)] =
             (schemaActor ? UpdateSchema(v, n, f, versionOfDraftSchemas, dn, schema, owner, permission,
               isPublic.contains("true"), isDraft = true)).mapTo[(StatusCode, String)]
@@ -225,10 +146,10 @@ class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit
     * @param owner the owner of the API key the request was made with
     * @param permission API key's permission
     */
-  def deleteDraftRoute(@ApiParam(hidden = true) owner: String,
+  def deleteRoute(@ApiParam(hidden = true) owner: String,
                   @ApiParam(hidden = true) permission: String): Route =
     path(VendorPattern / NamePattern / FormatPattern / DraftNumberPattern) { (v, n, f, dn) =>
-      (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
+      parameter('isPublic.?) { isPublic =>
         val schemaDeleted: Future[(StatusCode, String)] =
           (schemaActor ? DeleteSchema(v, n, f, versionOfDraftSchemas, dn, owner, permission,
             isPublic.contains("true"), isDraft = true)).mapTo[(StatusCode, String)]
@@ -242,75 +163,28 @@ class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit
     * @param owner the owner of the API key the request was made with
     * @param permission API key's permission
     */
-  def getDraftRoute(owner: String, permission: String): Route =
-    path("public") {
-      publicDraftSchemasRoute(owner, permission)
+  def getRoute(owner: String, permission: String): Route =
+    path(VendorPattern / NamePattern / FormatPattern / DraftNumberPattern) { case (vendor, name, format, draftNum) =>
+      readDraftRoute(vendor, name, format, draftNum, owner, permission)
     } ~
-      path((VendorPattern / NamePattern / FormatPattern / DraftNumberPattern).repeat(1, Int.MaxValue, ",")) { schemaKeys =>
-        val List(vendors, names, formats, draftNumbers) = schemaKeys.map(k => List(k._1, k._2, k._3, k._4)).transpose
-        readDraftRoute(vendors, names, formats, draftNumbers, owner, permission)
-      } ~
-      pathPrefix(VendorPattern.repeat(1, Int.MaxValue, ",")) { vendors: List[String] =>
-        pathPrefix(NamePattern.repeat(1, Int.MaxValue, ",")) { names: List[String] =>
-          pathPrefix(FormatPattern.repeat(1, Int.MaxValue, ",")) { formats: List[String] =>
-            path(DraftNumberPattern.repeat(1, Int.MaxValue, ",")) { draftNumbers: List[String] =>
-              readDraftRoute(vendors, names, formats, draftNumbers, owner, permission)
+      pathPrefix(VendorPattern) { vendor: String =>
+        pathPrefix(NamePattern) { name: String =>
+          pathPrefix(FormatPattern) { format: String =>
+            path(DraftNumberPattern) { draftNumber: String =>
+              readDraftRoute(vendor, name, format, draftNumber, owner, permission)
             } ~
               pathEnd {
-                readDraftFormatRoute(vendors, names, formats, owner, permission)
+                readDraftFormatRoute(vendor, name, format, owner, permission)
               }
           } ~
             pathEnd {
-              readDraftNameRoute(vendors, names, owner, permission)
+              readDraftNameRoute(vendor, name, owner, permission)
             }
         } ~
           pathEnd {
-            readDraftVendorRoute(vendors, owner, permission)
+            readDraftVendorRoute(vendor, owner, permission)
           }
       }
-
-  /**
-    * Route to retrieve every public draft schemas
-    * @param owner the owner of the API key the request was made with
-    * @param permission API key's permission
-    */
-  @Path(value = "/public")
-  @ApiOperation(value = "Retrieves every public schema", httpMethod = "GET",
-    notes = "Returns a collection of schemas", produces = "application/json", response = classOf[List[Schema]])
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "filter", value = "Get only schema or only metadata",
-      required = false, dataType = "string", paramType = "query", allowableValues = "metadata"),
-    new ApiImplicitParam(name = "metadata", value = "Include/exclude metadata, choose 1 to include metadata in schemas",
-      required = false, dataType = "string", paramType = "query", allowableValues = "1")
-  ))
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "{...}", response = classOf[Schema]),
-    new ApiResponse(code = 404, message = "There are no public schemas available"),
-    new ApiResponse(code = 401, message = "The supplied authentication is invalid"),
-    new ApiResponse(code = 401, message = "The resource requires authentication," +
-      "which was not supplied with the request"),
-    new ApiResponse(code = 404, message = "There are no schemas available here")
-  ))
-  def publicDraftSchemasRoute(@ApiParam(hidden = true) owner: String,
-                              @ApiParam(hidden = true) permission: String): Route =
-    (parameter('filter.?) | formField('filter.?)) {
-      case Some("metadata") =>
-        val getPublicMetadata: Future[(StatusCode, String)] =
-          (schemaActor ? GetPublicMetadata(owner, permission, isDraft = true)).mapTo[(StatusCode, String)]
-        sendResponse(getPublicMetadata)
-      case _ =>
-        (parameter('metadata.?) | formField('metadata.?)) {
-          case Some("1") =>
-            val getPublicSchemaWithMetadata: Future[(StatusCode, String)] =
-              (schemaActor ? GetPublicSchemas(owner, permission, includeMetadata = true, isDraft = true)).mapTo[(StatusCode, String)]
-            sendResponse(getPublicSchemaWithMetadata)
-          case Some(m) => throw new IllegalArgumentException(s"metadata can NOT be $m")
-          case None =>
-            val getPublicSchema: Future[(StatusCode, String)] =
-              (schemaActor ? GetPublicSchemas(owner, permission, includeMetadata = false, isDraft = true)).mapTo[(StatusCode, String)]
-            sendResponse(getPublicSchema)
-        }
-    }
 
   /**
     * Route to retrieve single schemas.
@@ -345,27 +219,27 @@ class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit
       "which was not supplied with the request"),
     new ApiResponse(code = 404, message = "There are no schemas available here")
   ))
-  def readDraftRoute(@ApiParam(hidden = true) v: List[String],
-                @ApiParam(hidden = true) n: List[String],
-                @ApiParam(hidden = true) f: List[String],
-                @ApiParam(hidden = true) dn: List[String],
+  def readDraftRoute(@ApiParam(hidden = true) v: String,
+                @ApiParam(hidden = true) n: String,
+                @ApiParam(hidden = true) f: String,
+                @ApiParam(hidden = true) dn: String,
                 @ApiParam(hidden = true) o: String,
                 @ApiParam(hidden = true) p: String): Route =
-    (parameter('filter.?) | formField('filter.?)) {
+    parameter('filter.?) {
       case Some("metadata") =>
         val getMetadata: Future[(StatusCode, String)] =
-          (schemaActor ? GetMetadata(v, n, f, List.empty[String], dn, o, p, isDraft = true)).mapTo[(StatusCode, String)]
+          (schemaActor ? GetMetadata(v, n, f, "", dn, o, p, isDraft = true)).mapTo[(StatusCode, String)]
         sendResponse(getMetadata)
       case _ =>
-        (parameter('metadata.?) | formField('metadata.?)) {
+        parameter('metadata.?) {
           case Some("1") =>
             val getSchemaWithMetadata: Future[(StatusCode, String)] =
-              (schemaActor ? GetSchema(v, n, f, List.empty[String], dn, o, p, includeMetadata = true, isDraft = true)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetSchema(v, n, f, "", dn, o, p, includeMetadata = true, isDraft = true)).mapTo[(StatusCode, String)]
             sendResponse(getSchemaWithMetadata)
           case Some(m) => throw new IllegalArgumentException(s"metadata can NOT be $m")
           case None =>
             val getSchema: Future[(StatusCode, String)] =
-              (schemaActor ? GetSchema(v, n, f, List.empty[String], dn, o, p, includeMetadata = false, isDraft = true)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetSchema(v, n, f, "", dn, o, p, includeMetadata = false, isDraft = true)).mapTo[(StatusCode, String)]
             sendResponse(getSchema)
         }
     }
@@ -401,18 +275,18 @@ class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit
       "which was not supplied with the request"),
     new ApiResponse(code = 404, message = "There are no schemas for this vendor, name, format combination")
   ))
-  def readDraftFormatRoute(@ApiParam(hidden = true) v: List[String],
-                      @ApiParam(hidden = true) n: List[String],
-                      @ApiParam(hidden = true) f: List[String],
+  def readDraftFormatRoute(@ApiParam(hidden = true) v: String,
+                      @ApiParam(hidden = true) n: String,
+                      @ApiParam(hidden = true) f: String,
                       @ApiParam(hidden = true) o: String,
                       @ApiParam(hidden = true) p: String): Route =
-    (parameter('filter.?) | formField('filter.?)) {
+    parameter('filter.?) {
       case Some("metadata") =>
         val getMetadaFromFormat: Future[(StatusCode, String)] =
           (schemaActor ? GetMetadataFromFormat(v, n, f, o, p, isDraft = true)).mapTo[(StatusCode, String)]
         sendResponse(getMetadaFromFormat)
       case _ =>
-        (parameter('metadata.?) | formField('metadata.?)) {
+        parameter('metadata.?) {
           case Some("1") =>
             val getSchemaWithMetadataFromFormat: Future[(StatusCode, String)] =
               (schemaActor ? GetSchemasFromFormat(v, n, f, o, p, includeMetadata = true, isDraft = true)).mapTo[(StatusCode, String)]
@@ -452,17 +326,17 @@ class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit
       "which was not supplied with the request"),
     new ApiResponse(code = 404, message = "There are no schemas for this vendor, name combination")
   ))
-  def readDraftNameRoute(@ApiParam(hidden = true) v: List[String],
-                    @ApiParam(hidden = true) n: List[String],
+  def readDraftNameRoute(@ApiParam(hidden = true) v: String,
+                    @ApiParam(hidden = true) n: String,
                     @ApiParam(hidden = true) o: String,
                     @ApiParam(hidden = true) p: String): Route =
-    (parameter('filter.?) | formField('filter.?)) {
+    parameter('filter.?) {
       case Some("metadata") =>
         val getMetadataFromName: Future[(StatusCode, String)] =
           (schemaActor ? GetMetadataFromName(v, n, o, p, isDraft = true)).mapTo[(StatusCode, String)]
         sendResponse(getMetadataFromName)
       case _ =>
-        (parameter('metadata.?) | formField('metadata.?)) {
+        parameter('metadata.?) {
           case Some("1") =>
             val getSchemaWithMetadataFromName: Future[(StatusCode, String)] =
               (schemaActor ? GetSchemasFromName(v, n, o, p, includeMetadata = true, isDraft = true)).mapTo[(StatusCode, String)]
@@ -499,16 +373,16 @@ class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit
       "which was not supplied with the request"),
     new ApiResponse(code = 404, message = "There are no schemas for this vendor")
   ))
-  def readDraftVendorRoute(@ApiParam(hidden = true) v: List[String],
+  def readDraftVendorRoute(@ApiParam(hidden = true) v: String,
                       @ApiParam(hidden = true) o: String,
                       @ApiParam(hidden = true) p: String): Route =
-    (parameter('filter.?) | formField('filter.?)) {
+    parameter('filter.?) {
       case Some("metadata") =>
         val getMetadataFromVendor: Future[(StatusCode, String)] =
           (schemaActor ? GetMetadataFromVendor(v, o, p, isDraft = true)).mapTo[(StatusCode, String)]
         sendResponse(getMetadataFromVendor)
       case _ =>
-        (parameter('metadata.?) | formField('metadata.?)) {
+        parameter('metadata.?) {
           case Some("1") =>
             val getSchemaWithMetadataFromVendor: Future[(StatusCode, String)] =
               (schemaActor ? GetSchemasFromVendor(v, o, p, includeMetadata = true, isDraft = true)).mapTo[(StatusCode, String)]
@@ -521,10 +395,4 @@ class DraftSchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef) (implicit
         }
     }
 
-  private def sendResponse(action: Future[(StatusCode, String)]): Route = {
-    val future = onSuccess(action) { (status, performed) =>
-      complete(status, HttpEntity(ContentTypes.`application/json` , performed))
-    }
-    future
-  }
 }

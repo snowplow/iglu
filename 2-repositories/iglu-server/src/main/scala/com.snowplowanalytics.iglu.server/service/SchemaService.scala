@@ -17,7 +17,6 @@ package service
 
 // This project
 import actor.SchemaActor._
-import actor.ApiKeyActor._
 import model.Schema
 
 // Akka
@@ -28,17 +27,9 @@ import akka.pattern.ask
 import scala.concurrent.{ExecutionContext, Future}
 
 // Akka Http
-import akka.http.scaladsl.model.MediaTypes.`application/json`
-import akka.http.scaladsl.model.headers.Accept
-import akka.http.scaladsl.server.{ContentNegotiator, UnacceptedResponseContentTypeRejection}
 import akka.http.scaladsl.model.StatusCode
-import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.server.Directive1
 import akka.http.scaladsl.server.Directives
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
-import akka.http.scaladsl.model.headers.HttpChallenges
-import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
-import akka.http.scaladsl.server.{AuthenticationFailedRejection, Route}
+import akka.http.scaladsl.server.Route
 
 // Swagger
 import io.swagger.annotations._
@@ -54,82 +45,9 @@ import javax.ws.rs.Path
  */
 @Api(value = "/api/schemas", tags = Array("schema"))
 @Path("/api/schemas")
-class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
-                   (implicit executionContext: ExecutionContext)
-                   extends Directives with Service {
-
-  /**
-   * Directive to authenticate a user.
-   */
-  def auth(key: String): Directive1[(String, String)] = {
-    val credentialsRequest = (apiKeyActor ? GetKey(key)).mapTo[Option[(String, String)]].map {
-      case Some(t) => Right(t)
-      case None => Left(AuthenticationFailedRejection(CredentialsRejected, HttpChallenges.basic("Iglu Server")))
-    }
-    onSuccess(credentialsRequest).flatMap {
-      case Right(user) => provide(user)
-      case Left(rejection) => reject(rejection)
-    }
-  }
-
-  /**
-   * Directive to validate the schema provided (either by query param or form
-   * data) is self-describing.
-   */
-  def validateSchema(format: String): Directive1[String] =
-    formField('schema) | parameter('schema) | entity(as[String]) flatMap { schema =>
-      onSuccess((schemaActor ? ValidateSchema(schema, format))
-          .mapTo[(StatusCode, String)]) tflatMap  {
-              case (OK, j) => provide(j)
-              case rej => complete(rej)
-            }
-      }
-
-  /**
-    * Negotiate Content-Type header
-    */
-  def contentTypeNegotiator(routes: Route): Route = {
-    optionalHeaderValueByType[Accept]() {
-      case Some(x) =>
-        if (x.acceptsAll() || x.mediaRanges.exists(_.matches(`application/json`))) routes
-        else reject(UnacceptedResponseContentTypeRejection(Set(ContentNegotiator.Alternative(`application/json`))))
-      case None => routes
-    }
-  }
-
-  /**
-   * Schema service's route
-   */
-  lazy val routes: Route =
-    rejectEmptyResponse {
-      (get | post | put | delete) {
-        contentTypeNegotiator {
-          get {
-            optionalHeaderValueByName("apikey") {
-              case Some(apikey) =>
-                auth(apikey) { case (owner, permission) =>
-                  getRoute(owner, permission)
-                }
-              case None =>
-                getRoute("-", "-")
-            }
-          } ~
-          headerValueByName("apikey") { apikey =>
-            auth(apikey) { case (owner, permission) =>
-              post {
-                addRoute(owner, permission)
-              } ~
-              put {
-                updateRoute(owner, permission)
-              } ~
-              delete {
-                deleteRoute(owner, permission)
-              }
-            }
-          }
-        }
-      }
-    }
+class SchemaService(val schemaActor: ActorRef, val apiKeyActor: ActorRef)
+                   (implicit val executionContext: ExecutionContext)
+                   extends Directives with Common with Service {
 
   /**
     * GET route for authenticated user
@@ -137,31 +55,27 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     * @param permission API key's permission
     */
   def getRoute(owner: String, permission: String): Route =
-    path("public") {
-      publicSchemasRoute(owner, permission)
+    path(VendorPattern / NamePattern / FormatPattern / VersionPattern) { case (vendor, name, format, ver) =>
+      readRoute(vendor, name, format, ver, owner, permission)
     } ~
-      path((VendorPattern / NamePattern / FormatPattern / VersionPattern).repeat(1, Int.MaxValue, ",")) { schemaKeys =>
-        val List(vendors, names, formats, versions) = schemaKeys.map(k => List(k._1, k._2, k._3, k._4)).transpose
-        readRoute(vendors, names, formats, versions, owner, permission)
-      } ~
-      pathPrefix(VendorPattern.repeat(1, Int.MaxValue, ",")) { vendors: List[String] =>
-        pathPrefix(NamePattern.repeat(1, Int.MaxValue, ",")) { names: List[String] =>
-          pathPrefix(FormatPattern.repeat(1, Int.MaxValue, ",")) { formats: List[String] =>
-            path(VersionPattern.repeat(1, Int.MaxValue, ",")) { versions: List[String] =>
-              readRoute(vendors, names, formats, versions, owner, permission)
+      pathPrefix(VendorPattern) { vendor: String =>
+        pathPrefix(NamePattern) { names: String =>
+          pathPrefix(FormatPattern) { formats: String =>
+            path(VersionPattern) { versions: String =>
+              readRoute(vendor, names, formats, versions, owner, permission)
             } ~
               pathEnd {
-                readFormatRoute(vendors, names, formats, owner, permission)
+                readFormatRoute(vendor, names, formats, owner, permission)
               }
           } ~
             pathEnd {
-              readNameRoute(vendors, names, owner, permission)
+              readNameRoute(vendor, names, owner, permission)
             }
         } ~
           pathEnd {
-            readVendorRoute(vendors, owner, permission)
+            readVendorRoute(vendor, owner, permission)
           }
-      }
+      } ~ schemasRoute(owner, permission)
 
   /**
    * Post route
@@ -189,10 +103,10 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       dataType = "boolean", paramType = "query")
   ))
   @ApiResponses(Array(
-    new ApiResponse(code = 201, message = "Schema successfully added"),
+    new ApiResponse(code = 201, message = "The schema has been successfully added"),
     new ApiResponse(code = 400,
       message = "The schema provided is not a valid self-describing schema"),
-    new ApiResponse(code = 400, message = "The schema provided is not valid"),
+    new ApiResponse(code = 400, message = "The provided schema is not valid"),
     new ApiResponse(code = 401, message = "This schema already exists"),
     new ApiResponse(code = 401,
       message = "You do not have sufficient privileges"),
@@ -206,10 +120,9 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                @ApiParam(hidden = true) permission: String): Route =
       path(VendorPattern / NamePattern / FormatPattern / VersionPattern) { (v, n, f, vs) =>
         (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
-            validateSchema(f) { schema =>
+            validateSchema(f) { case (_, schema) =>
               val schemaAdded: Future[(StatusCode, String)] =
-                (schemaActor ? AddSchema(v, n, f, vs, draftNumOfVersionedSchemas, schema, owner, permission,
-                  isPublic.contains("true"), isDraft = false)).mapTo[(StatusCode, String)]
+                (schemaActor ? AddSchema(v, n, f, vs, draftNumOfVersionedSchemas, schema, owner, permission, isPublic.contains("true"), isDraft = false)).mapTo[(StatusCode, String)]
               sendResponse(schemaAdded)
             }
           }
@@ -241,11 +154,11 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
       dataType = "boolean", paramType = "query")
   ))
   @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Schema successfully updated"),
-    new ApiResponse(code = 201, message = "Schema successfully added"),
+    new ApiResponse(code = 200, message = "The schema has been successfully updated"),
+    new ApiResponse(code = 201, message = "The schema has been successfully added"),
     new ApiResponse(code = 400,
-      message = "The schema provided is not a valid self-describing schema"),
-    new ApiResponse(code = 400, message = "The schema provided is not valid"),
+      message = "The provided schema is not a valid self-describing schema"),
+    new ApiResponse(code = 400, message = "The provided schema is not valid"),
     new ApiResponse(code = 401,
       message = "You do not have sufficient privileges"),
     new ApiResponse(code = 401,
@@ -258,10 +171,9 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                   @ApiParam(hidden = true) permission: String): Route =
       path(VendorPattern / NamePattern / FormatPattern / VersionPattern) { (v, n, f, vs) =>
         (parameter('isPublic.?) | formField('isPublic.?)) { isPublic =>
-            validateSchema(f) { schema =>
+            validateSchema(f) { case (_, schema) =>
               val schemaUpdated: Future[(StatusCode, String)] =
-                (schemaActor ? UpdateSchema(v, n, f, vs, draftNumOfVersionedSchemas, schema, owner, permission,
-                  isPublic.contains("true"), isDraft = false)).mapTo[(StatusCode, String)]
+                (schemaActor ? UpdateSchema(v, n, f, vs, draftNumOfVersionedSchemas, schema, owner, permission, isPublic.contains("true"), isDraft = false)).mapTo[(StatusCode, String)]
               sendResponse(schemaUpdated)
             }
           }
@@ -307,7 +219,7 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                                           "which was not supplied with the request"),
     new ApiResponse(code = 404, message = "There are no schemas for this vendor")
   ))
-  def readVendorRoute(@ApiParam(hidden = true) v: List[String],
+  def readVendorRoute(@ApiParam(hidden = true) v: String,
                       @ApiParam(hidden = true) o: String,
                       @ApiParam(hidden = true) p: String): Route =
     (parameter('filter.?) | formField('filter.?)) {
@@ -354,10 +266,10 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     new ApiResponse(code = 401, message = "The supplied authentication is invalid"),
     new ApiResponse(code = 401, message = "The resource requires authentication," +
                                           "which was not supplied with the request"),
-    new ApiResponse(code = 404, message = "There are no schemas for this vendor, name combination")
+    new ApiResponse(code = 404, message = "There are no schemas for this vendor + name combination")
   ))
-  def readNameRoute(@ApiParam(hidden = true) v: List[String],
-                    @ApiParam(hidden = true) n: List[String],
+  def readNameRoute(@ApiParam(hidden = true) v: String,
+                    @ApiParam(hidden = true) n: String,
                     @ApiParam(hidden = true) o: String,
                     @ApiParam(hidden = true) p: String): Route =
     (parameter('filter.?) | formField('filter.?)) {
@@ -408,11 +320,11 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
     new ApiResponse(code = 401, message = "The supplied authentication is invalid"),
     new ApiResponse(code = 401, message = "The resource requires authentication," +
                                           "which was not supplied with the request"),
-    new ApiResponse(code = 404, message = "There are no schemas for this vendor, name, format combination")
+    new ApiResponse(code = 404, message = "There are no schemas for this vendor + name + format combination")
   ))
-  def readFormatRoute(@ApiParam(hidden = true) v: List[String],
-                      @ApiParam(hidden = true) n: List[String],
-                      @ApiParam(hidden = true) f: List[String],
+  def readFormatRoute(@ApiParam(hidden = true) v: String,
+                      @ApiParam(hidden = true) n: String,
+                      @ApiParam(hidden = true) f: String,
                       @ApiParam(hidden = true) o: String,
                       @ApiParam(hidden = true) p: String): Route =
     (parameter('filter.?) | formField('filter.?)) {
@@ -467,78 +379,72 @@ class SchemaService(schemaActor: ActorRef, apiKeyActor: ActorRef)
                                           "which was not supplied with the request"),
     new ApiResponse(code = 404, message = "There are no schemas available here")
   ))
-  def readRoute(@ApiParam(hidden = true) v: List[String],
-                @ApiParam(hidden = true) n: List[String],
-                @ApiParam(hidden = true) f: List[String],
-                @ApiParam(hidden = true) vs: List[String],
+  def readRoute(@ApiParam(hidden = true) v: String,
+                @ApiParam(hidden = true) n: String,
+                @ApiParam(hidden = true) f: String,
+                @ApiParam(hidden = true) vs: String,
                 @ApiParam(hidden = true) o: String,
                 @ApiParam(hidden = true) p: String): Route =
     (parameter('filter.?) | formField('filter.?)) {
       case Some("metadata") =>
         val getMetadata: Future[(StatusCode, String)] =
-          (schemaActor ? GetMetadata(v, n, f, vs, List.empty[String], o, p, isDraft = false)).mapTo[(StatusCode, String)]
+          (schemaActor ? GetMetadata(v, n, f, vs, "", o, p, isDraft = false)).mapTo[(StatusCode, String)]
         sendResponse(getMetadata)
       case _ =>
         (parameter('metadata.?) | formField('metadata.?)) {
           case Some("1") =>
             val getSchemaWithMetadata: Future[(StatusCode, String)] =
-              (schemaActor ? GetSchema(v, n, f, vs, List.empty[String], o, p, includeMetadata = true, isDraft = false)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetSchema(v, n, f, vs, "", o, p, includeMetadata = true, isDraft = false)).mapTo[(StatusCode, String)]
             sendResponse(getSchemaWithMetadata)
           case Some(m) => throw new IllegalArgumentException(s"metadata can NOT be $m")
           case None =>
             val getSchema: Future[(StatusCode, String)] =
-              (schemaActor ? GetSchema(v, n, f, vs, List.empty[String], o, p, includeMetadata = false, isDraft = false)).mapTo[(StatusCode, String)]
+              (schemaActor ? GetSchema(v, n, f, vs, "", o, p, includeMetadata = false, isDraft = false)).mapTo[(StatusCode, String)]
             sendResponse(getSchema)
         }
     }
 
   /**
-    * Route to retrieve every public schemas
+    * Route to retrieve all schemas
     * @param owner the owner of the API key the request was made with
     * @param permission API key's permission
     */
-  @Path(value = "/public")
-  @ApiOperation(value = "Retrieves every public schema", httpMethod = "GET",
-    notes = "Returns a collection of schemas", produces = "application/json", response = classOf[List[Schema]])
+  @Path(value = "/")
+  @ApiOperation(value = "Retrieves all schemas that user has read permissions for", httpMethod = "GET",
+    notes = "Returns a collection of schemas (either Iglu URI or full)", produces = "application/json", response = classOf[List[Schema]])
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "filter", value = "Get only schema or only metadata",
       required = false, dataType = "string", paramType = "query", allowableValues = "metadata"),
     new ApiImplicitParam(name = "metadata", value = "Include/exclude metadata, choose 1 to include metadata in schemas",
+      required = false, dataType = "string", paramType = "query", allowableValues = "1"),
+    new ApiImplicitParam(name = "body", value = "Return full schemas with body instead of Iglu URI",
       required = false, dataType = "string", paramType = "query", allowableValues = "1")
   ))
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "{...}", response = classOf[Schema]),
     new ApiResponse(code = 404, message = "There are no public schemas available"),
     new ApiResponse(code = 401, message = "The supplied authentication is invalid"),
-    new ApiResponse(code = 401, message = "The resource requires authentication," +
-                                          "which was not supplied with the request"),
+    new ApiResponse(code = 401, message = "The resource requires authentication, which was not supplied with the request"),
     new ApiResponse(code = 404, message = "There are no schemas available here")
   ))
-  def publicSchemasRoute(@ApiParam(hidden = true) owner: String,
-                         @ApiParam(hidden = true) permission: String): Route =
-    (parameter('filter.?) | formField('filter.?)) {
-      case Some("metadata") =>
-        val getPublicMetadata: Future[(StatusCode, String)] =
-          (schemaActor ? GetPublicMetadata(owner, permission, isDraft = false)).mapTo[(StatusCode, String)]
-        sendResponse(getPublicMetadata)
-      case _ =>
-        (parameter('metadata.?) | formField('metadata.?)) {
+  def schemasRoute(@ApiParam(hidden = true) owner: String,
+                   @ApiParam(hidden = true) permission: String): Route = {
+    parameter('filter.?) {
+      case Some("metadata") => toSchemaActor(GetAllMetadata(owner, permission, false))
+      case _ => parameter('metadata.?) {
+        case Some("1") => parameter("body".?) {
           case Some("1") =>
-            val getPublicSchemaWithMetadata: Future[(StatusCode, String)] =
-              (schemaActor ? GetPublicSchemas(owner, permission, includeMetadata = true, isDraft = false)).mapTo[(StatusCode, String)]
-            sendResponse(getPublicSchemaWithMetadata)
-          case Some(m) => throw new IllegalArgumentException(s"metadata can NOT be $m")
-          case None =>
-            val getPublicSchema: Future[(StatusCode, String)] =
-              (schemaActor ? GetPublicSchemas(owner, permission, includeMetadata = false, isDraft = false)).mapTo[(StatusCode, String)]
-            sendResponse(getPublicSchema)
+            toSchemaActor(GetAllSchemas(owner, permission, true, false, true))
+          case _ =>
+            toSchemaActor(GetAllSchemas(owner, permission, true, false, false))
         }
+        case _ => parameter("body".?) {
+          case Some("1") =>
+            toSchemaActor(GetAllSchemas(owner, permission, false, false, true))
+          case _ =>
+            toSchemaActor(GetAllSchemas(owner, permission, false, false, false))
+        }
+      }
     }
-
-  private def sendResponse(action: Future[(StatusCode, String)]): Route = {
-    val future = onSuccess(action) { (status, performed) =>
-      complete(status, HttpEntity(ContentTypes.`application/json` , performed))
-    }
-    future
   }
 }

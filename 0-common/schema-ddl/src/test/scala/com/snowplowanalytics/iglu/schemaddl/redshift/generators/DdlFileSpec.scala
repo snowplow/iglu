@@ -16,6 +16,8 @@ package generators
 // specs2
 import org.specs2.Specification
 
+import com.snowplowanalytics.iglu.core.{SchemaMap, SchemaVer}
+
 class DdlFileSpec extends Specification { def is = s2"""
   Check DDL File specification
     render correct table definition $e1
@@ -43,7 +45,7 @@ class DdlFileSpec extends Specification { def is = s2"""
     val commentOn = DdlGenerator.getTableComment(
       "launch_missles_1",
       Some("atomic"),
-      "iglu:com.acme/event/jsonschema/1-2-1"
+      SchemaMap("com.acme", "event", "jsonschema", SchemaVer.Full(1,2,1))
     )
 
     // no formatters
@@ -63,6 +65,6 @@ class DdlFileSpec extends Specification { def is = s2"""
          |    "rocket.model"  INT                      NOT NULL,
          |    "rocket.series" INT                      NULL
          |);
-         |COMMENT ON TABLE atomic.launch_missles_1 IS 'Source: iglu:com.acme/event/jsonschema/1-2-1';""".stripMargin)
+         |COMMENT ON TABLE atomic.launch_missles_1 IS 'iglu:com.acme/event/jsonschema/1-2-1';""".stripMargin)
   }
 }

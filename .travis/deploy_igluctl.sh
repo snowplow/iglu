@@ -25,11 +25,15 @@ project_version=$(sbt version -Dsbt.log.noformat=true | tail -n 1 | perl -ne 'pr
 if [ "${project_version}" == "${release}" ]; then
     # local publish only dependency, scala-core
     cd "${TRAVIS_BUILD_DIR}/0-common/scala-core"
+    echo "DEPLOY: localPublish iglu-core (for igluctl)..."
     sbt +publishLocal
+    echo "DEPLOY: localPublish iglu-core-circe (for igluctl)..."
     sbt "project igluCoreCirce" +publishLocal --warn
+    echo "DEPLOY: localPublish iglu-core-json4s (for igluctl)..."
     sbt "project igluCoreJson4s" +publishLocal --warn
     # universal publish schema-ddl
     cd "${TRAVIS_BUILD_DIR}/0-common/schema-ddl"
+    echo "DEPLOY: localPublish schema-ddl (for igluctl)..."
     sbt +publishLocal --warn
 else
     echo "Tag version '${release}' doesn't match version in scala project ('${project_version}'). Aborting!"
@@ -44,3 +48,5 @@ release-manager \
     --make-version \
     --make-artifact \
     --upload-artifact
+
+echo "DEPLOY: igluctl deployed..."

@@ -12,9 +12,10 @@
  */
 package com.snowplowanalytics.iglu.ctl
 
-// Scalaz
-import scalaz._
-import Scalaz._
+import java.nio.file.Path
+
+// cats
+import cats.syntax.either._
 
 // Json4s
 import org.json4s.{ JValue, MappingException, Formats }
@@ -22,14 +23,13 @@ import org.json4s.jackson.JsonMethods.compact
 
 // Iglu
 import com.snowplowanalytics.iglu.core.SchemaMap
-import com.snowplowanalytics.iglu.schemaddl.{ IgluSchema, RevisionGroup, ModelGroup }
+import com.snowplowanalytics.iglu.schemaddl.{ RevisionGroup, ModelGroup }
 
 // This library
-import FileUtils.{ JsonFile, splitPath }
+import File.splitPath
+import Common.Error
 
 object Utils {
-
-  type Failing[+A] = String \/ A
 
   /**
    * Get Iglu-compatible path (com.acme/event/jsonschema/1-0-2) from full
@@ -38,7 +38,7 @@ object Utils {
    * @param fullPath file's absolute path
    * @return four last path entities joined by OS-separator
    */
-  def getPath(fullPath: String): String =
+  def getPath(fullPath: Path): String =
     splitPath(fullPath).takeRight(4).mkString("/")  // Always URL-compatible
 
   /**
@@ -49,54 +49,20 @@ object Utils {
    * @param schemaMap schema key extracted from it
    * @return true if extracted path is equal to FS path
    */
-  def equalPath(jsonFile: JsonFile, schemaMap: SchemaMap): Boolean = {
-    val path = getPath(jsonFile.origin.getAbsolutePath)
-    SchemaMap.fromPath(path).contains(schemaMap)
+  def equalPath(jsonFile: File[JValue], schemaMap: SchemaMap): Boolean = {
+    val path = getPath(jsonFile.path.toAbsolutePath)
+    SchemaMap.fromPath(path).toOption.contains(schemaMap)
   }
 
-  /**
-   * Extract self-describing JSON Schema from JSON file
-   *
-   * @param jsonFile some existing on FS valid JSON file
-   * @return self-describing JSON Schema if successful or error message if
-   *         file is not Schema or self-describing Schema or has invalid
-   *         file path
-   */
-  def extractSchema(jsonFile: JsonFile): String \/ IgluSchema =
-    jsonFile.extractSelfDescribingSchema.disjunction match {
-      case \/-(schema) if equalPath(jsonFile, schema.self) => schema.right
-      case \/-(schema) => s"Error: JSON Schema [${schema.self.toSchemaUri}] doesn't conform path [${getPath(jsonFile.getKnownPath)}]".left
-      case -\/(error) => error.left
-    }
-
-  /**
-   * Split list of scalaz Validation in pair of List with successful values
-   * and List with unsuccessful values
-   *
-   * @param validations probably empty list of Scalaz Validations
-   * @tparam F failure type
-   * @tparam S success type
-   * @return tuple with list of failure and list of successes
-   */
-  def splitValidations[F, S](validations: List[Validation[F, S]]): (List[F], List[S]) =
-    validations.foldLeft((List.empty[F], List.empty[S]))(splitValidation)
-
   /** Json4s method for extracting deserialized data */
-  def extractKey[A](json: JValue, key: String)(implicit ev: Manifest[A], formats: Formats): Either[String, A] =
+  def extractKey[A](json: JValue, key: String)(implicit ev: Manifest[A], formats: Formats): Either[Error, A] =
     try {
       Right((json \ key).extract[A])
     } catch {
-      case _: MappingException => Left(s"Cannot extract key $key from ${compact(json)}")
+      case _: MappingException =>
+        Error.ConfigParseError(s"Cannot extract key $key from ${compact(json)}").asLeft
     }
 
-  /**
-   * Helper function for [[splitValidations]]
-   */
-  private def splitValidation[F, S](acc: (List[F], List[S]), current: Validation[F, S]): (List[F], List[S]) =
-    current match {
-      case Success(json) => (acc._1, json :: acc._2)
-      case Failure(fail) => (fail :: acc._1, acc._2)
-    }
 
   /**
    * Extract from Schema description four elements defining REVISION
@@ -105,7 +71,10 @@ object Utils {
    * @return tuple of four values defining revision
    */
   private[iglu] def revisionGroup(schemaMap: SchemaMap): RevisionGroup =
-    (schemaMap.vendor, schemaMap.name, schemaMap.version.model, schemaMap.version.revision)
+    (schemaMap.schemaKey.vendor,
+      schemaMap.schemaKey.name,
+      schemaMap.schemaKey.version.model,
+      schemaMap.schemaKey.version.revision)
 
   /**
    * Extract from Schema description three elements defining MODEL
@@ -114,22 +83,6 @@ object Utils {
    * @return tuple of three values defining revision
    */
   private[iglu] def modelGroup(schemaMap: SchemaMap): ModelGroup =
-    (schemaMap.vendor, schemaMap.name, schemaMap.version.model)
-
-  /**
-   * Convert disjunction value into `EitherT`
-   * Used in for-comprehensions to mimic disjunction as `Stream[String \/ A]`
-   * and extract A
-   */
-  private[iglu] def fromXor[A](value: Failing[A]): EitherT[Stream, String, A] =
-    EitherT[Stream, String, A](value.point[Stream])
-
-  /**
-   * Convert stream of disjunctions into `EitherT`
-   * Used in for-comprehensions to mimic disjunction as `Stream[String \/ A]`
-   * and extract A
-   */
-  private[iglu] def fromXors[A, B](value: Stream[Failing[A]]): EitherT[Stream, String, A] =
-    EitherT[Stream, String, A](value)
+    (schemaMap.schemaKey.vendor, schemaMap.schemaKey.name, schemaMap.schemaKey.version.model)
 }
 

@@ -13,4 +13,4 @@
 package com.snowplowanalytics.iglu.core
 package circe
 
-object implicits extends syntax with instances
+object implicits extends instances

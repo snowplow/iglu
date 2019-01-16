@@ -17,6 +17,7 @@ package service
 
 // This project
 import actor.ApiKeyActor._
+import akka.http.scaladsl.server.Directive
 import model.ApiKey
 
 // Akka
@@ -37,7 +38,7 @@ import akka.http.scaladsl.server.Directive1
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.model.headers.HttpChallenges
-import akka.http.scaladsl.server.AuthenticationFailedRejection
+import akka.http.scaladsl.server.{ AuthenticationFailedRejection, MalformedHeaderRejection }
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 
 // javax
@@ -63,9 +64,10 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
     * Directive to authenticate a user using the authenticator.
     */
   def auth(key: String): Directive1[(String, String)] = {
-    val credentialsRequest = (apiKeyActor ? GetKey(key)).mapTo[Option[(String, String)]].map {
-      case Some(t) => Right(t)
-      case None => Left(AuthenticationFailedRejection(CredentialsRejected, HttpChallenges.basic("Iglu Server")))
+    val credentialsRequest = (apiKeyActor ? GetKey(key)).mapTo[Either[String, Option[(String, String)]]].map {
+      case Right(Some(t)) => Right(t)
+      case Left(error) => Left(MalformedHeaderRejection("apikey", error))
+      case Right(None) => Left(AuthenticationFailedRejection(CredentialsRejected, HttpChallenges.basic("Iglu Server")))
     }
     onSuccess(credentialsRequest).flatMap {
       case Right(user) => provide(user)
@@ -117,6 +119,9 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
       }
     }
 
+  val prefixAndAction: Directive[(String, String)] = (parameter('vendor_prefix) | formField('vendor_prefix)) & parameter("schema_action")
+  val prefixOnly =  parameter('vendor_prefix) | formField('vendor_prefix)
+
   /**
     * Route to generate a pair of read and write API keys.
     */
@@ -129,23 +134,31 @@ class ApiKeyGenService(apiKeyActor: ActorRef)
       dataType = "string", paramType = "query")
   ))
   @ApiResponses(Array(
-    new ApiResponse(code = 201, message = "{\n" +
-                                          "  read : readKey\n" +
-                                          "  write : writeKey\n" +
-                                          "}"),
+    new ApiResponse(code = 201, message = "{read: readKey, write: writeKey}"),
     new ApiResponse(code = 401, message = "This vendor prefix is conflicting with an existing one"),
     new ApiResponse(code = 401, message = "You do not have sufficient privileges"),
     new ApiResponse(code = 401, message = "The supplied authentication is invalid"),
     new ApiResponse(code = 500, message = "Something went wrong")
   ))
   def keygen(): Route =
-    (parameter('vendor_prefix) | formField('vendor_prefix) | entity(as[String])) { vendorPrefix =>
+    prefixAndAction { (vendorPrefix, action) =>
+      action match {
+        case "read" =>
+          val keyCreated: Future[(StatusCode, String)] =
+            (apiKeyActor ? AddReadOnly(vendorPrefix)).mapTo[(StatusCode, String)]
+          onSuccess(keyCreated) { (status, performed) =>
+            complete(status, HttpEntity(ContentTypes.`application/json`, performed))
+          }
+        case _ => reject
+      }
+    } ~ prefixOnly { vendorPrefix =>
       val keyCreated: Future[(StatusCode, String)] =
         (apiKeyActor ? AddBothKey(vendorPrefix)).mapTo[(StatusCode, String)]
       onSuccess(keyCreated) { (status, performed) =>
         complete(status, HttpEntity(ContentTypes.`application/json`, performed))
       }
     }
+
 
   /**
     * Route to delete every API key having a specific vendor prefix.

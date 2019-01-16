@@ -34,7 +34,7 @@ object Json4sIgluCodecs {
   object SchemaVerSerializer extends CustomSerializer[SchemaVer.Full](_ => (
     {
       case JString(version) => SchemaVer.parse(version) match {
-        case Some(schemaVer: SchemaVer.Full) => schemaVer
+        case Right(schemaVer: SchemaVer.Full) => schemaVer
         case _ => throw new MappingException("Can't convert " + version + " to SchemaVer")
       }
       case x => throw new MappingException("Can't convert " + x + " to SchemaVer")
@@ -51,7 +51,7 @@ object Json4sIgluCodecs {
   object SchemaSerializer extends CustomSerializer[SelfDescribingSchema[JValue]](_ => (
     {
       case fullSchema: JObject =>
-        val schemaMap = (fullSchema \ "self").extract[SchemaMap]
+        val schemaMap = SchemaMap((fullSchema \ "self").extract[SchemaKey])
         val schema = removeSelf(fullSchema)
         SelfDescribingSchema(schemaMap, schema)
       case _ => throw new MappingException("Not an JSON object")
@@ -59,7 +59,7 @@ object Json4sIgluCodecs {
 
     {
       case SelfDescribingSchema(self, schema: JValue) =>
-        (("self", Extraction.decompose(self)): JObject).merge(schema)
+        (("self", Extraction.decompose(self.schemaKey)): JObject).merge(schema)
     }
     ))
 
@@ -69,7 +69,7 @@ object Json4sIgluCodecs {
   object DataSerializer extends CustomSerializer[SelfDescribingData[JValue]](_ => (
     {
       case fullInstance: JObject =>
-        val schemaKey = (fullInstance \ "schema").extractOpt[String].flatMap(SchemaKey.fromUri).getOrElse {
+        val schemaKey = (fullInstance \ "schema").extractOpt[String].flatMap(SchemaKey.fromUri(_).right.toOption).getOrElse {
           throw new MappingException("Does not contain schema key with valid Schema URI")
         }
         val data = fullInstance \ "data" match {

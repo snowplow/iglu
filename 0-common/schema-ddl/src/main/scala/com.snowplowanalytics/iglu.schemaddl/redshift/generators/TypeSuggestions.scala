@@ -13,9 +13,12 @@
 package com.snowplowanalytics.iglu.schemaddl.redshift
 package generators
 
-// Scalaz
-import scalaz._
-import Scalaz._
+// cats
+import cats.instances.option._
+import cats.instances.list._
+import cats.syntax.traverse._
+import cats.syntax.foldable._
+import cats.instances.long._
 
 // This project
 import com.snowplowanalytics.iglu.schemaddl.StringUtils._
@@ -42,7 +45,7 @@ object TypeSuggestions {
   // Suggest VARCHAR(4096) for all product types. Should be in the beginning
   val productSuggestion: DataTypeSuggestion = (properties, columnName) =>
     properties.get("type") match {
-      case (Some(types)) if excludeNull(types).size > 1 =>
+      case Some(types) if excludeNull(types).size > 1 =>
         Some(ProductType(List(s"Product type $types encountered in $columnName")))
       case _ => None
     }
@@ -83,8 +86,8 @@ object TypeSuggestions {
         getIntSize(maximum)
       // Contains only enum
       case (types, _, Some(enum), _) if (types.isEmpty || excludeNull(types.get) == Set("integer")) && isIntegerList(enum) =>
-        val max = enum.split(",").toList.map(el => try Some(el.toLong) catch { case e: NumberFormatException => None } )
-        val maxLong = max.sequence.getOrElse(Nil).maximum
+        val max = enum.split(",").toList.map(el => try Some(el.toLong) catch { case _: NumberFormatException => None } )
+        val maxLong = max.sequence[Option, Long].getOrElse(Nil).maximumOption
         maxLong.flatMap(m => getIntSize(m))   // This will short-circuit integer suggestions on any non-integer enum
       case (Some(types), _, _, _) if excludeNull(types) == Set("integer") =>
         Some(RedshiftBigInt)

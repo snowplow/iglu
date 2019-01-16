@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2019 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -13,15 +13,26 @@
 package com.snowplowanalytics.iglu.ctl
 
 /** Common configuration format used for `static deploy` command */
-case class IgluctlConfig(
-  description: Option[String],
-  lintCommand: LintCommand,
-  generateCommand: GenerateCommand,
-  actions: List[IgluctlConfig.IgluctlAction])
+case class IgluctlConfig(description: Option[String],
+                         lint: Command.Lint,
+                         generate: Command.StaticGenerate,
+                         actions: List[IgluctlConfig.IgluctlAction])
 
 object IgluctlConfig {
   /** Trait common to S3cp and Push commands */
-  private[ctl] trait IgluctlAction {
-    def process(): Unit
+  sealed trait IgluctlAction {
+    def process: Result
+  }
+
+  object IgluctlAction {
+    case class S3Cp(command: Command.StaticS3Cp) extends IgluctlAction {
+      def process: Result =
+        commands.S3cp.process(command.input, command.bucket, command.s3Path, command.accessKeyId, command.secretKeyId, command.profile, command.region)
+    }
+
+    case class Push(command: Command.StaticPush) extends IgluctlAction {
+      def process: Result =
+        commands.Push.process(command.input, command.registryRoot, command.apikey, command.public)
+    }
   }
 }

@@ -15,8 +15,8 @@ package com.snowplowanalytics.iglu
 // Scala
 import scala.collection.immutable.ListMap
 
-// Scalaz
-import scalaz._
+// cats
+import cats.data.Validated
 
 // json4s
 import org.json4s.JValue
@@ -45,7 +45,7 @@ package object schemaddl {
   /**
    * Failure-aware version of [[MigrationMap]]
    */
-  type ValidMigrationMap = Map[SchemaMap, Validation[String, List[Migration]]]
+  type ValidMigrationMap = Map[SchemaMap, Validated[String, List[Migration]]]
 
   /**
    * Schema criterion restricted to revision: vendor/name/m-r-*

@@ -13,4 +13,4 @@
 package com.snowplowanalytics.iglu.core
 package json4s
 
-object implicits extends syntax with instances
+object implicits extends instances

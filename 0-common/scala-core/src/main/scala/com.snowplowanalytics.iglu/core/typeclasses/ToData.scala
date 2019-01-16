@@ -14,15 +14,21 @@ package com.snowplowanalytics.iglu.core
 package typeclasses
 
 /**
-  * Mixin for [[AttachSchemaKey]] marking that this particular instance of
-  * [[AttachSchemaKey]] intended for extraction data, not Schemas
+  * Mixin for [[ExtractSchemaKey]] marking that this particular instance of
+  * [[ExtractSchemaKey]] intended for extraction data, not Schemas
   */
-trait ToData[E] { self: AttachSchemaKey[E] =>
-  def toData(entity: E): Option[SelfDescribingData[E]] =
-    self.extractSchemaKey(entity).map { key =>
-      SelfDescribingData(key, getContent(entity))
+trait ToData[E] { self: ExtractSchemaKey[E] =>
+  def toData(entity: E): Either[ParseError, SelfDescribingData[E]] =
+    getContent(entity) match {
+      case Right(content) =>
+        self.extractSchemaKey(entity) match {
+          case Right(key) => Right(SelfDescribingData(key, content))
+          case Left(error) => Left(error)
+        }
+      case Left(error) =>
+        Left(error)
     }
 
   /** Cleanup if necessary information about schema */
-  protected def getContent(entity: E): E
+  protected def getContent(entity: E): Either[ParseError, E]
 }

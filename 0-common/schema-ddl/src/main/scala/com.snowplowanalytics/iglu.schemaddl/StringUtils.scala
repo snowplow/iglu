@@ -29,27 +29,17 @@ object StringUtils {
    */
   def getTableName(schemaMap: SchemaMap): String = {
     // Split the vendor's reversed domain name using underscores rather than dots
-    val snakeCaseOrganization = schemaMap.vendor.replaceAll( """\.""", "_").replaceAll("-", "_").toLowerCase
+    val snakeCaseOrganization = schemaMap
+      .schemaKey
+      .vendor
+      .replaceAll( """\.""", "_")
+      .replaceAll("-", "_")
+      .toLowerCase
 
     // Change the name from PascalCase to snake_case if necessary
-    val snakeCaseName = snakeCase(schemaMap.name)
+    val snakeCaseName = snakeCase(schemaMap.schemaKey.name)
 
-    s"${snakeCaseOrganization}_${snakeCaseName}_${schemaMap.version.model}"
-  }
-
-  /**
-   * Create a Redshift Table name from a file name
-   *
-   * "customerEvent.json" -> "customer_event"
-   *
-   * @param fileName file name with JSON Schema
-   * @return the Redshift Table name
-   */
-  def getTableName(fileName: String): String = {
-    val fileNameWithoutExtension =
-      if (fileName.endsWith(".json")) fileName.dropRight(5)
-      else fileName
-    snakeCase(fileNameWithoutExtension)
+    s"${snakeCaseOrganization}_${snakeCaseName}_${schemaMap.schemaKey.version.model}"
   }
 
   /**

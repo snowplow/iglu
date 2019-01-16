@@ -15,7 +15,7 @@ package core
 
 import scala.util.matching.Regex
 
-import typeclasses.ExtractSchemaKey
+import typeclasses.{ ExtractSchemaKey, NormalizeData }
 
 /**
  * Entity describing schema of data, Duality of `SchemaMap`
@@ -27,17 +27,28 @@ final case class SchemaKey(
   format: String,
   version: SchemaVer.Full) {
 
-  /**
-   * Converts the SchemaKey back to an Iglu-format schema URI
-   *
-   * @return the SchemaKey as a Iglu-format schema URI
-   */
+  /** Converts the SchemaKey back to an Iglu-format schema URI */
   def toSchemaUri: String =
     s"iglu:$vendor/$name/$format/${version.asString}"
+
+  /**
+    * Converts a SchemaKey into a path which is compatible
+    * with most local and remote Iglu schema repositories.
+    */
+  def toPath: String =
+    s"$vendor/$name/$format/${version.asString}"
 
   /** Lossy conversion to partial schema key */
   def asPartial: PartialSchemaKey =
     PartialSchemaKey(vendor, name, format, version)
+
+  /** Convert to schema-duality */
+  def toSchemaMap: SchemaMap =
+    SchemaMap(this)
+
+  /** Attach SchemaKey, without changing structure of `E` */
+  def attachTo[E: NormalizeData](entity: E): E =
+    implicitly[NormalizeData[E]].normalize(SelfDescribingData(this, entity))
 }
 
 /**
@@ -56,6 +67,14 @@ object SchemaKey {
     "(?:-(?:0|[1-9][0-9]*)){2})$").r    // REVISION and ADDITION
                                         // Extract whole SchemaVer within single group
 
+  /** Regex to extract SchemaVer separately */
+  private val schemaUriRigidRegex: Regex = (
+    "^iglu:" +                          // Protocol
+      "([a-zA-Z0-9-_.]+)/" +              // Vendor
+      "([a-zA-Z0-9-_]+)/" +               // Name
+      "([a-zA-Z0-9-_]+)/" +               // Format
+      "([0-9]*(?:-(?:[0-9]*)){2})$").r    // SchemaVer
+
   /**
    * Default `Ordering` instance for [[SchemaKey]]
    * Sort keys alphabetically AND by ascending SchemaVer
@@ -69,7 +88,7 @@ object SchemaKey {
    * }}}
    */
   val ordering: Ordering[SchemaKey] =
-    Ordering.by { (key: SchemaKey) =>
+    Ordering.by { key: SchemaKey =>
       (key.vendor, key.name, key.format, key.version)
     }
 
@@ -83,16 +102,16 @@ object SchemaKey {
    * @return a Validation-boxed SchemaKey for
    *         Success, and an error String on Failure
    */
-  def fromUri(schemaUri: String): Option[SchemaKey] = schemaUri match {
-    case schemaUriRegex(vnd, n, f, ver) =>
-      SchemaVer.parse(ver).flatMap {
-        case full: SchemaVer.Full => Some(SchemaKey(vnd, n, f, full))
-        case _ => None
+  def fromUri(schemaUri: String): Either[ParseError, SchemaKey] = schemaUri match {
+    case schemaUriRigidRegex(vnd, n, f, ver) =>
+      SchemaVer.parse(ver) match {
+        case Right(full: SchemaVer.Full) => Right(SchemaKey(vnd, n, f, full))
+        case _ => Left(ParseError.InvalidSchemaVer)
       }
-    case _ => None
+    case _ => Left(ParseError.InvalidIgluUri)
   }
 
-  /** Try to decode `E` as `SchemaKey[E]` */
-  def parse[E: ExtractSchemaKey](e: E): Option[SchemaKey] =
+  /** Try to get `SchemaKey` from `E` as */
+  def extract[E: ExtractSchemaKey](e: E): Either[ParseError, SchemaKey] =
     implicitly[ExtractSchemaKey[E]].extractSchemaKey(e)
 }

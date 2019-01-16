@@ -13,7 +13,8 @@
 package com.snowplowanalytics.iglu.schemaddl.bigquery
 
 import com.snowplowanalytics.iglu.schemaddl.StringUtils
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.{ArrayProperties, CommonProperties, Schema}
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.{CommonProperties,ArrayProperty}
 
 /**
   * Type-safe AST proxy to `com.google.cloud.bigquery.Field` schema type
@@ -36,7 +37,7 @@ case class Field(name: String, fieldType: Type, mode: Mode) {
 object Field {
   def build(name: String, topSchema: Schema, required: Boolean): Field = {
     topSchema.`type` match {
-      case Some(types) if types.possiblyWithNull(CommonProperties.Object) =>
+      case Some(types) if types.possiblyWithNull(CommonProperties.Type.Object) =>
         val subfields = topSchema.properties.map(_.value).getOrElse(Map.empty)
         if (subfields.isEmpty) {
           Suggestion.finalSuggestion(topSchema, required)(name)
@@ -48,9 +49,9 @@ object Field {
           val subFields = fields.toList.sortBy(field => (Mode.sort(field.mode), field.name))
           Field(name, Type.Record(subFields), Mode.required(required))
         }
-      case Some(CommonProperties.Array) =>
+      case Some(types) if types.possiblyWithNull(CommonProperties.Type.Array) =>
         topSchema.items match {
-          case Some(ArrayProperties.ListItems(schema)) =>
+          case Some(ArrayProperty.Items.ListItems(schema)) =>
             build(name, schema, false).copy(mode = Mode.Repeated)
           case _ =>
             Suggestion.finalSuggestion(topSchema, required)(name)

@@ -26,10 +26,8 @@ class AttachSchemaKeySpec extends Specification { def is = s2"""
     add and extract SchemaKey to Json $e3
   """
 
-  import syntax._
-
   def e1 = {
-    import IgluCoreCommon.Json4SAttachSchemaKeyData
+    import IgluCoreCommon.Json4SNormalizeData
 
     val data: JValue = parse(
       """
@@ -53,12 +51,12 @@ class AttachSchemaKeySpec extends Specification { def is = s2"""
       """.stripMargin
     )
 
-    val result = data.attachSchemaKey(SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)))
+    val result = SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)).attachTo(data)
     result must beEqualTo(expected)
   }
 
   def e2 = {
-    import IgluCoreCommon.Json4SAttachSchemaKeySchema
+    import IgluCoreCommon.Json4SNormalizeSchema
 
     val schema: JValue = parse(
       """
@@ -139,12 +137,14 @@ class AttachSchemaKeySpec extends Specification { def is = s2"""
       """.stripMargin
     )
 
-    val result = schema.attachSchemaKey(SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)))
+
+    val map = SchemaMap(SchemaKey("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0)))
+    val result = Json4SNormalizeSchema.normalize(SelfDescribingSchema(map, schema))
     result must beEqualTo(expected)
   }
 
   def e3 = {
-    import IgluCoreCommon.Json4SAttachSchemaMapComplex
+    import IgluCoreCommon.{ Json4SAttachSchemaMapComplex, Json4SNormalizeSchema }
 
     val schema: JValue = parse(
       """
@@ -160,8 +160,8 @@ class AttachSchemaKeySpec extends Specification { def is = s2"""
         |}}
       """.stripMargin)
 
-    val key = SchemaMap("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
-    val result = schema.attachSchemaMap(key)
-    result.getSchemaMap must beSome(key)
+    val map = SchemaMap("com.snowplowanalytics.snowplow", "geolocation_context", "jsonschema", SchemaVer.Full(1,1,0))
+    val result = Json4SNormalizeSchema.normalize(SelfDescribingSchema(map, schema))
+    SchemaMap.extract(result) must beRight(map)
   }
 }

@@ -23,19 +23,11 @@ import com.github.tminglei.slickpg._
 /**
  * Extension of the ``PostgresDriver`` to support json column and timestamp.
  */
-object IgluPostgresDriver extends PostgresDriver
-  /*with PgJson4sSupport with array.PgArrayJdbcTypes*/ with PgDateSupportJoda {
-
-  //type DOCType = JValue
-  
-  //override val jsonMethods = org.json4s.jackson.JsonMethods
+object IgluPostgresDriver extends PostgresDriver with PgDateSupportJoda {
 
   override lazy val Implicit =
-    new Implicits /*with JsonImplicits*/ with DateTimeImplicits
+    new Implicits with DateTimeImplicits
 
   override val simple =
-    new Implicits with SimpleQL with DateTimeImplicits /*with JsonImplicits {
-      implicit val strListTypeMapper =
-        new SimpleArrayListJdbcType[String]("text")
-    }*/
+    new Implicits with SimpleQL with DateTimeImplicits
 }

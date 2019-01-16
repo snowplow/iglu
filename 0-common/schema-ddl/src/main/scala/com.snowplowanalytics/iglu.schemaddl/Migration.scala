@@ -15,9 +15,10 @@ package com.snowplowanalytics.iglu.schemaddl
 // Scala
 import scala.collection.immutable.ListMap
 
-// Scalaz
-import scalaz._
-import Scalaz._
+// cats
+import cats.Order
+import cats.data._
+import cats.implicits._
 
 // Iglu core
 import com.snowplowanalytics.iglu.core.{ SchemaMap, SchemaVer }
@@ -55,7 +56,7 @@ case class Migration(
 
 object Migration {
 
-  implicit val schemaOrdering = implicitly[Order[Int]].contramap[IgluSchema](_.self.version.addition)
+  implicit val schemaOrdering = implicitly[Order[Int]].contramap[IgluSchema](_.self.schemaKey.version.addition)
 
   /**
    * This class represents differences between two Schemas
@@ -91,20 +92,20 @@ object Migration {
    * @param sourceSchema schema from which we need to generate migration
    * @param successiveSchemas list of schemas, though which we need to generate migration,
    *                          with destination in the end of list
-   * @return migraion object with data about source, target and diff
+   * @return migration object with data about source, target and diff
    */
-  def buildMigration(sourceSchema: IgluSchema, successiveSchemas: List[IgluSchema]): Validation[String, Migration] = {
+  def buildMigration(sourceSchema: IgluSchema, successiveSchemas: List[IgluSchema]): Validated[String, Migration] = {
     val flatSource = flattenJsonSchema(sourceSchema.schema, splitProduct = false).map(_.elems)
-    val flatSuccessive = successiveSchemas.map(s => flattenJsonSchema(s.schema, splitProduct = false)).sequenceU
+    val flatSuccessive = successiveSchemas.traverse[Validated[String, ?], FlatSchema](s => flattenJsonSchema(s.schema, splitProduct = false))
     val target = successiveSchemas.last
 
-    (flatSource |@| flatSuccessive) { (source, successive) =>
+    (flatSource, flatSuccessive).mapN { (source: ListMap[String, Map[String, String]], successive: List[FlatSchema]) =>
       val diff = diffMaps(source, successive.map(_.elems))
       Migration(
-        sourceSchema.self.vendor,
-        sourceSchema.self.name,
-        sourceSchema.self.version,
-        target.self.version, diff)
+        sourceSchema.self.schemaKey.vendor,
+        sourceSchema.self.schemaKey.name,
+        sourceSchema.self.schemaKey.version,
+        target.self.schemaKey.version, diff)
     }
   }
 
@@ -172,7 +173,7 @@ object Migration {
    * @return list of pairs of schema and its targets
    */
   def mapSchemasToTargets(schemas: List[IgluSchema]): List[(IgluSchema, List[List[IgluSchema]])] = {
-    val sortedSchemas = schemas.sorted(schemaOrdering.toScalaOrdering)
+    val sortedSchemas = schemas.sorted(schemaOrdering.toOrdering)
     for {
       current <- sortedSchemas
       (_, to) = sortedSchemas.span(_ <= current)
@@ -205,13 +206,13 @@ object Migration {
    * @param migrationMap map of each Schema to list of all available migrations
    * @return map of revision criterion to list with all added columns
    */
-  def getOrdering(migrationMap: ValidMigrationMap): Map[RevisionGroup, Validation[String, List[String]]] =
-    migrationMap.filterKeys(_.version.addition == 0).map {
-      case (description, Success(migrations)) =>
+  def getOrdering(migrationMap: ValidMigrationMap): Map[RevisionGroup, Validated[String, List[String]]] =
+    migrationMap.filterKeys(_.schemaKey.version.addition == 0).map {
+      case (description, Validated.Valid(migrations)) =>
         val longestMigration = migrations.map(_.diff.added.keys.toList).maxBy(x => x.length)
-        (revisionCriterion(description), longestMigration.success)
-      case (description, Failure(message)) =>
-        (revisionCriterion(description), message.failure)
+        (revisionCriterion(description), longestMigration.valid)
+      case (description, Validated.Invalid(message)) =>
+        (revisionCriterion(description), message.invalid)
     }
 
   /**
@@ -229,7 +230,7 @@ object Migration {
 
     migrations.groupBy(_._1)
       .mapValues(_.map(_._2))
-      .mapValues(_.sequenceU)
+      .mapValues(_.sequence)
       .asInstanceOf[ValidMigrationMap]  // Help IDE to infer type
   }
 
@@ -259,5 +260,5 @@ object Migration {
    * @return tuple of vendor, name, model, revision
    */
   private def revisionCriterion(schemaMap: SchemaMap): RevisionGroup =
-    (schemaMap.vendor, schemaMap.name, schemaMap.version.model, schemaMap.version.revision)
+    (schemaMap.schemaKey.vendor, schemaMap.schemaKey.name, schemaMap.schemaKey.version.model, schemaMap.schemaKey.version.revision)
 }

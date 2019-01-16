@@ -14,57 +14,39 @@ package com.snowplowanalytics.iglu.core
 package circe
 
 import cats.{ Show, Eq }
+import cats.syntax.either._
 
 import io.circe._
 
 import com.snowplowanalytics.iglu.core.typeclasses._
 
 trait instances {
-  final implicit val igluAttachToDataCirce: AttachSchemaKey[Json] with ToData[Json] with ExtractSchemaKey[Json] =
-    new AttachSchemaKey[Json] with ToData[Json] {
+  final implicit val igluAttachToDataCirce: ExtractSchemaKey[Json] with ToData[Json] with ExtractSchemaKey[Json] =
+    new ExtractSchemaKey[Json] with ToData[Json] {
 
-      def extractSchemaKey(entity: Json): Option[SchemaKey] =
+      def extractSchemaKey(entity: Json) =
         for {
-          jsonSchema <- entity.asObject
-          schemaUri <- jsonSchema.toMap.get("schema")
-          schemaUriString <- schemaUri.asString
-          schemaKey <- SchemaKey.fromUri(schemaUriString)
+          jsonSchema <- entity.asObject.toRight(ParseError.InvalidData)
+          schemaUri <- jsonSchema.toMap.get("schema").flatMap(_.asString).toRight(ParseError.InvalidData)
+          schemaKey <- SchemaKey.fromUri(schemaUri)
         } yield schemaKey
 
-      def attachSchemaKey(schemaKey: SchemaKey, instance: Json): Json =
-        Json.fromJsonObject(JsonObject.fromMap(
-          Map(
-            "schema" -> Json.fromString(schemaKey.toSchemaUri),
-            "data" -> instance
-          )
-        ))
-
-      def getContent(json: Json): Json = json
-        .asObject
-        .getOrElse(throw new RuntimeException("Iglu Core getContent: cannot parse into JSON object"))
-        .apply("data")
-        .getOrElse(throw new RuntimeException("Iglu Core getContent: cannot get `data`"))
+      def getContent(json: Json): Either[ParseError, Json] =
+      json.asObject.flatMap(_.apply("data")).toRight(ParseError.InvalidData)
     }
 
-  final implicit val igluAttachToSchema: AttachSchemaMap[Json] with ToSchema[Json] with ExtractSchemaMap[Json] =
-    new AttachSchemaMap[Json] with ToSchema[Json] with ExtractSchemaMap[Json] {
+  final implicit val igluAttachToSchema: ToSchema[Json] with ExtractSchemaMap[Json] =
+    new ToSchema[Json] with ExtractSchemaMap[Json] {
 
-      def extractSchemaMap(entity: Json): Option[SchemaMap] =
+      def extractSchemaMap(entity: Json): Either[ParseError, SchemaMap] = {
         CirceIgluCodecs.parseSchemaMap(entity.hcursor) match {
-          case Right(r) => Some(r)
-          case Left(err) =>
-            println(err)
-            None
+          case Right(r) => Right(r)
+          case Left(err) => ParseError.parse(err.message) match {
+            case Some(parseError) => Left(parseError)
+            case None => Left(ParseError.InvalidSchema)
+          }
         }
 
-      def attachSchemaMap(schemaMap: SchemaMap, schema: Json): Json = {
-        val json = for {
-          jsonSchema <- schema.asObject
-          jsonObject = JsonObject.fromMap(
-            Map("self" -> CirceIgluCodecs.encodeSchemaMap(schemaMap)) ++ jsonSchema.toMap
-          )
-        } yield Json.fromJsonObject(jsonObject)
-        json.getOrElse(Json.Null)
       }
 
       def getContent(schema: Json): Json =

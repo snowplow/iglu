@@ -105,7 +105,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
     * @param uid the API key's uuid
     * @return an option containing a (vendorPrefix, permission) pair
     */
-  def get(uid: String): Option[(String, String)] = {
+  def get(uid: String): Either[String, Option[(String, String)]] = {
     if (uid matches uidRegex) {
       val uuid = UUID.fromString(uid)
       db withDynSession {
@@ -115,13 +115,12 @@ class ApiKeyDAO(val db: Database) extends DAO {
             .map(k => (k.vendorPrefix, k.permission))
             .list
         tupleList match {
-          case single :: Nil => Some(single)
-          case _ => Some("-" -> "-")
+          case single :: Nil => Right(Some(single))
+          case Nil => Right(None)
+          case _ => throw new RuntimeException("Multiple UUID keys")
         }
       }
-    } else {
-      Some("-" -> "-")
-    }
+    } else Left(s"apikey [$uid] does not match UUID format")
   }
 
   /**
@@ -139,6 +138,7 @@ class ApiKeyDAO(val db: Database) extends DAO {
         .exists(o => (o.startsWith(vendorPrefix) || vendorPrefix.startsWith(o) || o == vendorPrefix) && o != "*")
     }
 
+
   /**
     * Adds a new API key.
     * @param vendorPrefix vendorPrefix of the new API key
@@ -152,6 +152,16 @@ class ApiKeyDAO(val db: Database) extends DAO {
         ApiKey(uid, vendorPrefix, permission, new LocalDateTime())) match {
         case 0 => (InternalServerError, "Something went wrong")
         case _ => (OK, uid.toString)
+      }
+    }
+
+  def addRead(vendorPrefix: String): (StatusCode, String) =
+    db withDynSession {
+      if (validate(vendorPrefix)) {
+        val (_, keyRead) = add(vendorPrefix, "read")
+        (Created, writePretty(Map("read" -> keyRead)))
+      } else {
+        (Unauthorized, result(401, "This vendor prefix is conflicting with an existing one"))
       }
     }
 

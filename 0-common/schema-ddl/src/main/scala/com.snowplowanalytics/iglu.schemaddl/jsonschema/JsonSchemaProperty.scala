@@ -15,7 +15,7 @@ package com.snowplowanalytics.iglu.schemaddl.jsonschema
 /**
  * Common supertype for all JSON Schema properties
  */
-trait JsonSchemaProperty {
+trait JsonSchemaProperty extends Product with Serializable {
   /**
    * Each property should at least have canonical key
    */

@@ -32,8 +32,6 @@ class ContainersSpec extends Specification { def is = s2"""
     stringify SelfDescribingSchema $e6
   """
 
-  import syntax._
-
   def e1 = {
     import IgluCoreCommon.Json4SAttachSchemaKeyData
 
@@ -60,7 +58,7 @@ class ContainersSpec extends Specification { def is = s2"""
       """.stripMargin)
 
     // With AttachTo[JValue] with ToSchema[JValue] in scope .toData won't be even available
-    result.toData must beSome(SelfDescribingData(key, data))
+    SelfDescribingData.parse(result) must beRight(SelfDescribingData(key, data))
   }
 
   def e2 = {
@@ -95,9 +93,7 @@ class ContainersSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    org.json4s.jackson.JsonMethods.compact(result)
-
-    result.toSchema must beSome(SelfDescribingSchema(self, schema))
+    SelfDescribingSchema.parse(result) must beRight(SelfDescribingSchema(self, schema))
   }
 
   def e3 = {

@@ -16,7 +16,7 @@ object Dependencies {
 
   object V {
     // Java
-    val jsonValidator    = "2.2.6"
+    val jsonValidator    = "2.2.10"
     val awsJava          = "1.11.250"
     // JAXB APIs aren't resolved by default as of Java 9
     // https://docs.oracle.com/javase/9/migrate/#GUID-F640FA9D-FB66-4D85-AD2B-D931174C09A3
@@ -25,11 +25,12 @@ object Dependencies {
     val jaxbImpl         = "2.3.0"
     val activation       = "1.1.1"
     // Scala
-    val schemaddl        = "0.8.0"
+    val catsEffect       = "1.1.0"
+    val schemaddl        = "0.9.0"
     val igluClient       = "0.5.0"
-    val scopt            = "3.5.0"
+    val decline          = "0.6.0"
     val scalajHttp       = "2.3.0"
-    val awscala          = "0.5.9"
+    val fs2              = "1.0.2"
     // Scala (test only)
     val specs2           = "4.0.1"
     val scalaCheck       = "1.13.5"
@@ -38,7 +39,7 @@ object Dependencies {
 
   object Libraries {
     // Java
-    val jsonValidator    = "com.github.fge"             %  "json-schema-validator"     % V.jsonValidator
+    val jsonValidator    = "com.github.java-json-tools" % "json-schema-validator"      % V.jsonValidator
     val awsJava          = "com.amazonaws"              %  "aws-java-sdk-s3"           % V.awsJava
     // JAXB APIs
     val javaxXmlBind     = "javax.xml.bind"             %  "jaxb-api"                  % V.javaxXmlBind
@@ -46,11 +47,13 @@ object Dependencies {
     val jaxbImpl         = "com.sun.xml.bind"           %  "jaxb-impl"                 % V.jaxbImpl
     val activation       = "javax.activation"           %  "activation"                % V.activation
     // Scala
+    val catsEffect       = "org.typelevel"              %% "cats-effect"               % V.catsEffect
     val igluClient       = "com.snowplowanalytics"      %% "iglu-scala-client"         % V.igluClient
     val schemaddl        = "com.snowplowanalytics"      %% "schema-ddl"                % V.schemaddl
-    val scopt            = "com.github.scopt"           %% "scopt"                     % V.scopt
+    val decline          = "com.monovore"               %% "decline"                   % V.decline
     val scalajHttp       = "org.scalaj"                 %% "scalaj-http"               % V.scalajHttp
-    val awscala          = "com.github.seratch"         %% "awscala"                   % V.awscala
+    val fs2              = "co.fs2"                     %% "fs2-core"                  % V.fs2
+    val fs2Io            = "co.fs2"                     %% "fs2-io"                    % V.fs2
     // Scala (test only)
     val specs2           = "org.specs2"                 %% "specs2-core"               % V.specs2         % "test"
     val scalaCheck       = "org.scalacheck"             %% "scalacheck"                % V.scalaCheck     % "test"

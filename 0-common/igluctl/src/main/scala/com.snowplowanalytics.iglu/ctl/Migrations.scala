@@ -10,11 +10,17 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.ctl
+package com.snowplowanalytics.iglu
+package ctl
 
-// scalaz
-import scalaz._
-import Scalaz._
+// Java
+import java.nio.file.Paths
+
+// cats
+import cats.data.Validated
+import cats.syntax.alternative._
+import cats.syntax.validated._
+import cats.instances.list._
 
 // Iglu core
 import com.snowplowanalytics.iglu.core.SchemaMap
@@ -24,11 +30,10 @@ import com.snowplowanalytics.iglu.schemaddl._
 import com.snowplowanalytics.iglu.schemaddl.redshift.generators.MigrationGenerator.generateMigration
 
 // This library
-import FileUtils.TextFile
-import Utils.splitValidations
+import File.textFile
 
 /**
- * Helper module for [[GenerateCommand]] with functions responsible for DDL migrations
+ * Helper module for [[Generate]] with functions responsible for DDL migrations
  */
 object Migrations {
   /**
@@ -42,14 +47,14 @@ object Migrations {
   def reifyMigrationMap(
     migrationMap: ValidMigrationMap,
     dbSchema: Option[String],
-    varcharSize: Int): List[Validation[String, TextFile]] = {
+    varcharSize: Int): List[Validated[String, TextFile]] = {
 
     val validationFileList = migrationMap.map {
-      case (source, Success(migrations)) => createTextFiles(migrations, source, varcharSize, dbSchema).success[String]
-      case (source, Failure(error))      => error.failure
+      case (source, Validated.Valid(migrations)) => createTextFiles(migrations, source, varcharSize, dbSchema).valid[String]
+      case (_,      Validated.Invalid(error))    => error.invalid
     }.toList
-    val (migrationErrors, migrationFiles) = splitValidations(validationFileList)
-    migrationFiles.flatten.map(_.success[String]) ++ migrationErrors.map(_.failure[TextFile])
+    val (migrationErrors, migrationFiles) = validationFileList.separate
+    migrationFiles.flatten.map(_.valid[String]) ++ migrationErrors.map(_.invalid[TextFile])
   }
 
   /**
@@ -58,12 +63,12 @@ object Migrations {
    */
   def createTextFiles(migrations: List[Migration], source: SchemaMap, varcharSize: Int, dbSchema: Option[String]) = {
     val baseFiles = migrations.map { migration =>
-      TextFile(migration.to.asString + ".sql", generateMigration(migration, varcharSize, dbSchema).render)
+      textFile(Paths.get(migration.to.asString + ".sql"), generateMigration(migration, varcharSize, dbSchema).render)
     }
 
     baseFiles
-      .map(_.setBasePath(source.version.asString))
-      .map(_.setBasePath(source.name))
-      .map(_.setBasePath(source.vendor))
+      .map(_.setBasePath(source.schemaKey.version.asString))
+      .map(_.setBasePath(source.schemaKey.name))
+      .map(_.setBasePath(source.schemaKey.vendor))
   }
 }
