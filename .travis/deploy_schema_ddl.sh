@@ -49,7 +49,7 @@ if [ "${project_version}" == "${release}" ]; then
     echo "DEPLOY: publishing schema-ddl..."
     sbt +publish
     echo "DEPLOY: publishing schema-ddl to Maven Central..."
-    sbt +bintraySyncMavenCentral
+    travis_wait 30 sbt +bintraySyncMavenCentral
     echo "DEPLOY: Schema DDL deployed..."
 
 else
