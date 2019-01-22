@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2019 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -54,9 +54,11 @@ object Command {
 
   // common options
   val input = Opts.argument[Path]("input")
+  val output = Opts.argument[Path]("output") // static generate & static pull
+  val registryRoot = Opts.argument[Push.HttpUrl]("uri") // static push & static pull
+  val apikey = Opts.argument[UUID]("uuid") // static push & static pull
 
   // static generate options
-  val output = Opts.argument[Path]("output")
   val dbschema = Opts.option[String]("dbschema", "Redshift schema name", metavar = "name").withDefault("atomic")
   val owner = Opts.option[String]("set-owner", "Redshift table owner", metavar = "name").orNone
   val varcharSize = Opts.option[Int]("varchar-size", "Default size for varchar data type", metavar = "n").withDefault(4096)
@@ -67,8 +69,6 @@ object Command {
   val force = Opts.flag("force", "Force override existing manually-edited files").orFalse
 
   // static push options
-  val registryRoot = Opts.argument[Push.HttpUrl]("uri")
-  val apikey = Opts.argument[UUID]("uuid")
   val public = Opts.flag("public", "Upload schemas as public").orFalse
 
   // static s3cp options
@@ -101,11 +101,14 @@ object Command {
   val staticPush = Opts.subcommand("push", "Upload Schemas from folder onto the Iglu Server") {
     (input, registryRoot, apikey, public).mapN(StaticPush.apply)
   }
+  val staticPull = Opts.subcommand("pull", "Download Schemas from Iglu Server to local folder") {
+    (registryRoot, output, apikey).mapN(StaticPull.apply)
+  }
   val staticS3Cp = Opts.subcommand("s3cp", "Upload Schemas or JSON Path files onto S3") {
     (input, bucket, s3path, accessKeyId, secretAccessKey, profile, region).mapN(StaticS3Cp.apply)
   }
   val static = Opts.subcommand("static", "Work with static registry") {
-    staticGenerate.orElse(staticDeploy).orElse(staticPush).orElse(staticS3Cp)
+    staticGenerate.orElse(staticDeploy).orElse(staticPush).orElse(staticPull).orElse(staticS3Cp)
   }
   val lint = Opts.subcommand("lint", "Validate JSON schemas") {
     (input, skipWarnings, skipChecks).mapN(Lint.apply)
@@ -132,6 +135,9 @@ object Command {
                         registryRoot: Push.HttpUrl,
                         apikey: UUID,
                         public: Boolean) extends StaticCommand
+  case class StaticPull(registryRoot: Push.HttpUrl,
+                        output: Path,
+                        apikey: UUID) extends StaticCommand
   case class StaticS3Cp(input: Path,
                         bucket: Bucket,
                         s3Path: Option[S3Path],
