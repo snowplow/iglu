@@ -38,6 +38,7 @@ class CommandSpec extends Specification { def is = s2"""
     extracts static s3cp command class $e3
     extracts lint command class (--skip-checks) $e4
     fails to extract lint with unskippable checks specified $e5
+    extracts static pull command class $e6
   """
 
   def e1 = {
@@ -48,8 +49,8 @@ class CommandSpec extends Specification { def is = s2"""
 
   def e2 = {
     val staticPush = Command.parse("static push .. http://54.165.217.26:8081/ 1af851ab-ef1b-4109-a8e2-720ac706334c --public".split(" ").toList)
-
     val url = Push.HttpUrl.parse("http://54.165.217.26:8081/").getOrElse(throw new RuntimeException("Invalid URI"))
+
     staticPush must beRight(Command.StaticPush(Paths.get(".."), url, UUID.fromString("1af851ab-ef1b-4109-a8e2-720ac706334c"), true))
   }
 
@@ -62,7 +63,6 @@ class CommandSpec extends Specification { def is = s2"""
 
   def e4 = {
     val lint = Command.parse("lint . --skip-checks unknownFormats,rootObject".split(" ").toList)
-
     val skippedChecks = List(unknownFormats, rootObject)
 
     lint must beRight(Command.Lint(Paths.get("."), false, skippedChecks))
@@ -75,5 +75,12 @@ class CommandSpec extends Specification { def is = s2"""
       case Help(errors, _, _, _) => errors must beEqualTo(List("Configuration is invalid: non-skippable linters [requiredPropertiesExist]"))
       case _ => ko("Invalid error message")
     }
+  }
+
+  def e6 = {
+    val staticPull = Command.parse("static pull http://54.165.217.26:8081/ .. 1af851ab-ef1b-4109-a8e2-720ac706334c".split(" ").toList)
+    val url = Push.HttpUrl.parse("http://54.165.217.26:8081/").getOrElse(throw new RuntimeException("Invalid URI"))
+
+    staticPull must beRight(Command.StaticPull(url, Paths.get(".."), UUID.fromString("1af851ab-ef1b-4109-a8e2-720ac706334c")))
   }
 }

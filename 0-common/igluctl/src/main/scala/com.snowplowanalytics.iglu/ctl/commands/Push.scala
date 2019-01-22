@@ -88,6 +88,8 @@ object Push {
     * @param schema valid self-describing JSON Schema
     * @param writeKey temporary apikey allowed to write any Schema
     * @return HTTP POST-request ready to be sent
+    *
+    * TODO: rename to [[buildPushRequest()]] to be in sync with [[Pull.buildPullRequest()]]
     */
   def buildRequest(registryRoot: HttpUrl, isPublic: Boolean, schema: IgluSchema, writeKey: String): HttpRequest =
     Http(s"${registryRoot.uri}/api/schemas/${schema.self.schemaKey.toPath}")

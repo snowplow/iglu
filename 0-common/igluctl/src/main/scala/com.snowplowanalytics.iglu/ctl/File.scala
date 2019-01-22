@@ -358,7 +358,7 @@ object File {
     splitPath(file.toAbsolutePath.toString)
 
   /**
-   * Predicate used to filter only files which Iglu path contains `jsonschema`
+   * Predicate used to filter only files whose Iglu path contains `jsonschema`
    * as format
    *
    * @param file any real file
