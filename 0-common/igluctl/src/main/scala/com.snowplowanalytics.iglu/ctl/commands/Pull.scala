@@ -55,7 +55,7 @@ object Pull {
       keys <- acquireKeys
     ) yield getSchemas(buildPullRequest(registryRoot, keys.read))
 
-    ???
+    ??? // How to apply `writeSchemas` to `schemas`?
 
   }
 
