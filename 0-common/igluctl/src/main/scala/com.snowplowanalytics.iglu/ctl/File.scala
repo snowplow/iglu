@@ -133,7 +133,7 @@ object File {
     for {
       pathObject <- Stream.eval(PathObject.decide(input))
       file <- pathObject match {
-        case Right(PathObject.Other(path)) => Stream.emit(Error.ReadError(path, s"Path is neither fire or directory").asLeft)
+        case Right(PathObject.Other(path)) => Stream.emit(Error.ReadError(path, s"Path is neither file or directory").asLeft)
         case Right(PathObject.Dir(path)) => streamPaths(path).filter(unwrapPredicate(filter))
         case Right(PathObject.File(path)) => Stream.emit(path.asRight)
         case Left(error) => Stream.emit(error.asLeft)
@@ -358,7 +358,7 @@ object File {
     splitPath(file.toAbsolutePath.toString)
 
   /**
-   * Predicate used to filter only files which Iglu path contains `jsonschema`
+   * Predicate used to filter only files whose Iglu path contains `jsonschema`
    * as format
    *
    * @param file any real file
