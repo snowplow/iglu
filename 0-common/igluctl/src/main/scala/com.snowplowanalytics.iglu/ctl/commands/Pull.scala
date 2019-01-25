@@ -19,12 +19,11 @@ import java.util.UUID
 import cats.data.{EitherT, NonEmptyList}
 import cats.effect.IO
 import cats.implicits._
-import org.json4s.DefaultFormats
-import com.snowplowanalytics.iglu.ctl.commands.Push.{HttpUrl, buildCreateKeysRequest, deleteKey, getApiKeys} // These should probably be moved to a separate package and not imported from Push
+import org.json4s.{DefaultFormats, JValue}
+import com.snowplowanalytics.iglu.ctl.commands.Push.{HttpUrl, buildCreateKeysRequest, deleteKey, getApiKeys}
 import com.snowplowanalytics.iglu.ctl.{Common, Result => IgluctlResult}
 import com.snowplowanalytics.iglu.ctl.File._
 import fs2.Stream
-import org.json4s.jackson.Json
 import org.json4s.jackson.JsonMethods.{parse => jacksonParse}
 import scalaj.http.{Http, HttpRequest, HttpResponse}
 import com.snowplowanalytics.iglu.core.SelfDescribingSchema.{parse => igluParse}
@@ -55,7 +54,7 @@ object Pull {
       .compile.toList.getOrElse(throw new RuntimeException("Could not get schema."))
       .map(_.map(_.value)).map(_.traverse(effect => EitherT(effect)).value).flatten
 
-    val result = schemas.map(_.getOrElse(throw new RuntimeException("Could not write schema."))
+    val result = schemas.map(_.getOrElse(throw new RuntimeException("Could not write schema.")) //Should this be throwing an exception? If 1 out of 10 schemas does not validate, should we not write the other 9 and silently drop the invalid one?
       .map(response => writeSchemas(response, outputDir).value)
       .sequence[IO, Either[Common.Error, List[String]]])
       .map(_.map(_.traverse(x => x).map(_.flatten).leftMap(error => NonEmptyList.of(error)))).flatten
@@ -85,8 +84,8 @@ object Pull {
     }
 
   def writeSchemas(schemas: HttpResponse[String], output: Path): EitherT[IO, Common.Error, List[String]] = {
-    val parsed = jacksonParse(schemas.body).as[List[Json]].map(igluParse(_).getOrElse(throw new RuntimeException("Invalid self-describing JSON schema"))).map {
-      schema => jsonFile(Paths.get(s"$output/${schema.self.schemaKey.toPath}"), jacksonParse(schema.toString))
+    val parsed = jacksonParse(schemas.body).extract[List[JValue]].map(igluParse[JValue](_).getOrElse(throw new RuntimeException("Invalid self-describing JSON schema"))).map {
+      schema => textFile(Paths.get(s"$output/${schema.self.schemaKey.toPath}"), schema.asString)
     }
     parsed.map(_.write(true)).traverse(effect => EitherT(effect))
   }
