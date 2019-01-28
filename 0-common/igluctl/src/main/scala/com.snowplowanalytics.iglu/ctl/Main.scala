@@ -56,7 +56,7 @@ object Main extends IOApp {
         Generate.process(in, out, jp, raw, schema, size, split, noheader, f, own)
       case Right(Command.StaticPush(input, registryRoot, apikey, public)) =>
         Push.process(input, registryRoot, apikey, public)
-      case Right(Command.StaticPull(registryRoot, output, apikey)) => ???
+      case Right(Command.StaticPull(registryRoot, output, apikey)) => Pull.process(registryRoot, output, apikey)
       case Right(Command.StaticS3Cp(input, bucket, s3Path, accessKey, secretKey, profile, region)) =>
         S3cp.process(input, bucket, s3Path, accessKey, secretKey, profile, region)
 
