@@ -1,34 +1,15 @@
-# Iglu Server
+# Quckstart
 
-Iglu Server is a RESTful schema registry, allowing users to publish, test and serve schemas via an easy-to-use RESTful interface.
+Assuming Docker is installed:
 
-## Find out more
+```
+$ docker run --name igludb -e POSTGRES_PASSWORD=iglusecret -p 5432:5432 -d postgres
+$ docker exec -i -t $CONTAINER_ID psql -U postgres -c "CREATE DATABASE igludb"
+$ sbt run setup --config application.conf
+$ docker exec -i -t $CONTAINER_ID psql -U postgres \                                                                                               17:55:28
+    -c "INSERT INTO permissions VALUES ('8f02f01f-3bc1-414b-9277-46d723fb46ad', '', TRUE, 'CREATE_VENDOR'::schema_action, '{"CREATE", "DELETE"}'::key_action[])" \
+    igludb
+$ sbt run run --config application.conf
+```
 
-| **[Technical Docs][techdocs]**     | **[Setup Guide][setup]**     | **[Roadmap][roadmap]**           | **[Contributing][contributing]**           |
-|-------------------------------------|-------------------------------|-----------------------------------|---------------------------------------------|
-| [![i1][techdocs-image]][techdocs] | [![i2][setup-image]][setup] | [![i3][roadmap-image]][roadmap] | [![i4][contributing-image]][contributing] |
-
-## Copyright and license
-
-Iglu Server is copyright 2014-2018 Snowplow Analytics Ltd.
-
-Licensed under the **[Apache License, Version 2.0][license]** (the "License");
-you may not use this software except in compliance with the License.
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-[techdocs-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/techdocs.png
-[setup-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/setup.png
-[roadmap-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/roadmap.png
-[contributing-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/contributing.png
-
-[techdocs]: https://github.com/snowplow/iglu/wiki/Scala-repo-server
-[setup]: https://github.com/snowplow/iglu/wiki/Scala-repo-server-setup
-[roadmap]: https://github.com/snowplow/iglu/wiki/Product-roadmap
-[contributing]: https://github.com/snowplow/iglu/wiki/Contributing
-
-[license]: http://www.apache.org/licenses/LICENSE-2.0
+Navigate to http://localhost:8080/static/swagger-ui/index.html

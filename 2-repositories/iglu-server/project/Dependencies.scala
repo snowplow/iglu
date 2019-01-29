@@ -1,61 +1,69 @@
 /*
-* Copyright (c) 2014-2018 Snowplow Analytics Ltd. All rights reserved.
-*
-* This program is licensed to you under the Apache License Version 2.0, and
-* you may not use this file except in compliance with the Apache License
-* Version 2.0.  You may obtain a copy of the Apache License Version 2.0 at
-* http://www.apache.org/licenses/LICENSE-2.0.
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the Apache License Version 2.0 is distributed on an "AS
-* IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-* implied.  See the Apache License Version 2.0 for the specific language
-* governing permissions and limitations there under.
-*/
+ * Copyright (c) 2019 Snowplow Analytics Ltd. All rights reserved.
+ *
+ * This program is licensed to you under the Apache License Version 2.0,
+ * and you may not use this file except in compliance with the Apache License Version 2.0.
+ * You may obtain a copy of the Apache License Version 2.0 at
+ * http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the Apache License Version 2.0 is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the Apache License Version 2.0 for the specific language governing permissions and
+ * limitations there under.
+ */
 import sbt._
 
 object Dependencies {
+
   object V {
-    // Scala
-    val scopt = "3.7.0"
-    val schemaDdl = "0.9.0"
-    val akka  = "2.4.20"
-    val joda = "1.6"
-    val jodaTime = "2.3"
-    val json4s = "3.2.11"
-    val jsonValidator = "2.2.5"
-    val postgres = "9.1-901-1.jdbc4"
-    val slf4j = "1.7.25"
-    val slick = "2.1.0"
-    val slickpg = "0.6.0"
-    val akkaHttp = "10.0.11"
-    val swaggerAkkaHttp = "0.13.0"
+    val IgluCore   = "0.4.0"
+    val SchemaDdl  = "0.9.0"
+    val IgluClient = "0.6.0-M2"
 
-    // Scala (test only)
-    val specs2    = "4.0.2"
+    val Http4s     = "0.20.0-M5"
+    val Rho        = "0.19.0-M5"
+    val Doobie     = "0.6.0"
+    val Decline    = "0.6.0"
+    val Cats       = "1.6.0"
+    val CatsEffect = "1.2.0"
+    val Circe      = "0.11.1"
+    val CirceFs2   = "0.11.0"
+    val Refined    = "0.9.3"
+    val pureConfig = "0.10.1"
+    val SwaggerUi  = "3.20.5"
+
+    val Specs2     = "4.3.6"
+    val Logback    = "1.2.3"
   }
 
-  object Libraries {
-    // Scala
-    val scopt         = "com.github.scopt"      %% "scopt"                 % V.scopt
-    val schemaDdl     = "com.snowplowanalytics" %% "schema-ddl"            % V.schemaDdl
-    val akkaActor     = "com.typesafe.akka"     %% "akka-actor"            % V.akka
-    val akkaSlf4j     = "com.typesafe.akka"     %% "akka-slf4j"            % V.akka
-    val joda          = "org.joda"              %  "joda-convert"          % V.joda
-    val jodaTime      = "joda-time"             %  "joda-time"             % V.jodaTime
-    val json4s        = "org.json4s"            %% "json4s-jackson"        % V.json4s
-    val jsonValidator = "com.github.fge"        %  "json-schema-validator" % V.jsonValidator
-    val postgres      = "postgresql"            %  "postgresql"            % V.postgres
-    val slick         = "com.typesafe.slick"    %% "slick"                 % V.slick
-    val slickpg       = "com.github.tminglei"   %% "slick-pg"              % V.slickpg
-    val slickpgJoda   = "com.github.tminglei"   %% "slick-pg_joda-time"    % V.slickpg
-    val slf4j         = "org.slf4j"             %  "slf4j-simple"          % V.slf4j
-    val akkaHttp      = "com.typesafe.akka"     %% "akka-http"             % V.akkaHttp
-    val swaggerAkkaHttp = "com.github.swagger-akka-http" %% "swagger-akka-http" % V.swaggerAkkaHttp
+  val all = Seq(
+    "com.snowplowanalytics" %% "iglu-core-circe"       % V.IgluCore,
+    "com.snowplowanalytics" %% "schema-ddl"            % V.SchemaDdl,
+    "com.snowplowanalytics" %% "iglu-scala-client"     % V.IgluClient,
 
-    // Scala (test only)
-    val akkaTestKit   = "com.typesafe.akka"  %%  "akka-testkit"  % V.akka   % "test"
-    val specs2        = "org.specs2"         %%  "specs2-core"   % V.specs2 % "test"
-    val akkaHttpTestKit = "com.typesafe.akka" %% "akka-http-testkit" % V.akkaHttp % Test
-  }
+    "com.monovore"          %% "decline"               % V.Decline,
+    "org.typelevel"         %% "cats-core"             % V.Cats,
+    "org.http4s"            %% "http4s-blaze-server"   % V.Http4s,
+    "org.http4s"            %% "http4s-circe"          % V.Http4s,
+    "org.http4s"            %% "http4s-dsl"            % V.Http4s,
+    "org.http4s"            %% "rho-swagger"           % V.Rho,
+    "io.circe"              %% "circe-generic"         % V.Circe,
+    "io.circe"              %% "circe-java8"           % V.Circe,
+    "io.circe"              %% "circe-jawn"            % V.Circe,
+    "io.circe"              %% "circe-literal"         % V.Circe,
+    "io.circe"              %% "circe-refined"         % V.Circe,
+    "io.circe"              %% "circe-fs2"             % V.CirceFs2,
+    "eu.timepit"            %% "refined"               % V.Refined,
+    "com.github.pureconfig" %% "pureconfig"            % V.pureConfig,
+    "org.tpolecat"          %% "doobie-core"           % V.Doobie,
+    "org.tpolecat"          %% "doobie-postgres"       % V.Doobie,
+    "org.tpolecat"          %% "doobie-postgres-circe" % V.Doobie,
+    "org.tpolecat"          %% "doobie-hikari"         % V.Doobie,
+
+    "org.webjars"           %  "swagger-ui"            % V.SwaggerUi,
+    "ch.qos.logback"        %  "logback-classic"       % V.Logback,
+    "org.tpolecat"          %% "doobie-specs2"         % V.Doobie     % "test",
+    "org.specs2"            %% "specs2-core"           % V.Specs2     % "test"
+  )
 }
