@@ -24,7 +24,7 @@ import cats.implicits._
 import com.monovore.decline.{ Command => Cmd, _ }
 
 // This library
-import com.snowplowanalytics.iglu.ctl.commands.Push
+import com.snowplowanalytics.iglu.ctl.commands.CommonStatic
 
 // Schema DDL
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Linter
@@ -46,16 +46,16 @@ object Command {
     def defaultMetavar: String = "linters"
   }
 
-  implicit val readRegistryRoot: Argument[Push.HttpUrl] = new Argument[Push.HttpUrl] {
-    def read(string: String): ValidatedNel[String, Push.HttpUrl] =
-      Push.HttpUrl.parse(string).leftMap(_.show).toValidatedNel
+  implicit val readRegistryRoot: Argument[CommonStatic.HttpUrl] = new Argument[CommonStatic.HttpUrl] {
+    def read(string: String): ValidatedNel[String, CommonStatic.HttpUrl] =
+      CommonStatic.HttpUrl.parse(string).leftMap(_.show).toValidatedNel
     def defaultMetavar: String = "uri"
   }
 
   // common options
   val input = Opts.argument[Path]("input")
   val output = Opts.argument[Path]("output") // static generate & static pull
-  val registryRoot = Opts.argument[Push.HttpUrl]("uri") // static push & static pull
+  val registryRoot = Opts.argument[CommonStatic.HttpUrl]("uri") // static push & static pull
   val apikey = Opts.argument[UUID]("uuid") // static push & static pull
 
   // static generate options
@@ -132,10 +132,10 @@ object Command {
                             force: Boolean) extends StaticCommand
   case class StaticDeploy(config: Path) extends StaticCommand
   case class StaticPush(input: Path,
-                        registryRoot: Push.HttpUrl,
+                        registryRoot: CommonStatic.HttpUrl,
                         apikey: UUID,
                         public: Boolean) extends StaticCommand
-  case class StaticPull(registryRoot: Push.HttpUrl,
+  case class StaticPull(registryRoot: CommonStatic.HttpUrl,
                         output: Path,
                         apikey: UUID) extends StaticCommand
   case class StaticS3Cp(input: Path,

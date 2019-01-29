@@ -13,22 +13,28 @@
 
 package com.snowplowanalytics.iglu.ctl.commands
 
+// Java
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
+// Cats
 import cats.data.{EitherT, NonEmptyList}
 import cats.effect.IO
 import cats.implicits._
 
+// FS2
 import fs2.Stream
 
+// Scala
 import scalaj.http.{Http, HttpRequest, HttpResponse}
 
+// Json4s
 import org.json4s.{DefaultFormats, JValue}
 import org.json4s.jackson.JsonMethods.{parse => jacksonParse}
 
-import com.snowplowanalytics.iglu.ctl.commands.Push.{HttpUrl, buildCreateKeysRequest, deleteKey, getApiKeys} // TODO: Spin off into separate package object so we don't have to import from Push
-import com.snowplowanalytics.iglu.ctl.{Common, Result => IgluctlResult}
+// Snowplow
+import com.snowplowanalytics.iglu.ctl.commands.CommonStatic._
+import com.snowplowanalytics.iglu.ctl.{Common, Failing, Result => IgluctlResult}
 import com.snowplowanalytics.iglu.ctl.File._
 import com.snowplowanalytics.iglu.core.SelfDescribingSchema.{parse => igluParse}
 import com.snowplowanalytics.iglu.core.json4s.implicits._
@@ -45,25 +51,16 @@ object Pull {
   def process(registryRoot: HttpUrl,
               outputDir: Path,
               masterApiKey: UUID): IgluctlResult = {
-    val createKeysRequest = buildCreateKeysRequest(registryRoot, masterApiKey)
-    val acquireKeys = Stream.bracket(getApiKeys(createKeysRequest)) { keys =>
-      val deleteRead = deleteKey(registryRoot, masterApiKey, keys.read, "read")
-      val deleteWrite = deleteKey(registryRoot, masterApiKey, keys.write, "write")
-      EitherT.liftF(deleteWrite *> deleteRead)
-    }
 
-    val schemas = (for {
-      keys <- acquireKeys
-    } yield getSchemas(buildPullRequest(registryRoot, keys.read)))
-      .compile.toList.getOrElse(throw new RuntimeException("Could not get schema."))
-      .map(_.map(_.value)).map(_.traverse(effect => EitherT(effect)).value).flatten
+    val result = for {
+      keys      <- acquireKeys(registryRoot, masterApiKey)
+      responseT  = getSchemas(buildPullRequest(registryRoot, keys.read))
+      responseE  = responseT.leftMap(message => Common.Error.ServiceError(message): Common.Error)
+      response  <- Stream.eval[Failing, HttpResponse[String]](responseE)
+      output    <- Stream.eval[Failing, List[String]](writeResponseAsSchemas(response, outputDir)).flatMap(Stream.emits)
+    } yield output
 
-    val result = schemas.map(_.getOrElse(throw new RuntimeException("Could not write schema.")) //Should this be throwing an exception? If 1 out of 10 schemas does not validate, should we not write the other 9 and silently drop the invalid one?
-      .map(response => writeSchemas(response, outputDir).value)
-      .sequence[IO, Either[Common.Error, List[String]]])
-      .map(_.map(_.traverse(x => x).map(_.flatten).leftMap(error => NonEmptyList.of(error)))).flatten
-
-    EitherT(result)
+    result.compile.toList.leftMap(e => NonEmptyList.of(e))
   }
 
   /**
@@ -92,12 +89,20 @@ object Pull {
       Either.catchNonFatal(request.asString).leftMap(_.getMessage)
     }).flatMap { response =>
       if (response.code == 200) EitherT.pure[IO, String](response)
-      else EitherT.leftT[IO, HttpResponse[String]]("Status code is not 200.")
+      else EitherT.leftT[IO, HttpResponse[String]](s"Unexpected status code ${response.code}. Response body: ${response.body}.")
     }
 
-  def writeSchemas(schemas: HttpResponse[String], output: Path): EitherT[IO, Common.Error, List[String]] = {
-    val parsed = jacksonParse(schemas.body).extract[List[JValue]].map(igluParse[JValue](_).getOrElse(throw new RuntimeException("Invalid self-describing JSON schema"))).map {
-      schema => textFile(Paths.get(s"$output/${schema.self.schemaKey.toPath}"), schema.asString)
+  /**
+    * Parse the response from Iglu Server and write it under the specified output path.
+    * Perorms IO
+    *
+    * @param response An [[HttpResponse]] returned by Iglu Server
+    * @param outputDir The path to write to
+    * @return A list of IO commands or Errors (if a schema fails validation), wrapped in an [[EitherT]]
+    */
+  def writeResponseAsSchemas(response: HttpResponse[String], outputDir: Path): EitherT[IO, Common.Error, List[String]] = {
+    val parsed = jacksonParse(response.body).extract[List[JValue]].map(igluParse[JValue](_).getOrElse(throw new RuntimeException("Invalid self-describing JSON schema"))).map {
+      schema => textFile(Paths.get(s"$outputDir/${schema.self.schemaKey.toPath}"), schema.asString)
     }
     parsed.map(_.write(true)).traverse(effect => EitherT(effect))
   }

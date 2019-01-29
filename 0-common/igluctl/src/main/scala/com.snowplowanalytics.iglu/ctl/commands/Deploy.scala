@@ -165,7 +165,7 @@ object Deploy {
         } yield IgluctlAction.S3Cp(Command.StaticS3Cp(Paths.get(input), b, p, None, None, profile, region))
       case JString("push") =>
         for {
-          registryRoot <- extractKey[String](actionDoc, "registry").flatMap(Push.HttpUrl.parse)
+          registryRoot <- extractKey[String](actionDoc, "registry").flatMap(CommonStatic.HttpUrl.parse)
           secret <- extractKey[ApiKeySecret](actionDoc, "apikey")
           masterApiKey <- secret.value
           isPublic <- extractKey[Boolean](actionDoc, "isPublic")

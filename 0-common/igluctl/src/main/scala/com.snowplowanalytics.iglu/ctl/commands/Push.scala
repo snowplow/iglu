@@ -13,11 +13,10 @@
 package com.snowplowanalytics.iglu.ctl
 package commands
 
-import java.net.URI
 import java.nio.file.Path
 import java.util.UUID
 
-import cats.data.{EitherT, Validated}
+import cats.data.EitherT
 import cats.effect.IO
 import cats.implicits._
 
@@ -31,8 +30,8 @@ import org.json4s.jackson.JsonMethods.parse
 import com.snowplowanalytics.iglu.core.json4s.implicits._
 import com.snowplowanalytics.iglu.schemaddl.IgluSchema
 import com.snowplowanalytics.iglu.ctl.File.{filterJsonSchemas, streamFiles}
-import com.snowplowanalytics.iglu.ctl.Common.Error
 import com.snowplowanalytics.iglu.ctl.{ Result => IgluctlResult }
+import com.snowplowanalytics.iglu.ctl.commands.CommonStatic._
 
 /**
  * Companion objects, containing functions not closed on `masterApiKey`, `registryRoot`, etc
@@ -47,15 +46,9 @@ object Push {
               registryRoot: HttpUrl,
               masterApiKey: UUID,
               isPublic: Boolean): IgluctlResult = {
-    val createKeysRequest = buildCreateKeysRequest(registryRoot, masterApiKey)
-    val acquireKeys = Stream.bracket(getApiKeys(createKeysRequest)) { keys =>
-      val deleteRead = deleteKey(registryRoot, masterApiKey, keys.read, "read")
-      val deleteWrite = deleteKey(registryRoot, masterApiKey, keys.write, "write")
-      EitherT.liftF(deleteWrite *> deleteRead)
-    }
 
     val stream = for {
-      keys   <- acquireKeys
+      keys   <- acquireKeys(registryRoot, masterApiKey)
       file   <- streamFiles(inputDir, Some(filterJsonSchemas)).translate[IO, Failing](Common.liftIO).map(_.flatMap(_.asJsonSchema))
       result <- file match {
         case Right(schema) =>
@@ -69,17 +62,6 @@ object Push {
 
     EitherT(stream.compile.drain.value.map(_.toEitherNel.as(Nil)))
   }
-
-  /**
-    * Build HTTP POST-request with master apikey to create temporary
-    * read/write apikeys
-    *
-    * @return HTTP POST-request ready to be sent
-    */
-  def buildCreateKeysRequest(registryRoot: HttpUrl, masterApiKey: UUID): HttpRequest =
-    Http(s"${registryRoot.uri}/api/auth/keygen")
-      .header("apikey", masterApiKey.toString)
-      .postForm(List(("vendor_prefix", "*")))
 
   /**
     * Build HTTP POST-request with JSON Schema and authenticated with temporary
@@ -96,26 +78,6 @@ object Push {
       .header("apikey", writeKey)
       .param("isPublic", isPublic.toString)
       .put(schema.asString)
-
-  /**
-    * Send DELETE request for temporary key.
-    * Performs IO
-    *
-    * @param key UUID of temporary key
-    * @param purpose what exact key being deleted, used to log, can be empty
-    */
-  def deleteKey(registryRoot: HttpUrl, masterApiKey: UUID, key: String, purpose: String): IO[Unit] = {
-    val request = Http(s"$registryRoot/api/auth/keygen")
-      .header("apikey", masterApiKey.toString)
-      .param("key", key)
-      .method("DELETE")
-
-    IO(Validated.catchNonFatal(request.asString) match {
-      case Validated.Valid(response) if response.isSuccess => println(s"$purpose key $key deleted")
-      case Validated.Valid(response) => println(s"FAILURE: DELETE $purpose $key response: ${response.body}")
-      case Validated.Invalid(throwable) => println(s"FAILURE: $purpose $key: ${throwable.toString}")
-    })
-  }
 
   /**
     * End-of-the-world data containing all results of uploading and
@@ -168,15 +130,6 @@ object Push {
   object Total {
     val empty = Total(0,0,0,0)
   }
-
-  /**
-   * Class container holding temporary read/write apikeys, extracted from
-   * server response using `getApiKey`
-   *
-   * @param read stringified UUID for read apikey (not used anywhere)
-   * @param write stringified UUID for write apikey (not used anywhere)
-   */
-  case class ApiKeys(read: String, write: String)
 
   /**
    * Common server message extracted from HTTP JSON response
@@ -254,25 +207,6 @@ object Push {
   }
 
   /**
-   * Perform HTTP request bundled with master apikey to create and get
-   * temporary read/write apikeys.
-   * Performs IO
-   *
-   * @param request HTTP request to /api/auth/keygen authenticated by master apikey
-   * @return pair of apikeys for successful creation and extraction
-   *         error message otherwise
-   */
-  def getApiKeys(request: HttpRequest): Failing[ApiKeys] = {
-    val apiKeys = for {
-      response  <- EitherT.liftF(IO(request.asString))
-      json      <- EitherT.fromEither[IO](Either.catchNonFatal(parse(response.body)))
-      extracted <- EitherT.fromEither[IO](Either.catchNonFatal(json.extract[ApiKeys]))
-    } yield extracted
-
-    apiKeys.leftMap(e => Error.ServiceError(cutString(e.getMessage)))
-  }
-
-  /**
    * Perform HTTP request bundled with temporary write key and valid
    * self-describing JSON Schema to /api/schemas/SCHEMAPATH to publish new
    * Schema.
@@ -284,33 +218,4 @@ object Push {
   def postSchema(request: HttpRequest): Failing[Result] =
     EitherT.liftF(IO(request.asString).map(getUploadStatus))
 
-  /**
-   * Cut possibly long string (as compressed HTML) to a string with three dots
-   */
-  private def cutString(s: String, length: Short = 256): String = {
-    val origin = s.take(length)
-    if (origin.length == length) origin + "..."
-    else origin
-  }
-
-  case class HttpUrl(uri: URI) extends AnyVal {
-    override def toString: String = uri.toString
-  }
-
-  object HttpUrl {
-    /**
-      * Parse registry root (HTTP URL) from string with default `http://` protocol
-      * @param url string representing just host or full URL of registry root.
-      *            Registry root is URL **without** /api
-      * @return either error or URL tagged as HTTP in case of success
-      */
-    def parse(url: String): Either[Error, HttpUrl] =
-      Either.catchNonFatal {
-        if (url.startsWith("http://") || url.startsWith("https://")) {
-          HttpUrl(new URI(url.stripSuffix("/")))
-        } else {
-          HttpUrl(new URI("http://" + url.stripSuffix("/")))
-        }
-      }.leftMap(error => Error.ConfigParseError(error.getMessage))
-  }
 }
