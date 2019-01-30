@@ -17,6 +17,9 @@ package com.snowplowanalytics.iglu.ctl.commands
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 
+import com.snowplowanalytics.iglu.core.SelfDescribingSchema
+//import com.snowplowanalytics.iglu.ctl.Common.Error.ParseError
+
 // Cats
 import cats.data.{EitherT, NonEmptyList}
 import cats.effect.IO
@@ -37,6 +40,7 @@ import com.snowplowanalytics.iglu.ctl.commands.CommonStatic._
 import com.snowplowanalytics.iglu.ctl.{Common, Failing, Result => IgluctlResult}
 import com.snowplowanalytics.iglu.ctl.File._
 import com.snowplowanalytics.iglu.core.SelfDescribingSchema.{parse => igluParse}
+import com.snowplowanalytics.iglu.core.{ParseError => IgluParseError}
 import com.snowplowanalytics.iglu.core.json4s.implicits._
 
 /**
@@ -57,7 +61,7 @@ object Pull {
       responseT  = getSchemas(buildPullRequest(registryRoot, keys.read))
       responseE  = responseT.leftMap(message => Common.Error.ServiceError(message): Common.Error)
       response  <- Stream.eval[Failing, HttpResponse[String]](responseE)
-      output    <- Stream.eval[Failing, List[String]](writeResponseAsSchemas(response, outputDir)).flatMap(Stream.emits)
+      output    <- Stream.eval[Failing, List[String]](writeSchemas(parseResponse(response), outputDir)).flatMap(Stream.emits)
     } yield output
 
     result.compile.toList.leftMap(e => NonEmptyList.of(e))
@@ -92,18 +96,24 @@ object Pull {
       else EitherT.leftT[IO, HttpResponse[String]](s"Unexpected status code ${response.code}. Response body: ${response.body}.")
     }
 
-  /**
-    * Parse the response from Iglu Server and write it under the specified output path.
-    * Perorms IO
+  /** Parse the response from Iglu Server
     *
     * @param response An [[HttpResponse]] returned by Iglu Server
-    * @param outputDir The path to write to
-    * @return A list of IO commands or Errors (if a schema fails validation), wrapped in an [[EitherT]]
+    * @return A list of [[SelfDescribingSchema]]
     */
-  def writeResponseAsSchemas(response: HttpResponse[String], outputDir: Path): EitherT[IO, Common.Error, List[String]] = {
-    val parsed = jacksonParse(response.body).extract[List[JValue]].map(igluParse[JValue](_).getOrElse(throw new RuntimeException("Invalid self-describing JSON schema"))).map {
-      schema => textFile(Paths.get(s"$outputDir/${schema.self.schemaKey.toPath}"), schema.asString)
-    }
-    parsed.map(_.write(true)).traverse(effect => EitherT(effect))
+  def parseResponse(response: HttpResponse[String]): List[Either[IgluParseError, SelfDescribingSchema[JValue]]] =
+    jacksonParse(response.body).extract[List[JValue]].map(igluParse[JValue](_))
+
+  /** Write [[SelfDescribingSchema]]s as files
+    * Performs IO
+    *
+    * @param schemas A list of [[SelfDescribingSchema]]
+    * @param outputDir The path to write to
+    * @return A list of IO commands or Errors (if a schema fails validation)
+    */
+  def writeSchemas(schemas: List[Either[IgluParseError, SelfDescribingSchema[JValue]]], outputDir: Path): EitherT[IO, Common.Error, List[String]] = {
+    val files = schemas.map(_.map(schema => textFile(Paths.get(s"$outputDir/${schema.self.schemaKey.toPath}"), schema.asString)).leftMap(error => Common.Error.Message(error.code)))
+    val transformed = files.sequence.map(_.map(_.write(true))).map(_.sequence.map(_.sequence)).sequence.map(_.flatten) // TODO: Could this be simplified?
+    EitherT(transformed)
   }
 }

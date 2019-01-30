@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 Snowplow Analytics Ltd. All rights reserved.
+ * Copyright (c) 2012-2019 Snowplow Analytics Ltd. All rights reserved.
  *
  * This program is licensed to you under the Apache License Version 2.0,
  * and you may not use this file except in compliance with the Apache License Version 2.0.
@@ -25,13 +25,15 @@ import com.monovore.decline.Help
 // Schema DDL
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Linter.{ unknownFormats, rootObject, allLintersMap }
 
+// Commands
+import com.snowplowanalytics.iglu.ctl.commands.CommonStatic
+
 // specs2
 import org.specs2.Specification
 
-import com.snowplowanalytics.iglu.ctl.commands.CommonStatic
-
 // File(".") used everywhere because directory must be available for read
-class CommandSpec extends Specification { def is = s2"""
+class CommandSpec extends Specification {
+  def is = s2"""
   Command.parse specification
     extracts lint command class $e1
     extracts static push command class $e2
