@@ -23,10 +23,11 @@ import com.snowplowanalytics.iglu.ctl.commands.Pull
 
 class ParseResponseSpec extends Specification {
 
-  def is = s2"""
-  The function `parseResponse` should
+  def is =s2"""
+  parseResponse should
     successfully parse a valid schema into a SelfDesribingSchema $e1
-    return a ParseError if the schema is not a valid Iglu schema $e2
+    return a Common.Error if the schema is not a valid Iglu schema $e2
+    return a Common.Error if the schema is not a valid Json $e3
   """
 
   val validResponseBody =
@@ -84,17 +85,50 @@ class ParseResponseSpec extends Specification {
    |  }
    |]""".stripMargin
 
+  val invalidJson =
+    """
+      |[
+      |    "type": "object",
+      |    "properties": {
+      |      "name": {
+      |        "type": "string",
+      |        "maxLength": 4096
+      |      },
+      |      "value": {
+      |        "type": [
+      |          "string",
+      |          "null"
+      |        ],
+      |        "maxLength": 4096
+      |      }
+      |    },
+      |    "required": [
+      |      "name",
+      |      "value"
+      |    ],
+      |    "additionalProperties": false
+      |  }
+      |]""".stripMargin
+
+
   def e1 = {
     val response = HttpResponse(validResponseBody, 200, Map("header" -> IndexedSeq("header")))
     val parsedResponse = Pull.parseResponse(response)
 
-    parsedResponse.head must beRight
+    parsedResponse must beRight
   }
 
   def e2 = {
     val response = HttpResponse(invalidResponseBody, 200, Map("header" -> IndexedSeq("header")))
     val parsedResponse = Pull.parseResponse(response)
 
-    parsedResponse.head must beLeft
+    parsedResponse must beLeft
+  }
+
+  def e3 = {
+    val response = HttpResponse(invalidJson, 200, Map("header" -> IndexedSeq("header")))
+    val parsedResponse = Pull.parseResponse(response)
+
+    parsedResponse must beLeft
   }
 }
