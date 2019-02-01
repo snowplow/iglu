@@ -106,7 +106,7 @@ object Pull {
     val parsedBody: Either[Common.Error, List[JValue]] =
       Either.catchNonFatal(jacksonParse(response.body)
         .extract[List[JValue]])
-        .leftMap(error => Common.Error.Message(s"$error"))
+        .leftMap(error => Common.Error.Message(error.toString))
 
     parsedBody
       .flatMap(_.traverse(igluParse[JValue](_)
