@@ -76,8 +76,10 @@ object IgluResponse {
         ))
       case SchemaUploaded(updated, location) =>
         Json.fromFields(List(
+          "message" -> Json.fromString(if (updated) "Schema updated" else "Schema created"),
           "updated" -> Json.fromBoolean(updated),
-          "location" -> location.toSchemaUri.asJson
+          "location" -> location.toSchemaUri.asJson,
+          "status" -> Json.fromInt(if (updated) 200 else 201)   // TODO: remove after igluctl 0.7.0 released
         ))
       case InvalidSchema =>
         Json.fromFields(List("message" -> Json.fromString(DecodeError)))

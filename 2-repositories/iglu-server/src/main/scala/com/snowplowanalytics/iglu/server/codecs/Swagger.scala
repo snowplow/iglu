@@ -39,7 +39,7 @@ object Swagger {
   val exampleModel: Set[Model] = Set(
     ModelImpl(
       id = "IgluResponse",
-      id2 = "IgluResponse",   // Somehow, only this one works
+      id2 = "IgluResponse",   // Somehow, only id2 works
       `type` = "object".some,
       description = "Iglu Server generic response".some,
       properties = Map(
@@ -55,7 +55,7 @@ object Swagger {
 
     ModelImpl(
       id = "JsonArrayStream",
-      id2 = "JsonArrayStream«F,Repr»",   // Somehow, only this one works
+      id2 = "JsonArrayStream«F,Repr»",
       name = "Array".some,
       `type` = "array".some,
       description = "Generic JSON array JSON Schema representations".some,
@@ -66,7 +66,7 @@ object Swagger {
 
     ModelImpl(
       id = "Canonical",
-      id2 = "Canonical",   // Somehow, only this one works
+      id2 = "Canonical",
       `type` = "object".some,
       description = "Canonical representation of self-describing JSON Schema".some,
       properties = Map(
@@ -81,7 +81,7 @@ object Swagger {
 
     ModelImpl(
       id = "SchemaKey",
-      id2 = "SchemaKey",   // Somehow, only this one works
+      id2 = "SchemaKey",
       `type` = "string".some,
       description = "Canonical iglu URI".some,
       properties = Map(),

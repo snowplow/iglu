@@ -65,3 +65,6 @@ lazy val root = (project in file("."))
   .settings(
     addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.9")
   )
+  .settings(
+    assemblyJarName in assembly := { s"${name.value}-${version.value}.jar" }
+  )

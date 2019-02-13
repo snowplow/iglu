@@ -171,8 +171,11 @@ object Postgres {
       .update
       .run
 
-    def initialize[F[_]: Monad](xa: Transactor[F]) =
+    val allStatements =
       List(keyActionCreate, schemaActionCreate, permissionsCreate, schemasCreate, draftsCreate)
+
+    def initialize[F[_]: Monad](xa: Transactor[F]) =
+      allStatements
         .sequence[ConnectionIO, Int]
         .map(_.combineAll)
         .transact(xa)

@@ -115,8 +115,9 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
           case Right(_) =>
             for {
               existing <- db.getSchema(schema.self).map(_.isDefined)
-              _ <- db.addSchema(schema.self, schema.schema, isPublic)
-              response <- Ok(IgluResponse.SchemaUploaded(existing, schema.self.schemaKey): IgluResponse)
+              _        <- db.addSchema(schema.self, schema.schema, isPublic)
+              payload   = IgluResponse.SchemaUploaded(existing, schema.self.schemaKey): IgluResponse
+              response <- if (existing) Ok(payload) else Created(payload)
             } yield response
           case Left(error) =>
             Conflict(IgluResponse.Message(error): IgluResponse)
@@ -140,9 +141,9 @@ object SchemaService {
                                   patchesAllowed: Boolean,
                                   isPublic: Boolean): F[Either[String, Unit]] =
     for {
-      schemas <- db.getSchemasByVendorName(schemaMap.schemaKey.vendor, schemaMap.schemaKey.name).compile.toList
-      previousPublic = schemas.forall(_.metadata.isPublic)
-      versions = schemas.map(_.schemaMap.schemaKey.version)
+      schemas        <- db.getSchemasByVendorName(schemaMap.schemaKey.vendor, schemaMap.schemaKey.name).compile.toList
+      previousPublic  = schemas.forall(_.metadata.isPublic)
+      versions        = schemas.map(_.schemaMap.schemaKey.version)
     } yield
       if ((previousPublic && isPublic) || (!previousPublic && !isPublic) || schemas.isEmpty)
         VersionCursor.isAllowed(schemaMap.schemaKey.version, versions, patchesAllowed).leftMap(_.show)

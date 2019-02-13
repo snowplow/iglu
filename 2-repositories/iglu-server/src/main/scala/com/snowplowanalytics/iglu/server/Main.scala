@@ -29,8 +29,8 @@ object Main extends IOApp {
       result  <- command match {
         case _: Config.ServerCommand.Run =>
           EitherT.liftF[IO, String, ExitCode](Server.run(config).compile.drain.as(ExitCode.Success))
-        case _: Config.ServerCommand.Setup =>
-          EitherT.liftF[IO, String, ExitCode](Server.setup(config))
+        case Config.ServerCommand.Setup(_, migration) =>
+          EitherT.liftF[IO, String, ExitCode](Server.setup(config, migration))
       }
     } yield result
 

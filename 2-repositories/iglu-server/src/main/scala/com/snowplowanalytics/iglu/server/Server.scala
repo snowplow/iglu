@@ -23,18 +23,21 @@ import cats.effect.{ContextShift, ExitCode, IO, Timer }
 
 import fs2.Stream
 
-import org.http4s.{ HttpApp, Response, Status, HttpRoutes, MediaType }
+import org.http4s.{ HttpApp, Response, Status, HttpRoutes, MediaType, Request }
 import org.http4s.headers.`Content-Type`
 import org.http4s.server.Router
 import org.http4s.server.blaze.BlazeServerBuilder
+import org.http4s.server.middleware.AutoSlash
 
 import org.http4s.rho.{ AuthedContext, RhoMiddleware }
 import org.http4s.rho.bits.PathAST.{PathMatch, TypedPath}
 import org.http4s.rho.swagger.syntax.{io => ioSwagger}
 import org.http4s.rho.swagger.models.{ApiKeyAuthDefinition, In }
 
+import doobie.implicits._
 import doobie.util.transactor.Transactor
 
+import com.snowplowanalytics.iglu.server.migrations.{ MigrateFrom, Fifth }
 import com.snowplowanalytics.iglu.server.codecs.Swagger
 import com.snowplowanalytics.iglu.server.model.{ Permission, IgluResponse }
 import com.snowplowanalytics.iglu.server.storage.{ Storage, Postgres  }
@@ -80,9 +83,13 @@ object Server {
       "/api/drafts"     -> DraftService.asRoutes,
     )
 
-    val routes =  "/static" -> StaticService.routes(ec) :: services.map(addSwagger(storage))
-    val mappings = if (debug) ("/api/debug", DebugService.asRoutes(storage, ioSwagger.createRhoMiddleware())) :: routes else routes
-    Kleisli(req => Router(mappings: _*).run(req).getOrElse(NotFound))
+    val debugRoute = "/api/debug" -> DebugService.asRoutes(storage, ioSwagger.createRhoMiddleware())
+    val staticRoute = "/static" -> StaticService.routes(ec)
+    val routes = staticRoute :: services.map(addSwagger(storage))
+    val serverRoutes = (if (debug) debugRoute :: routes else routes).map {
+      case (endpoint, route) => (endpoint, AutoSlash(route))
+    }
+    Kleisli[IO, Request[IO], Response[IO]](req => Router(serverRoutes: _*).run(req).getOrElse(NotFound))
   }
 
   def run(config: Config)(implicit ec: ExecutionContext, cs: ContextShift[IO], timer: Timer[IO]): Stream[IO, ExitCode] =
@@ -94,12 +101,19 @@ object Server {
       stream <- builder.serve
     } yield stream
 
-  def setup(config: Config)(implicit cs: ContextShift[IO]) = {
+  def setup(config: Config, migrate: Option[MigrateFrom])(implicit cs: ContextShift[IO]) = {
     config.database match {
       case Config.StorageConfig.Postgres(host, port, dbname, username, password, driver, _) =>
         val url = s"jdbc:postgresql://$host:$port/$dbname"
         val xa = Transactor.fromDriverManager[IO](driver, url, username, password)
-        val action = Postgres.Bootstrap.initialize[IO](xa) *> IO(println(s"Tables were initialized in $dbname"))
+        val action = migrate match {
+          case Some(migration) =>
+            migration.perform.transact(xa) *>
+              IO(println(s"All tables were migrated in $dbname from $migration"))
+          case None =>
+            Postgres.Bootstrap.initialize[IO](xa) *>
+              IO(println(s"Tables were initialized in $dbname"))
+        }
         action.as(ExitCode.Success)
       case Config.StorageConfig.Dummy =>
         IO(println(s"Nothing to setup with dummy storage")).as(ExitCode.Error)

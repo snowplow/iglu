@@ -39,15 +39,14 @@ object VersionCursor {
 
     implicit val inconsistencyShowInstance: Show[Inconsistency] =
       Show.show {
-        case PreviousMissing => "Previous SchemaVer is missing"
+        case PreviousMissing => "Previous schema in the group is missing"
         case AlreadyExists => "Schema already exists"
       }
   }
 
   def isAllowed(version: SchemaVer.Full, existing: List[SchemaVer.Full], patchesAllowed: Boolean): Either[Inconsistency, Unit] =
     if (existing.contains(version) && !patchesAllowed) Inconsistency.AlreadyExists.asLeft
-    else if (allowed(existing, get(version))) ().asRight
-    else Inconsistency.PreviousMissing.asLeft
+    else if (previousExists(existing, get(version))) ().asRight else Inconsistency.PreviousMissing.asLeft
 
   def get(version: SchemaVer.Full): VersionCursor = version match {
     case SchemaVer.Full(1, 0, 0) => Initial
@@ -56,18 +55,22 @@ object VersionCursor {
     case next => NonInitial(next)
   }
 
-  private def allowed(list: List[SchemaVer.Full], current: VersionCursor) =
+  /**
+    * Check if existing state allows new schema
+    * It makes an assumption that `existing` is entirely consistent list without `current` schema
+    */
+  private[model] def previousExists(existing: List[SchemaVer.Full], current: VersionCursor) =
     current match {
-      case Initial =>
+      case Initial => // We can always create a new schema group (vendor/name/1-0-0)
         true
       case StartModel(m) =>
-        list.map(_.model).contains(m - 1)
+        existing.map(_.model).contains(m - 1)
       case StartRevision(m, r) =>
-        val thisModel = list.filter(_.model == m - 1)
+        val thisModel = existing.filter(_.model == m)
         thisModel.map(_.revision).contains(r - 1)
       case NonInitial(version) =>
-        val thisModel = list.filter(_.model == version.model - 1)
-        val thisRevision = thisModel.filter(_.revision == version.revision - 1)
+        val thisModel = existing.filter(_.model == version.model)
+        val thisRevision = thisModel.filter(_.revision == version.revision)
         thisRevision.map(_.addition).contains(version.addition - 1)
     }
 }

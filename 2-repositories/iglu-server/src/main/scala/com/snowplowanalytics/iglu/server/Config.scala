@@ -25,6 +25,9 @@ import pureconfig._
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
 
+import migrations.MigrateFrom
+import generated.BuildInfo.version
+
 case class Config(database: Config.StorageConfig,
                   repoServer: Config.Http,
                   debug: Option[Boolean],
@@ -57,15 +60,19 @@ object Config {
 
   object ServerCommand {
     case class Run(config: Path) extends ServerCommand
-    case class Setup(config: Path) extends ServerCommand
+    case class Setup(config: Path, migrate: Option[MigrateFrom]) extends ServerCommand
   }
 
   val configOpt = Opts.option[Path]("config", "Path to server configuration HOCON")
+  val migrateOpt = Opts
+    .option[String]("migrate", "Migrate the DB from a particular version")
+    .mapValidated { s => MigrateFrom.parse(s).toValid(s"Cannot perform migration from version $s to $version").toValidatedNel }
+    .orNone
 
   val runCommand: Opts[ServerCommand] =
     Opts.subcommand("run", "Run Iglu Server")(configOpt).map(ServerCommand.Run.apply)
   val setupCommand: Opts[ServerCommand] =
-    Opts.subcommand("setup", "Setup Iglu Server")(configOpt).map(ServerCommand.Setup.apply)
+    Opts.subcommand("setup", "Setup Iglu Server")((configOpt, migrateOpt).mapN(ServerCommand.Setup.apply))
 
-  val serverCommand = Command[ServerCommand]("iglu-server", "0.1.0")(runCommand.orElse(setupCommand))
+  val serverCommand = Command[ServerCommand](generated.BuildInfo.name, generated.BuildInfo.version)(runCommand.orElse(setupCommand))
 }
