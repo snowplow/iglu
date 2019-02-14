@@ -37,7 +37,7 @@ import org.http4s.rho.swagger.models.{ApiKeyAuthDefinition, In }
 import doobie.implicits._
 import doobie.util.transactor.Transactor
 
-import com.snowplowanalytics.iglu.server.migrations.{ MigrateFrom, Fifth }
+import com.snowplowanalytics.iglu.server.migrations.MigrateFrom
 import com.snowplowanalytics.iglu.server.codecs.Swagger
 import com.snowplowanalytics.iglu.server.model.{ Permission, IgluResponse }
 import com.snowplowanalytics.iglu.server.storage.{ Storage, Postgres  }
