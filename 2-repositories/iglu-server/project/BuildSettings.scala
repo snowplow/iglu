@@ -18,8 +18,9 @@ import sbt._
 import Keys._
 
 import com.typesafe.sbt.packager.Keys.{daemonUser, maintainer}
-import com.typesafe.sbt.packager.docker.{ ExecCmd, Cmd }
+import com.typesafe.sbt.packager.docker.{ Cmd }
 import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport._
+import com.typesafe.sbt.packager.docker._
 import com.typesafe.sbt.packager.universal.UniversalPlugin.autoImport._
 
 object BuildSettings {
@@ -33,15 +34,14 @@ object BuildSettings {
 
   lazy val dockerSettings = Seq(
     // Use single entrypoint script for all apps
-    Universal / sourceDirectory := new File(baseDirectory.value, "scripts"),
+    sourceDirectory in Universal := new File(baseDirectory.value, "scripts"),
     dockerRepository := Some("snowplow-docker-registry.bintray.io"),
     dockerUsername := Some("snowplow"),
     dockerBaseImage := "snowplow-docker-registry.bintray.io/snowplow/base-debian:0.1.0",
-    Docker / maintainer := "Snowplow Analytics Ltd. <support@snowplowanalytics.com>",
-    Docker / daemonUser := "root",  // Will be gosu'ed by docker-entrypoint.sh
+    maintainer in Docker := "Snowplow Analytics Ltd. <support@snowplowanalytics.com>",
+    daemonUser in Docker := "root",  // Will be gosu'ed by docker-entrypoint.sh
     dockerEntrypoint := Seq("docker-entrypoint.sh"),
-    dockerCommands ++= dockerPgInstallCmds,
+    dockerCommands ++= BuildSettings.dockerPgInstallCmds,
     dockerCmd := Seq("--help")
   )
-
 }

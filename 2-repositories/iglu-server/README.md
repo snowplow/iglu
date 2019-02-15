@@ -39,8 +39,10 @@ $ docker run --name igluserver -p 8080 -d snowplow-docker-registry.bintray.io/sn
 
 ## About to change
 
-1. `metadata=1&body=1` to `repr`
+1. No more `metadata`/`body` query parameters `repr=canonical/meta/uri` should be used (they're supported but deprecated) instead for all entrypoints returning list of schemas
 2. Deprecation of all form fields
+3. Swagger is available on `http://$SERVER/static/swagger-ui/index.html`
+4. For schema validation it is recommended to use `/api/validatation` endpoint (`/api/schemas/validate` is available, but deprecated)
 
 
 ## Find out more
