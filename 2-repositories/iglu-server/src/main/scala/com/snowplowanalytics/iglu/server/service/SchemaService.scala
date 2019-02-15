@@ -22,6 +22,7 @@ import io.circe.Json
 
 import org.http4s.HttpRoutes
 import org.http4s.circe._
+import org.http4s.rho.bits.TextMetaData
 import org.http4s.rho.{RhoMiddleware, RhoRoutes, AuthedContext}
 import org.http4s.rho.swagger.SwaggerSyntax
 import org.http4s.rho.swagger.syntax.{io => swaggerSyntax}
@@ -34,6 +35,7 @@ import com.snowplowanalytics.iglu.server.storage.Storage
 import com.snowplowanalytics.iglu.server.middleware.PermissionMiddleware
 import com.snowplowanalytics.iglu.server.model.{IgluResponse, Permission, Schema, VersionCursor}
 import com.snowplowanalytics.iglu.server.model.Schema.SchemaBody
+import com.snowplowanalytics.iglu.server.model.Schema.Repr.{ Format => SchemaFormat }
 
 class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
                                  ctx: AuthedContext[F, Permission],
@@ -44,30 +46,40 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
   import SchemaService._
   implicit val C: Clock[F] = Clock.create[F]
 
+  val repr = genericQueryCapture(UriParsers.parseRepresentation[F]).withMetadata(ReprMetadata)
+
   val version = pathVar[SchemaVer.Full]("version", "SchemaVer")
-  val body = paramD[Boolean]("body", true, "Show full schema, not only Iglu URI")
-  val metadata = paramD[Boolean]("metadata", false, "Show full schema, not only Iglu URI")
   val isPublic = paramD[Boolean]("isPublic", false, "Should schema be created as public")
+
   val schemaOrJson = jsonOf[F, SchemaBody]
   val schema = jsonOf[F, SelfDescribingSchema[Json]]
+
+  private val validationService = new ValidationService[F](swagger, ctx, db)
 
   "Get a particular schema by its Iglu URI" **
     GET / 'vendor / 'name / 'format / version >>> ctx.auth |>> getSchema _
 
   "Get list of schemas by vendor name" **
-    GET / 'vendor / 'name >>> ctx.auth |>> getSchemasByName _
+    GET / 'vendor / 'name +? repr >>> ctx.auth |>> getSchemasByName _
 
   "Get all schemas for vendor" **
-    GET / 'vendor >>> ctx.auth |>> getSchemasByVendor _
+    GET / 'vendor +? repr >>> ctx.auth |>> getSchemasByVendor _
 
   "List all available schemas" **
-    GET +? body >>> ctx.auth |>> listSchemas _
+    GET +? repr >>> ctx.auth |>> listSchemas _
 
   "Add a schema (self-describing or not) to its Iglu URI" **
     PUT / 'vendor / 'name / 'format / version +? isPublic >>> ctx.auth ^ schemaOrJson |>> putSchema _
 
   "Publish new self-describing schema" **
     POST +? isPublic >>> ctx.auth ^ schema |>> publishSchema _
+
+
+  "Schema validation endpoint (deprecated)" **
+    POST / "validate" / 'vendor / 'name / "jsonschema" / 'version ^ jsonDecoder[F] |>> {
+    (_: String, _: String, _: String, json: Json) =>
+      validationService.validateSchema(Schema.Format.Jsonschema, json)
+  }
 
 
   def getSchema(vendor: String, name: String, format: String, version: SchemaVer.Full,
@@ -79,11 +91,11 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
     }
   }
 
-  def getSchemasByName(vendor: String, name: String, permission: Permission) =
-    Ok(db.getSchemasByVendorName(vendor, name).filter(isReadable(permission)))
+  def getSchemasByName(vendor: String, name: String, format: SchemaFormat, permission: Permission) =
+    Ok(db.getSchemasByVendorName(vendor, name).filter(isReadable(permission)).map(_.withFormat(format)))
 
-  def getSchemasByVendor(vendor: String, permission: Permission) =
-    Ok(db.getSchemasByVendor(vendor, false).filter(isReadable(permission)))
+  def getSchemasByVendor(vendor: String, format: SchemaFormat, permission: Permission) =
+    Ok(db.getSchemasByVendor(vendor, false).filter(isReadable(permission)).map(_.withFormat(format)))
 
   def publishSchema(isPublic: Boolean, permission: Permission, schema: SelfDescribingSchema[Json]) =
     addSchema(permission, schema, isPublic)
@@ -100,10 +112,8 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
       else BadRequest(IgluResponse.SchemaMismatch(schemaMapUri.schemaKey, schema.self.schemaKey): IgluResponse)
   }
 
-  def listSchemas(body: Boolean, permission: Permission) = {
-    val response = db.getSchemas.filter(isReadable(permission)).map { schema =>
-      if (body) Schema.Repr(schema) else Schema.Repr(schema.schemaMap)
-    }
+  def listSchemas(format: SchemaFormat, permission: Permission) = {
+    val response = db.getSchemas.filter(isReadable(permission)).map(_.withFormat(format))
     Ok(JsonArrayStream(response))
   }
 
@@ -127,6 +137,11 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
 }
 
 object SchemaService {
+
+  val ReprMetadata: TextMetaData = new TextMetaData {
+    def msg: String =
+      "Schema representation format (can be specified either by repr=uri/meta/canonical or legacy meta=1&body=1)"
+  }
 
   def asRoutes(patchesAllowed: Boolean)
               (db: Storage[IO],

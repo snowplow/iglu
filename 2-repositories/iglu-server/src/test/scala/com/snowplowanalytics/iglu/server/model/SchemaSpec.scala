@@ -19,8 +19,9 @@ class SchemaSpec extends org.specs2.Specification { def is = s2"""
         "vendor": "me.chuwy",
         "name": "test-schema",
         "format": "jsonschema",
-        "version": "1-0-0",
-
+        "version": "1-0-0"
+      },
+      "metadata": {
         "createdAt": "2019-01-12T22:12:54.777Z",
         "updatedAt": "2019-01-12T22:12:54.777Z",
         "isPublic": true

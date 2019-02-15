@@ -43,7 +43,7 @@ trait Storage[F[_]] {
     if (wildcard) getSchemas.filter(_.schemaMap.schemaKey.vendor.startsWith(vendor))
     else getSchemas.filter(_.schemaMap.schemaKey.vendor === vendor )
   def getSchemasByVendorName(vendor: String, name: String)(implicit F: Monad[F]): Stream[F, Schema] =
-    getSchemasByVendor(vendor, true).filter(_.schemaMap.schemaKey.name === name)
+    getSchemasByVendor(vendor, false).filter(_.schemaMap.schemaKey.name === name)
   def getSchemas(implicit F: Monad[F]): Stream[F, Schema]
   def getSchemaBody(schemaMap: SchemaMap)(implicit F: Monad[F]): F[Option[Json]] =
     getSchema(schemaMap).nested.map(_.body).value

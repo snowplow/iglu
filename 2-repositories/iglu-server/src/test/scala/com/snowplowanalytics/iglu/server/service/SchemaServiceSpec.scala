@@ -15,9 +15,9 @@ import org.http4s._
 import org.http4s.circe._
 import org.http4s.rho.swagger.syntax.io.createRhoMiddleware
 
-import com.snowplowanalytics.iglu.core.{SchemaMap, SchemaVer}
+import com.snowplowanalytics.iglu.core.{SchemaMap, SchemaVer, SchemaKey, SelfDescribingSchema}
 import com.snowplowanalytics.iglu.server.codecs.JsonCodecs._
-import com.snowplowanalytics.iglu.server.model.{IgluResponse, Schema}
+import com.snowplowanalytics.iglu.server.model.{ IgluResponse, Schema }
 
 
 class SchemaServiceSpec extends org.specs2.Specification { def is = s2"""
@@ -25,6 +25,8 @@ class SchemaServiceSpec extends org.specs2.Specification { def is = s2"""
     Returns 404 for non-existing schema $e1
     Returns 200 and schema for existing public schema $e3
     Returns 200 and schema for existing private schema $e4
+    Returns list of schemas with metadata if metadata=1 passed $e9
+    Returns list of canonical schemas if body=1 passed $e10
     Returns 404 for existing schema if invalid apikey provided $e5
     Returns only public schemas without apikey $e7
     Returns public and private schemas with apikey $e8
@@ -93,6 +95,45 @@ class SchemaServiceSpec extends org.specs2.Specification { def is = s2"""
     status must beEqualTo(Status.NotFound) and (body must beEqualTo(IgluResponse.SchemaNotFound))
   }
 
+  def e9 = {
+    val req: Request[IO] =
+      Request(
+        Method.GET,
+        Uri.uri("/").withQueryParam("metadata", "1"))
+
+    val result = for {
+      response <- SchemaServiceSpec.request(List(req))
+      body <- response.as[List[Schema]]
+    } yield (response.status, body)
+
+    val expectedBody = SpecHelpers.schemas
+      .filter { case (_, m) => m.metadata.isPublic }
+      .map(_._2)
+
+    val (status, body) = result.unsafeRunSync()
+    status must beEqualTo(Status.Ok) and (body must beEqualTo(expectedBody))
+  }
+
+  def e10 = {
+    val req: Request[IO] =
+      Request(
+        Method.GET,
+        Uri.uri("/").withQueryParam("body", "1"))
+
+    val result = for {
+      response <- SchemaServiceSpec.request(List(req))
+      body <- response.as[List[SelfDescribingSchema[Json]]]
+    } yield (response.status, body.map(_.self))
+
+    val expectedBody = SpecHelpers.schemas
+      .filter { case (_, m) => m.metadata.isPublic }
+      .map(_._2.schemaMap)
+
+    val (status, body) = result.unsafeRunSync()
+    status must beEqualTo(Status.Ok) and (body must beEqualTo(expectedBody))
+  }
+
+
   def e6 = {
     val req: Request[IO] =
       Request(
@@ -115,12 +156,12 @@ class SchemaServiceSpec extends org.specs2.Specification { def is = s2"""
 
     val result = for {
       response <- SchemaServiceSpec.request(List(req))
-      body <- response.as[List[Schema]]
-    } yield (response.status, body.map(_.schemaMap))
+      body <- response.as[List[SchemaKey]]
+    } yield (response.status, body)
 
     val expected = List(
-      SchemaMap("com.acme", "event", "jsonschema", SchemaVer.Full(1,0,0)),
-      SchemaMap("com.acme", "event", "jsonschema", SchemaVer.Full(1,0,1))
+      SchemaKey("com.acme", "event", "jsonschema", SchemaVer.Full(1,0,0)),
+      SchemaKey("com.acme", "event", "jsonschema", SchemaVer.Full(1,0,1))
     )
     val (status, body) = result.unsafeRunSync()
 
@@ -134,13 +175,13 @@ class SchemaServiceSpec extends org.specs2.Specification { def is = s2"""
 
     val result = for {
       response <- SchemaServiceSpec.request(List(req))
-      body <- response.as[List[Schema]]
-    } yield (response.status, body.map(_.schemaMap))
+      body <- response.as[List[SchemaKey]]
+    } yield (response.status, body)
 
     val expected = List(
-      SchemaMap("com.acme", "event", "jsonschema", SchemaVer.Full(1,0,0)),
-      SchemaMap("com.acme", "event", "jsonschema", SchemaVer.Full(1,0,1)),
-      SchemaMap("com.acme", "secret", "jsonschema", SchemaVer.Full(1,0,0))
+      SchemaKey("com.acme", "event", "jsonschema", SchemaVer.Full(1,0,0)),
+      SchemaKey("com.acme", "event", "jsonschema", SchemaVer.Full(1,0,1)),
+      SchemaKey("com.acme", "secret", "jsonschema", SchemaVer.Full(1,0,0))
     )
     val (status, body) = result.unsafeRunSync()
 

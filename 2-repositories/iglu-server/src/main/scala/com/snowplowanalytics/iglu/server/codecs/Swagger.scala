@@ -34,8 +34,6 @@ object Swagger {
     .withSerializers(typeOf[JsonCodecs.JsonArrayStream[cats.effect.IO, Schema.Repr]], exampleModel)
     .withSerializers(typeOf[SchemaKey], exampleModel)
 
-
-
   val exampleModel: Set[Model] = Set(
     ModelImpl(
       id = "IgluResponse",

@@ -25,13 +25,15 @@ import io.circe.fs2.byteStreamParser
 import org.http4s.circe._
 import org.http4s.{Entity, EntityEncoder, Headers}
 
-import com.snowplowanalytics.iglu.core.SelfDescribingSchema
+import com.snowplowanalytics.iglu.core.{ SelfDescribingSchema, SchemaKey }
 import com.snowplowanalytics.iglu.core.circe.CirceIgluCodecs._
 import com.snowplowanalytics.iglu.server.model.{IgluResponse, Schema, SchemaDraft}
+import com.snowplowanalytics.iglu.server.model.IgluResponse.schemaKeyServerDecoder
 import com.snowplowanalytics.iglu.server.service.MetaService.ServerInfo
 
 
 trait JsonCodecs {
+
   case class JsonArrayStream[F[_], A](nonArray: Stream[F, A])
 
   implicit def arrayStreamEncoder[F[_]: RaiseThrowable, A: EntityEncoder[F, ?]] = {
@@ -71,6 +73,9 @@ trait JsonCodecs {
   implicit def selfDescribingSchemaEntityDecoder[F[_]: Sync] =
     CirceEntityCodec.circeEntityDecoder[F, SelfDescribingSchema[Json]]
 
+  implicit def selfDescribingSchemaListEntityDecoder[F[_]: Sync] =
+    CirceEntityCodec.circeEntityDecoder[F, List[SelfDescribingSchema[Json]]]
+
   implicit def igluResponseEntityDecoder[F[_]: Sync] =
     CirceEntityCodec.circeEntityDecoder[F, IgluResponse]
 
@@ -80,6 +85,8 @@ trait JsonCodecs {
   implicit def serverInfoEntityEcoder[F[_]: Sync] =
     CirceEntityCodec.circeEntityEncoder[F, ServerInfo]
 
+  implicit def schemaKeyListEntityDecoder[F[_]: Sync] =
+    CirceEntityCodec.circeEntityDecoder[F, List[SchemaKey]]
 }
 
 object JsonCodecs extends JsonCodecs

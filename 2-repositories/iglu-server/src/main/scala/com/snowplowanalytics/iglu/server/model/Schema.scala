@@ -33,12 +33,24 @@ import com.snowplowanalytics.iglu.core.circe.instances._
 
 import Schema.Metadata
 
-case class Schema(schemaMap: SchemaMap, metadata: Metadata, body: Json)
+case class Schema(schemaMap: SchemaMap, metadata: Metadata, body: Json) {
+  def withFormat(repr: Schema.Repr.Format): Schema.Repr = repr match {
+    case Schema.Repr.Format.Canonical =>
+      Schema.Repr.Canonical(canonical)
+    case Schema.Repr.Format.Uri =>
+      Schema.Repr.Uri(schemaMap.schemaKey)
+    case Schema.Repr.Format.Meta =>
+      Schema.Repr.Full(this)
+  }
+
+  def canonical: SelfDescribingSchema[Json] =
+    SelfDescribingSchema(schemaMap, body)
+
+}
 
 object Schema {
 
-  // TODO: http
-  val CanonicalUri = "com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0"
+  val CanonicalUri = "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#"
 
   case class Metadata(createdAt: Instant, updatedAt: Instant, isPublic: Boolean)
 
@@ -63,6 +75,21 @@ object Schema {
     def apply(schema: Schema): Repr = Full(schema)
     def apply(uri: SchemaMap): Repr = Uri(uri.schemaKey)
     def apply(schema: SelfDescribingSchema[Json]): Repr = Canonical(schema)
+
+    sealed trait Format extends Product with Serializable
+    object Format {
+      case object Uri extends Format
+      case object Meta extends Format
+      case object Canonical extends Format
+
+      def parse(s: String): Option[Format] = s.toLowerCase match {
+        case "uri" => Some(Uri)
+        case "meta" => Some(Meta)
+        case "canonical" => Some(Canonical)
+        case _ => None
+      }
+    }
+
   }
 
   sealed trait SchemaBody extends Product with Serializable
@@ -91,10 +118,9 @@ object Schema {
 
   implicit val schemaEncoder: Encoder[Schema] =
     Encoder.instance { schema =>
-      Json.obj("self" -> schema
-        .schemaMap
-        .asJson(encodeSchemaMap)
-        .deepMerge(schema.metadata.asJson(Metadata.metadataEncoder))
+      Json.obj(
+        "self" -> schema.schemaMap.asJson(encodeSchemaMap),
+        "metadata" -> schema.metadata.asJson(Metadata.metadataEncoder)
       ).deepMerge(schema.body)
     }
 
@@ -111,11 +137,10 @@ object Schema {
   implicit val serverSchemaDecoder: Decoder[Schema] =
     Decoder.instance { cursor =>
       for {
-        commonSelf <- cursor.downField("self").as[Json]
         self <- cursor.value.as[SchemaMap]
-        meta <- commonSelf.as[Metadata]
+        meta <- cursor.downField("metadata").as[Metadata]
         bodyJson <- cursor.as[JsonObject]
-        body = bodyJson.toList.filterNot { case (key, _) => key == "self" }
+        body = bodyJson.toList.filterNot { case (key, _) => key == "self" || key == "metadata" }
       } yield Schema(self, meta, Json.fromFields(body))
     }
 
