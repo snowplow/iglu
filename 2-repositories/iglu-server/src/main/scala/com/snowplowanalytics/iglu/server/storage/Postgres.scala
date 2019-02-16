@@ -76,43 +76,46 @@ object Postgres {
   val DraftsTable = Fragment.const("iglu_drafts")
   val PermissionsTable = Fragment.const("iglu_permissions")
 
+  val schemaColumns = Fragment.const("vendor, name, format, model, revision, addition, created_at, updated_at, is_public, body")
+  val draftColumns = Fragment.const("vendor, name, format, version, created_at, updated_at, is_public, body")
+
   def apply[F[_]](xa: Transactor[F]): Postgres[F] = new Postgres(xa)
 
   def draftFr(id: DraftId): Fragment =
     fr"name = ${id.name}" ++
-      fr" AND vendor = ${id.vendor}" ++
-      fr" AND format = ${id.format}" ++
-      fr" AND version = ${id.version.value}"
+      fr"AND vendor = ${id.vendor}" ++
+      fr"AND format = ${id.format}" ++
+      fr"AND version = ${id.version.value}"
 
   def schemaMapFr(schemaMap: SchemaMap): Fragment =
     fr"name = ${schemaMap.schemaKey.name}" ++
-      fr" AND vendor = ${schemaMap.schemaKey.vendor}" ++
-      fr" AND format = ${schemaMap.schemaKey.format}" ++
-      fr" AND " ++ schemaVerFr(schemaMap.schemaKey.version)
+      fr"AND vendor = ${schemaMap.schemaKey.vendor}" ++
+      fr"AND format = ${schemaMap.schemaKey.format}" ++
+      fr"AND " ++ schemaVerFr(schemaMap.schemaKey.version)
 
   def schemaVerFr(version: SchemaVer.Full): Fragment =
     fr"model = ${version.model} AND revision = ${version.revision} AND addition = ${version.addition}"
 
   object Sql {
     def getSchema(schemaMap: SchemaMap) =
-      (fr"SELECT * FROM" ++ SchemasTable ++ fr"WHERE" ++ schemaMapFr(schemaMap)).query[Schema]
+      (fr"SELECT" ++ schemaColumns ++ fr"FROM" ++ SchemasTable ++ fr"WHERE" ++ schemaMapFr(schemaMap)).query[Schema]
 
     def getSchemas =
-      (fr"SELECT * FROM" ++ SchemasTable).query[Schema]
+      (fr"SELECT" ++ schemaColumns ++ fr"FROM" ++ SchemasTable).query[Schema]
 
-    def addSchema(schemaMap: SchemaMap, schema: Json, isPublic: Boolean) = {
+    def addSchema(schemaMap: SchemaMap, schema: Json, isPublic: Boolean): Update0 = {
       val key = schemaMap.schemaKey
       val ver = key.version
-      (fr"INSERT INTO" ++ SchemasTable ++ fr"(vendor, name, format, model, revision, addition, created_at, updated_at, is_public, body)" ++
+      (fr"INSERT INTO" ++ SchemasTable ++ fr"(" ++ schemaColumns ++ fr")" ++
         fr"VALUES (${key.vendor}, ${key.name}, ${key.format}, ${ver.model}, ${ver.revision}, ${ver.addition}, current_timestamp, current_timestamp, $isPublic, $schema)")
         .update
     }
 
     def getDraft(draftId: DraftId) =
-      (fr"SELECT * FROM" ++ DraftsTable ++ fr"WHERE " ++ draftFr(draftId)).query[SchemaDraft]
+      (fr"SELECT" ++ draftColumns ++ fr"FROM" ++ DraftsTable ++ fr"WHERE " ++ draftFr(draftId)).query[SchemaDraft]
 
     def addDraft(id: DraftId, body: Json, isPublic: Boolean) =
-      (fr"INSERT INTO" ++ DraftsTable ++ fr"(vendor, name, format, version, created_at, updated_at, is_public, body)" ++
+      (fr"INSERT INTO" ++ DraftsTable ++ fr"(" ++ draftColumns ++ fr")" ++
         fr"VALUES (${id.vendor}, ${id.name}, ${id.format}, ${id.version.value}, current_timestamp, current_timestamp, $isPublic, $body)")
         .update
 
@@ -131,72 +134,5 @@ object Postgres {
 
     def deletePermission(id: UUID) =
       (fr"DELETE FROM" ++ PermissionsTable ++ fr"WHERE apikey = $id").update
-  }
-
-  object Bootstrap {
-    val keyActionCreate =
-      sql"""CREATE TYPE key_action AS ENUM ('CREATE', 'DELETE');"""
-      .update
-      .run
-
-    val schemaActionCreate =
-      sql"""CREATE TYPE schema_action AS ENUM ('READ', 'BUMP', 'CREATE', 'CREATE_VENDOR');"""
-        .update
-        .run
-
-    val permissionsCreate = (
-      fr"CREATE TABLE" ++ PermissionsTable ++ fr"""(
-        apikey              UUID            NOT NULL,
-        vendor              VARCHAR(128),
-        wildcard            BOOL            NOT NULL,
-        schema_action       schema_action,
-        key_action          key_action[]    NOT NULL,
-        PRIMARY KEY (apikey)
-      );""")
-      .update
-      .run
-
-    val schemasCreate = (
-      fr"CREATE TABLE" ++ SchemasTable ++ fr"""(
-        vendor      VARCHAR(128)  NOT NULL,
-        name        VARCHAR(128)  NOT NULL,
-        format      VARCHAR(128)  NOT NULL,
-        model       INTEGER       NOT NULL,
-        revision    INTEGER       NOT NULL,
-        addition    INTEGER       NOT NULL,
-
-        created_at  TIMESTAMP     NOT NULL,
-        updated_at  TIMESTAMP     NOT NULL,
-        is_public   BOOLEAN       NOT NULL,
-
-        body        JSON          NOT NULL
-      );""")
-      .update
-      .run
-
-    val draftsCreate = (
-      fr"CREATE TABLE" ++ DraftsTable ++ fr"""(
-        vendor      VARCHAR(128) NOT NULL,
-        name        VARCHAR(128) NOT NULL,
-        format      VARCHAR(128) NOT NULL,
-        version     INTEGER      NOT NULL,
-
-        created_at  TIMESTAMP    NOT NULL,
-        updated_at  TIMESTAMP    NOT NULL,
-        is_public   BOOLEAN      NOT NULL,
-
-        body        JSON         NOT NULL
-      );""")
-      .update
-      .run
-
-    val allStatements =
-      List(keyActionCreate, schemaActionCreate, permissionsCreate, schemasCreate, draftsCreate)
-
-    def initialize[F[_]: Monad](xa: Transactor[F]) =
-      allStatements
-        .sequence[ConnectionIO, Int]
-        .map(_.combineAll)
-        .transact(xa)
   }
 }

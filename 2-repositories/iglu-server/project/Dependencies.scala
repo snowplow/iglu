@@ -21,6 +21,7 @@ object Dependencies {
     val SchemaDdl  = "0.9.0"
     val IgluClient = "0.6.0-M2"
 
+    val Fs2        = "1.0.3"
     val Http4s     = "0.20.0-M5"
     val Rho        = "0.19.0-M5"
     val Doobie     = "0.6.0"
@@ -30,7 +31,7 @@ object Dependencies {
     val Circe      = "0.11.1"
     val CirceFs2   = "0.11.0"
     val Refined    = "0.9.3"
-    val pureConfig = "0.10.1"
+    val PureConfig = "0.10.1"
     val SwaggerUi  = "3.20.5"
 
     val Specs2     = "4.3.6"
@@ -42,6 +43,7 @@ object Dependencies {
     "com.snowplowanalytics" %% "schema-ddl"            % V.SchemaDdl,
     "com.snowplowanalytics" %% "iglu-scala-client"     % V.IgluClient,
 
+    "co.fs2"                %% "fs2-core"              % V.Fs2,
     "com.monovore"          %% "decline"               % V.Decline,
     "org.typelevel"         %% "cats-core"             % V.Cats,
     "org.http4s"            %% "http4s-blaze-server"   % V.Http4s,
@@ -55,7 +57,7 @@ object Dependencies {
     "io.circe"              %% "circe-refined"         % V.Circe,
     "io.circe"              %% "circe-fs2"             % V.CirceFs2,
     "eu.timepit"            %% "refined"               % V.Refined,
-    "com.github.pureconfig" %% "pureconfig"            % V.pureConfig,
+    "com.github.pureconfig" %% "pureconfig"            % V.PureConfig,
     "org.tpolecat"          %% "doobie-core"           % V.Doobie,
     "org.tpolecat"          %% "doobie-postgres"       % V.Doobie,
     "org.tpolecat"          %% "doobie-postgres-circe" % V.Doobie,

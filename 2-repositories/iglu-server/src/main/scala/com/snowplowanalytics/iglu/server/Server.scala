@@ -37,10 +37,10 @@ import org.http4s.rho.swagger.models.{ApiKeyAuthDefinition, In }
 import doobie.implicits._
 import doobie.util.transactor.Transactor
 
-import com.snowplowanalytics.iglu.server.migrations.MigrateFrom
+import com.snowplowanalytics.iglu.server.migrations.{ MigrateFrom, Bootstrap }
 import com.snowplowanalytics.iglu.server.codecs.Swagger
 import com.snowplowanalytics.iglu.server.model.{ Permission, IgluResponse }
-import com.snowplowanalytics.iglu.server.storage.{ Storage, Postgres  }
+import com.snowplowanalytics.iglu.server.storage.Storage
 import com.snowplowanalytics.iglu.server.service._
 
 object Server {
@@ -111,7 +111,7 @@ object Server {
             migration.perform.transact(xa) *>
               IO(println(s"All tables were migrated in $dbname from $migration"))
           case None =>
-            Postgres.Bootstrap.initialize[IO](xa) *>
+            Bootstrap.initialize[IO](xa) *>
               IO(println(s"Tables were initialized in $dbname"))
         }
         action.as(ExitCode.Success)

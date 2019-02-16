@@ -26,11 +26,12 @@ import cats.effect.IO
 import doobie._
 import doobie.specs2._
 import doobie.implicits._
+
 import eu.timepit.refined.types.numeric.NonNegInt
 
 import com.snowplowanalytics.iglu.core.{SchemaMap, SchemaVer}
-import com.snowplowanalytics.iglu.server.model.SchemaDraft
-import com.snowplowanalytics.iglu.server.model.Permission
+import com.snowplowanalytics.iglu.server.model.{ SchemaDraft, Permission }
+import com.snowplowanalytics.iglu.server.migrations.Bootstrap
 
 import scala.concurrent.ExecutionContext
 
@@ -58,7 +59,7 @@ class PostgresSpec extends Specification with BeforeAll with IOChecker {
 
 
     val action = dropStatement.transact(transactor) *>
-      Postgres.Bootstrap.initialize(transactor)
+      Bootstrap.initialize(transactor)
 
     action.unsafeRunSync()
     println(s"DB entities recreated")

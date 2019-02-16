@@ -20,6 +20,7 @@ import java.util.UUID
 
 import fs2.Stream
 
+import cats.{ Applicative, MonadError }
 import cats.syntax.show._
 import cats.syntax.either._
 import cats.syntax.functor._
@@ -52,42 +53,55 @@ object Fifth {
   val OldSchemasTable = Fragment.const("schemas")
   val OldPermissionsTable = Fragment.const("apikeys")
 
-  def perform: ConnectionIO[Unit] = {
+  def perform: ConnectionIO[Unit] =
     for {
-      _ <- (sql"ALTER TABLE" ++ OldPermissionsTable ++ fr"RENAME to apikeys_04;").update.run
-      _ <- (sql"ALTER TABLE" ++ OldSchemasTable ++ fr"RENAME to schemas_04;").update.run
-      _ <- Postgres.Bootstrap.allStatements.sequence[ConnectionIO, Int].map(_.combineAll)
+      _ <- checkContent(querySchemas)
+      _ <- checkContent(queryDrafts)
+      _ <- Bootstrap.allStatements.sequence[ConnectionIO, Int].map(_.combineAll)
       _ <- (migrateKeys ++ migrateSchemas ++ migrateDrafts).compile.drain
     } yield ()
+
+  /** Perform query and check if entities are valid against current model, throw an exception otherwise */
+  def checkContent[A](query: Query0[Either[String, A]]): ConnectionIO[Unit] = {
+    val errors = query.stream.flatMap {
+      case Right(_) => Stream.empty
+      case Left(error) => Stream.emit(error)
+    }
+    errors.compile.toList.flatMap {
+      case Nil => Applicative[ConnectionIO].pure(())
+      case err =>
+        val exception = IncompatibleStorage(s"Inconsistent entities found: ${err.mkString(", ")}")
+        MonadError[ConnectionIO, Throwable].raiseError(exception)
+    }
   }
 
-  def migrateSchemas = {
-    val query =
-      (sql"SELECT vendor, name, format, version, schema, createdat, updatedat, ispublic FROM" ++ OldSchemasTable ++ fr"WHERE draftnumber = '0'")
-        .query[(String, String, String, String, String, Instant, Instant, Boolean)]
-        .map { case (vendor, name, format, version, body, createdAt, updatedAt, isPublic) =>
-          val schemaMap = for {
-            ver <- SchemaVer.parse(version)
-            key <- SchemaKey.fromUri(s"iglu:$vendor/$name/$format/${ver.asString}")
-          } yield SchemaMap(key)
-          for {
-            jsonBody <- parse(body).leftMap(_.show)
-            map <- schemaMap.leftMap(_.code)
-            schema <- SelfDescribingSchema.parse(jsonBody) match {
-              case Left(ParseError.InvalidSchema) =>
-                jsonBody.asRight  // Non self-describing JSON schema
-              case Left(e) =>
-                s"Invalid self-describing payload for [${map.schemaKey.toSchemaUri}], ${e.code}".asLeft
-              case Right(schema) if schema.self == map =>
-                schema.schema.asRight
-              case Right(schema) =>
-                s"Self-describing payload [${schema.self.schemaKey.toSchemaUri}] does not match its DB reference [${map.schemaKey.toSchemaUri}]".asLeft
-            }
-          } yield (map, schema, isPublic, createdAt, updatedAt)
-        }
+  def querySchemas =
+    (sql"SELECT vendor, name, format, version, schema, createdat, updatedat, ispublic FROM" ++ OldSchemasTable ++ fr"WHERE draftnumber = '0'")
+      .query[(String, String, String, String, String, Instant, Instant, Boolean)]
+      .map { case (vendor, name, format, version, body, createdAt, updatedAt, isPublic) =>
+        val schemaMap = for {
+          ver <- SchemaVer.parse(version)
+          key <- SchemaKey.fromUri(s"iglu:$vendor/$name/$format/${ver.asString}")
+        } yield SchemaMap(key)
+        for {
+          jsonBody <- parse(body).leftMap(_.show)
+          map <- schemaMap.leftMap(_.code)
+          schema <- SelfDescribingSchema.parse(jsonBody) match {
+            case Left(ParseError.InvalidSchema) =>
+              jsonBody.asRight  // Non self-describing JSON schema
+            case Left(e) =>
+              s"Invalid self-describing payload for [${map.schemaKey.toSchemaUri}], ${e.code}".asLeft
+            case Right(schema) if schema.self == map =>
+              schema.schema.asRight
+            case Right(schema) =>
+              s"Self-describing payload [${schema.self.schemaKey.toSchemaUri}] does not match its DB reference [${map.schemaKey.toSchemaUri}]".asLeft
+          }
+        } yield (map, schema, isPublic, createdAt, updatedAt)
+      }
 
+  def migrateSchemas =
     for {
-      row <- query.stream
+      row <- querySchemas.stream
       _   <- row match {
         case Right((map, body, isPublic, createdAt, updatedAt)) =>
           Stream.eval_(addSchema(map, body, isPublic, createdAt, updatedAt).run).void
@@ -95,24 +109,23 @@ object Fifth {
           Stream.raiseError[ConnectionIO](IncompatibleStorage(error))
       }
     } yield ()
-  }
 
-  def migrateDrafts = {
-    val query =
-      (sql"SELECT vendor, name, format, draftnumber, schema, createdat, updatedat, ispublic FROM" ++ OldSchemasTable ++ fr"WHERE draftnumber != '0'")
-        .query[(String, String, String, String, String, Instant, Instant, Boolean)]
-        .map { case (vendor, name, format, draftId, body, createdAt, updatedAt, isPublic) =>
-          for {
-            verInt   <- Either.catchOnly[NumberFormatException](draftId.toInt).leftMap(_.getMessage)
-            number   <- NonNegInt.from(verInt)
-            jsonBody <- parse(body).leftMap(_.show)
-            draftId   = SchemaDraft.DraftId(vendor, name, format, number)
-            meta      = Schema.Metadata(createdAt, updatedAt, isPublic)
-          } yield SchemaDraft(draftId, meta, jsonBody)
-        }
+  def queryDrafts =
+    (sql"SELECT vendor, name, format, draftnumber, schema, createdat, updatedat, ispublic FROM" ++ OldSchemasTable ++ fr"WHERE draftnumber != '0'")
+      .query[(String, String, String, String, String, Instant, Instant, Boolean)]
+      .map { case (vendor, name, format, draftId, body, createdAt, updatedAt, isPublic) =>
+        for {
+          verInt   <- Either.catchOnly[NumberFormatException](draftId.toInt).leftMap(_.getMessage)
+          number   <- NonNegInt.from(verInt)
+          jsonBody <- parse(body).leftMap(_.show)
+          draftId   = SchemaDraft.DraftId(vendor, name, format, number)
+          meta      = Schema.Metadata(createdAt, updatedAt, isPublic)
+        } yield SchemaDraft(draftId, meta, jsonBody)
+      }
 
+  def migrateDrafts =
     for {
-      row <- query.stream
+      row <- queryDrafts.stream
       _   <- row match {
         case Right(draft) =>
           Stream.eval_(addDraft(draft).run).void
@@ -120,7 +133,6 @@ object Fifth {
           Stream.raiseError[ConnectionIO](IncompatibleStorage(error))
       }
     } yield ()
-  }
 
   def migrateKeys = {
     val query = (sql"SELECT uid, vendor_prefix, permission FROM" ++ OldPermissionsTable)
