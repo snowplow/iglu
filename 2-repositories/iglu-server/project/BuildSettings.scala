@@ -18,9 +18,8 @@ import sbt._
 import Keys._
 
 import com.typesafe.sbt.packager.Keys.{daemonUser, maintainer}
-import com.typesafe.sbt.packager.docker.{ Cmd }
-import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport._
 import com.typesafe.sbt.packager.docker._
+import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport._
 import com.typesafe.sbt.packager.universal.UniversalPlugin.autoImport._
 
 object BuildSettings {

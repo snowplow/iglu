@@ -1,3 +1,17 @@
+/*
+ * Copyright (c) 2019 Snowplow Analytics Ltd. All rights reserved.
+ *
+ * This program is licensed to you under the Apache License Version 2.0,
+ * and you may not use this file except in compliance with the Apache License Version 2.0.
+ * You may obtain a copy of the Apache License Version 2.0 at
+ * http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the Apache License Version 2.0 is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the Apache License Version 2.0 for the specific language governing permissions and
+ * limitations there under.
+ */
 package com.snowplowanalytics.iglu.server
 package storage
 
@@ -58,6 +72,10 @@ class Postgres[F[_]](xa: Transactor[F]) extends Storage[F] { self =>
 
 object Postgres {
 
+  val SchemasTable = Fragment.const("iglu_schemas")
+  val DraftsTable = Fragment.const("iglu_drafts")
+  val PermissionsTable = Fragment.const("iglu_permissions")
+
   def apply[F[_]](xa: Transactor[F]): Postgres[F] = new Postgres(xa)
 
   def draftFr(id: DraftId): Fragment =
@@ -77,41 +95,42 @@ object Postgres {
 
   object Sql {
     def getSchema(schemaMap: SchemaMap) =
-      (sql"SELECT * FROM schemas WHERE " ++ schemaMapFr(schemaMap)).query[Schema]
+      (fr"SELECT * FROM" ++ SchemasTable ++ fr"WHERE" ++ schemaMapFr(schemaMap)).query[Schema]
 
     def getSchemas =
-      sql"SELECT * FROM schemas".query[Schema]
+      (fr"SELECT * FROM" ++ SchemasTable).query[Schema]
 
     def addSchema(schemaMap: SchemaMap, schema: Json, isPublic: Boolean) = {
       val key = schemaMap.schemaKey
       val ver = key.version
-      sql"""INSERT INTO schemas (vendor, name, format, model, revision, addition, created_at, updated_at, is_public, body)
-        VALUES (${key.vendor}, ${key.name}, ${key.format}, ${ver.model}, ${ver.revision}, ${ver.addition}, current_timestamp, current_timestamp, $isPublic, $schema)"""
+      (fr"INSERT INTO" ++ SchemasTable ++ fr"(vendor, name, format, model, revision, addition, created_at, updated_at, is_public, body)" ++
+        fr"VALUES (${key.vendor}, ${key.name}, ${key.format}, ${ver.model}, ${ver.revision}, ${ver.addition}, current_timestamp, current_timestamp, $isPublic, $schema)")
         .update
     }
 
     def getDraft(draftId: DraftId) =
-      (sql"SELECT * FROM drafts WHERE " ++ draftFr(draftId)).query[SchemaDraft]
+      (fr"SELECT * FROM" ++ DraftsTable ++ fr"WHERE " ++ draftFr(draftId)).query[SchemaDraft]
 
     def addDraft(id: DraftId, body: Json, isPublic: Boolean) =
-      sql"""INSERT INTO drafts (vendor, name, format, version, created_at, updated_at, is_public, body)
-        VALUES (${id.vendor}, ${id.name}, ${id.format}, ${id.version.value}, current_timestamp, current_timestamp, $isPublic, $body)""".stripMargin
+      (fr"INSERT INTO" ++ DraftsTable ++ fr"(vendor, name, format, version, created_at, updated_at, is_public, body)" ++
+        fr"VALUES (${id.vendor}, ${id.name}, ${id.format}, ${id.version.value}, current_timestamp, current_timestamp, $isPublic, $body)")
         .update
 
     def getDrafts =
-      sql"SELECT * FROM drafts".query[SchemaDraft]
+      (fr"SELECT * FROM" ++ DraftsTable).query[SchemaDraft]
 
     def getPermission(id: UUID) =
-      sql"SELECT vendor, wildcard, schema_action::schema_action, key_action::key_action[] from permissions where apikey = $id".query[Permission]
+      (fr"SELECT vendor, wildcard, schema_action::schema_action, key_action::key_action[] FROM" ++ PermissionsTable ++ fr"WHERE apikey = $id").query[Permission]
 
     def addPermission(uuid: UUID, permission: Permission) = {
       val vendor = permission.vendor.parts.mkString(".")
       val keyActions = permission.key.toList.map(_.show)
-      sql"""INSERT INTO permissions VALUES ($uuid, $vendor, ${permission.vendor.wildcard}, ${permission.schema}::schema_action, $keyActions::key_action[])""".update
+      (fr"INSERT INTO" ++ PermissionsTable ++ sql"VALUES ($uuid, $vendor, ${permission.vendor.wildcard}, ${permission.schema}::schema_action, $keyActions::key_action[])")
+        .update
     }
 
     def deletePermission(id: UUID) =
-      sql"DELETE FROM permissions WHERE apikey = $id".update
+      (fr"DELETE FROM" ++ PermissionsTable ++ fr"WHERE apikey = $id").update
   }
 
   object Bootstrap {
@@ -125,20 +144,20 @@ object Postgres {
         .update
         .run
 
-    val permissionsCreate = sql"""
-      CREATE TABLE permissions (
+    val permissionsCreate = (
+      fr"CREATE TABLE" ++ PermissionsTable ++ fr"""(
         apikey              UUID            NOT NULL,
         vendor              VARCHAR(128),
         wildcard            BOOL            NOT NULL,
         schema_action       schema_action,
         key_action          key_action[]    NOT NULL,
         PRIMARY KEY (apikey)
-      );"""
+      );""")
       .update
       .run
 
-    val schemasCreate = sql"""
-      CREATE TABLE schemas (
+    val schemasCreate = (
+      fr"CREATE TABLE" ++ SchemasTable ++ fr"""(
         vendor      VARCHAR(128)  NOT NULL,
         name        VARCHAR(128)  NOT NULL,
         format      VARCHAR(128)  NOT NULL,
@@ -151,12 +170,12 @@ object Postgres {
         is_public   BOOLEAN       NOT NULL,
 
         body        JSON          NOT NULL
-      );"""
+      );""")
       .update
       .run
 
-    val draftsCreate = sql"""
-      CREATE TABLE drafts (
+    val draftsCreate = (
+      fr"CREATE TABLE" ++ DraftsTable ++ fr"""(
         vendor      VARCHAR(128) NOT NULL,
         name        VARCHAR(128) NOT NULL,
         format      VARCHAR(128) NOT NULL,
@@ -167,7 +186,7 @@ object Postgres {
         is_public   BOOLEAN      NOT NULL,
 
         body        JSON         NOT NULL
-      );"""
+      );""")
       .update
       .run
 

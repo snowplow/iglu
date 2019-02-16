@@ -1,3 +1,17 @@
+/*
+ * Copyright (c) 2019 Snowplow Analytics Ltd. All rights reserved.
+ *
+ * This program is licensed to you under the Apache License Version 2.0,
+ * and you may not use this file except in compliance with the Apache License Version 2.0.
+ * You may obtain a copy of the Apache License Version 2.0 at
+ * http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the Apache License Version 2.0 is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the Apache License Version 2.0 for the specific language governing permissions and
+ * limitations there under.
+ */
 package com.snowplowanalytics.iglu.server
 package storage
 
@@ -5,6 +19,8 @@ import java.util.UUID
 import io.circe.Json
 
 import cats.syntax.apply._
+import cats.syntax.traverse._
+import cats.instances.list._
 import cats.effect.IO
 
 import doobie._
@@ -32,12 +48,16 @@ class PostgresSpec extends Specification with BeforeAll with IOChecker {
 
   def beforeAll(): Unit = {
     val dropStatement =
-      sql"""DROP TABLE IF EXISTS permissions;
-           |DROP TABLE IF EXISTS schemas;
-           |DROP TABLE IF EXISTS drafts;
-           |DROP TYPE IF EXISTS schema_action;
-           |DROP TYPE IF EXISTS key_action;""".stripMargin
-    val action = dropStatement.update.run.transact(transactor) *>
+      List(
+        fr"DROP TABLE IF EXISTS" ++ Postgres.PermissionsTable,
+        fr"DROP TABLE IF EXISTS" ++ Postgres.SchemasTable,
+        fr"DROP TABLE IF EXISTS" ++ Postgres.DraftsTable,
+        fr"DROP TYPE IF EXISTS schema_action",
+        fr"DROP TYPE IF EXISTS key_action")
+      .map(_.update.run).sequence
+
+
+    val action = dropStatement.transact(transactor) *>
       Postgres.Bootstrap.initialize(transactor)
 
     action.unsafeRunSync()

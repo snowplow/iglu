@@ -49,10 +49,13 @@ import storage.Storage.IncompatibleStorage
 /** Steps required to migrate the DB from pre-0.6.0 structure to current one */
 object Fifth {
 
+  val OldSchemasTable = Fragment.const("schemas")
+  val OldPermissionsTable = Fragment.const("apikeys")
+
   def perform: ConnectionIO[Unit] = {
     for {
-      _ <- sql"ALTER TABLE apikeys RENAME to apikeys_04;".update.run
-      _ <- sql"ALTER TABLE schemas RENAME to schemas_04;".update.run
+      _ <- (sql"ALTER TABLE" ++ OldPermissionsTable ++ fr"RENAME to apikeys_04;").update.run
+      _ <- (sql"ALTER TABLE" ++ OldSchemasTable ++ fr"RENAME to schemas_04;").update.run
       _ <- Postgres.Bootstrap.allStatements.sequence[ConnectionIO, Int].map(_.combineAll)
       _ <- (migrateKeys ++ migrateSchemas ++ migrateDrafts).compile.drain
     } yield ()
@@ -60,7 +63,7 @@ object Fifth {
 
   def migrateSchemas = {
     val query =
-      sql"SELECT vendor, name, format, version, schema, createdat, updatedat, ispublic FROM schemas_04 WHERE draftnumber = '0'"
+      (sql"SELECT vendor, name, format, version, schema, createdat, updatedat, ispublic FROM" ++ OldSchemasTable ++ fr"WHERE draftnumber = '0'")
         .query[(String, String, String, String, String, Instant, Instant, Boolean)]
         .map { case (vendor, name, format, version, body, createdAt, updatedAt, isPublic) =>
           val schemaMap = for {
@@ -96,7 +99,7 @@ object Fifth {
 
   def migrateDrafts = {
     val query =
-      sql"SELECT vendor, name, format, draftnumber, schema, createdat, updatedat, ispublic FROM schemas_04 WHERE draftnumber != '0'"
+      (sql"SELECT vendor, name, format, draftnumber, schema, createdat, updatedat, ispublic FROM" ++ OldSchemasTable ++ fr"WHERE draftnumber != '0'")
         .query[(String, String, String, String, String, Instant, Instant, Boolean)]
         .map { case (vendor, name, format, draftId, body, createdAt, updatedAt, isPublic) =>
           for {
@@ -120,7 +123,7 @@ object Fifth {
   }
 
   def migrateKeys = {
-    val query = sql"SELECT uid, vendor_prefix, permission FROM apikeys_04"
+    val query = (sql"SELECT uid, vendor_prefix, permission FROM" ++ OldPermissionsTable)
       .query[(UUID, String, String)]
       .map { case (id, prefix, perm) =>
         val vendor = Permission.Vendor.parse(prefix)
@@ -143,16 +146,15 @@ object Fifth {
   def addSchema(schemaMap: SchemaMap, schema: Json, isPublic: Boolean, createdAt: Instant, updatedAt: Instant) = {
     val key = schemaMap.schemaKey
     val ver = key.version
-    sql"""INSERT INTO schemas (vendor, name, format, model, revision, addition, created_at, updated_at, is_public, body)
-        VALUES (${key.vendor}, ${key.name}, ${key.format}, ${ver.model}, ${ver.revision}, ${ver.addition}, $createdAt, $updatedAt, $isPublic, $schema)"""
+    (sql"INSERT INTO" ++ Postgres.SchemasTable ++ fr"(vendor, name, format, model, revision, addition, created_at, updated_at, is_public, body)" ++
+      fr"VALUES (${key.vendor}, ${key.name}, ${key.format}, ${ver.model}, ${ver.revision}, ${ver.addition}, $createdAt, $updatedAt, $isPublic, $schema)")
       .update
   }
 
-  def addDraft(draft: SchemaDraft) = {
-    sql"""INSERT INTO drafts (vendor, name, format, version, created_at, updated_at, is_public, body)
-        VALUES (${draft.schemaMap.vendor}, ${draft.schemaMap.name}, ${draft.schemaMap.format},
+  def addDraft(draft: SchemaDraft) =
+    (sql"INSERT INTO" ++ Postgres.DraftsTable ++ fr"(vendor, name, format, version, created_at, updated_at, is_public, body)" ++
+      fr"""VALUES (${draft.schemaMap.vendor}, ${draft.schemaMap.name}, ${draft.schemaMap.format},
         ${draft.schemaMap.version.value}, ${draft.metadata.createdAt}, ${draft.metadata.updatedAt},
-        ${draft.metadata.isPublic}, ${draft.body})""".stripMargin
+        ${draft.metadata.isPublic}, ${draft.body})""")
       .update
-  }
 }
