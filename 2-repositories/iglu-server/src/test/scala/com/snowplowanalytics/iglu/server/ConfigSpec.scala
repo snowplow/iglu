@@ -27,8 +27,8 @@ class ConfigSpec extends org.specs2.Specification { def is = s2"""
       Some(true),
       None,
       List(
-        Config.SchemaPublishedWebhook("https://example.com/endpoint",List()),
-        Config.SchemaPublishedWebhook("https://example2.com/endpoint",List("com", "org.acme", "org.snowplow"))
+        Config.SchemaPublishedWebhook("https://example.com/endpoint", List()),
+        Config.SchemaPublishedWebhook("https://example2.com/endpoint", List("com", "org.acme", "org.snowplow"))
       )
     )
     val result = Config

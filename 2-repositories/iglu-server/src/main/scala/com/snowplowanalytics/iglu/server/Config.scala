@@ -19,11 +19,14 @@ import java.nio.file.Path
 import cats.implicits._
 import cats.effect.IO
 
+import org.http4s.Uri
+
 import com.monovore.decline._
 
 import pureconfig._
 import pureconfig.generic.ProductHint
 import pureconfig.generic.auto._
+import pureconfig.module.http4s._
 
 import migrations.MigrateFrom
 import generated.BuildInfo.version
@@ -32,7 +35,7 @@ case class Config(database: Config.StorageConfig,
                   repoServer: Config.Http,
                   debug: Option[Boolean],
                   patchesAllowed: Option[Boolean],
-                  schemaPublishedWebhooks: List[Config.SchemaPublishedWebhook] = List())
+                  webhooks: Option[List[Config.Webhook]])
 
 object Config {
 
@@ -49,7 +52,7 @@ object Config {
   }
 
   case class Http(interface: String, baseUrl: String, port: Int)
-  case class SchemaPublishedWebhook(url: String, vendorPrefixes: List[String] = List())
+  case class Webhook(uri: Uri, vendorPrefixes: Option[List[String]])
 
   implicit def httpConfigHint =
     ProductHint[Http](ConfigFieldMapping(CamelCase, CamelCase))

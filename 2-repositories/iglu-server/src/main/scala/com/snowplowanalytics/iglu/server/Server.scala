@@ -72,13 +72,13 @@ object Server {
   def httpApp(storage: Storage[IO],
               debug: Boolean,
               patchesAllowed: Boolean,
-              schemaPublishedWebhooks: List[Config.SchemaPublishedWebhook],
+              webhooks: List[Config.Webhook],
               ec: ExecutionContext)
-             (implicit cs: ContextShift[IO]): HttpApp[IO] = {
+             (implicit cs: ContextShift[IO], timer: Timer[IO]): HttpApp[IO] = {
 
     val services: List[(String, RoutesConstructor)] = List(
       "/api/meta"       -> MetaService.asRoutes,
-      "/api/schemas"    -> SchemaService.asRoutes(patchesAllowed, schemaPublishedWebhooks),
+      "/api/schemas"    -> SchemaService.asRoutes(patchesAllowed, webhooks),
       "/api/auth"       -> AuthService.asRoutes,
       "/api/validation" -> ValidationService.asRoutes,
       "/api/drafts"     -> DraftService.asRoutes,
@@ -98,7 +98,7 @@ object Server {
       storage <- Stream.resource(Storage.initialize[IO](ec)(config.database))
       builder = BlazeServerBuilder[IO]
         .bindHttp(config.repoServer.port, config.repoServer.interface)
-        .withHttpApp(httpApp(storage, config.debug.getOrElse(false), config.patchesAllowed.getOrElse(false), config.schemaPublishedWebhooks, ec))
+        .withHttpApp(httpApp(storage, config.debug.getOrElse(false), config.patchesAllowed.getOrElse(false), config.webhooks.getOrElse(List()), ec))
       stream <- builder.serve
     } yield stream
 

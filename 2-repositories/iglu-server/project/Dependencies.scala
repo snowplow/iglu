@@ -59,6 +59,7 @@ object Dependencies {
     "io.circe"              %% "circe-fs2"             % V.CirceFs2,
     "eu.timepit"            %% "refined"               % V.Refined,
     "com.github.pureconfig" %% "pureconfig"            % V.PureConfig,
+    "com.github.pureconfig" %% "pureconfig-http4s"     % V.PureConfig,
     "org.tpolecat"          %% "doobie-core"           % V.Doobie,
     "org.tpolecat"          %% "doobie-postgres"       % V.Doobie,
     "org.tpolecat"          %% "doobie-postgres-circe" % V.Doobie,
