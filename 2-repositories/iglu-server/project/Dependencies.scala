@@ -47,6 +47,7 @@ object Dependencies {
     "com.monovore"          %% "decline"               % V.Decline,
     "org.typelevel"         %% "cats-core"             % V.Cats,
     "org.http4s"            %% "http4s-blaze-server"   % V.Http4s,
+    "org.http4s"            %% "http4s-blaze-client"   % V.Http4s,
     "org.http4s"            %% "http4s-circe"          % V.Http4s,
     "org.http4s"            %% "http4s-dsl"            % V.Http4s,
     "org.http4s"            %% "rho-swagger"           % V.Rho,

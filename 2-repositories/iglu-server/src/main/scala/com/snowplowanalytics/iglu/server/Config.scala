@@ -31,7 +31,8 @@ import generated.BuildInfo.version
 case class Config(database: Config.StorageConfig,
                   repoServer: Config.Http,
                   debug: Option[Boolean],
-                  patchesAllowed: Option[Boolean])
+                  patchesAllowed: Option[Boolean],
+                  schemaPublishedWebhooks: List[Config.SchemaPublishedWebhook] = List())
 
 object Config {
 
@@ -48,6 +49,7 @@ object Config {
   }
 
   case class Http(interface: String, baseUrl: String, port: Int)
+  case class SchemaPublishedWebhook(url: String, vendorPrefixes: List[String] = List())
 
   implicit def httpConfigHint =
     ProductHint[Http](ConfigFieldMapping(CamelCase, CamelCase))

@@ -24,7 +24,13 @@ class ConfigSpec extends org.specs2.Specification { def is = s2"""
     val expected = Config(
       Config.StorageConfig.Postgres("postgres", 5432, "igludb", "sp_user", "sp_password", "org.postgresql.Driver", None),
       Config.Http("0.0.0.0", "localhost:8080", 8080),
-      Some(true), None)
+      Some(true),
+      None,
+      List(
+        Config.SchemaPublishedWebhook("https://example.com/endpoint",List()),
+        Config.SchemaPublishedWebhook("https://example2.com/endpoint",List("com", "org.acme", "org.snowplow"))
+      )
+    )
     val result = Config
       .serverCommand.parse(input.split(" ").toList)
       .leftMap(_.toString)
@@ -36,7 +42,7 @@ class ConfigSpec extends org.specs2.Specification { def is = s2"""
     val config = getClass.getResource("/valid-dummy-config.conf").toURI
     val configPath = Paths.get(config)
     val input = s"run --config ${configPath}"
-    val expected = Config(Config.StorageConfig.Dummy, Config.Http("0.0.0.0", "localhost:8080", 8080), Some(true), None)
+    val expected = Config(Config.StorageConfig.Dummy, Config.Http("0.0.0.0", "localhost:8080", 8080), Some(true), None, List())
     val result = Config
       .serverCommand.parse(input.split(" ").toList)
       .leftMap(_.toString)

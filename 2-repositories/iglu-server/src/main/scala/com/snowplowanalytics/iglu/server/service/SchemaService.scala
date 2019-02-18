@@ -15,19 +15,24 @@
 package com.snowplowanalytics.iglu.server
 package service
 
-import cats.effect.{ IO, Sync, Clock }
+import scala.concurrent.ExecutionContext.Implicits.global
+
+import cats.effect._
 import cats.implicits._
 
 import io.circe.Json
 
 import org.http4s.HttpRoutes
 import org.http4s.circe._
+import org.http4s.client.blaze._
+import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.rho.bits.TextMetaData
 import org.http4s.rho.{RhoMiddleware, RhoRoutes, AuthedContext}
 import org.http4s.rho.swagger.SwaggerSyntax
 import org.http4s.rho.swagger.syntax.{io => swaggerSyntax}
+import org.http4s.Uri
 
-import com.snowplowanalytics.iglu.core.{SchemaMap, SchemaVer, SelfDescribingSchema}
+import com.snowplowanalytics.iglu.core.{SchemaKey, SchemaMap, SchemaVer, SelfDescribingSchema}
 import com.snowplowanalytics.iglu.core.circe.CirceIgluCodecs._
 
 import com.snowplowanalytics.iglu.server.codecs._
@@ -40,11 +45,14 @@ import com.snowplowanalytics.iglu.server.model.Schema.Repr.{ Format => SchemaFor
 class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
                                  ctx: AuthedContext[F, Permission],
                                  db: Storage[F],
-                                 patchesAllowed: Boolean) extends RhoRoutes[F] {
+                                 patchesAllowed: Boolean,
+                                 schemaPublishedWebhooks: List[Config.SchemaPublishedWebhook]) extends RhoRoutes[F] with Http4sClientDsl[IO]  {
 
   import swagger._
   import SchemaService._
   implicit val C: Clock[F] = Clock.create[F]
+  implicit val cs: ContextShift[IO] = IO.contextShift(global)
+  implicit val timer: Timer[IO] = IO.timer(global)
 
   val repr = genericQueryCapture(UriParsers.parseRepresentation[F]).withMetadata(ReprMetadata)
 
@@ -127,6 +135,7 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
               existing <- db.getSchema(schema.self).map(_.isDefined)
               _        <- db.addSchema(schema.self, schema.schema, isPublic)
               payload   = IgluResponse.SchemaUploaded(existing, schema.self.schemaKey): IgluResponse
+              _        <- schemaPublishedWebhooks.map(sendSchemaPublishedWebhook(_, schema.self.schemaKey, existing))
               response <- if (existing) Ok(payload) else Created(payload)
             } yield response
           case Left(error) =>
@@ -134,6 +143,23 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
         }
       } yield response
     else Forbidden(IgluResponse.Forbidden: IgluResponse)
+
+  private def sendSchemaPublishedWebhook(webhook: Config.SchemaPublishedWebhook, schema: SchemaKey, existing: Boolean) = {
+    Uri.fromString(webhook.url) match {
+      case Right(url) =>
+        if (webhook.vendorPrefixes.isEmpty || webhook.vendorPrefixes.exists(schema.vendor.startsWith(_))) {
+          val requestJson = Json.fromFields(List(
+            "schemaKey" -> Json.fromString(schema.toSchemaUri),
+            "updated" -> Json.fromBoolean(existing)
+          ))
+          BlazeClientBuilder[IO](global).resource.use { client =>
+            val postRequest = POST(requestJson, url)
+            client.expect[String](postRequest)
+          }
+        } else IO.unit
+      case Left(error) => IO(println(s"Invalid webhook URI: $error"))
+    }
+  }
 }
 
 object SchemaService {
@@ -143,11 +169,11 @@ object SchemaService {
       "Schema representation format (can be specified either by repr=uri/meta/canonical or legacy meta=1&body=1)"
   }
 
-  def asRoutes(patchesAllowed: Boolean)
+  def asRoutes(patchesAllowed: Boolean, schemaPublishedWebhooks: List[Config.SchemaPublishedWebhook])
               (db: Storage[IO],
                ctx: AuthedContext[IO, Permission],
                rhoMiddleware: RhoMiddleware[IO]): HttpRoutes[IO] = {
-    val service = new SchemaService(swaggerSyntax, ctx, db, patchesAllowed).toRoutes(rhoMiddleware)
+    val service = new SchemaService(swaggerSyntax, ctx, db, patchesAllowed, schemaPublishedWebhooks).toRoutes(rhoMiddleware)
     PermissionMiddleware.wrapService(db, ctx, service)
   }
 
