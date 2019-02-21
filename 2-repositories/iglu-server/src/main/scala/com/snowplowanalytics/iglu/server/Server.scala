@@ -25,6 +25,7 @@ import fs2.Stream
 
 import org.http4s.{ HttpApp, Response, Status, HttpRoutes, MediaType, Request }
 import org.http4s.headers.`Content-Type`
+import org.http4s.client.blaze.BlazeClientBuilder
 import org.http4s.server.Router
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.middleware.AutoSlash
@@ -72,13 +73,13 @@ object Server {
   def httpApp(storage: Storage[IO],
               debug: Boolean,
               patchesAllowed: Boolean,
-              webhooks: List[Config.Webhook],
+              webhook: Webhook.WebhookClient[IO],
               ec: ExecutionContext)
-             (implicit cs: ContextShift[IO], timer: Timer[IO]): HttpApp[IO] = {
+             (implicit cs: ContextShift[IO]): HttpApp[IO] = {
 
     val services: List[(String, RoutesConstructor)] = List(
       "/api/meta"       -> MetaService.asRoutes,
-      "/api/schemas"    -> SchemaService.asRoutes(patchesAllowed, webhooks),
+      "/api/schemas"    -> SchemaService.asRoutes(patchesAllowed, webhook),
       "/api/auth"       -> AuthService.asRoutes,
       "/api/validation" -> ValidationService.asRoutes,
       "/api/drafts"     -> DraftService.asRoutes,
@@ -93,14 +94,18 @@ object Server {
     Kleisli[IO, Request[IO], Response[IO]](req => Router(serverRoutes: _*).run(req).getOrElse(NotFound))
   }
 
-  def run(config: Config)(implicit ec: ExecutionContext, cs: ContextShift[IO], timer: Timer[IO]): Stream[IO, ExitCode] =
+  def run(config: Config)(implicit ec: ExecutionContext, cs: ContextShift[IO], timer: Timer[IO]): Stream[IO, ExitCode] = {
     for {
+      client <- BlazeClientBuilder[IO](ec).stream
+      webhookClient = Webhook.WebhookClient(config.webhooks.getOrElse(List.empty), client)
       storage <- Stream.resource(Storage.initialize[IO](ec)(config.database))
       builder = BlazeServerBuilder[IO]
         .bindHttp(config.repoServer.port, config.repoServer.interface)
-        .withHttpApp(httpApp(storage, config.debug.getOrElse(false), config.patchesAllowed.getOrElse(false), config.webhooks.getOrElse(List()), ec))
+        .withHttpApp(httpApp(storage, config.debug.getOrElse(false), config.patchesAllowed.getOrElse(false), webhookClient, ec))
       stream <- builder.serve
     } yield stream
+
+  }
 
   def setup(config: Config, migrate: Option[MigrateFrom])(implicit cs: ContextShift[IO]) = {
     config.database match {

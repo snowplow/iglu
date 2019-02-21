@@ -22,14 +22,12 @@ import io.circe.Json
 
 import org.http4s.HttpRoutes
 import org.http4s.circe._
-import org.http4s.client.blaze._
-import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.rho.bits.TextMetaData
 import org.http4s.rho.{RhoMiddleware, RhoRoutes, AuthedContext}
 import org.http4s.rho.swagger.SwaggerSyntax
 import org.http4s.rho.swagger.syntax.{io => swaggerSyntax}
 
-import com.snowplowanalytics.iglu.core.{SchemaKey, SchemaMap, SchemaVer, SelfDescribingSchema}
+import com.snowplowanalytics.iglu.core.{SchemaMap, SchemaVer, SelfDescribingSchema}
 import com.snowplowanalytics.iglu.core.circe.CirceIgluCodecs._
 
 import com.snowplowanalytics.iglu.server.codecs._
@@ -43,8 +41,7 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
                                  ctx: AuthedContext[F, Permission],
                                  db: Storage[F],
                                  patchesAllowed: Boolean,
-                                 webhooks: List[Config.Webhook])
-                                (implicit cs: ContextShift[F], timer: Timer[F]) extends RhoRoutes[F] with Http4sClientDsl[IO]  {
+                                 webhooks: Webhook.WebhookClient[F]) extends RhoRoutes[F] {
 
   import swagger._
   import SchemaService._
@@ -131,7 +128,7 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
               existing <- db.getSchema(schema.self).map(_.isDefined)
               _        <- db.addSchema(schema.self, schema.schema, isPublic)
               payload   = IgluResponse.SchemaUploaded(existing, schema.self.schemaKey): IgluResponse
-              _        <- webhooks.map(sendWebhook(_, schema.self.schemaKey, existing)).sequence_
+              _        <- webhooks.schemaPublished(schema.self.schemaKey, existing)
               response <- if (existing) Ok(payload) else Created(payload)
             } yield response
           case Left(error) =>
@@ -139,19 +136,6 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
         }
       } yield response
     else Forbidden(IgluResponse.Forbidden: IgluResponse)
-
-  private def sendWebhook(webhook: Config.Webhook, schema: SchemaKey, existing: Boolean) = {
-    if (webhook.vendorPrefixes.isEmpty || webhook.vendorPrefixes.exists(schema.vendor.startsWith(_))) {
-      val requestJson = Json.fromFields(List(
-        "schemaKey" -> Json.fromString(schema.toSchemaUri),
-        "updated" -> Json.fromBoolean(existing)
-      ))
-      BlazeClientBuilder[F](scala.concurrent.ExecutionContext.Implicits.global).resource.use { client =>
-        val postRequest = POST(requestJson, webhook.uri)
-        client.expect[String](postRequest)
-      }
-    }
-  }
 }
 
 object SchemaService {
@@ -161,12 +145,11 @@ object SchemaService {
       "Schema representation format (can be specified either by repr=uri/meta/canonical or legacy meta=1&body=1)"
   }
 
-  def asRoutes(patchesAllowed: Boolean, schemaPublishedWebhooks: List[Config.Webhook])
+  def asRoutes(patchesAllowed: Boolean, webhook: Webhook.WebhookClient[IO])
               (db: Storage[IO],
                ctx: AuthedContext[IO, Permission],
-               rhoMiddleware: RhoMiddleware[IO])
-              (implicit cs: ContextShift[IO], timer: Timer[IO]): HttpRoutes[IO] = {
-    val service = new SchemaService(swaggerSyntax, ctx, db, patchesAllowed, schemaPublishedWebhooks).toRoutes(rhoMiddleware)
+               rhoMiddleware: RhoMiddleware[IO]): HttpRoutes[IO] = {
+    val service = new SchemaService(swaggerSyntax, ctx, db, patchesAllowed, webhook).toRoutes(rhoMiddleware)
     PermissionMiddleware.wrapService(db, ctx, service)
   }
 
