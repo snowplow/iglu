@@ -13,6 +13,7 @@ import io.circe.literal._
 
 import org.http4s._
 import org.http4s.circe._
+import org.http4s.client.Client
 import org.http4s.rho.swagger.syntax.io.createRhoMiddleware
 
 import com.snowplowanalytics.iglu.core.{SchemaMap, SchemaVer, SchemaKey, SelfDescribingSchema}
@@ -223,10 +224,12 @@ class SchemaServiceSpec extends org.specs2.Specification { def is = s2"""
 object SchemaServiceSpec {
   import storage.InMemory
 
+  val client: Client[IO] = Client.fromHttpApp(HttpApp[IO](r => Response[IO]().withEntity(r.body).pure[IO]))
+
   def request(reqs: List[Request[IO]]): IO[Response[IO]] = {
     for {
       storage <- InMemory.getInMemory[IO](SpecHelpers.exampleState)
-      service = SchemaService.asRoutes(false)(storage, SpecHelpers.ctx, createRhoMiddleware())
+      service = SchemaService.asRoutes(false, Webhook.WebhookClient(List(), client))(storage, SpecHelpers.ctx, createRhoMiddleware())
       responses <- reqs.traverse(service.run).value
     } yield responses.flatMap(_.lastOption).getOrElse(Response(Status.NotFound))
   }
@@ -234,7 +237,7 @@ object SchemaServiceSpec {
   def state(reqs: List[Request[IO]]): IO[(List[Response[IO]], InMemory.State)] = {
     for {
       storage <- InMemory.getInMemory[IO](SpecHelpers.exampleState)
-      service = SchemaService.asRoutes(false)(storage, SpecHelpers.ctx, createRhoMiddleware())
+      service = SchemaService.asRoutes(false, Webhook.WebhookClient(List(), client))(storage, SpecHelpers.ctx, createRhoMiddleware())
       responses <- reqs.traverse(service.run).value
       state <- storage.ref.get
     } yield (responses.getOrElse(List.empty), state)

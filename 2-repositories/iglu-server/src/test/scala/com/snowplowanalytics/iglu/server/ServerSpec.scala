@@ -1,5 +1,6 @@
 package com.snowplowanalytics.iglu.server
 
+import cats.implicits._
 import cats.effect.IO
 
 import io.circe.Json
@@ -7,6 +8,7 @@ import io.circe.literal._
 
 import org.http4s._
 import org.http4s.circe._
+import org.http4s.client.Client
 import org.http4s.rho.swagger.syntax.io.createRhoMiddleware
 
 import com.snowplowanalytics.iglu.server.service.SchemaService
@@ -30,10 +32,12 @@ class ServerSpec extends org.specs2.Specification { def is = s2"""
 object ServerSpec {
   val middleware = createRhoMiddleware()
 
+  val client: Client[IO] = Client.fromHttpApp(HttpApp[IO](r => Response[IO]().withEntity(r.body).pure[IO]))
+
   def request(req: Request[IO]): IO[Response[IO]] = {
     for {
       storage <- storage.InMemory.get[IO](SpecHelpers.exampleState)
-      service <- SchemaService.asRoutes(false)(storage, SpecHelpers.ctx, middleware).run(req).value
+      service <- SchemaService.asRoutes(false, Webhook.WebhookClient(List(), client))(storage, SpecHelpers.ctx, middleware).run(req).value
     } yield service.getOrElse(Response(Status.NotFound))
   }
 }

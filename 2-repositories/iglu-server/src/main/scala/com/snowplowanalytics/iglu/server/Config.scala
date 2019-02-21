@@ -33,7 +33,7 @@ case class Config(database: Config.StorageConfig,
                   repoServer: Config.Http,
                   debug: Option[Boolean],
                   patchesAllowed: Option[Boolean],
-                  webhooks: Option[List[Webhook]])
+                  webhooks: Option[Config.Webhooks])
 
 object Config {
 
@@ -50,7 +50,7 @@ object Config {
   }
 
   case class Http(interface: String, baseUrl: String, port: Int)
-
+  case class Webhooks(schemaPublished: Option[List[Webhook.SchemaPublished]])
 
   implicit def httpConfigHint =
     ProductHint[Http](ConfigFieldMapping(CamelCase, CamelCase))

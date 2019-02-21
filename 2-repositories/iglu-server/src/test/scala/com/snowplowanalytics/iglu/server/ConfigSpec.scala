@@ -2,6 +2,8 @@ package com.snowplowanalytics.iglu.server
 
 import java.nio.file.Paths
 
+import org.http4s.Uri
+
 import cats.syntax.either._
 
 class ConfigSpec extends org.specs2.Specification { def is = s2"""
@@ -26,10 +28,10 @@ class ConfigSpec extends org.specs2.Specification { def is = s2"""
       Config.Http("0.0.0.0", "localhost:8080", 8080),
       Some(true),
       None,
-      List(
-        Config.SchemaPublishedWebhook("https://example.com/endpoint", List()),
-        Config.SchemaPublishedWebhook("https://example2.com/endpoint", List("com", "org.acme", "org.snowplow"))
-      )
+      Some(Config.Webhooks(Some(List(
+        Webhook.SchemaPublished(Uri.uri("https://example.com/endpoint"), None),
+        Webhook.SchemaPublished(Uri.uri("https://example2.com/endpoint"), Some(List("com", "org.acme", "org.snowplow")))
+      ))))
     )
     val result = Config
       .serverCommand.parse(input.split(" ").toList)
@@ -42,7 +44,7 @@ class ConfigSpec extends org.specs2.Specification { def is = s2"""
     val config = getClass.getResource("/valid-dummy-config.conf").toURI
     val configPath = Paths.get(config)
     val input = s"run --config ${configPath}"
-    val expected = Config(Config.StorageConfig.Dummy, Config.Http("0.0.0.0", "localhost:8080", 8080), Some(true), None, List())
+    val expected = Config(Config.StorageConfig.Dummy, Config.Http("0.0.0.0", "localhost:8080", 8080), Some(true), None, None)
     val result = Config
       .serverCommand.parse(input.split(" ").toList)
       .leftMap(_.toString)
