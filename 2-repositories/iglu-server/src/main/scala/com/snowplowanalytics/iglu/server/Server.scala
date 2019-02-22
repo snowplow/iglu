@@ -97,7 +97,7 @@ object Server {
   def run(config: Config)(implicit ec: ExecutionContext, cs: ContextShift[IO], timer: Timer[IO]): Stream[IO, ExitCode] = {
     for {
       client <- BlazeClientBuilder[IO](ec).stream
-      webhookClient = Webhook.WebhookClient(config.webhooks.getOrElse(Config.Webhooks(None)).schemaPublished.getOrElse(List()), client)
+      webhookClient = Webhook.WebhookClient(config.webhooks.getOrElse(Config.Webhooks(None)).getWebhooks, client)
       storage <- Stream.resource(Storage.initialize[IO](ec)(config.database))
       builder = BlazeServerBuilder[IO]
         .bindHttp(config.repoServer.port, config.repoServer.interface)

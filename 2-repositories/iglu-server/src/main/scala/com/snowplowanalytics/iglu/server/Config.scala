@@ -29,6 +29,17 @@ import pureconfig.module.http4s._
 import migrations.MigrateFrom
 import generated.BuildInfo.version
 
+/**
+  * Case class containing the Iglu Server's configuration options,
+  * derived from a Typesafe Config configuration file.
+  *
+  * @param database       Database used by the server, either dummy (in-memory storage) or postgres instance
+  * @param repoServer     Configuration options for the Iglu server - interface, port and deployment address
+  * @param debug          If true, enables an additional endpoint (/api/debug) that outputs all internal state
+  * @param patchesAllowed If true, schemas sent to the /api/schemas endpoint will overwrite existing ones rather than
+  *                       be skipped if a schema with the same key already exists
+  * @param webhooks       List of webhooks triggered by specific actions or endpoints
+  */
 case class Config(database: Config.StorageConfig,
                   repoServer: Config.Http,
                   debug: Option[Boolean],
@@ -39,7 +50,15 @@ object Config {
 
   sealed trait StorageConfig
   object StorageConfig {
+
+    /**
+      * Dummy in-memory configuration.
+      */
     case object Dummy extends StorageConfig
+
+    /**
+      * Configuration for PostgreSQL state storage.
+      */
     case class Postgres(host: String,
                         port: Int,
                         dbname: String,
@@ -49,8 +68,25 @@ object Config {
                         connectThreads: Option[Int]) extends StorageConfig
   }
 
-  case class Http(interface: String, baseUrl: String, port: Int)
-  case class Webhooks(schemaPublished: Option[List[Webhook.SchemaPublished]])
+  /**
+    * Configuration options for the Iglu server.
+    *
+    * @param interface The server's host.
+    * @param port The server's port.
+    */
+  case class Http(interface: String, port: Int)
+
+  /**
+    * Webhooks triggered by specific actions or endpoints.
+    *
+    * @param schemaPublished Webhooks triggered when a new schema is published (POST /api/schemas)
+    */
+  case class Webhooks(schemaPublished: Option[List[Webhook.SchemaPublished]]) {
+    /**
+      * Returns a list of all webhooks.
+      */
+    def getWebhooks: List[Webhook.SchemaPublished] = schemaPublished.getOrElse(List())
+  }
 
   implicit def httpConfigHint =
     ProductHint[Http](ConfigFieldMapping(CamelCase, CamelCase))
