@@ -41,6 +41,7 @@ import eu.timepit.refined.types.numeric.NonNegInt
 
 import com.snowplowanalytics.iglu.core.{ SchemaMap, SchemaKey, SchemaVer, SelfDescribingSchema, ParseError }
 import com.snowplowanalytics.iglu.core.circe.implicits._
+import com.snowplowanalytics.iglu.server.model.VersionCursor
 
 import model.{ Permission, SchemaDraft, Schema }
 import storage.Postgres
@@ -56,6 +57,7 @@ object Fifth {
   def perform: ConnectionIO[Unit] =
     for {
       _ <- checkContent(querySchemas)
+      _ <- checkConsistency(querySchemas)
       _ <- checkContent(queryDrafts)
       _ <- Bootstrap.allStatements.sequence[ConnectionIO, Int].map(_.combineAll)
       _ <- (migrateKeys ++ migrateSchemas ++ migrateDrafts).compile.drain
@@ -75,8 +77,41 @@ object Fifth {
     }
   }
 
+  def checkConsistency(query: Query0[Either[String, (SchemaMap, Json, Boolean, Instant, Instant)]]): ConnectionIO[Unit] = {
+    val errors = query.stream
+      .fold(List[Either[String, (SchemaMap, Json, Boolean, Instant, Instant)]]()) { (previous, current) =>
+        current match {
+          case Right((map, schema, isPublic, createdAt, updatedAt)) =>
+            isSchemaAllowed(previous.flatMap(_.toOption), map, isPublic) match {
+              case Right(_) => previous :+ Right((map, schema, isPublic, createdAt, updatedAt))
+              case Left(error) => previous :+ Left(error)
+            }
+          case Left(error) => previous :+ Left(error)
+        }
+      }
+
+    errors.compile.toList.flatMap { list =>
+      list.flatten.collect { case Left(error) => error } match {
+        case Nil => Applicative[ConnectionIO].pure(())
+        case err =>
+          val exception = IncompatibleStorage(s"Inconsistent entities found: ${err.mkString(", ")}")
+          MonadError[ConnectionIO, Throwable].raiseError(exception)
+      }
+    }
+  }
+
+  def isSchemaAllowed(previous: List[(SchemaMap, Json, Boolean, Instant, Instant)], current: SchemaMap, isPublic: Boolean): Either[String, Unit] = {
+    val schemas = previous.filter(x => x._1.schemaKey.vendor == current.schemaKey.vendor && x._1.schemaKey.name == current.schemaKey.name)
+    val previousPublic = schemas.forall(_._3)
+    val versions = schemas.map(_._1.schemaKey.version)
+    if ((previousPublic && isPublic) || (!previousPublic && !isPublic) || schemas.isEmpty)
+      VersionCursor.isAllowed(current.schemaKey.version, versions, patchesAllowed = true).leftMap(_.show)
+    else
+      s"""Inconsistent schema availability. Cannot add ${if (isPublic) "public" else "private"} schema, previous versions are ${if (previousPublic) "public" else "private"}""".asLeft
+  }
+
   def querySchemas =
-    (sql"SELECT vendor, name, format, version, schema, createdat, updatedat, ispublic FROM" ++ OldSchemasTable ++ fr"WHERE draftnumber = '0'")
+    (sql"SELECT vendor, name, format, version, schema, createdat, updatedat, ispublic FROM" ++ OldSchemasTable ++ fr"WHERE draftnumber = '0' ORDER BY createdat")
       .query[(String, String, String, String, String, Instant, Instant, Boolean)]
       .map { case (vendor, name, format, version, body, createdAt, updatedAt, isPublic) =>
         val schemaMap = for {
