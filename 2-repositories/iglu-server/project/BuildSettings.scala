@@ -32,8 +32,8 @@ object BuildSettings {
   )
 
   lazy val javaSettings = Seq(
-    javaOptions += "-J-Xmx2G -J-Xss2M",
-    javaOptions in Test += "-J-Xmx2G -J-Xss2M"
+    javaOptions         ++= Seq("-Xss", "8M", "-Xmx", "4G"),
+    javaOptions in Test ++= Seq("-Xss", "8M", "-Xmx", "4G")
   )
 
   lazy val dockerSettings = Seq(
