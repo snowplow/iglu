@@ -31,6 +31,11 @@ object BuildSettings {
     Cmd("RUN", "apt install -y postgresql-client-9.6")
   )
 
+  lazy val javaSettings = Seq(
+    javaOptions += "Xss2M",
+    javaOptions in Test += "Xss2M"
+  )
+
   lazy val dockerSettings = Seq(
     // Use single entrypoint script for all apps
     sourceDirectory in Universal := new File(baseDirectory.value, "scripts"),
