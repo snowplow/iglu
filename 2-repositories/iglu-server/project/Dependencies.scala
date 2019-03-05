@@ -22,8 +22,8 @@ object Dependencies {
     val IgluClient = "0.6.0-M2"
 
     val Fs2        = "1.0.3"
-    val Http4s     = "0.20.0-M5"
-    val Rho        = "0.19.0-M5"
+    val Http4s     = "0.20.0-M6"
+    val Rho        = "0.19.0-M6"
     val Doobie     = "0.6.0"
     val Decline    = "0.6.0"
     val Cats       = "1.6.0"
@@ -31,7 +31,7 @@ object Dependencies {
     val Circe      = "0.11.1"
     val CirceFs2   = "0.11.0"
     val Refined    = "0.9.3"
-    val PureConfig = "0.10.1"
+    val PureConfig = "0.10.2"
     val SwaggerUi  = "3.20.5"
 
     val Specs2     = "4.3.6"
