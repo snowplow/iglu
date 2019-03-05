@@ -23,7 +23,7 @@ import com.monovore.decline._
 
 import pureconfig._
 import pureconfig.generic.ProductHint
-import pureconfig.generic.auto._
+import pureconfig.generic.semiauto._
 import pureconfig.module.http4s._
 
 import migrations.MigrateFrom
@@ -44,7 +44,7 @@ case class Config(database: Config.StorageConfig,
                   repoServer: Config.Http,
                   debug: Option[Boolean],
                   patchesAllowed: Option[Boolean],
-                  webhooks: Option[Config.Webhooks])
+                  webhooks: Option[List[Webhook]])
 
 object Config {
 
@@ -66,6 +66,9 @@ object Config {
                         password: String,
                         driver: String,
                         connectThreads: Option[Int]) extends StorageConfig
+
+    val postgresReader = ConfigReader.forProduct7("host", "port","dbname", "username",
+      "password", "driver", "connectThreads")(StorageConfig.Postgres.apply)
   }
 
   /**
@@ -76,20 +79,49 @@ object Config {
     */
   case class Http(interface: String, port: Int)
 
-  /**
-    * Webhooks triggered by specific actions or endpoints.
-    *
-    * @param schemaPublished Webhooks triggered when a new schema is published (POST /api/schemas)
-    */
-  case class Webhooks(schemaPublished: Option[List[Webhook.SchemaPublished]]) {
-    /**
-      * Returns a list of all webhooks.
-      */
-    def getWebhooks: List[Webhook.SchemaPublished] = schemaPublished.getOrElse(List())
-  }
-
   implicit def httpConfigHint =
     ProductHint[Http](ConfigFieldMapping(CamelCase, CamelCase))
+
+  implicit val pureWebhookReader: ConfigReader[Webhook] = ConfigReader.fromCursor { cur =>
+    for {
+      objCur <- cur.asObjectCursor
+      uriCursor <- objCur.atKey("uri")
+      uri <- ConfigReader[org.http4s.Uri].from(uriCursor)
+
+      prefixes <- objCur.atKeyOrUndefined("vendor-prefixes") match {
+        case keyCur if keyCur.isUndefined => List.empty.asRight
+        case keyCur => keyCur.asList.flatMap(_.traverse(cur => cur.asString))
+      }
+    } yield Webhook.SchemaPublished(uri, Some(prefixes))
+  }
+
+  implicit val pureStorageReader: ConfigReader[StorageConfig] = ConfigReader.fromCursor { cur =>
+    for {
+      objCur  <- cur.asObjectCursor
+      typeCur <- objCur.atKey("type")
+      typeStr <- typeCur.asString
+      result  <- typeStr match {
+        case "postgres" => StorageConfig.postgresReader.from(cur)
+        case "dummy" => StorageConfig.Dummy.asRight
+        case _ =>
+          val message = s"type has value $typeStr instead of class1 or class2"
+          objCur.failed[StorageConfig](error.CannotConvert(objCur.value.toString, "StorageConfig", message))
+      }
+    } yield result
+  }
+
+  implicit val pureHttpReader: ConfigReader[Http] = deriveReader[Http]
+
+  implicit val pureWebhooksReader: ConfigReader[List[Webhook]] = ConfigReader.fromCursor { cur =>
+    for {
+      objCur  <- cur.asObjectCursor
+      schemaPublishedCursors <- objCur.atKeyOrUndefined("schema-published").asList
+      webhooks <- schemaPublishedCursors.traverse(cur => pureWebhookReader.from(cur))
+    } yield webhooks
+  }
+
+  implicit val pureConfigReader: ConfigReader[Config] = deriveReader[Config]
+
 
   sealed trait ServerCommand {
     def config: Path

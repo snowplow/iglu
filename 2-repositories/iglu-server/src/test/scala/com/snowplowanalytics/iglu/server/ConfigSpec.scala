@@ -42,10 +42,10 @@ class ConfigSpec extends org.specs2.Specification { def is = s2"""
       Config.Http("0.0.0.0", 8080),
       Some(true),
       Some(true),
-      Some(Config.Webhooks(Some(List(
-        Webhook.SchemaPublished(Uri.uri("https://example.com/endpoint"), None),
+      Some(List(
+        Webhook.SchemaPublished(Uri.uri("https://example.com/endpoint"), Some(List.empty)),
         Webhook.SchemaPublished(Uri.uri("https://example2.com/endpoint"), Some(List("com", "org.acme", "org.snowplow")))
-      ))))
+      ))
     )
     val result = Config
       .serverCommand.parse(input.split(" ").toList)
