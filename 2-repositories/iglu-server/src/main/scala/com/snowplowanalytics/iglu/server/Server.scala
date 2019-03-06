@@ -14,6 +14,7 @@
  */
 package com.snowplowanalytics.iglu.server
 
+import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 
 import cats.data.Kleisli
@@ -28,7 +29,7 @@ import org.http4s.headers.`Content-Type`
 import org.http4s.client.blaze.BlazeClientBuilder
 import org.http4s.server.Router
 import org.http4s.server.blaze.BlazeServerBuilder
-import org.http4s.server.middleware.AutoSlash
+import org.http4s.server.middleware.{ AutoSlash, CORS, CORSConfig }
 
 import org.http4s.rho.{ AuthedContext, RhoMiddleware }
 import org.http4s.rho.bits.PathAST.{PathMatch, TypedPath}
@@ -88,8 +89,16 @@ object Server {
     val debugRoute = "/api/debug" -> DebugService.asRoutes(storage, ioSwagger.createRhoMiddleware())
     val staticRoute = "/static" -> StaticService.routes(ec)
     val routes = staticRoute :: services.map(addSwagger(storage))
+    val corsConfig = CORSConfig(
+      anyOrigin = true,
+      anyMethod = false,
+      allowedMethods = Some(Set("GET", "POST", "PUT", "OPTIONS", "DELETE")),
+      allowedHeaders = Some(Set("apikey")),
+      allowCredentials = true,
+      maxAge = 1.day.toSeconds
+    )
     val serverRoutes = (if (debug) debugRoute :: routes else routes).map {
-      case (endpoint, route) => (endpoint, AutoSlash(route))
+      case (endpoint, route) => (endpoint, CORS(AutoSlash(route), corsConfig))
     }
     Kleisli[IO, Request[IO], Response[IO]](req => Router(serverRoutes: _*).run(req).getOrElse(NotFound))
   }
