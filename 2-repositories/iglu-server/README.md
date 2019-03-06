@@ -4,10 +4,16 @@ Iglu Server is a RESTful schema registry, allowing users to publish, test and se
 
 ## Quickstart guide
 
-Assuming [SBT][sbt] is installed:
+Assuming [SBT][sbt] is installed, use the one-time `setup` subcommand to set up PostgreSQL entities that will be used by the Iglu Server:
 
 ```bash
-$ sbt run run --config application.conf
+$ sbt "run setup --config application.conf"
+```
+
+To run the server itself, use:
+
+```bash
+$ sbt "run --config application.conf"
 ```
 
 Alternatively, you can use a [Docker][docker] image:

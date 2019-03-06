@@ -34,7 +34,7 @@ import org.http4s.server.middleware.{ AutoSlash, CORS, CORSConfig }
 import org.http4s.rho.{ AuthedContext, RhoMiddleware }
 import org.http4s.rho.bits.PathAST.{PathMatch, TypedPath}
 import org.http4s.rho.swagger.syntax.{io => ioSwagger}
-import org.http4s.rho.swagger.models.{ApiKeyAuthDefinition, In }
+import org.http4s.rho.swagger.models.{ ApiKeyAuthDefinition, In, Info }
 
 import doobie.implicits._
 import doobie.util.transactor.Transactor
@@ -44,6 +44,8 @@ import com.snowplowanalytics.iglu.server.codecs.Swagger
 import com.snowplowanalytics.iglu.server.model.{ Permission, IgluResponse }
 import com.snowplowanalytics.iglu.server.storage.Storage
 import com.snowplowanalytics.iglu.server.service._
+
+import generated.BuildInfo.version
 
 object Server {
 
@@ -63,6 +65,7 @@ object Server {
     val (base, constructor) = service
     val swagger = ioSwagger.createRhoMiddleware(
       apiPath = TypedPath(PathMatch("swagger.json")),
+      apiInfo = Info(title = "Iglu Server API", version = version),
       basePath = Some(base),
       securityDefinitions = Map("Iglu API key" -> ApiKeyAuthDefinition("apikey", In.HEADER)),
       swaggerFormats = Swagger.Formats

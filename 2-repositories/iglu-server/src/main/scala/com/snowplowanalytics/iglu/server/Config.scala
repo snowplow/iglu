@@ -140,8 +140,7 @@ object Config {
     .mapValidated { s => MigrateFrom.parse(s).toValid(s"Cannot perform migration from version $s to $version").toValidatedNel }
     .orNone
 
-  val runCommand: Opts[ServerCommand] =
-    Opts.subcommand("run", "Run Iglu Server")(configOpt).map(ServerCommand.Run.apply)
+  val runCommand: Opts[ServerCommand] = configOpt.map(ServerCommand.Run.apply)
   val setupCommand: Opts[ServerCommand] =
     Opts.subcommand("setup", "Setup Iglu Server")((configOpt, migrateOpt).mapN(ServerCommand.Setup.apply))
 

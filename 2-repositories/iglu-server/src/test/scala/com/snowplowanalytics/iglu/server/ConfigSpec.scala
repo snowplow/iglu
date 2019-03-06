@@ -27,7 +27,7 @@ class ConfigSpec extends org.specs2.Specification { def is = s2"""
   """
 
   def e1 = {
-    val input = "run --config foo.hocon"
+    val input = "--config foo.hocon"
     val expected = Config.ServerCommand.Run(Paths.get("foo.hocon"))
     val result = Config.serverCommand.parse(input.split(" ").toList)
     result must beRight(expected)
@@ -36,7 +36,7 @@ class ConfigSpec extends org.specs2.Specification { def is = s2"""
   def e2 = {
     val config = getClass.getResource("/valid-pg-config.conf").toURI
     val configPath = Paths.get(config)
-    val input = s"run --config ${configPath}"
+    val input = s"--config ${configPath}"
     val expected = Config(
       Config.StorageConfig.Postgres("postgres", 5432, "igludb", "sp_user", "sp_password", "org.postgresql.Driver", None),
       Config.Http("0.0.0.0", 8080),
@@ -57,7 +57,7 @@ class ConfigSpec extends org.specs2.Specification { def is = s2"""
   def e3 = {
     val config = getClass.getResource("/valid-dummy-config.conf").toURI
     val configPath = Paths.get(config)
-    val input = s"run --config ${configPath}"
+    val input = s"--config ${configPath}"
     val expected = Config(Config.StorageConfig.Dummy, Config.Http("0.0.0.0", 8080), Some(true), None, None)
     val result = Config
       .serverCommand.parse(input.split(" ").toList)
