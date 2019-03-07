@@ -55,7 +55,7 @@ class MetaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
     } yield response
   }
 
-  "This route allows you to validate self-describing instances" **
+  "This route responds with info about the Iglu Server" **
     GET / "server" >>> ctx.auth |>> { authInfo: Permission =>
     val database = db match {
       case _: Postgres[F] => "postgres"

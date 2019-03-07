@@ -4,7 +4,7 @@ Iglu Server is a RESTful schema registry, allowing users to publish, test and se
 
 ## Quickstart guide
 
-Assuming [SBT][sbt] is installed, use the one-time `setup` subcommand to set up PostgreSQL entities that will be used by the Iglu Server:
+Assuming [SBT][sbt] is installed and a PostgreSQL database is set up, use the one-time `setup` subcommand to set up PostgreSQL entities that will be used by the Iglu Server:
 
 ```bash
 $ sbt "run setup --config application.conf"
@@ -16,17 +16,7 @@ To run the server itself, use:
 $ sbt "run --config application.conf"
 ```
 
-Alternatively, you can use a [Docker][docker] image:
-
-```bash
-$ docker run --name igludb -e POSTGRES_PASSWORD=iglusecret -p 5432:5432 -d postgres
-$ docker exec -i -t $POSTGRES_CONTAINER psql -U postgres -c "CREATE DATABASE igludb"
-$ docker run -d snowplow-docker-registry.bintray.io/snowplow/iglu-server:0.6.0 setup --config application.conf
-$ docker exec -i -t $POSTGRES_CONTAINER psql -U postgres \
-    -c "INSERT INTO permissions VALUES ('8f02f01f-3bc1-414b-9277-46d723fb46ad', '', TRUE, 'CREATE_VENDOR'::schema_action, '{"CREATE", "DELETE"}'::key_action[])" \
-    igludb
-$ docker run --name igluserver -p 8080 -d snowplow-docker-registry.bintray.io/snowplow/iglu-server:0.6.0 setup --config application.conf
-```
+Alternatively, the server, along with a PostgreSQL instance, can be launched in Docker containers - instructions on doing this can be found in the [snowplow-docker repository](https://github.com/snowplow/snowplow-docker/tree/develop/iglu-server/example/docker-compose).
 
 ## Differences with 0.5.0
 
@@ -39,8 +29,8 @@ $ docker run --name igluserver -p 8080 -d snowplow-docker-registry.bintray.io/sn
 
 ## New features
 
-1. `/api/debug` endpoint (when `debug = true` in configuration file)
-2. `/api/meta` enpoint TODO
+1. `/api/debug` endpoint (when `debug = true` in configuration file) that returns the Iglu Server's internal state, if in-memory storage is used instead of PostgreSQL. This should be used for development only
+2. `/api/meta` endpoint, including health check routes and a route that returns metadata about the Iglu Server (version, database type, schema count etc.)
 3. `patchesAllowed` setting, prohibiting patches in production servers and allowing in Mini
 
 ## About to change
@@ -84,16 +74,4 @@ limitations under the License.
 [contributing]: https://github.com/snowplow/iglu/wiki/Contributing
 
 [license]: http://www.apache.org/licenses/LICENSE-2.0
-
-
-# Quckstart
-
-## Migration
-
-Navigate to http://localhost:8080/static/swagger-ui/index.html
-
-
-When migrating, first change the config file, then run migration
-
-## Differences
 
