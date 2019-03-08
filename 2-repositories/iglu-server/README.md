@@ -16,7 +16,12 @@ To run the server itself, use:
 $ sbt "run --config application.conf"
 ```
 
-Alternatively, the server, along with a PostgreSQL instance, can be launched in Docker containers - instructions on doing this can be found in the [snowplow-docker repository](https://github.com/snowplow/snowplow-docker/tree/develop/iglu-server/example/docker-compose).
+Alternatively, the server, along with a PostgreSQL instance, can be launched as Docker containers via Docker Compose:
+
+```
+$ cd docker
+$ docker-compose up -d
+```
 
 ## Differences with 0.5.0
 
