@@ -22,7 +22,7 @@ object Dependencies {
 
     // Scala (test only)
     val specs2           = "4.3.2"
-    val scalaCheck       = "1.13.5"
+    val scalaCheck       = "1.14.0"
   }
 
   object Libraries {
@@ -35,6 +35,7 @@ object Dependencies {
     // Scala (test only)
     val specs2           = "org.specs2"                 %% "specs2-core"            % V.specs2     % "test"
     val specs2Cats       = "org.specs2"                 %% "specs2-cats"            % V.specs2     % "test"
+    val specs2Scalacheck = "org.specs2"                 %% "specs2-scalacheck"      % V.specs2     % "test"
     val scalaCheck       = "org.scalacheck"             %% "scalacheck"             % V.scalaCheck % "test"
     val circeLiteral     = "io.circe"                   %% "circe-literal"          % V.circe      % "test"
     val circeParser      = "io.circe"                   %% "circe-parser"           % V.circe      % "test"

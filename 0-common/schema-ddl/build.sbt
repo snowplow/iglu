@@ -32,5 +32,7 @@ lazy val root = project.in(file("."))
     Dependencies.Libraries.jsonValidator,
     // Scala (test only)
     Dependencies.Libraries.specs2,
+    Dependencies.Libraries.scalaCheck,
+    Dependencies.Libraries.specs2Scalacheck,
     Dependencies.Libraries.specs2Cats
   ))
