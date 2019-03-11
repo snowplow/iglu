@@ -10,7 +10,8 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.schemaddl.jsonschema
+package com.snowplowanalytics.iglu.schemaddl
+package jsonschema
 
 import cats.data.NonEmptyList
 
@@ -18,12 +19,15 @@ import cats.data.NonEmptyList
 import org.json4s._
 import org.json4s.jackson.JsonMethods.parse
 
+import io.circe.literal._
+
 // specs2
 import org.specs2.Specification
 
 // This libary
 import json4s.implicits._
 import SanityLinter._
+import SpecHelpers._
 
 class SanityLinterSpec extends Specification { def is = s2"""
   Check SanityLinter specification
@@ -40,17 +44,11 @@ class SanityLinterSpec extends Specification { def is = s2"""
     selected formats will not fail with warning for 'no maxLength' $e11
   """
 
-  def showReport(kv: (JsonPointer, NonEmptyList[Linter.Issue])): (String, NonEmptyList[String]) =
+  def showReport(kv: (Pointer.SchemaPointer, NonEmptyList[Linter.Issue])): (String, NonEmptyList[String]) =
     kv match { case (k, v) => (k.show, v.map(_.show)) }
 
   def e1 = {
-    val schema = Schema.parse(parse(
-      """
-        |{
-        |  "type": "object",
-        |  "minLength": 3
-        |}
-      """.stripMargin)).get
+    val schema = json"""{ "type": "object", "minLength": 3 }""".schema
 
     lint(schema, Linter.allLintersMap.values.toList).map(showReport) must beEqualTo(
       Map(

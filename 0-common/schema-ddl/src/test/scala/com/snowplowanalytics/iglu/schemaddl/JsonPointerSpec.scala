@@ -18,7 +18,7 @@ import io.circe.literal._
 
 import org.specs2.Specification
 
-import jsonschema.{JsonPointer, Schema}
+import jsonschema.{Pointer, Schema}
 import jsonschema.circe.implicits._
 
 class JsonPointerSpec extends Specification { def is = s2"""
@@ -28,12 +28,12 @@ class JsonPointerSpec extends Specification { def is = s2"""
   traverse goes through oneOf property $e4
   """
 
-  case class SchemaTypes(list: List[(JsonPointer, String)]) {
-    def add(pointer: JsonPointer, schemaType: String) = SchemaTypes((pointer, schemaType) :: list)
+  case class SchemaTypes(list: List[(Pointer.SchemaPointer, String)]) {
+    def add(pointer: Pointer.SchemaPointer, schemaType: String) = SchemaTypes((pointer, schemaType) :: list)
     def toMap: Map[String, String] = list.toMap.map { case (k ,v) => (k.show, v)}
   }
   val empty = SchemaTypes(Nil)
-  def saveType(pointer: JsonPointer, schema: Schema): State[SchemaTypes, Unit] =
+  def saveType(pointer: Pointer.SchemaPointer, schema: Schema): State[SchemaTypes, Unit] =
     State.modify[SchemaTypes](schemaTypes => schemaTypes.add(pointer, schema.`type`.fold("unknown")(_.toString)))
 
   def e1 = {

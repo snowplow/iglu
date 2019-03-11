@@ -27,7 +27,7 @@ import cats.implicits._
  */
 object SanityLinter {
 
-  type Report = Map[JsonPointer, NonEmptyList[Linter.Issue]]
+  type Report = Map[Pointer.SchemaPointer, NonEmptyList[Linter.Issue]]
 
   /**
     *
@@ -55,7 +55,7 @@ object SanityLinter {
       case (name, None) => name.invalidNel
     }.toEither
 
-  private def validate(linters: List[Linter])(jsonPointer: JsonPointer, schema: Schema): State[ValidationState, Unit] = {
+  private def validate(linters: List[Linter])(jsonPointer: Pointer.SchemaPointer, schema: Schema): State[ValidationState, Unit] = {
     val results = linters
       .traverse[ValidatedNel[Linter.Issue, ?], Unit](linter => linter(jsonPointer, schema).toValidatedNel)
     results match {
@@ -68,11 +68,11 @@ object SanityLinter {
     }
   }
 
-  private case class ValidationState(issues: List[(JsonPointer, NonEmptyList[Linter.Issue])]) {
-    def add(recent: (JsonPointer, NonEmptyList[Linter.Issue])): ValidationState =
+  private case class ValidationState(issues: List[(Pointer.SchemaPointer, NonEmptyList[Linter.Issue])]) {
+    def add(recent: (Pointer.SchemaPointer, NonEmptyList[Linter.Issue])): ValidationState =
       ValidationState(recent :: issues)
 
-    def toMap: Map[JsonPointer, NonEmptyList[Linter.Issue]] = issues.toMap
+    def toMap: Map[Pointer.SchemaPointer, NonEmptyList[Linter.Issue]] = issues.toMap
   }
 
   private object ValidationState {

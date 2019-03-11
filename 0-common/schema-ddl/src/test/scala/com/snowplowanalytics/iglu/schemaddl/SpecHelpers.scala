@@ -12,15 +12,28 @@
  */
 package com.snowplowanalytics.iglu.schemaddl
 
+import io.circe.Json
+
 import org.json4s.jackson.parseJson
 
-import jsonschema.Schema
+import jsonschema.{ Schema, Pointer }
 import jsonschema.json4s.implicits._
+import jsonschema.circe.implicits._
 
 object SpecHelpers {
   def parseSchema(string: String): Schema = {
     Schema
       .parse(parseJson(string))
       .getOrElse(throw new RuntimeException("SpecHelpers.parseSchema received invalid JSON Schema"))
+  }
+
+  implicit class JsonOps(json: Json) {
+    def schema: Schema =
+      Schema.parse(json).getOrElse(throw new RuntimeException("SpecHelpers.parseSchema received invalid JSON Schema"))
+  }
+
+  implicit class StringOps(str: String) {
+    def jsonPointer: Pointer.SchemaPointer =
+      Pointer.parseSchemaPointer(str).fold(x => x, x => x)
   }
 }

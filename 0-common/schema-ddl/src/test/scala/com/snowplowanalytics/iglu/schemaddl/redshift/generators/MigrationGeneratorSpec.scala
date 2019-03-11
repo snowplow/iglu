@@ -13,8 +13,7 @@
 package com.snowplowanalytics.iglu.schemaddl.redshift
 package generators
 
-// Scala
-import scala.collection.immutable.ListMap
+import io.circe.literal._
 
 // specs2
 import org.specs2.Specification
@@ -24,6 +23,8 @@ import com.snowplowanalytics.iglu.core.SchemaVer
 
 // This library
 import com.snowplowanalytics.iglu.schemaddl.Migration
+import com.snowplowanalytics.iglu.schemaddl.SpecHelpers._
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.{ Pointer, Schema }
 
 class MigrationGeneratorSpec extends Specification { def is = s2"""
   Check Redshift migrations generation
@@ -32,10 +33,10 @@ class MigrationGeneratorSpec extends Specification { def is = s2"""
     generate addition migration with three new columns $e3
   """
 
-  val empty = ListMap.empty[String, Map[String, String]]
+  val empty = Set.empty[(Pointer.SchemaPointer, Schema)]
 
   def e1 = {
-    val diff = Migration.SchemaDiff(ListMap("status" -> Map("type" -> "string")), empty, Set.empty[String])
+    val diff = Migration.SchemaDiff(List("status".jsonPointer -> json"""{"type": "string"}""".schema), empty, Set.empty[Pointer.SchemaPointer])
     val schemaMigration = Migration("com.acme", "launch_missles", SchemaVer.Full(1,0,0), SchemaVer.Full(1,0,1), diff)
     val ddlMigration = MigrationGenerator.generateMigration(schemaMigration).render
 
@@ -61,7 +62,7 @@ class MigrationGeneratorSpec extends Specification { def is = s2"""
   }
 
   def e2 = {
-    val diff = Migration.SchemaDiff(empty, empty, Set.empty[String])
+    val diff = Migration.SchemaDiff(List.empty, empty, Set.empty[Pointer.SchemaPointer])
     val schemaMigration = Migration("com.acme", "launch_missles", SchemaVer.Full(2,0,0), SchemaVer.Full(2,0,1), diff)
     val ddlMigration = MigrationGenerator.generateMigration(schemaMigration).render
 
@@ -86,13 +87,13 @@ class MigrationGeneratorSpec extends Specification { def is = s2"""
   }
 
   def e3 = {
-    val newProps = ListMap(
-      "status" -> Map("type" -> "string"),
-      "launch_time" -> Map("type" -> "string", "format" -> "date-time"),
-      "latitude" -> Map("type" -> "number", "minimum" -> "-90", "maximum" -> "90"),
-      "longitude" -> Map("type" -> "number", "minimum" -> "-180", "maximum" -> "180"))
+    val newProps = List(
+      "/status".jsonPointer -> json"""{"type": "string"}""".schema,
+      "/launch_time".jsonPointer -> json"""{"type": "string", "format": "date-time"}""".schema,
+      "/latitude".jsonPointer -> json"""{"type": "number", "minimum": -90, "maximum": 90}""".schema,
+      "/longitude".jsonPointer ->json"""{"type": "number", "minimum": -180, "maximum": 180}""".schema)
 
-    val diff = Migration.SchemaDiff(newProps, empty, Set.empty[String])
+    val diff = Migration.SchemaDiff(newProps, empty, Set.empty[Pointer.SchemaPointer])
     val schemaMigration = Migration("com.acme", "launch_missles", SchemaVer.Full(1,0,2), SchemaVer.Full(1,0,3), diff)
     val ddlMigration = MigrationGenerator.generateMigration(schemaMigration).render
 
@@ -122,5 +123,4 @@ class MigrationGeneratorSpec extends Specification { def is = s2"""
 
     ddlMigration must beEqualTo(result)
   }
-
 }

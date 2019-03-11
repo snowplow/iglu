@@ -27,7 +27,7 @@ import properties.StringProperty._
 
 /** Schema validation logic */
 sealed trait Linter extends Product with Serializable {
-  def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Issue, Unit]
+  def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Issue, Unit]
   def getName: String = toString
   def level: Level
 }
@@ -52,7 +52,7 @@ object Linter {
     def getLinterName: String = linter.getName
 
     /** To linter-agnostic message */
-    def toMessage(pointer: JsonPointer): Message =
+    def toMessage(pointer: Pointer.SchemaPointer): Message =
       Message(pointer, show, linter.level)
   }
 
@@ -62,7 +62,7 @@ object Linter {
   }
 
   /** Linter-agnostic message */
-  final case class Message(jsonPointer: JsonPointer, message: String, level: Linter.Level)
+  final case class Message(jsonPointer: Pointer.SchemaPointer, message: String, level: Linter.Level)
 
   def allLintersMap: Map[String, Linter] =
     sealedDescendants[Linter].map(x => (x.getName, x)).toMap
@@ -77,8 +77,8 @@ object Linter {
         "At the root level, the schema should have a \"type\" property set to \"object\" and have a \"properties\" property"
     }
 
-    def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Issue, Unit] =
-      if (jsonPointer == JsonPointer.Root && (schema.properties.isEmpty || !schema.`type`.contains(Type.Object)))
+    def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Issue, Unit] =
+      if (jsonPointer == Pointer.Root && (schema.properties.isEmpty || !schema.`type`.contains(Type.Object)))
         Details.invalid
       else noIssues
   }
@@ -92,7 +92,7 @@ object Linter {
       def show: String = s"A field with numeric type has a minimum value [$min] greater than the maximum value [$max]"
     }
 
-    def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Details, Unit] =
+    def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Details, Unit] =
       (schema.minimum, schema.maximum) match {
         case (Some(min), Some(max)) =>
           (max.getAsDecimal >= min.getAsDecimal).or(Details(min.getAsDecimal, max.getAsDecimal))
@@ -109,7 +109,7 @@ object Linter {
       def show: String = s"""A string type with "minLength" and "maxLength" property values has a minimum value [$min] higher than the maximum [$max]"""
     }
 
-    def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Details, Unit] =
+    def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Details, Unit] =
       (schema.minLength, schema.maxLength) match {
         case (Some(min), Some(max)) =>
           (max.value >= min.value).or(Details(min.value, max.value))
@@ -127,7 +127,7 @@ object Linter {
         s"""A string property has a "maxLength" [$maximum] greater than the Redshift VARCHAR maximum of 65535"""
     }
 
-    def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Details, Unit] =
+    def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Details, Unit] =
       if (schema.withType(Type.String)) {
         schema.maxLength match {
           case Some(max) if max.value > 65535 =>
@@ -148,7 +148,7 @@ object Linter {
         s"""A field of array type has a "minItems" value [$minimum] with a greater value than the "maxItems" [$maximum]"""
     }
 
-    def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Details, Unit] =
+    def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Details, Unit] =
       (schema.minItems, schema.maxItems) match {
         case (Some(min), Some(max)) =>
           (max.value >= min.value).or(Details(min.value, max.value))
@@ -166,7 +166,7 @@ object Linter {
         s"Numeric properties [${keys.mkString(",")}] require either a number, integer or absent values"
     }
 
-    def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Details, Unit] = {
+    def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Details, Unit] = {
       val numberProperties = schema.allProperties.collect {
         case Some(p: NumberProperty) => p
       }
@@ -185,7 +185,7 @@ object Linter {
         s"String properties [${keys.mkString(",")}] require either string or absent values"
     }
 
-    def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Details, Unit] = {
+    def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Details, Unit] = {
       val stringProperties = schema.allProperties.collect {
         case Some(p: StringProperty) => p
       }
@@ -204,7 +204,7 @@ object Linter {
         s"Array properties [${keys.mkString(",")}] require either array or absent values"
     }
 
-    def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Details, Unit] = {
+    def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Details, Unit] = {
       val arrayProperties = schema.allProperties.collect {
         case Some(p: ArrayProperty) => p
       }
@@ -223,7 +223,7 @@ object Linter {
         s"Object properties [${keys.mkString(",")}] require either object or absent values"
     }
 
-    def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Issue, Unit] = {
+    def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Issue, Unit] = {
       val objectProperties = schema.allProperties.collect {
         case Some(p: ObjectProperty) => p
       }
@@ -242,7 +242,7 @@ object Linter {
         s"Elements specified as required [${keys.mkString(",")}] don't exist in schema properties"
     }
 
-    def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Details, Unit] =
+    def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Details, Unit] =
       (schema.additionalProperties, schema.required, schema.properties, schema.patternProperties) match {
         case (Some(AdditionalProperties.AdditionalPropertiesAllowed(false)), Some(Required(required)), Some(Properties(properties)), None) =>
           val allowedKeys = properties.keySet
@@ -263,7 +263,7 @@ object Linter {
         s"Unknown format [$name] detected. Known formats are: date-time, date, email, hostname, ipv4, ipv6 or uri"
     }
 
-    def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Details, Unit] =
+    def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Details, Unit] =
       schema.format match {
         case Some(Format.CustomFormat(format)) =>
           Details(format).invalid
@@ -280,7 +280,7 @@ object Linter {
       def show: String = "A numeric property should have \"minimum\" and \"maximum\" properties"
     }
 
-    def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Issue, Unit] =
+    def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Issue, Unit] =
       if (schema.withType(Type.Number) || schema.withType(Type.Integer)) {
         (schema.minimum, schema.maximum) match {
           case (Some(_), Some(_)) => noIssues
@@ -300,7 +300,7 @@ object Linter {
         "A string type in the schema doesn't contain \"maxLength\" or format which is required"
     }
 
-    def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Issue, Unit] =
+    def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Issue, Unit] =
       if (schema.withType(Type.String) && schema.enum.isEmpty && schema.maxLength.isEmpty) {
         schema.format match {
           case Some(Format.CustomFormat(_)) => Details.invalid
@@ -320,7 +320,7 @@ object Linter {
         s"""Use "type: null" to indicate a field as optional for properties ${keys.mkString(",")}"""
     }
 
-    def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Issue, Unit] =
+    def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Issue, Unit] =
       (schema.required, schema.properties) match {
         case (Some(Required(required)), Some(Properties(properties))) =>
           val allowedKeys = properties.keySet
@@ -344,7 +344,7 @@ object Linter {
       def show: String = "The schema is missing the \"description\" property"
     }
 
-    def apply(jsonPointer: JsonPointer, schema: Schema): Validated[Issue, Unit] =
+    def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Issue, Unit] =
       schema.description match {
         case Some(_) => noIssues
         case None => Details.invalid
@@ -383,34 +383,6 @@ object Linter {
   private implicit class LintOps(val value: Boolean) extends AnyVal {
     def or[A](message: A): Validated[A, Unit] =
       if (value) ().valid[A] else message.invalid
-  }
-
-  /**
-    * Pimp JSON Schema AST with method checking presence of some JSON type
-    */
-  private[schemaddl] implicit class SchemaOps(val value: Schema) extends AnyVal {
-    /** Check if Schema has no specific type *OR* has no type at all */
-    def withoutType(jsonType: Type): Boolean =
-      value.`type` match {
-        case Some(Type.Union(types)) => !types.contains(jsonType)
-        case Some(t) => t != jsonType
-        case None => false            // absent type is ok
-      }
-
-    /** Check if Schema has no specific type *OR* has no type at all */
-    def withType(jsonType: Type): Boolean =
-      value.`type` match {
-        case Some(Type.Union(types)) => types.contains(jsonType)
-        case Some(t) => t == jsonType
-        case None => false            // absent type is ok
-      }
-
-    /** Check if Schema has specified format */
-    def withFormat(format: Format): Boolean =
-      value.format match {
-        case Some(f) => format == f
-        case None => false
-      }
   }
 
   private def noIssues = ().valid[Nothing]

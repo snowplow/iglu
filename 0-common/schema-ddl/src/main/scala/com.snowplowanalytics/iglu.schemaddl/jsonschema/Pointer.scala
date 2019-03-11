@@ -16,12 +16,19 @@ import cats.syntax.either._
 
 import scala.annotation.tailrec
 
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.JsonPointer._
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.Pointer._
 
-case class JsonPointer private(value: List[Cursor]) extends AnyVal {
+sealed trait Pointer extends Product with Serializable {
+  def value: List[Cursor]
+
   def get: List[Cursor] = value.reverse
 
   def last = value.headOption
+
+  def parent: Option[SchemaPointer] = value match {
+    case Nil => None
+    case _ :: t => Some(SchemaPointer(t))
+  }
 
   def show: String = "/" ++ (get.map {
     case Cursor.DownField(key) => key
@@ -29,17 +36,31 @@ case class JsonPointer private(value: List[Cursor]) extends AnyVal {
     case Cursor.At(index) => index.toString
   } mkString "/")
 
-  def downProperty(schemaProperty: SchemaProperty): JsonPointer =
-    JsonPointer(Cursor.DownProperty(schemaProperty) :: value)
-  def downField(key: String): JsonPointer =
-    JsonPointer(Cursor.DownField(key) :: value)
-  def at(index: Int): JsonPointer =
-    JsonPointer(Cursor.At(index) :: value)
+  def downField(key: String): SchemaPointer =
+    SchemaPointer(Cursor.DownField(key) :: value)
+  def at(index: Int): SchemaPointer =
+    SchemaPointer(Cursor.At(index) :: value)
 }
 
-object JsonPointer {
+object Pointer {
 
-  val Root = JsonPointer(Nil)
+  val Root = SchemaPointer(Nil)
+
+  /** Special case of JSON Pointer, working with JSON Schemas instead of generic JSON */
+  case class SchemaPointer private(value: List[Cursor]) extends Pointer {
+    def downProperty(schemaProperty: SchemaProperty): SchemaPointer =
+      SchemaPointer(Cursor.DownProperty(schemaProperty) :: value)
+
+    def forData: DataPointer =
+      DataPointer(value.collect {
+        case cur: Pointer.Cursor.DownProperty => cur
+      })
+  }
+
+
+  /** JSON Pointer that cannot have `CursorProperty` */
+  case class DataPointer private(value: List[Cursor]) extends Pointer
+
 
   sealed trait SchemaProperty extends Product with Serializable {
     import SchemaProperty._
@@ -57,8 +78,8 @@ object JsonPointer {
       case AdditionalItems      => i => fromString(i).map(Cursor.DownProperty.apply)
       case AdditionalProperties => i => fromString(i).map(Cursor.DownProperty.apply)
     }
-
   }
+
   object SchemaProperty {
     case object Items extends SchemaProperty { def key = 'items }
     case object AdditionalItems extends SchemaProperty { def key = 'additionalItems }
@@ -78,26 +99,26 @@ object JsonPointer {
     * In case structure of fields is incorrect it fallbacks to Left all-DownField,
     * which gives same string representation, but can be wrong semantically
     */
-  def parse(string: String): Either[JsonPointer, JsonPointer] = {
-    @tailrec def go(remaining: List[String], acc: JsonPointer): Either[JsonPointer, JsonPointer] = {
+  def parseSchemaPointer(string: String): Either[SchemaPointer, SchemaPointer] = {
+    @tailrec def go(remaining: List[String], acc: SchemaPointer): Either[SchemaPointer, SchemaPointer] = {
       remaining match {
         case Nil => acc.asRight
         case current :: tail =>
           def giveUp =
-            JsonPointer((current :: tail).reverse.map(Cursor.DownField.apply) ++ acc.value).asLeft
+            SchemaPointer((current :: tail).reverse.map(Cursor.DownField.apply) ++ acc.value).asLeft
           acc match {
             case Root => SchemaProperty.fromString(current) match {
               case Right(property) => go(tail, Root.downProperty(property))
               case Left(_) => giveUp
             }
-            case JsonPointer(previousCursor :: old) => previousCursor match {
+            case SchemaPointer(previousCursor :: old) => previousCursor match {
               case Cursor.DownProperty(property) =>
                 property.next(current) match {
-                  case Right(next) => go(tail, JsonPointer(next :: previousCursor :: old))
+                  case Right(next) => go(tail, SchemaPointer(next :: previousCursor :: old))
                   case Left(_) => giveUp
                 }
               case _ => SchemaProperty.fromString(current) match {
-                case Right(next) => go(tail, JsonPointer(Cursor.DownProperty(next) :: previousCursor :: old))
+                case Right(next) => go(tail, SchemaPointer(Cursor.DownProperty(next) :: previousCursor :: old))
                 case Left(_) => giveUp
               }
             }
@@ -108,11 +129,10 @@ object JsonPointer {
     go(string.split("/").filter(_.nonEmpty).toList, Root)
   }
 
-
   sealed trait Cursor
   object Cursor {
-    case class DownProperty(property: SchemaProperty) extends Cursor
     case class DownField(key: String) extends Cursor
     case class At(index: Int) extends Cursor
+    case class DownProperty(property: SchemaProperty) extends Cursor
   }
 }

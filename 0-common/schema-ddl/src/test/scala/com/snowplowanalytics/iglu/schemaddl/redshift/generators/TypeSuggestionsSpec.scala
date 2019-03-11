@@ -10,8 +10,13 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the Apache License Version 2.0 for the specific language governing permissions and limitations there under.
  */
-package com.snowplowanalytics.iglu.schemaddl.redshift
+package com.snowplowanalytics.iglu.schemaddl
+package redshift
 package generators
+
+import io.circe.literal._
+
+import SpecHelpers._
 
 // specs2
 import org.specs2.Specification
@@ -29,42 +34,42 @@ class TypeSuggestionsSpec extends Specification { def is = s2"""
   """
 
   def e1 = {
-    val props = Map("type" -> "number", "multipleOf" -> "0.01")
+    val props = json"""{"type": "number", "multipleOf": 0.01}""".schema
     DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftDecimal(Some(36), Some(2)))
   }
 
   def e2 = {
-    val props = Map("type" -> "number", "multipleOf" -> "1")
+    val props = json"""{"type": "number", "multipleOf": 1}""".schema
     DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftInteger)
   }
 
   def e3 = {
-    val props = Map("type" -> "integer", "multipleOf" -> "1", "enum" -> "2,3,5,\"hello\",32")
+    val props = json"""{"type": "integer", "multipleOf": 1, "enum": [2,3,5,"hello",32]}""".schema
     DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftVarchar(7))
   }
 
   def e4 = {
-    val props = Map("type" -> "string,null", "minLength" -> "12", "maxLength" -> "12")
+    val props = json"""{"type": ["string","null"], "minLength": "12", "maxLength": "12"}""".schema
     DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftChar(12))
   }
 
   def e5 = {
-    val props = Map("type" -> "number,null")
+    val props = json"""{"type": ["number","null"]}""".schema
     DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftDouble)
   }
 
   def e6 = {
-    val props = Map("type" -> "integer,null")
+    val props = json"""{"type": ["integer","null"]}""".schema
     DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftBigInt)
   }
 
   def e7 = {
-    val props = Map("type" -> "string", "format" -> "date-time")
+    val props = json"""{"type": "string", "format": "date-time"}""".schema
     DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftTimestamp)
   }
 
   def e8 = {
-    val props = Map("type" -> "string", "format" -> "date")
+    val props = json"""{"type": "string", "format": "date"}""".schema
     DdlGenerator.getDataType(props, 16, "somecolumn") must beEqualTo(RedshiftDate)
   }
 }

@@ -57,7 +57,7 @@ object SelfSyntaxChecker extends AbstractSyntaxChecker("self", NodeType.OBJECT) 
         val pointer = for {
           JObject(schemaFields) <- jsonObject.get("schema")
           JString(pointer) <- schemaFields.toMap.get("pointer")
-        } yield JsonPointer.parse(pointer).fold(identity, identity)
+        } yield Pointer.parseSchemaPointer(pointer).fold(identity, identity)
         val keyword = jsonObject.get("keyword").flatMap {
           case JString(kw) => Some(kw)
           case _ => None
@@ -67,9 +67,9 @@ object SelfSyntaxChecker extends AbstractSyntaxChecker("self", NodeType.OBJECT) 
           case unknown => s"Unrecognized message from SelfSyntaxChecker [${compactJson(unknown)}]"
         }
         val level = extractLevel(json)
-        Message(pointer.getOrElse(JsonPointer.Root), message, level)
+        Message(pointer.getOrElse(Pointer.Root), message, level)
       case _ =>
-        Message(JsonPointer.Root, "Unknown message from SelfSyntaxChecker", Linter.Level.Info)
+        Message(Pointer.Root, "Unknown message from SelfSyntaxChecker", Linter.Level.Info)
     }
 
   def extractReport(processingMessage: ProcessingMessage) =

@@ -24,7 +24,7 @@ import cats.syntax.traverse._
 
 // This library
 import properties._
-import JsonPointer.SchemaProperty
+import Pointer.SchemaProperty
 
 /**
  * Class containing all (not yet) possible JSON Schema v4 properties
@@ -59,6 +59,10 @@ case class Schema(multipleOf:           Option[NumberProperty.MultipleOf]       
 }
 
 object Schema {
+
+  /** Schema not containing any other child schemas */
+  case class Primitive(schema: Schema) extends AnyVal
+
   /**
    * Parse arbitrary JSON AST as Schema class
    *
@@ -79,8 +83,8 @@ object Schema {
   def normalize[J: FromSchema](schema: Schema): J =
     implicitly[FromSchema[J]].normalize(schema)
 
-  def traverse[F[_], A](schema: Schema, f: (JsonPointer, Schema) => F[A])(implicit F: Monad[F]): F[A] = {
-    def go(current: Schema, pointer: JsonPointer): F[A] =
+  def traverse[F[_], A](schema: Schema, f: (Pointer.SchemaPointer, Schema) => F[A])(implicit F: Monad[F]): F[A] = {
+    def go(current: Schema, pointer: Pointer.SchemaPointer): F[A] =
       for {
         schema <- f(pointer, current)
         _ <- current.items match {
@@ -129,6 +133,9 @@ object Schema {
         }
       } yield schema
 
-    go(schema, JsonPointer.Root)
+    go(schema, Pointer.Root)
   }
+
+  val empty: Schema = Schema(None, None, None, None, None, None, None, None, None, None, None,
+    None, None, None, None, None, None, None, None)
 }

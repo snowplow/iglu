@@ -13,12 +13,14 @@
 package com.snowplowanalytics.iglu.schemaddl.jsonschema
 
 import cats.data.NonEmptyList
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.JsonPointer.Cursor.{DownField, DownProperty}
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.JsonPointer.SchemaProperty.Properties
+import org.json4s.jackson.JsonMethods.parse
+
+import org.specs2.Specification
+
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.Pointer.Cursor.{DownField, DownProperty}
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.Pointer.SchemaProperty.Properties
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Linter.Level.Warning
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.Linter.Message
-import org.json4s.jackson.JsonMethods.parse
-import org.specs2.Specification
 
 class SelfSyntaxCheckerSpec extends Specification { def is = s2"""
   Recognize invalid property $e1
@@ -73,7 +75,7 @@ class SelfSyntaxCheckerSpec extends Specification { def is = s2"""
         |}""".stripMargin)
 
     val expected = NonEmptyList.of(Message(
-      JsonPointer(List(DownField("example_field_3"), DownProperty(Properties))),
+      Pointer.SchemaPointer(List(DownField("example_field_3"), DownProperty(Properties))),
       "The following keywords are unknown and will be ignored: [users]",
       Warning))
 

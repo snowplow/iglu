@@ -12,24 +12,20 @@
  */
 package com.snowplowanalytics.iglu.schemaddl
 
-// Scala
-import scala.collection.immutable.ListMap
-
-// cats
-import cats.data.Validated
-
 // Iglu Core
 import com.snowplowanalytics.iglu.core.{ SchemaMap, SchemaVer }
 import com.snowplowanalytics.iglu.core.SelfDescribingSchema
+
 
 // specs2
 import org.specs2.Specification
 
 // json4s
-import org.json4s.jackson.JsonMethods.parse
+import io.circe.literal._
 
 // This library
 import Migration._
+import SpecHelpers._
 
 class MigrationSpec extends Specification { def is = s2"""
   Check common Schema migrations
@@ -38,48 +34,50 @@ class MigrationSpec extends Specification { def is = s2"""
   """
 
   def e1 = {
-    val initial = parse(
-      """
-        |{
-        |  "type": "object",
-        |  "properties": {
-        |    "foo": {
-        |      "type": "string"
-        |    }
-        |  },
-        |  "additionalProperties": false
-        |}
-      """.stripMargin)
+    val initial = json"""
+      {
+        "type": "object",
+        "properties": {
+          "foo": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    """.schema
     val initialSchema = SelfDescribingSchema(SchemaMap("com.acme", "example", "jsonschema", SchemaVer.Full(1,0,0)), initial)
 
-    val second = parse(
-      """
-        |{
-        |  "type": "object",
-        |  "properties": {
-        |    "foo": {
-        |      "type": "string"
-        |    },
-        |    "bar": {
-        |      "type": "integer",
-        |      "maximum": 4000
-        |    }
-        |  },
-        |  "additionalProperties": false
-        |}
-      """.stripMargin)
+    val second = json"""
+      {
+        "type": "object",
+        "properties": {
+          "foo": {
+            "type": "string"
+          },
+          "bar": {
+            "type": "integer",
+            "maximum": 4000
+          }
+        },
+        "additionalProperties": false
+      }
+    """.schema
+
     val secondSchema = SelfDescribingSchema(SchemaMap("com.acme", "example", "jsonschema", SchemaVer.Full(1,0,1)), second)
 
-    val migrations = Validated.Valid(List(
+    val fromSchema = json"""{"type": "integer", "maximum": 4000}""".schema
+    val fromPointer = "/properties/bar".jsonPointer
+
+    val migrations = List(
       Migration(
         "com.acme",
         "example",
         SchemaVer.Full(1,0,0),
         SchemaVer.Full(1,0,1),
         SchemaDiff(
-          ListMap("bar" -> Map("type" -> "integer", "maximum" -> "4000")),
-          ListMap.empty[String, Map[String, String]],
-          Set.empty))))
+          List(fromPointer -> fromSchema),
+          Set.empty,
+          Set.empty)))
 
     val migrationMap = Map(
       SchemaMap("com.acme", "example", "jsonschema", SchemaVer.Full(1,0,0)) -> migrations
@@ -89,68 +87,67 @@ class MigrationSpec extends Specification { def is = s2"""
   }
 
   def e2 = {
-    val initial = parse(
-      """
-        |{
-        |  "type": "object",
-        |  "properties": {
-        |    "foo": {
-        |      "type": "string"
-        |    }
-        |  },
-        |  "additionalProperties": false
-        |}
-      """.stripMargin)
+    val initial = json"""
+        {
+          "type": "object",
+          "properties": {
+            "foo": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      """.schema
     val initialSchema = SelfDescribingSchema(SchemaMap("com.acme", "example", "jsonschema", SchemaVer.Full(1,0,0)), initial)
 
-    val second = parse(
-      """
-        |{
-        |  "type": "object",
-        |  "properties": {
-        |    "foo": {
-        |      "type": "string"
-        |    },
-        |    "bar": {
-        |      "type": "integer",
-        |      "maximum": 4000
-        |    }
-        |  },
-        |  "additionalProperties": false
-        |}
-      """.stripMargin)
+    val second = json"""
+        {
+          "type": "object",
+          "properties": {
+            "foo": {
+              "type": "string"
+            },
+            "bar": {
+              "type": "integer",
+              "maximum": 4000
+            }
+          },
+          "additionalProperties": false
+        }
+      """.schema
     val secondSchema = SelfDescribingSchema(SchemaMap("com.acme", "example", "jsonschema", SchemaVer.Full(1,0,1)), second)
 
-    val third = parse(
-      """
-        |{
-        |  "type": "object",
-        |  "properties": {
-        |    "foo": {
-        |      "type": "string"
-        |    },
-        |    "bar": {
-        |      "type": "integer",
-        |      "maximum": 4000
-        |    },
-        |    "baz": {
-        |      "type": "array"
-        |    }
-        |  },
-        |  "additionalProperties": false
-        |}
-      """.stripMargin)
+    val third = json"""
+      {
+        "type": "object",
+        "properties": {
+          "foo": {
+            "type": "string"
+          },
+          "bar": {
+            "type": "integer",
+            "maximum": 4000
+          },
+          "baz": {
+            "type": "array"
+          }
+        },
+        "additionalProperties": false
+      }
+    """.schema
     val thirdSchema = SelfDescribingSchema(SchemaMap("com.acme", "example", "jsonschema", SchemaVer.Full(1,0,2)), third)
 
-    val migrations1 = Validated.Valid(List(
+    val migrations1 = List(
       Migration(
         "com.acme",
         "example",
         SchemaVer.Full(1,0,0),
         SchemaVer.Full(1,0,2),
         SchemaDiff(
-          ListMap("bar" -> Map("type" -> "integer", "maximum" -> "4000"), "baz" -> Map("type" -> "array")),
-          ListMap.empty[String, Map[String, String]],
+          List(
+            "/properties/bar".jsonPointer -> json"""{"type": "integer", "maximum": 4000}""".schema,
+            "/properties/baz".jsonPointer -> json"""{"type": "array"}""".schema),
+          Set.empty,
           Set.empty)),
       Migration(
         "com.acme",
@@ -158,21 +155,21 @@ class MigrationSpec extends Specification { def is = s2"""
         SchemaVer.Full(1,0,0),
         SchemaVer.Full(1,0,1),
         SchemaDiff(
-          ListMap("bar" -> Map("type" -> "integer", "maximum" -> "4000")),
-          ListMap.empty[String, Map[String, String]],
-          Set.empty))))
+          List("/properties/bar".jsonPointer -> json"""{"type": "integer", "maximum": 4000}""".schema),
+          Set.empty,
+          Set.empty)))
 
-    val migrations2 = Validated.Valid(List(
+    val migrations2 = List(
       Migration(
         "com.acme",
         "example",
         SchemaVer.Full(1,0,1),
         SchemaVer.Full(1,0,2),
         SchemaDiff(
-          ListMap("baz" -> Map("type" -> "array")),
-          ListMap.empty[String, Map[String, String]],
+          List("/properties/baz".jsonPointer -> json"""{"type": "array"}""".schema),
+          Set.empty,
           Set.empty))
-    ))
+    )
 
     val migrationMap = Map(
       SchemaMap("com.acme", "example", "jsonschema", SchemaVer.Full(1,0,1)) -> migrations2,

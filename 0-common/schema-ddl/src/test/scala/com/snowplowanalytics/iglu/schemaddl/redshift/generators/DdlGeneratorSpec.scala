@@ -13,18 +13,17 @@
 package com.snowplowanalytics.iglu.schemaddl.redshift
 package generators
 
-// Scala
-import scala.collection.immutable.ListMap
-
 // Specs2
 import org.specs2.Specification
 
-// cats
 import cats.data.NonEmptyList
+import io.circe.literal._
 
 // This library
+import com.snowplowanalytics.iglu.schemaddl.SpecHelpers._
 import com.snowplowanalytics.iglu.schemaddl.FlatSchema
 
+// TODO: union type specs (string, object)
 
 class DdlGeneratorSpec extends Specification { def is = s2"""
   Check DDL generation specification
@@ -34,11 +33,11 @@ class DdlGeneratorSpec extends Specification { def is = s2"""
 
   def e1 = {
     val flatSchema = FlatSchema(
-      ListMap(
-        "foo" -> Map("type" -> "string", "maxLength" -> "30"),
-        "bar" -> Map("enum" -> "one,two,three")
+      Set(
+        "/foo".jsonPointer -> json"""{"type": "string", "maxLength": 30}""".schema,
+        "/bar".jsonPointer -> json"""{"enum": ["one","two","three"]}""".schema
       ),
-      Set("foo")
+      Set("/foo".jsonPointer)
     )
 
     val resultDdl = CreateTable(
@@ -53,19 +52,19 @@ class DdlGeneratorSpec extends Specification { def is = s2"""
       Set(Diststyle(Key), DistKeyTable("root_id"),SortKeyTable(None,NonEmptyList.of("root_tstamp")))
     )
 
-    val ddl = DdlGenerator.generateTableDdl(flatSchema, "launch_missles", None, 4096)
+    val ddl = DdlGenerator.generateTableDdl(flatSchema, "launch_missles", None, 4096, false)
 
     ddl must beEqualTo(resultDdl)
   }
 
   def e2 = {
     val flatSchema = FlatSchema(
-      ListMap(
-        "foo" -> Map("type" -> "boolean"),
-        "baz" -> Map("type" -> "boolean"),
-        "bar" -> Map("enum" -> "one,two,three")
+      Set(
+        "/foo".jsonPointer -> json"""{"type": "boolean"}""".schema,
+        "/baz".jsonPointer -> json"""{"type": "boolean"}""".schema,
+        "/bar".jsonPointer -> json"""{"enum": ["one","two","three"]}""".schema
       ),
-      Set("foo")
+      Set("/foo".jsonPointer)
     )
 
     val resultDdl = CreateTable(
@@ -81,7 +80,7 @@ class DdlGeneratorSpec extends Specification { def is = s2"""
       Set(Diststyle(Key), DistKeyTable("root_id"),SortKeyTable(None,NonEmptyList.of("root_tstamp")))
     )
 
-    val ddl = DdlGenerator.generateTableDdl(flatSchema, "launch_missles", None, 4096)
+    val ddl = DdlGenerator.generateTableDdl(flatSchema, "launch_missles", None, 4096, false)
 
     ddl must beEqualTo(resultDdl)
   }

@@ -19,6 +19,7 @@ import com.snowplowanalytics.iglu.core._
 // This library
 import com.snowplowanalytics.iglu.schemaddl.Migration
 import com.snowplowanalytics.iglu.schemaddl.StringUtils._
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
 
 // This library
 import DdlGenerator._
@@ -52,7 +53,11 @@ object MigrationGenerator {
 
     val transaction =
       if (migration.diff.added.nonEmpty) {
-      migration.diff.added.map(buildAlterTable(tableNameFull, varcharSize))
+      migration.diff.added.map {
+        case (pointer, schema) =>
+          val columnName = DdlGenerator.getName(pointer)
+          buildAlterTable(tableNameFull, varcharSize, (columnName, schema))
+      }
     } else {
       List(CommentBlock("NO ADDED COLUMNS CAN BE EXPRESSED IN SQL MIGRATION", 3))
     }
@@ -89,8 +94,7 @@ object MigrationGenerator {
    *             length, maximum, etc
    * @return DDL statement altering single column in table
    */
-  def buildAlterTable(tableName: String, varcharSize: Int)
-                     (pair: (String, Map[String, String])): AlterTable =
+  def buildAlterTable(tableName: String, varcharSize: Int, pair: (String, Schema)): AlterTable =
     pair match {
       case (columnName, properties) =>
         val dataType = getDataType(properties, varcharSize, columnName)

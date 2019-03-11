@@ -12,14 +12,17 @@
  */
 package com.snowplowanalytics.iglu.schemaddl
 
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.CommonProperties
+import jsonschema.properties.CommonProperties.Type
+import jsonschema.properties.StringProperty.Format
+
 
 package object jsonschema {
-  implicit class TypeMatcher(val jsonType: CommonProperties.Type) extends AnyVal {
+
+  implicit class TypeMatcher(val jsonType: Type) extends AnyVal {
     /** Check that type has exact type */
-    def precisely(matchingType: CommonProperties.Type): Boolean =
+    def precisely(matchingType: Type): Boolean =
       (jsonType, matchingType) match {
-        case (CommonProperties.Type.Union(x), CommonProperties.Type.Union(y)) =>
+        case (Type.Union(x), Type.Union(y)) =>
           x.toSet == y.toSet
         case _ => jsonType == matchingType
       }
@@ -27,31 +30,65 @@ package object jsonschema {
     /** Check if type can be `null` */
     def nullable: Boolean =
       jsonType match {
-        case CommonProperties.Type.Union(union) => union.toSet.contains(CommonProperties.Type.Null)
-        case CommonProperties.Type.Null => true
+        case Type.Union(union) => union.toSet.contains(Type.Null)
+        case Type.Null => true
         case _ => false
       }
 
-    /** Check if type is known type with `null` */
-    def nullable(matchingType: CommonProperties.Type): Boolean =
+    /** Check if type is known type with `null`, precisely [X, null] */
+    def nullable(matchingType: Type): Boolean =
       jsonType match {
-        case CommonProperties.Type.Union(union) => union.toSet == Set(CommonProperties.Type.Null, matchingType)
+        case Type.Union(union) => union.toSet == Set(Type.Null, matchingType)
         case _ => false
       }
 
-    /** Check if type is known type, ignore `null` */
-    def possiblyWithNull(matchingType: CommonProperties.Type): Boolean =
+    /** Check if type is known type, [X, null] OR X */
+    def possiblyWithNull(matchingType: Type): Boolean =
       precisely(matchingType) || nullable(matchingType)
 
     /** Check that type cannot be object or array */
     def isPrimitive: Boolean =
       jsonType match {
-        case CommonProperties.Type.Union(types) =>
-          val withoutNull = types.toSet - CommonProperties.Type.Null
-          !withoutNull.contains(CommonProperties.Type.Array) && !withoutNull.contains(CommonProperties.Type.Object)
-        case CommonProperties.Type.Object => false
-        case CommonProperties.Type.Array => false
+        case Type.Union(types) =>
+          val withoutNull = types.toSet - Type.Null
+          !withoutNull.contains(Type.Array) && !withoutNull.contains(Type.Object)
+        case Type.Object => false
+        case Type.Array => false
         case _ => true
+      }
+
+    /** Check if type contains at least two non-null types */
+    def isUnion: Boolean =
+      jsonType match {
+        case Type.Union(types) =>
+          (types.toSet - Type.Null).size > 1
+        case _ => false
+      }
+  }
+
+  /** Pimp JSON Schema AST with method checking presence of some JSON type */
+  private[schemaddl] implicit class SchemaOps(val value: Schema) extends AnyVal {
+    /** Check if Schema has no specific type *OR* has no type at all */
+    def withoutType(jsonType: Type): Boolean =
+      value.`type` match {
+        case Some(Type.Union(types)) => !types.contains(jsonType)
+        case Some(t) => t != jsonType
+        case None => false            // absent type is ok
+      }
+
+    /** Check if Schema has no specific type *OR* has no type at all */
+    def withType(jsonType: Type): Boolean =
+      value.`type` match {
+        case Some(Type.Union(types)) => types.contains(jsonType)
+        case Some(t) => t == jsonType
+        case None => false            // absent type is ok
+      }
+
+    /** Check if Schema has specified format */
+    def withFormat(format: Format): Boolean =
+      value.format match {
+        case Some(f) => format == f
+        case None => false
       }
   }
 }

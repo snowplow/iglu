@@ -12,19 +12,17 @@
  */
 package com.snowplowanalytics.iglu.schemaddl
 
-// Scala
-import scala.collection.immutable.ListMap
-
 // cats
 import cats.Order
 import cats.data._
 import cats.implicits._
 
 // Iglu core
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.{ Pointer, Schema }
+
+// Iglu core
 import com.snowplowanalytics.iglu.core.{ SchemaMap, SchemaVer }
 
-// This project
-import FlatSchema.flattenJsonSchema
 
 /**
  * Class representing common information about Schema change, without details
@@ -69,7 +67,9 @@ object Migration {
    *                 after that, it should appear in [[added]]
    * @param removed set of keys removed in target Schema
    */
-  case class SchemaDiff(added: PropertyList, modified: PropertyList, removed: Set[String])
+  case class SchemaDiff(added: List[(Pointer.SchemaPointer, Schema)],
+                        modified: PropertyList,
+                        removed: Set[Pointer.SchemaPointer])
 
   /**
    * Map schemas by their Schema Criterion m-r-*
@@ -94,19 +94,18 @@ object Migration {
    *                          with destination in the end of list
    * @return migration object with data about source, target and diff
    */
-  def buildMigration(sourceSchema: IgluSchema, successiveSchemas: List[IgluSchema]): Validated[String, Migration] = {
-    val flatSource = flattenJsonSchema(sourceSchema.schema, splitProduct = false).map(_.elems)
-    val flatSuccessive = successiveSchemas.traverse[Validated[String, ?], FlatSchema](s => flattenJsonSchema(s.schema, splitProduct = false))
+  def buildMigration(sourceSchema: IgluSchema, successiveSchemas: List[IgluSchema]): Migration = {
+    val source = FlatSchema.build(sourceSchema.schema).subschemas
+    val successive = successiveSchemas.map(s => FlatSchema.build(s.schema))
     val target = successiveSchemas.last
 
-    (flatSource, flatSuccessive).mapN { (source: ListMap[String, Map[String, String]], successive: List[FlatSchema]) =>
-      val diff = diffMaps(source, successive.map(_.elems))
-      Migration(
-        sourceSchema.self.schemaKey.vendor,
-        sourceSchema.self.schemaKey.name,
-        sourceSchema.self.schemaKey.version,
-        target.self.schemaKey.version, diff)
-    }
+    val diff = diffMaps(source, successive.map(_.subschemas))
+    Migration(
+      sourceSchema.self.schemaKey.vendor,
+      sourceSchema.self.schemaKey.name,
+      sourceSchema.self.schemaKey.version,
+      target.self.schemaKey.version,
+      diff)
   }
 
   /**
@@ -121,7 +120,7 @@ object Migration {
     val addedKeys = getAddedKeys(source, successive)
     val added = getSubmap(addedKeys, target)
     val modified = getModifiedProperties(source, target, addedKeys)
-    val removedKeys = (source.keys.toList diff target.keys.toList).toSet
+    val removedKeys = source.map(_._1) diff target.map(_._1)
     SchemaDiff(added, modified, removedKeys)
   }
 
@@ -132,9 +131,9 @@ object Migration {
    * @param successive all subsequent Schemas
    * @return possibly empty list of keys in correct order
    */
-  def getAddedKeys(source: PropertyList, successive: List[PropertyList]): List[String] = {
-    val (newKeys, _) = successive.foldLeft((List.empty[String], source)) { case ((acc, previous), current) =>
-      (acc ++ (current.keys.toList diff previous.keys.toList), current)
+  def getAddedKeys(source: PropertyList, successive: List[PropertyList]): List[Pointer.SchemaPointer] = {
+    val (newKeys, _) = successive.foldLeft((List.empty[Pointer.SchemaPointer], source)) { case ((acc, previous), current) =>
+      (acc ++ (current.map(_._1) diff previous.map(_._1)), current)
     }
     newKeys
   }
@@ -148,20 +147,20 @@ object Migration {
    *                  should be included in [[SchemaDiff]] separately
    * @return list of properties changed in target Schema
    */
-  def getModifiedProperties(source: PropertyList, target: PropertyList, addedKeys: List[String]): PropertyList = {
-    val targetModified = target.filterKeys(!addedKeys.contains(_))
-    ListMap(targetModified.toList diff source.toList: _*)
+  def getModifiedProperties(source: PropertyList, target: PropertyList, addedKeys: List[Pointer.SchemaPointer]): PropertyList = {
+    val targetModified = target.filter { case (k, _) => !addedKeys.contains(k) }
+    targetModified diff source
   }
 
   /**
-   * Get submap by keys
+   * Get `List` ordered by key
    *
    * @param keys ordered list of submap keys
    * @param original original Map
    * @return sorted Map of new properties
    */
-  def getSubmap[K, V](keys: List[K], original: Map[K, V]): ListMap[K, V] =
-    ListMap(keys.flatMap(k => original.get(k).map((k, _))): _*)
+  def getSubmap[K, V](keys: List[Pointer.SchemaPointer], original: PropertyList): List[(Pointer.SchemaPointer, Schema)] =
+    List(keys.flatMap(k => original.toMap.get(k).map((k, _))): _*)
 
   /**
    * Map each single Schema to List of subsequent Schemas
@@ -206,13 +205,11 @@ object Migration {
    * @param migrationMap map of each Schema to list of all available migrations
    * @return map of revision criterion to list with all added columns
    */
-  def getOrdering(migrationMap: ValidMigrationMap): Map[RevisionGroup, Validated[String, List[String]]] =
+  def getOrdering(migrationMap: ValidMigrationMap): Map[RevisionGroup, Validated[String, List[Pointer.SchemaPointer]]] =
     migrationMap.filterKeys(_.schemaKey.version.addition == 0).map {
-      case (description, Validated.Valid(migrations)) =>
-        val longestMigration = migrations.map(_.diff.added.keys.toList).maxBy(x => x.length)
+      case (description, migrations) =>
+        val longestMigration = migrations.map(_.diff.added.map(_._1)).maxBy(x => x.length)
         (revisionCriterion(description), longestMigration.valid)
-      case (description, Validated.Invalid(message)) =>
-        (revisionCriterion(description), message.invalid)
     }
 
   /**
@@ -230,8 +227,6 @@ object Migration {
 
     migrations.groupBy(_._1)
       .mapValues(_.map(_._2))
-      .mapValues(_.sequence)
-      .asInstanceOf[ValidMigrationMap]  // Help IDE to infer type
   }
 
   /**
