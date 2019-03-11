@@ -24,9 +24,9 @@ trait ObjectDecoders {
   private val PatternPropertiesExpectation = "patternProperties expected to be a map of JSON schemas"
   private val RequiredExpectation = "required expected to be an array of keys"
 
-  implicit def schemaDecoder: Decoder[Schema]
+  implicit def schemaDecoder[A]: Decoder[Schema[A]]
 
-  implicit val propertiesDecoder: Decoder[Properties] = Decoder.instance { cursor =>
+  implicit def propertiesDecoder[A](implicit adecoder: Decoder[A]): Decoder[Properties[A]] = Decoder.instance { cursor =>
     cursor.value.fold(
       DecodingFailure(s"$PropertiesExpectation, null found", cursor.history).asLeft,
       _ => DecodingFailure(s"$PropertiesExpectation, boolean found", cursor.history).asLeft,
@@ -35,16 +35,16 @@ trait ObjectDecoders {
       arr => DecodingFailure(s"$PropertiesExpectation, string $arr found", cursor.history).asLeft,
       obj =>
         obj.toList
-          .traverse[Decoder.Result, (String, Schema)] { case (property, schema) => schema.as[Schema].map((property, _)) }
+          .traverse[Decoder.Result, (String, A)] { case (property, json) => json.as[A].map((property, _)) }
           .map(m => Properties.apply(m.toMap))
     )
   }
 
-  implicit val additionalPropertiesDecoder: Decoder[AdditionalProperties] = Decoder.instance { cursor =>
+  implicit def additionalPropertiesDecoder[A](implicit adecoder: Decoder[A]): Decoder[AdditionalProperties[A]] = Decoder.instance { cursor =>
     cursor
-      .as[Schema]
-      .map(AdditionalProperties.AdditionalPropertiesSchema)
-      .orElse[DecodingFailure, AdditionalProperties](cursor.as[Boolean].map(AdditionalProperties.AdditionalPropertiesAllowed))
+      .as[A]
+      .map(AdditionalProperties.AdditionalPropertiesSchema[A])
+      .orElse[DecodingFailure, AdditionalProperties[A]](cursor.as[Boolean].map(AdditionalProperties.AdditionalPropertiesAllowed(_)))
   }
 
   implicit val requiredDecoder: Decoder[Required] = Decoder.instance { cursor =>
@@ -58,7 +58,7 @@ trait ObjectDecoders {
     )
   }
 
-  implicit val patternPropertiesDecoder: Decoder[PatternProperties] = Decoder.instance { cursor =>
+  implicit def patternPropertiesDecoder[A](implicit adecoder: Decoder[A]): Decoder[PatternProperties[A]] = Decoder.instance { cursor =>
     cursor.value.fold(
       DecodingFailure(s"$PatternPropertiesExpectation, null found", cursor.history).asLeft,
       _ => DecodingFailure(s"$PatternPropertiesExpectation, boolean found", cursor.history).asLeft,
@@ -67,7 +67,7 @@ trait ObjectDecoders {
       arr => DecodingFailure(s"$PatternPropertiesExpectation, string $arr found", cursor.history).asLeft,
       obj =>
         obj.toList
-          .traverse[Decoder.Result, (String, Schema)] { case (property, schema) => schema.as[Schema].map((property, _)) }
+          .traverse[Decoder.Result, (String, A)] { case (property, json) => json.as[A].map((property, _)) }
           .map(m => PatternProperties.apply(m.toMap))
     )
   }

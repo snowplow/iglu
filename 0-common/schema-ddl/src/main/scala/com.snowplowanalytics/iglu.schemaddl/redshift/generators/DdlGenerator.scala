@@ -14,7 +14,7 @@ package com.snowplowanalytics.iglu.schemaddl
 package redshift
 package generators
 
-// Scalaz
+// cats
 import cats.data.NonEmptyList
 
 // Scala

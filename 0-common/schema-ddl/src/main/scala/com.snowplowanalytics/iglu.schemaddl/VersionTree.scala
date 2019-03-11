@@ -202,7 +202,7 @@ object VersionTree {
     private[schemaddl] def getAdditions(revision: Int): List[Addition] =
       revisions // Unlike getRevisions it can be empty list
         .collect { case (r, group) if r == revision => group }
-        .flatMap(_.value.values.toList)
+        .flatMap(_.values.toList)
 
     private def latestAddition = revisions.head._2
   }

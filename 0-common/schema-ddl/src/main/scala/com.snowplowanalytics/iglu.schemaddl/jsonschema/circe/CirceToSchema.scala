@@ -20,10 +20,10 @@ import io.circe.generic.semiauto._
 
 trait CirceToSchema extends StringDecoders with NumberDecoders with ObjectDecoders with ArrayDecoders with CommonDecoders {
 
-  implicit val schemaDecoder: Decoder[Schema] = deriveDecoder[Schema]
+  implicit def schemaDecoder[A]: Decoder[Schema[A]] = deriveDecoder[Schema[A]]
 
   implicit val toSchema: ToSchema[Json] = new ToSchema[Json] {
-    def parse(json: Json): Option[Schema] =
-      json.as[Schema].toOption
+    def parse[A](json: Json): Option[Schema[A]] =
+      json.as[Schema[A]].toOption
   }
 }

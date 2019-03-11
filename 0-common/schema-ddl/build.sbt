@@ -30,6 +30,8 @@ lazy val root = project.in(file("."))
     Dependencies.Libraries.circeLiteral,
     Dependencies.Libraries.circeParser,
     Dependencies.Libraries.jsonValidator,
+    Dependencies.Libraries.matryoshka,
+    Dependencies.Libraries.shims,
     // Scala (test only)
     Dependencies.Libraries.specs2,
     Dependencies.Libraries.scalaCheck,

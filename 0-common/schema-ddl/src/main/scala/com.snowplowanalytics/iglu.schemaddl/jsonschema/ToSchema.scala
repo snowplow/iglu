@@ -18,5 +18,5 @@ package com.snowplowanalytics.iglu.schemaddl.jsonschema
  * @tparam J JSON AST type
  */
 trait ToSchema[-J] {
-  def parse(json: J): Option[Schema]
+  def parse[A](json: J): Option[Schema[A]]
 }

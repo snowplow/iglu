@@ -85,7 +85,7 @@ class VersionTreeSpec extends Specification with ScalaCheck { def is = s2"""
       (0, Additions(NonEmptyList.of(1, 0))))
     )
 
-    init.add(List(0), NonEmptyList.of(0), SchemaVer.Full(1,0,1)) must beRight(expected)
+    init.add(NonEmptyList.of(0), List(0), SchemaVer.Full(1,0,1)) must beRight(expected)
   }
 
   def e5 = {

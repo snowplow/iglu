@@ -18,5 +18,5 @@ package com.snowplowanalytics.iglu.schemaddl.jsonschema
  * @tparam J JSON AST type
  */
 trait FromSchema[+J] {
-  def normalize(schema: Schema): J
+  def normalize[A](schema: Schema[A]): J
 }

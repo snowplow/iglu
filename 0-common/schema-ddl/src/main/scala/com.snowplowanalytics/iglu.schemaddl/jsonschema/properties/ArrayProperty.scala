@@ -25,12 +25,12 @@ object ArrayProperty {
    *
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor37
    */
-  sealed trait Items extends JsonSchemaProperty with ArrayProperty {
+  sealed trait Items[A] extends JsonSchemaProperty with ArrayProperty {
     def keyName = "items"
   }
   object Items {
-    case class ListItems(value: Schema) extends Items
-    case class TupleItems(value: List[Schema]) extends Items
+    case class ListItems[A](value: A) extends Items[A]
+    case class TupleItems[A](value: List[A]) extends Items[A]
   }
 
   /**
@@ -38,12 +38,12 @@ object ArrayProperty {
    *
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor37
    */
-  sealed trait AdditionalItems extends JsonSchemaProperty with ArrayProperty {
+  sealed trait AdditionalItems[A] extends JsonSchemaProperty with ArrayProperty {
     def keyName = "additionalItems"
   }
   object AdditionalItems {
-    case class AdditionalItemsAllowed(value: Boolean) extends AdditionalItems
-    case class AdditionalItemsSchema(value: Schema) extends AdditionalItems
+    case class AdditionalItemsAllowed[A](value: Boolean) extends AdditionalItems[A]
+    case class AdditionalItemsSchema[A](value: A) extends AdditionalItems[A]
   }
 
   /**

@@ -21,20 +21,20 @@ import properties.ArrayProperty._
 
 trait ArrayDecoders {
 
-  implicit def schemaDecoder: Decoder[Schema]
+  implicit def schemaDecoder[A]: Decoder[Schema[A]]
 
-  implicit val itemsDecoder: Decoder[Items] = Decoder.instance { cursor =>
+  implicit def itemsDecoder[A](implicit adecoder: Decoder[A]): Decoder[Items[A]] = Decoder.instance { cursor =>
     cursor
-      .as[List[Schema]]
-      .map(Items.TupleItems)
-      .orElse[DecodingFailure, Items](cursor.as[Schema].map(Items.ListItems))
+      .as[List[A]]
+      .map(Items.TupleItems[A])
+      .orElse[DecodingFailure, Items[A]](cursor.as[A].map(Items.ListItems[A]))
   }
 
-  implicit val additionalItemsDecoder: Decoder[AdditionalItems] = Decoder.instance { cursor =>
+  implicit def additionalItemsDecoder[A](implicit adecoder: Decoder[A]): Decoder[AdditionalItems[A]] = Decoder.instance { cursor =>
     cursor
-      .as[Schema]
-      .map(AdditionalItems.AdditionalItemsSchema.apply)
-      .orElse[DecodingFailure, AdditionalItems](cursor.as[Boolean].map(AdditionalItems.AdditionalItemsAllowed))
+      .as[A]
+      .map(AdditionalItems.AdditionalItemsSchema.apply[A])
+      .orElse[DecodingFailure, AdditionalItems[A]](cursor.as[Boolean].map(AdditionalItems.AdditionalItemsAllowed(_)))
   }
 
   implicit val maxItemsDecoder: Decoder[MaxItems] = Decoder.instance { cursor =>

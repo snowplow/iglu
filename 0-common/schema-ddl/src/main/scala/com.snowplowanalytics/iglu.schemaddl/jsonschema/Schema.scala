@@ -16,11 +16,10 @@ package jsonschema
 // Shadow Java Enum
 import java.lang.{ Enum => _}
 
-import cats.Monad
-import cats.instances.list._
-import cats.syntax.flatMap._
-import cats.syntax.functor._
-import cats.syntax.traverse._
+import cats.data.Validated
+
+import matryoshka._
+import matryoshka.implicits._
 
 // This library
 import properties._
@@ -29,29 +28,29 @@ import JsonPointer.SchemaProperty
 /**
  * Class containing all (not yet) possible JSON Schema v4 properties
   */
-case class Schema(multipleOf:           Option[NumberProperty.MultipleOf]           = None,
-                  minimum:              Option[NumberProperty.Minimum]              = None,
-                  maximum:              Option[NumberProperty.Maximum]              = None,
+case class Schema[A](multipleOf:           Option[NumberProperty.MultipleOf]        = None,
+                     minimum:              Option[NumberProperty.Minimum]           = None,
+                     maximum:              Option[NumberProperty.Maximum]           = None,
 
-                  maxLength:            Option[StringProperty.MaxLength]            = None,
-                  minLength:            Option[StringProperty.MinLength]            = None,
-                  pattern:              Option[StringProperty.Pattern]              = None,
-                  format:               Option[StringProperty.Format]               = None,
+                     maxLength:            Option[StringProperty.MaxLength]         = None,
+                     minLength:            Option[StringProperty.MinLength]         = None,
+                     pattern:              Option[StringProperty.Pattern]           = None,
+                     format:               Option[StringProperty.Format]            = None,
 
-                  items:                Option[ArrayProperty.Items]                 = None,
-                  additionalItems:      Option[ArrayProperty.AdditionalItems]       = None,
-                  minItems:             Option[ArrayProperty.MinItems]              = None,
-                  maxItems:             Option[ArrayProperty.MaxItems]              = None,
+                     items:                Option[ArrayProperty.Items[A]]           = None,
+                     additionalItems:      Option[ArrayProperty.AdditionalItems[A]] = None,
+                     minItems:             Option[ArrayProperty.MinItems]           = None,
+                     maxItems:             Option[ArrayProperty.MaxItems]           = None,
 
-                  properties:           Option[ObjectProperty.Properties]           = None,
-                  additionalProperties: Option[ObjectProperty.AdditionalProperties] = None,
-                  required:             Option[ObjectProperty.Required]             = None,
-                  patternProperties:    Option[ObjectProperty.PatternProperties]    = None,
+                     properties:           Option[ObjectProperty.Properties[A]]           = None,
+                     additionalProperties: Option[ObjectProperty.AdditionalProperties[A]] = None,
+                     required:             Option[ObjectProperty.Required]                = None,
+                     patternProperties:    Option[ObjectProperty.PatternProperties[A]]    = None,
 
-                  `type`:               Option[CommonProperties.Type]               = None,
-                  enum:                 Option[CommonProperties.Enum]               = None,
-                  oneOf:                Option[CommonProperties.OneOf]              = None,
-                  description:          Option[CommonProperties.Description]        = None) {
+                     `type`:               Option[CommonProperties.Type]            = None,
+                     enum:                 Option[CommonProperties.Enum]            = None,
+                     oneOf:                Option[CommonProperties.OneOf[A]]        = None,
+                     description:          Option[CommonProperties.Description]     = None) {
 
   private[iglu] val allProperties = List(multipleOf, minimum, maximum, maxLength, minLength,
     pattern, format, items, additionalItems, minItems, maxItems, properties,
@@ -66,8 +65,8 @@ object Schema {
    * @tparam J JSON AST with [[ToSchema]] type class instance
    * @return some Schema if json is valid JSON Schema
    */
-  def parse[J: ToSchema](json: J): Option[Schema] =
-    implicitly[ToSchema[J]].parse(json)
+  def parse[J: ToSchema, A](json: J): Option[Schema[A]] =
+    implicitly[ToSchema[J]].parse[A](json)
 
   /**
    * Transform correct JSON Schema into usual JSON AST
@@ -76,59 +75,73 @@ object Schema {
    * @tparam J JSON AST with [[FromSchema]] type class instance
    * @return JSON
    */
-  def normalize[J: FromSchema](schema: Schema): J =
+  def normalize[J: FromSchema, A](schema: Schema[A]): J =
     implicitly[FromSchema[J]].normalize(schema)
 
-  def traverse[F[_], A](schema: Schema, f: (JsonPointer, Schema) => F[A])(implicit F: Monad[F]): F[A] = {
-    def go(current: Schema, pointer: JsonPointer): F[A] =
-      for {
-        schema <- f(pointer, current)
-        _ <- current.items match {
-          case Some(ArrayProperty.Items.ListItems(value)) =>
-            go(value, pointer.downProperty(SchemaProperty.Items))
-          case Some(ArrayProperty.Items.TupleItems(values)) =>
-            values
-              .zipWithIndex
-              .traverse { case (s, i) => go(s, pointer.downProperty(SchemaProperty.Items).at(i)) }
-              .void
-          case None => F.unit
-        }
-        _ <- current.additionalItems match {
-          case Some(ArrayProperty.AdditionalItems.AdditionalItemsSchema(value)) =>
-            go(value, pointer.downProperty(SchemaProperty.AdditionalItems))
-          case _ => F.unit
-        }
-        _ <- current.properties match {
-          case Some(ObjectProperty.Properties(value)) =>
-            value
-              .toList
-              .traverse { case (k, s) => go(s, pointer.downProperty(SchemaProperty.Properties).downField(k)) }
-              .void
-          case _ => F.unit
-        }
-        _ <- current.additionalProperties match {
-          case Some(ObjectProperty.AdditionalProperties.AdditionalPropertiesSchema(value)) =>
-            go(value, pointer.downProperty(SchemaProperty.AdditionalProperties))
-          case _ => F.unit
-        }
-        _ <- current.patternProperties match {
-          case Some(ObjectProperty.PatternProperties(value)) =>
-            value
-              .toList
-              .traverse { case (k, s) => go(s, pointer.downProperty(SchemaProperty.PatternProperties).downField(k)) }
-              .void
-          case _ => F.unit
-        }
-        _ <- current.oneOf match {
-          case Some(CommonProperties.OneOf(values)) =>
-            values
-              .zipWithIndex
-              .traverse { case (s, i) => go(s, pointer.downProperty(SchemaProperty.OneOf).at(i)) }
-              .void
-          case _ => F.unit
-        }
-      } yield schema
-
-    go(schema, JsonPointer.Root)
+  implicit val schemaScalazFunctor: scalaz.Functor[Schema] = new scalaz.Functor[Schema] {
+    override def map[A, B](fa: Schema[A])(f: A => B): Schema[B] = {
+      val itemsO = fa.items.map {
+        case ArrayProperty.Items.ListItems(a) =>
+          ArrayProperty.Items.ListItems(f(a))
+        case ArrayProperty.Items.TupleItems(list) =>
+          ArrayProperty.Items.TupleItems(list.map(f))
+      }
+      val additionalItemsO = fa.additionalItems.map {
+        case ArrayProperty.AdditionalItems.AdditionalItemsSchema(a) =>
+          ArrayProperty.AdditionalItems.AdditionalItemsSchema(f(a))
+        case ArrayProperty.AdditionalItems.AdditionalItemsAllowed(a) =>
+          ArrayProperty.AdditionalItems.AdditionalItemsAllowed[B](a)
+      }
+      val propertiesO = fa.properties.map {
+        case ObjectProperty.Properties(map) =>
+          ObjectProperty.Properties(map.map { case (k, v) => (k, f(v)) })
+      }
+      val additionalPropertiesO = fa.additionalProperties.map {
+        case ObjectProperty.AdditionalProperties.AdditionalPropertiesAllowed(b) =>
+          ObjectProperty.AdditionalProperties.AdditionalPropertiesAllowed[B](b)
+        case ObjectProperty.AdditionalProperties.AdditionalPropertiesSchema(a) =>
+          ObjectProperty.AdditionalProperties.AdditionalPropertiesSchema(f(a))
+      }
+      val patternPropertiesO = fa.patternProperties.map {
+        case ObjectProperty.PatternProperties(map) =>
+          ObjectProperty.PatternProperties(map.map { case (k, v) => (k, f(v)) })
+      }
+      val oneOfO = fa.oneOf.map {
+        case CommonProperties.OneOf(list) =>
+          CommonProperties.OneOf(list.map(f))
+      }
+      Schema[B](fa.multipleOf, fa.minimum, fa.maximum, fa.maxLength, fa.minLength, fa.pattern, fa.format,
+        itemsO, additionalItemsO, fa.minItems, fa.maxItems, propertiesO, additionalPropertiesO, fa.required,
+        patternPropertiesO, fa.`type`, fa.enum, oneOfO, fa.description)
+    }
   }
+
+  val lint: Algebra[Schema, Option[Linter.Issue]] = { schema =>
+    Linter.stringLength(???, schema).swap.toOption
+  }
+
+  type MyState[A] = cats.data.State[List[String], A]
+
+  def addPath(path: String): MyState[Unit] =
+    cats.data.State(s => (path :: s, Unit))
+
+  val lintM: GAlgebraM[MyState, MyState, Schema, Option[Linter.Issue]] = { schema =>
+    val q = schema.additionalItems.map(_.keyName)
+    schema.additionalItems match {
+      case Some(s) => s match {
+        case ArrayProperty.AdditionalItems.AdditionalItemsSchema(mystate) =>
+          for {
+            _ <- addPath("additionItems")
+            issue <- mystate
+          } yield ()
+
+      }
+    }
+    for {
+      ss <- schema
+    } yield ss
+
+  }
+
+  // F[A] => S[A]
 }

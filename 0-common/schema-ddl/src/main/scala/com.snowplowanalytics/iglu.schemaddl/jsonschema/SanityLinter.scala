@@ -41,8 +41,8 @@ object SanityLinter {
     * @return non-empty list of summed failures (all, including nested) or
     *         unit in case of success
     */
-  def lint(schema: Schema, linters: List[Linter]): Report =
-    Schema.traverse(schema, validate(linters))
+  def lint[A](schema: Schema[A], linters: List[Linter]): Report =
+    Schema.traverse(schema, validate[A](linters))
       .runS(ValidationState.empty)
       .value.toMap
 
@@ -55,7 +55,7 @@ object SanityLinter {
       case (name, None) => name.invalidNel
     }.toEither
 
-  private def validate(linters: List[Linter])(jsonPointer: JsonPointer, schema: Schema): State[ValidationState, Unit] = {
+  private def validate[A](linters: List[Linter])(jsonPointer: JsonPointer, schema: Schema[A]): State[ValidationState, Unit] = {
     val results = linters
       .traverse[ValidatedNel[Linter.Issue, ?], Unit](linter => linter(jsonPointer, schema).toValidatedNel)
     results match {

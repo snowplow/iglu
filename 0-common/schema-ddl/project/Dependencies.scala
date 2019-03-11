@@ -19,6 +19,8 @@ object Dependencies {
     val igluCore         = "0.4.0"
     val circe            = "0.10.1"
     val jsonValidator    = "2.2.10"
+    val matryoshka       = "0.18.3"
+    val shims            = "1.7.0"
 
     // Scala (test only)
     val specs2           = "4.3.2"
@@ -30,6 +32,8 @@ object Dependencies {
     val igluCoreJson4s   = "com.snowplowanalytics"      %% "iglu-core-json4s"       % V.igluCore
     val igluCoreCirce    = "com.snowplowanalytics"      %% "iglu-core-circe"        % V.igluCore
     val circeGeneric     = "io.circe"                   %% "circe-generic"          % V.circe
+    val matryoshka       = "com.slamdata"               %% "matryoshka-core"        % V.matryoshka
+    val shims            = "com.codecommit"             %% "shims"                  % V.shims
     // Java
     val jsonValidator    = "com.github.java-json-tools" %  "json-schema-validator"  % V.jsonValidator
     // Scala (test only)

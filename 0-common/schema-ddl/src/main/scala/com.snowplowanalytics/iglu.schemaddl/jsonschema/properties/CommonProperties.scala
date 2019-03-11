@@ -100,7 +100,7 @@ object CommonProperties {
    *
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor88
    */
-  case class OneOf(value: List[Schema]) extends JsonSchemaProperty { def keyName = "oneOf" }
+  case class OneOf[A](value: List[A]) extends JsonSchemaProperty { def keyName = "oneOf" }
 
 
   /**

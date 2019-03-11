@@ -18,7 +18,7 @@ import io.circe._
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.CommonProperties._
 
 trait CommonDecoders {
-  implicit def schemaDecoder: Decoder[Schema]
+  implicit def schemaDecoder[A]: Decoder[Schema[A]]
 
   implicit val typeDecoder = Decoder[String]
     .emap(Type.fromString)
@@ -28,5 +28,5 @@ trait CommonDecoders {
 
   implicit lazy val enumDecoder = Decoder[List[Json]].map(Enum.apply)
 
-  implicit lazy val oneOfDecoder = Decoder[List[Schema]].map(OneOf.apply)
+  implicit def oneOfDecoder[A] = Decoder[List[Schema[A]]].map(OneOf.apply)
 }

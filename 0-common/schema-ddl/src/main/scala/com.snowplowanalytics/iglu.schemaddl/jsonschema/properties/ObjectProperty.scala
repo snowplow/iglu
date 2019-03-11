@@ -24,7 +24,7 @@ object ObjectProperty {
    *
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor64
    */
-  case class Properties(value: Map[String, Schema]) extends JsonSchemaProperty with ObjectProperty {
+  case class Properties[A](value: Map[String, A]) extends JsonSchemaProperty with ObjectProperty {
     def keyName = "properties"
   }
 
@@ -33,20 +33,20 @@ object ObjectProperty {
    *
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor64
    */
-  sealed trait AdditionalProperties extends JsonSchemaProperty with ObjectProperty {
+  sealed trait AdditionalProperties[A] extends JsonSchemaProperty with ObjectProperty {
     def keyName = "additionalProperties"
   }
   object AdditionalProperties {
     /**
       * Allowance of properties not listed in `properties` and `patternProperties`
       */
-    case class AdditionalPropertiesAllowed(value: Boolean) extends AdditionalProperties
+    case class AdditionalPropertiesAllowed[A](value: Boolean) extends AdditionalProperties[A]
 
     /**
       * Value **must** be always valid Schema, but it's always equals to just
       * `additionalProperties: true`
       */
-    case class AdditionalPropertiesSchema(value: Schema) extends AdditionalProperties
+    case class AdditionalPropertiesSchema[A](value: A) extends AdditionalProperties[A]
   }
 
   /**
@@ -63,7 +63,7 @@ object ObjectProperty {
    *
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor64
    */
-  case class PatternProperties(value: Map[String, Schema]) extends JsonSchemaProperty with ObjectProperty {
+  case class PatternProperties[A](value: Map[String, A]) extends JsonSchemaProperty with ObjectProperty {
     def keyName = "patternProperties"
   }
 }
