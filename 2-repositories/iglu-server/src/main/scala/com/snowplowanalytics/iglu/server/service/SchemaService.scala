@@ -31,6 +31,7 @@ import com.snowplowanalytics.iglu.core.{SchemaMap, SchemaVer, SelfDescribingSche
 import com.snowplowanalytics.iglu.core.circe.CirceIgluCodecs._
 
 import com.snowplowanalytics.iglu.server.codecs._
+import com.snowplowanalytics.iglu.server.codecs.JsonCodecs.selfDescribingSchemaEntityEncoder
 import com.snowplowanalytics.iglu.server.storage.Storage
 import com.snowplowanalytics.iglu.server.middleware.PermissionMiddleware
 import com.snowplowanalytics.iglu.server.model.{IgluResponse, Permission, Schema, VersionCursor}
@@ -86,8 +87,8 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
   def getSchema(vendor: String, name: String, format: String, version: SchemaVer.Full,
                 permission: Permission) = {
     db.getSchema(SchemaMap(vendor, name, format, version)).flatMap {
-      case Some(schema) if schema.metadata.isPublic => Ok(schema.body)
-      case Some(schema) if permission.canRead(schema.schemaMap.schemaKey.vendor) => Ok(schema.body)
+      case Some(schema) if schema.metadata.isPublic => Ok(schema.canonical)
+      case Some(schema) if permission.canRead(schema.schemaMap.schemaKey.vendor) => Ok(schema.canonical)
       case _ => NotFound(IgluResponse.SchemaNotFound: IgluResponse)
     }
   }

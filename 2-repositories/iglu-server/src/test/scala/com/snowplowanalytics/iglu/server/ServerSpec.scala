@@ -18,7 +18,6 @@ import cats.implicits._
 import cats.effect.IO
 
 import io.circe.Json
-import io.circe.literal._
 
 import org.http4s._
 import org.http4s.circe._
@@ -39,7 +38,7 @@ class ServerSpec extends org.specs2.Specification { def is = s2"""
 
   def e2 = {
     val response = ServerSpec.request(Request(Method.GET, Uri.uri("/com.acme/event/jsonschema/1-0-0")))
-    response.flatMap(_.as[Json]).unsafeRunSync() must beEqualTo(json"""{"type": "object", "properties": {"one": {}}}""")
+    response.flatMap(_.as[Json]).unsafeRunSync() must beEqualTo(SpecHelpers.selfSchemaZero)
   }
 }
 

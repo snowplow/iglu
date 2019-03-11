@@ -61,7 +61,7 @@ class SchemaServiceSpec extends org.specs2.Specification { def is = s2"""
     } yield (response.status, body)
 
     val (status, body) = result.unsafeRunSync()
-    status must beEqualTo(Status.Ok) and (body must beEqualTo(SpecHelpers.schemaZero))
+    status must beEqualTo(Status.Ok) and (body must beEqualTo(SpecHelpers.selfSchemaZero))
   }
 
   def e4 = {
@@ -77,7 +77,7 @@ class SchemaServiceSpec extends org.specs2.Specification { def is = s2"""
     } yield (response.status, body)
 
     val (status, body) = result.unsafeRunSync()
-    status must beEqualTo(Status.Ok) and (body must beEqualTo(SpecHelpers.schemaPrivate))
+    status must beEqualTo(Status.Ok) and (body must beEqualTo(SpecHelpers.selfSchemaPrivate))
   }
 
   def e5 = {

@@ -70,6 +70,9 @@ trait JsonCodecs {
   implicit def schemaListEntityEncoder[F[_]: Sync] =
     CirceEntityCodec.circeEntityEncoder[F, List[Schema]]
 
+  implicit def selfDescribingSchemaEntityEncoder[F[_]: Sync] =
+    CirceEntityCodec.circeEntityEncoder[F, SelfDescribingSchema[Json]]
+
   implicit def selfDescribingSchemaEntityDecoder[F[_]: Sync] =
     CirceEntityCodec.circeEntityDecoder[F, SelfDescribingSchema[Json]]
 
