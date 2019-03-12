@@ -50,7 +50,13 @@ trait UriParsers {
         }
     }
 
-  def parseRepresentation[F[_]](query: Query)(implicit F: Monad[F]): ResultResponse[F, Schema.Repr.Format] = {
+  def parseRepresentationUri[F[_]](query: Query)(implicit F: Monad[F]): ResultResponse[F, Schema.Repr.Format] =
+    parseRepresentation(query, Schema.Repr.Format.Uri)
+
+  def parseRepresentationCanonical[F[_]](query: Query)(implicit F: Monad[F]): ResultResponse[F, Schema.Repr.Format] =
+    parseRepresentation(query, Schema.Repr.Format.Canonical)
+
+  private def parseRepresentation[F[_]](query: Query, default: Schema.Repr.Format)(implicit F: Monad[F]): ResultResponse[F, Schema.Repr.Format] = {
     val result = query.params.get("repr") match {
       case Some(s) =>
         Schema.Repr.Format.parse(s).toRight(s"Cannot recognize schema representation in query: $s")
@@ -59,7 +65,7 @@ trait UriParsers {
           case ("1", "1") => Schema.Repr.Format.Meta.asRight
           case ("0", "1") => Schema.Repr.Format.Canonical.asRight
           case ("1", "0") => Schema.Repr.Format.Meta.asRight
-          case ("0", "0") => Schema.Repr.Format.Uri.asRight
+          case ("0", "0") => default.asRight
           case (m, b) => s"Inconsistent metadata/body query parameters: $m/$b".asLeft
         }
     }
@@ -74,7 +80,6 @@ trait UriParsers {
         FailureResponse.pure[F](Monad[F].pure(response))
     }
   }
-
   implicit def schemaFormatStringParser[F[_]]: StringParser[F, Schema.Format] =
     new StringParser[F, Schema.Format] {
       override val typeTag: Some[TypeTag[Schema.Format]] = Some(implicitly[TypeTag[Schema.Format]])

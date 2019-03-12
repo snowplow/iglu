@@ -31,10 +31,10 @@ object SpecHelpers {
   val readKeyAcme = UUID.fromString("2abad125-0ba1-faf2-b2cc-4fa26e61f971")
 
   val schemaZero = json"""{"type": "object", "properties": {"one": {}}}"""
-  val selfSchemaZero = json"""{"type": "object", "properties": {"one": {}}, "self": {"vendor" : "com.acme", "name" : "event", "format" : "jsonschema", "version" : "1-0-0"}}"""
+  val selfSchemaZero = json"""{"$$schema" : "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#", "type": "object", "properties": {"one": {}}, "self": {"vendor" : "com.acme", "name" : "event", "format" : "jsonschema", "version" : "1-0-0"}}"""
   val schemaOne = json"""{"type": "object", "properties": {"one": {}, "two": {}}}"""
   val schemaPrivate = json"""{"type": "object", "properties": {"password": {}}, "required": ["password"]}"""
-  val selfSchemaPrivate = json"""{"type": "object", "properties": {"password": {}}, "required": ["password"], "self": {"vendor" : "com.acme", "name" : "secret", "format" : "jsonschema", "version" : "1-0-0"}}"""
+  val selfSchemaPrivate = json"""{"$$schema" : "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#", "type": "object", "properties": {"password": {}}, "required": ["password"], "self": {"vendor" : "com.acme", "name" : "secret", "format" : "jsonschema", "version" : "1-0-0"}}"""
 
   // exampleState content
   val schemas = List(

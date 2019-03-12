@@ -31,7 +31,6 @@ import com.snowplowanalytics.iglu.core.{SchemaMap, SchemaVer, SelfDescribingSche
 import com.snowplowanalytics.iglu.core.circe.CirceIgluCodecs._
 
 import com.snowplowanalytics.iglu.server.codecs._
-import com.snowplowanalytics.iglu.server.codecs.JsonCodecs.selfDescribingSchemaEntityEncoder
 import com.snowplowanalytics.iglu.server.storage.Storage
 import com.snowplowanalytics.iglu.server.middleware.PermissionMiddleware
 import com.snowplowanalytics.iglu.server.model.{IgluResponse, Permission, Schema, VersionCursor}
@@ -48,7 +47,8 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
   import SchemaService._
   implicit val C: Clock[F] = Clock.create[F]
 
-  val repr = genericQueryCapture(UriParsers.parseRepresentation[F]).withMetadata(ReprMetadata)
+  val reprUri = genericQueryCapture(UriParsers.parseRepresentationUri[F]).withMetadata(ReprMetadata)
+  val reprCanonical = genericQueryCapture(UriParsers.parseRepresentationCanonical[F]).withMetadata(ReprMetadata)
 
   val version = pathVar[SchemaVer.Full]("version", "SchemaVer")
   val isPublic = paramD[Boolean]("isPublic", false, "Should schema be created as public")
@@ -59,16 +59,16 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
   private val validationService = new ValidationService[F](swagger, ctx, db)
 
   "Get a particular schema by its Iglu URI" **
-    GET / 'vendor / 'name / 'format / version >>> ctx.auth |>> getSchema _
+    GET / 'vendor / 'name / 'format / version +? reprCanonical >>> ctx.auth |>> getSchema _
 
   "Get list of schemas by vendor name" **
-    GET / 'vendor / 'name +? repr >>> ctx.auth |>> getSchemasByName _
+    GET / 'vendor / 'name +? reprUri >>> ctx.auth |>> getSchemasByName _
 
   "Get all schemas for vendor" **
-    GET / 'vendor +? repr >>> ctx.auth |>> getSchemasByVendor _
+    GET / 'vendor +? reprUri >>> ctx.auth |>> getSchemasByVendor _
 
   "List all available schemas" **
-    GET +? repr >>> ctx.auth |>> listSchemas _
+    GET +? reprUri >>> ctx.auth |>> listSchemas _
 
   "Add a schema (self-describing or not) to its Iglu URI" **
     PUT / 'vendor / 'name / 'format / version +? isPublic >>> ctx.auth ^ schemaOrJson |>> putSchema _
@@ -85,10 +85,10 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
 
 
   def getSchema(vendor: String, name: String, format: String, version: SchemaVer.Full,
-                permission: Permission) = {
+                schemaFormat: SchemaFormat, permission: Permission) = {
     db.getSchema(SchemaMap(vendor, name, format, version)).flatMap {
-      case Some(schema) if schema.metadata.isPublic => Ok(schema.canonical)
-      case Some(schema) if permission.canRead(schema.schemaMap.schemaKey.vendor) => Ok(schema.canonical)
+      case Some(schema) if schema.metadata.isPublic => Ok(schema.withFormat(schemaFormat))
+      case Some(schema) if permission.canRead(schema.schemaMap.schemaKey.vendor) => Ok(schema.withFormat(schemaFormat))
       case _ => NotFound(IgluResponse.SchemaNotFound: IgluResponse)
     }
   }
