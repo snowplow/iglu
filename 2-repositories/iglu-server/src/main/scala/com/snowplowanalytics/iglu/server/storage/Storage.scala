@@ -22,7 +22,7 @@ import fs2.Stream
 import cats.Monad
 import cats.effect.{Clock, ContextShift, Effect}
 import cats.implicits._
-import cats.effect.Resource
+import cats.effect.{Async, Resource}
 
 import io.circe.Json
 
@@ -80,11 +80,21 @@ object Storage {
     config match {
       case StorageConfig.Dummy =>
         Resource.liftF(storage.InMemory.empty)
-      case StorageConfig.Postgres(host, port, name, username, password, driver, threads) =>
-        val url = s"jdbc:postgresql://$host:$port/$name"
+      case StorageConfig.Postgres(host, port, name, username, password, driver, threads, maxPoolSize) =>
         for {
           connectEC <- ExecutionContexts.fixedThreadPool(threads.getOrElse(32))
-          xa <- HikariTransactor.newHikariTransactor[F](driver, url, username, password, connectEC, transactEC)
+          _ <- Resource.liftF(Async[F].delay(Class.forName(driver)))
+          xa <- HikariTransactor.initial[F](connectEC, transactEC)
+          _ <- Resource.liftF {
+            xa.configure { ds =>
+              Async[F].delay {
+                ds setJdbcUrl         s"jdbc:postgresql://$host:$port/$name"
+                ds setUsername        username
+                ds setPassword        password
+                ds setMaximumPoolSize maxPoolSize.getOrElse(10)
+              }
+            }
+          }
           storage <- Resource.liftF(Postgres(xa).ping)
         } yield storage
     }

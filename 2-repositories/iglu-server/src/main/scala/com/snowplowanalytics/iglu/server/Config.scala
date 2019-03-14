@@ -65,10 +65,11 @@ object Config {
                         username: String,
                         password: String,
                         driver: String,
-                        connectThreads: Option[Int]) extends StorageConfig
+                        connectThreads: Option[Int],
+                        maxPoolSize: Option[Int]) extends StorageConfig
 
-    val postgresReader = ConfigReader.forProduct7("host", "port","dbname", "username",
-      "password", "driver", "connectThreads")(StorageConfig.Postgres.apply)
+    val postgresReader = ConfigReader.forProduct8("host", "port","dbname", "username",
+      "password", "driver", "connectThreads", "maxPoolSize")(StorageConfig.Postgres.apply)
   }
 
   /**

@@ -121,7 +121,7 @@ object Server {
 
   def setup(config: Config, migrate: Option[MigrateFrom])(implicit cs: ContextShift[IO]) = {
     config.database match {
-      case Config.StorageConfig.Postgres(host, port, dbname, username, password, driver, _) =>
+      case Config.StorageConfig.Postgres(host, port, dbname, username, password, driver, _, _) =>
         val url = s"jdbc:postgresql://$host:$port/$dbname"
         val xa = Transactor.fromDriverManager[IO](driver, url, username, password)
         val action = migrate match {

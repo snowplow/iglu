@@ -38,7 +38,7 @@ class ConfigSpec extends org.specs2.Specification { def is = s2"""
     val configPath = Paths.get(config)
     val input = s"--config ${configPath}"
     val expected = Config(
-      Config.StorageConfig.Postgres("postgres", 5432, "igludb", "sp_user", "sp_password", "org.postgresql.Driver", None),
+      Config.StorageConfig.Postgres("postgres", 5432, "igludb", "sp_user", "sp_password", "org.postgresql.Driver", None, Some(5)),
       Config.Http("0.0.0.0", 8080),
       Some(true),
       Some(true),
