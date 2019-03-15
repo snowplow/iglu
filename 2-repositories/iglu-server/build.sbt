@@ -55,7 +55,6 @@ lazy val root = (project in file("."))
     cancelable in Global := true,
     scalacOptions in (Compile, console) --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings")
   )
-  .settings(BuildSettings.javaSettings)
   .settings(BuildSettings.dockerSettings)
   .enablePlugins(JavaAppPackaging)
   .enablePlugins(BuildInfoPlugin)

@@ -24,7 +24,6 @@ import eu.timepit.refined.types.numeric.NonNegInt
 
 import org.http4s.{ Response, Status, Query }
 import org.http4s.rho.bits._
-import org.http4s.rho.bits.QueryParser.Params
 
 import com.snowplowanalytics.iglu.core.SchemaVer
 import com.snowplowanalytics.iglu.server.model.{DraftVersion, Schema}
@@ -32,23 +31,6 @@ import com.snowplowanalytics.iglu.server.model.{DraftVersion, Schema}
 trait UriParsers {
 
   case class LegacyBoolean(value: Boolean)
-
-  implicit def schemaReprQueryParser[F[_]](implicit F: Monad[F]): QueryParser[F, Schema.Repr.Format] =
-    new QueryParser[F, Schema.Repr.Format] {
-      def collect(name: String, params: Params, default: Option[Schema.Repr.Format]): ResultResponse[F, Schema.Repr.Format] =
-        params.get(name) match {
-          case None =>
-            SuccessResponse(default.getOrElse(Schema.Repr.Format.Uri))
-          case Some(seq) =>
-            seq.toList.map(Schema.Repr.Format.parse) match {
-              case Nil => SuccessResponse(default.getOrElse(Schema.Repr.Format.Uri))
-              case List(Some(repr)) => SuccessResponse(repr)
-              case _ =>
-                val response = Monad[F].pure(Response[F]().withStatus(Status.BadRequest))
-                FailureResponse.pure[F](response)
-            }
-        }
-    }
 
   def parseRepresentationUri[F[_]](query: Query)(implicit F: Monad[F]): ResultResponse[F, Schema.Repr.Format] =
     parseRepresentation(query, Schema.Repr.Format.Uri)
