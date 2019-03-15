@@ -21,7 +21,6 @@ import cats.instances.bigInt._
 import cats.syntax.eq._
 import cats.syntax.traverse._
 import cats.syntax.foldable._
-import cats.instances.long._
 
 import io.circe.Json
 
@@ -54,8 +53,12 @@ object TypeSuggestions {
   // Suggest VARCHAR(4096) for all product types. Should be in the beginning
   val productSuggestion: DataTypeSuggestion = (properties, columnName) =>
     properties.`type` match {
-      case Some(t) if t.isUnion =>
-        Some(ProductType(List(s"Product type ${t.asJson.noSpaces} encountered in $columnName")))
+      case Some(t: Type.Union) if t.isUnion =>
+        val typeSet = t.value.toSet - Type.Null
+        if (typeSet == Set(Type.Boolean, Type.Integer))
+          Some(ProductType(List(s"Product type ${t.asJson.noSpaces} encountered in $columnName"), Some(Int.MaxValue.toString.length)))
+        else
+          Some(ProductType(List(s"Product type ${t.asJson.noSpaces} encountered in $columnName"), None))
       case _ => None
     }
 
@@ -85,6 +88,8 @@ object TypeSuggestions {
       case (Some(types), Some(MultipleOf.NumberMultipleOf(m))) if types.possiblyWithNull(Type.Number) && m == BigDecimal(1,2) =>
         Some(RedshiftDecimal(Some(36), Some(2)))
       case (Some(types), _) if types.possiblyWithNull(Type.Number) =>
+        Some(RedshiftDouble)
+      case (Some(types: Type.Union), _) if (types.value.toSet - Type.Null) == Set(Type.Integer, Type.Number) =>
         Some(RedshiftDouble)
       case _ =>
         None
@@ -129,7 +134,7 @@ object TypeSuggestions {
     }
   }
 
-  val varcharSuggestion: DataTypeSuggestion = (properties, columnName) => {
+  val varcharSuggestion: DataTypeSuggestion = (properties, _) => {
     (properties.`type`,  properties.maxLength, properties.enum, properties.format) match {
       case (Some(types), _,                    _,               Some(Format.Ipv6Format)) if types.possiblyWithNull(Type.String) =>
         Some(RedshiftVarchar(39))

@@ -19,7 +19,7 @@ import com.snowplowanalytics.iglu.core._
 // This library
 import com.snowplowanalytics.iglu.schemaddl.Migration
 import com.snowplowanalytics.iglu.schemaddl.StringUtils._
-import com.snowplowanalytics.iglu.schemaddl.jsonschema.Schema
+import com.snowplowanalytics.iglu.schemaddl.jsonschema.{ Schema, Pointer }
 
 // This library
 import DdlGenerator._
@@ -40,27 +40,19 @@ object MigrationGenerator {
    * @param tableSchema DB schema for table (atomic by default)
    * @return DDL file containing list of statements ready to be printed
    */
-  def generateMigration(
-      migration: Migration,
-      varcharSize: Int = 4096,
-      tableSchema: Option[String] = Some("atomic"))
-  : DdlFile = {
-
+  def generateMigration(migration: Migration, varcharSize: Int, tableSchema: Option[String]): DdlFile = {
     val schemaMap     = SchemaMap(migration.vendor, migration.name, "jsonschema", migration.to)
     val oldSchemaUri  = SchemaMap(migration.vendor, migration.name, "jsonschema", migration.from).schemaKey.toSchemaUri
     val tableName     = getTableName(schemaMap)                            // e.g. com_acme_event_1
     val tableNameFull = tableSchema.map(_ + ".").getOrElse("") + tableName   // e.g. atomic.com_acme_event_1
 
     val transaction =
-      if (migration.diff.added.nonEmpty) {
-      migration.diff.added.map {
-        case (pointer, schema) =>
-          val columnName = DdlGenerator.getName(pointer)
-          buildAlterTable(tableNameFull, varcharSize, (columnName, schema))
-      }
-    } else {
-      List(CommentBlock("NO ADDED COLUMNS CAN BE EXPRESSED IN SQL MIGRATION", 3))
-    }
+      if (migration.diff.added.nonEmpty)
+        migration.diff.added.map {
+          case (pointer, schema) =>
+            buildAlterTable(tableNameFull, varcharSize, (pointer, schema))
+        }
+      else List(CommentBlock("NO ADDED COLUMNS CAN BE EXPRESSED IN SQL MIGRATION", 3))
 
     val header = getHeader(tableName, oldSchemaUri)
     val comment = CommentOn(tableNameFull, schemaMap.schemaKey.toSchemaUri)
@@ -94,13 +86,14 @@ object MigrationGenerator {
    *             length, maximum, etc
    * @return DDL statement altering single column in table
    */
-  def buildAlterTable(tableName: String, varcharSize: Int, pair: (String, Schema)): AlterTable =
+  def buildAlterTable(tableName: String, varcharSize: Int, pair: (Pointer.SchemaPointer, Schema)): AlterTable =
     pair match {
-      case (columnName, properties) =>
+      case (pointer, properties) =>
+        val columnName = DdlGenerator.getName(pointer)
         val dataType = getDataType(properties, varcharSize, columnName)
         val encoding = getEncoding(properties, dataType, columnName)
         val nullable =
-          if (checkNullability(properties, required = false)) None
+          if (isNotNull(???)(pointer, properties)) None
           else Some(Nullability(NotNull))
         AlterTable(tableName, AddColumn(snakeCase(columnName), dataType, None, Some(encoding), nullable))
     }

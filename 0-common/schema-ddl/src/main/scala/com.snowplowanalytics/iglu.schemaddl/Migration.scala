@@ -68,7 +68,7 @@ object Migration {
    * @param removed set of keys removed in target Schema
    */
   case class SchemaDiff(added: List[(Pointer.SchemaPointer, Schema)],
-                        modified: PropertyList,
+                        modified: SubSchemas,
                         removed: Set[Pointer.SchemaPointer])
 
   /**
@@ -115,7 +115,7 @@ object Migration {
    * @param successive non-empty list of successive JSON Schema properties including target
    * @return diff between two Schmea
    */
-  def diffMaps(source: PropertyList, successive: List[PropertyList]): SchemaDiff = {
+  def diffMaps(source: SubSchemas, successive: List[SubSchemas]): SchemaDiff = {
     val target = successive.last
     val addedKeys = getAddedKeys(source, successive)
     val added = getSubmap(addedKeys, target)
@@ -131,7 +131,7 @@ object Migration {
    * @param successive all subsequent Schemas
    * @return possibly empty list of keys in correct order
    */
-  def getAddedKeys(source: PropertyList, successive: List[PropertyList]): List[Pointer.SchemaPointer] = {
+  def getAddedKeys(source: SubSchemas, successive: List[SubSchemas]): List[Pointer.SchemaPointer] = {
     val (newKeys, _) = successive.foldLeft((List.empty[Pointer.SchemaPointer], source)) { case ((acc, previous), current) =>
       (acc ++ (current.map(_._1) diff previous.map(_._1)), current)
     }
@@ -147,7 +147,7 @@ object Migration {
    *                  should be included in [[SchemaDiff]] separately
    * @return list of properties changed in target Schema
    */
-  def getModifiedProperties(source: PropertyList, target: PropertyList, addedKeys: List[Pointer.SchemaPointer]): PropertyList = {
+  def getModifiedProperties(source: SubSchemas, target: SubSchemas, addedKeys: List[Pointer.SchemaPointer]): SubSchemas = {
     val targetModified = target.filter { case (k, _) => !addedKeys.contains(k) }
     targetModified diff source
   }
@@ -159,7 +159,7 @@ object Migration {
    * @param original original Map
    * @return sorted Map of new properties
    */
-  def getSubmap[K, V](keys: List[Pointer.SchemaPointer], original: PropertyList): List[(Pointer.SchemaPointer, Schema)] =
+  def getSubmap[K, V](keys: List[Pointer.SchemaPointer], original: SubSchemas): List[(Pointer.SchemaPointer, Schema)] =
     List(keys.flatMap(k => original.toMap.get(k).map((k, _))): _*)
 
   /**

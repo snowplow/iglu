@@ -37,7 +37,8 @@ class DdlGeneratorSpec extends Specification { def is = s2"""
         "/foo".jsonPointer -> json"""{"type": "string", "maxLength": 30}""".schema,
         "/bar".jsonPointer -> json"""{"enum": ["one","two","three"]}""".schema
       ),
-      Set("/foo".jsonPointer)
+      Set("/foo".jsonPointer),
+      Set.empty
     )
 
     val resultDdl = CreateTable(
@@ -64,7 +65,8 @@ class DdlGeneratorSpec extends Specification { def is = s2"""
         "/baz".jsonPointer -> json"""{"type": "boolean"}""".schema,
         "/bar".jsonPointer -> json"""{"enum": ["one","two","three"]}""".schema
       ),
-      Set("/foo".jsonPointer)
+      Set("/foo".jsonPointer),
+      Set.empty
     )
 
     val resultDdl = CreateTable(

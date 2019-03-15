@@ -72,7 +72,7 @@ case class RedshiftChar(size: Int) extends DataType {
  * can store additional information such as warnings.
  * Using to prevent output on DDL-generation step.
  */
-case class ProductType(override val warnings: List[String]) extends DataType {
-  def toDdl = "VARCHAR(4096)"
+case class ProductType(override val warnings: List[String], size: Option[Int]) extends DataType {
+  def toDdl = s"VARCHAR(${size.getOrElse(4096)})"
 }
 

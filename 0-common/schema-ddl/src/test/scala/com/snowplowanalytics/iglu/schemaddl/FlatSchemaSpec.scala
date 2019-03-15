@@ -33,12 +33,16 @@ class FlatSchemaSpec extends Specification { def is = s2"""
     build transforms object,string union type into single primitive $e5
     build adds all required properties and skips not-nested required $e6
     nested $e7
+    build skips properties inside patternProperties $e8
   """
 
   def e1 = {
     val schema = json"""{"type": "object"}""".schema
     // TODO: I expect to see FlatSchema.empty, but root here considered primitive
-    val expected = FlatSchema(Set(Pointer.Root -> Schema.empty.copy(`type` = Some(Type.Object)) ), Set.empty)
+    val expected = FlatSchema(
+      Set(Pointer.Root -> Schema.empty.copy(`type` = Some(Type.Object))),
+      Set.empty,
+      Set.empty)
 
     FlatSchema.build(schema) must beEqualTo(expected)
   }
@@ -59,13 +63,16 @@ class FlatSchemaSpec extends Specification { def is = s2"""
         }
       }
     """.schema
-    val expected = FlatSchema(Set(
-      "/properties/nested/properties/object_without_properties".jsonPointer ->
-        json"""{"type": "object"}""".schema),
-      Set.empty
-    )
 
-    FlatSchema.build(json) must beEqualTo(expected)
+    val subSchemas = Set(
+      "/properties/nested/properties/object_without_properties".jsonPointer ->
+        json"""{"type": "object"}""".schema)
+
+    val result = FlatSchema.build(json)
+
+    val parentsExpectation = result.parents.map(_._1) must contain(Pointer.Root, "/properties/nested".jsonPointer)
+
+    (result.subschemas must beEqualTo(subSchemas)) and (result.required must beEmpty) and parentsExpectation
   }
 
   def e3 = {
@@ -82,7 +89,9 @@ class FlatSchemaSpec extends Specification { def is = s2"""
     """.schema
     val description = "Wildcard schema #1 to match any valid JSON instance"
     val expected = FlatSchema(Set(
-      Pointer.Root -> Schema.empty.copy(description = Some(Description(description))) ), Set.empty)
+      Pointer.Root -> Schema.empty.copy(description = Some(Description(description)))),
+      Set.empty,
+      Set.empty)
 
     FlatSchema.build(json) must beEqualTo(expected)
   }
@@ -110,7 +119,11 @@ class FlatSchemaSpec extends Specification { def is = s2"""
 
     val result = FlatSchema.build(schema)
 
-    result must beEqualTo(FlatSchema(expected, Set.empty))
+    val subschemasExpectation = result.subschemas must beEqualTo(expected)
+    val requiredExpectation = result.required must beEmpty
+    val parentsExpectation = result.parents.map(_._1) must contain(Pointer.Root)
+
+    subschemasExpectation and requiredExpectation and parentsExpectation
   }
 
   def e5 = {
@@ -136,12 +149,11 @@ class FlatSchemaSpec extends Specification { def is = s2"""
 
     val result = FlatSchema.build(schema)
 
-    val expected = FlatSchema(Set(
+    val expectedSubschemas = Set(
       "/properties/foo/properties/two".jsonPointer -> json"""{"type": "integer"}""".schema,
-      "/properties/foo/properties/one".jsonPointer -> json"""{"type": "string"}""".schema),
-      Set.empty)
+      "/properties/foo/properties/one".jsonPointer -> json"""{"type": "string"}""".schema)
 
-    result must beEqualTo(expected)
+    result.subschemas must beEqualTo(expectedSubschemas) and (result.required must beEmpty)
   }
 
   def e6 = {
@@ -187,16 +199,69 @@ class FlatSchemaSpec extends Specification { def is = s2"""
     required and subschemas
   }
 
-
   def e7 = {
-    // swap because it is not canonical Schema JSON Pointer
-    val accumulator = List("/deeply", "/deeply/nested", "/other/property")
-    val result = for {
-      current <- Pointer.parseSchemaPointer("/deeply/nested/property").swap
-      acc <- accumulator.traverse(p => Pointer.parseSchemaPointer(p).swap)
-    } yield FlatSchema.nestedRequired(acc.toSet, current)
+    val subschemas: SubSchemas = List("/deeply", "/deeply/nested", "/other/property")
+      .traverse(p => Pointer.parseSchemaPointer(p).swap)
+      .toOption.get.toSet
+      .map((p: Pointer.SchemaPointer) => p -> Schema.empty)
 
-    result must beRight(true)
+    val schema = FlatSchema(subschemas, Set("/deeply".jsonPointer, "/deeply/nested".jsonPointer), Set.empty[(Pointer.SchemaPointer, Schema)])
+    val result = schema.nestedRequired("/deeply/nested/property".jsonPointer)
+
+    result must beTrue
+  }
+
+  def e8 = {
+    val schema = json"""
+      {
+        "type": "object",
+        "required": ["one"],
+        "properties": {
+          "one": {
+            "type": "object",
+            "required": ["two"],
+            "properties": {
+              "two": {
+                "type": "string"
+              },
+              "withProps": {
+                "type": "object",
+                "patternProperties": {
+                  ".excluded": {"type": "string"},
+                  ".excluded-with-required": {
+                    "type": "object",
+                    "properties": {
+                      "also-excluded": {"type": "integer"}
+                    }
+                  }
+                },
+                "properties": {
+                  "included": {"type": "integer"}
+                }
+              }
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    """.schema
+
+    val result = FlatSchema.build(schema)
+
+    val expectedRequired = Set("/properties/one".jsonPointer, "/properties/one/properties/two".jsonPointer)
+    val expectedSubschemas = Set(
+      "/properties/one/properties/two".jsonPointer ->
+        json"""{"type": "string"}""".schema,
+      "/properties/one/properties/withProps/properties/included".jsonPointer ->
+        json"""{"type": "integer"}""".schema,
+    )
+
+    val required = result.required must bePointers(expectedRequired)
+    val subschemas = result.subschemas must beEqualTo(expectedSubschemas)
+
+    println(result.show)
+
+    required and subschemas
   }
 
   def bePointers(expected: Set[Pointer.SchemaPointer]): Matcher[Set[Pointer.SchemaPointer]] = { actual: Set[Pointer.SchemaPointer] =>

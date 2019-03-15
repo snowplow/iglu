@@ -13,19 +13,21 @@
 package com.snowplowanalytics.iglu.schemaddl
 
 import cats.data.State
-
 import io.circe.literal._
-
-import org.specs2.Specification
 
 import jsonschema.{Pointer, Schema}
 import jsonschema.circe.implicits._
+
+import SpecHelpers._
+
+import org.specs2.Specification
 
 class JsonPointerSpec extends Specification { def is = s2"""
   traverse goes through items property $e1
   traverse goes through additionalItems property $e2
   traverse goes through properties property $e3
   traverse goes through oneOf property $e4
+  isParentOf recognizes its parents $e5
   """
 
   case class SchemaTypes(list: List[(Pointer.SchemaPointer, String)]) {
@@ -147,5 +149,12 @@ class JsonPointerSpec extends Specification { def is = s2"""
     )
 
     result must beEqualTo(expected)
+  }
+
+  def e5 = {
+    "/".jsonPointer.isParentOf("/foo".jsonPointer) and
+      "/".jsonPointer.isParentOf("/foo/bar".jsonPointer) and
+      (!"/foobar".jsonPointer.isParentOf("/foo/bar".jsonPointer)) and
+      "/foo/bar".jsonPointer.isParentOf("/foo/bar/baz".jsonPointer)
   }
 }

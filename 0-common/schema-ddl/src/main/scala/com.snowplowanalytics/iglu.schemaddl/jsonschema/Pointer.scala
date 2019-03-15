@@ -23,7 +23,7 @@ sealed trait Pointer extends Product with Serializable {
 
   def get: List[Cursor] = value.reverse
 
-  def last = value.headOption
+  def last: Option[Cursor] = value.headOption
 
   def parent: Option[SchemaPointer] = value match {
     case Nil => None
@@ -40,26 +40,34 @@ sealed trait Pointer extends Product with Serializable {
     SchemaPointer(Cursor.DownField(key) :: value)
   def at(index: Int): SchemaPointer =
     SchemaPointer(Cursor.At(index) :: value)
+
+  def isParentOf(child: Pointer): Boolean =
+    child.get.startsWith(this.get)
 }
 
 object Pointer {
 
   val Root = SchemaPointer(Nil)
 
+  /** JSON Pointer that cannot have `CursorProperty` */
+  case class JsonPointer private(value: List[Cursor]) extends Pointer {
+    def path: List[String] = get.flatMap {
+      case Cursor.DownField(field) => List(field)
+      case _ => None
+    }
+  }
+
   /** Special case of JSON Pointer, working with JSON Schemas instead of generic JSON */
   case class SchemaPointer private(value: List[Cursor]) extends Pointer {
     def downProperty(schemaProperty: SchemaProperty): SchemaPointer =
       SchemaPointer(Cursor.DownProperty(schemaProperty) :: value)
 
-    def forData: DataPointer =
-      DataPointer(value.collect {
-        case cur: Pointer.Cursor.DownProperty => cur
+    def forData: JsonPointer =
+      JsonPointer(value.flatMap {
+        case cur: Pointer.Cursor.DownField => List(cur)
+        case _ => Nil
       })
   }
-
-
-  /** JSON Pointer that cannot have `CursorProperty` */
-  case class DataPointer private(value: List[Cursor]) extends Pointer
 
 
   sealed trait SchemaProperty extends Product with Serializable {
@@ -133,6 +141,7 @@ object Pointer {
   object Cursor {
     case class DownField(key: String) extends Cursor
     case class At(index: Int) extends Cursor
+    /** Special keys of `DownField` working only with `SchemaPointer` */
     case class DownProperty(property: SchemaProperty) extends Cursor
   }
 }

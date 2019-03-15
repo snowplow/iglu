@@ -60,8 +60,10 @@ package object jsonschema {
     /** Check if type contains at least two non-null types */
     def isUnion: Boolean =
       jsonType match {
-        case Type.Union(types) =>
-          (types.toSet - Type.Null).size > 1
+        case Type.Union(types) if (types.toSet - Type.Null) == Set(Type.Number, Type.Integer) =>
+          false
+        case Type.Union(types) if (types.toSet - Type.Null).size > 1 =>
+          true
         case _ => false
       }
   }
@@ -90,5 +92,8 @@ package object jsonschema {
         case Some(f) => format == f
         case None => false
       }
+
+    def canBeNull: Boolean =
+      value.enum.exists(_.value.exists(_.isNull)) || withType(Type.Null)
   }
 }

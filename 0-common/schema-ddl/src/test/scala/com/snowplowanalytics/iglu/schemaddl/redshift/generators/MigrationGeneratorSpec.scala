@@ -38,7 +38,7 @@ class MigrationGeneratorSpec extends Specification { def is = s2"""
   def e1 = {
     val diff = Migration.SchemaDiff(List("status".jsonPointer -> json"""{"type": "string"}""".schema), empty, Set.empty[Pointer.SchemaPointer])
     val schemaMigration = Migration("com.acme", "launch_missles", SchemaVer.Full(1,0,0), SchemaVer.Full(1,0,1), diff)
-    val ddlMigration = MigrationGenerator.generateMigration(schemaMigration).render
+    val ddlMigration = MigrationGenerator.generateMigration(schemaMigration, 4096, Some("atomic")).render
 
     val result =
       """|-- WARNING: only apply this file to your database if the following SQL returns the expected:
@@ -64,7 +64,7 @@ class MigrationGeneratorSpec extends Specification { def is = s2"""
   def e2 = {
     val diff = Migration.SchemaDiff(List.empty, empty, Set.empty[Pointer.SchemaPointer])
     val schemaMigration = Migration("com.acme", "launch_missles", SchemaVer.Full(2,0,0), SchemaVer.Full(2,0,1), diff)
-    val ddlMigration = MigrationGenerator.generateMigration(schemaMigration).render
+    val ddlMigration = MigrationGenerator.generateMigration(schemaMigration, 4096, Some("atomic")).render
 
     val result =
       """|-- WARNING: only apply this file to your database if the following SQL returns the expected:
@@ -95,7 +95,7 @@ class MigrationGeneratorSpec extends Specification { def is = s2"""
 
     val diff = Migration.SchemaDiff(newProps, empty, Set.empty[Pointer.SchemaPointer])
     val schemaMigration = Migration("com.acme", "launch_missles", SchemaVer.Full(1,0,2), SchemaVer.Full(1,0,3), diff)
-    val ddlMigration = MigrationGenerator.generateMigration(schemaMigration).render
+    val ddlMigration = MigrationGenerator.generateMigration(schemaMigration, 4096, Some("atomic")).render
 
     val result =
       """|-- WARNING: only apply this file to your database if the following SQL returns the expected:

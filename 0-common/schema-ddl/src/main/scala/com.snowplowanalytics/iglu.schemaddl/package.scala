@@ -23,7 +23,7 @@ package object schemaddl {
    * First-level key is arbitrary property (like id, name etc)
    * Second-level is map of JSON Schema properties (type, enum etc)
    */
-  type PropertyList = Set[(Pointer.SchemaPointer, Schema)]
+  type SubSchemas = Set[(Pointer.SchemaPointer, Schema)]
 
   /**
    * Map of Schemas to all its possible target schemas

@@ -30,7 +30,13 @@ object CommonProperties {
   sealed trait Type extends JsonSchemaProperty {
     def keyName = "type"
     def asJson: Json
+    def withNull: Type = this match {
+      case Type.Union(types) => Type.Union((Type.Null :: types).distinct)
+      case Type.Null => Type.Null
+      case other => Type.Union(List(Type.Null, other))
+    }
   }
+
   object Type {
     case object Null extends Type {
       def asJson = Json.fromString("null")

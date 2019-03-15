@@ -3,6 +3,7 @@ package com.snowplowanalytics.iglu.schemaddl
 import org.specs2.Specification
 import io.circe.literal._
 import jsonschema.{Pointer, Schema}
+import SpecHelpers._
 import jsonschema.circe.implicits._
 import jsonschema.json4s.implicits._
 import org.json4s.jackson.JsonMethods.compact
@@ -13,7 +14,7 @@ class FlattenerSpec extends Specification { def is = s2"""
   """
 
   def e1 = {
-    val input = json"""
+    val schema = json"""
       {
       	"$$schema":"http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
       	"description":"Schema for an AWS Lambda Java context object, http://docs.aws.amazon.com/lambda/latest/dg/java-context-object.html",
@@ -24,7 +25,7 @@ class FlattenerSpec extends Specification { def is = s2"""
       		"version":"1-0-0"
       	},
       	"type":"object",
-        "required": ["functionName"],
+        "required": ["functionName", "clientContext"],
       	"properties":{
       		"functionName":{
       			"type":"string"
@@ -48,9 +49,11 @@ class FlattenerSpec extends Specification { def is = s2"""
       		},
       		"clientContext":{
       			"type":"object",
+      			"required":["client"],
       			"properties":{
       				"client":{
-      					"type":"object",
+      					"type":["object", "null"],
+      					"required":["appPackageName"],
       					"properties":{
       						"appTitle":{
       							"type":"string"
@@ -62,7 +65,7 @@ class FlattenerSpec extends Specification { def is = s2"""
       							"type":"string"
       						},
       						"appPackageName":{
-      							"type":"string"
+      							"type":["integer"]
       						}
       					},
       					"additionalProperties":false
@@ -102,15 +105,17 @@ class FlattenerSpec extends Specification { def is = s2"""
       	"additionalProperties":false
       }
 
-      """
+      """.schema
 
-    val schema = Schema.parse(input).get
+    val flatSchema = FlatSchema.build(schema)
 
+    println(flatSchema.show)
+    println(flatSchema.required)
+    import redshift.generators.DdlGenerator
 
-    val qq = FlatSchema.build(schema)
+    val result = DdlGenerator.generateTableDdl(flatSchema, "events", None, 4096, false)
 
-    println(qq.show)
-    println(qq.required)
+    println(result.toDdl)
     ko
   }
 
