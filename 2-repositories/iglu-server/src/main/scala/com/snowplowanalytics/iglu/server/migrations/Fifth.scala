@@ -111,7 +111,7 @@ object Fifth {
   }
 
   def querySchemas =
-    (sql"SELECT vendor, name, format, version, schema, createdat, updatedat, ispublic FROM" ++ OldSchemasTable ++ fr"WHERE draftnumber = '0' ORDER BY createdat")
+    (fr"SELECT vendor, name, format, version, schema, createdat, updatedat, ispublic FROM" ++ OldSchemasTable ++ fr"WHERE draftnumber = '0' ORDER BY createdat")
       .query[(String, String, String, String, String, Instant, Instant, Boolean)]
       .map { case (vendor, name, format, version, body, createdAt, updatedAt, isPublic) =>
         val schemaMap = for {
@@ -146,7 +146,7 @@ object Fifth {
     } yield ()
 
   def queryDrafts =
-    (sql"SELECT vendor, name, format, draftnumber, schema, createdat, updatedat, ispublic FROM" ++ OldSchemasTable ++ fr"WHERE draftnumber != '0'")
+    (fr"SELECT vendor, name, format, draftnumber, schema, createdat, updatedat, ispublic FROM" ++ OldSchemasTable ++ fr"WHERE draftnumber != '0'")
       .query[(String, String, String, String, String, Instant, Instant, Boolean)]
       .map { case (vendor, name, format, draftId, body, createdAt, updatedAt, isPublic) =>
         for {
@@ -170,7 +170,7 @@ object Fifth {
     } yield ()
 
   def migrateKeys = {
-    val query = (sql"SELECT uid, vendor_prefix, permission FROM" ++ OldPermissionsTable)
+    val query = (fr"SELECT uid, vendor_prefix, permission FROM" ++ OldPermissionsTable)
       .query[(UUID, String, String)]
       .map { case (id, prefix, perm) =>
         val vendor = Permission.Vendor.parse(prefix)
@@ -193,13 +193,13 @@ object Fifth {
   def addSchema(schemaMap: SchemaMap, schema: Json, isPublic: Boolean, createdAt: Instant, updatedAt: Instant) = {
     val key = schemaMap.schemaKey
     val ver = key.version
-    (sql"INSERT INTO" ++ Postgres.SchemasTable ++ fr"(vendor, name, format, model, revision, addition, created_at, updated_at, is_public, body)" ++
+    (fr"INSERT INTO" ++ Postgres.SchemasTable ++ fr"(vendor, name, format, model, revision, addition, created_at, updated_at, is_public, body)" ++
       fr"VALUES (${key.vendor}, ${key.name}, ${key.format}, ${ver.model}, ${ver.revision}, ${ver.addition}, $createdAt, $updatedAt, $isPublic, $schema)")
       .update
   }
 
   def addDraft(draft: SchemaDraft) =
-    (sql"INSERT INTO" ++ Postgres.DraftsTable ++ fr"(vendor, name, format, version, created_at, updated_at, is_public, body)" ++
+    (fr"INSERT INTO" ++ Postgres.DraftsTable ++ fr"(vendor, name, format, version, created_at, updated_at, is_public, body)" ++
       fr"""VALUES (${draft.schemaMap.vendor}, ${draft.schemaMap.name}, ${draft.schemaMap.format},
         ${draft.schemaMap.version.value}, ${draft.metadata.createdAt}, ${draft.metadata.updatedAt},
         ${draft.metadata.isPublic}, ${draft.body})""")
