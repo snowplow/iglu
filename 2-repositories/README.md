@@ -9,7 +9,7 @@ We currently have two Iglu "repo" technologies available for deploying your Iglu
 | **Repository**           | **Category** | **Description**                                            | **Status**       |
 |:-------------------------|:-------------|:-----------------------------------------------------------|:-----------------|
 | [JVM-embedded repo][r1] | Embedded     | An Iglu repository embedded in a Java or Scala application | Production-ready |
-| [Static repo][r2]       | Remote       | An Iglu repository server structured as a static website   | Production-ready |
+| [Static registry][r2]       | Remote       | An Iglu repository server structured as a static website   | Production-ready |
 | [Iglu Server][r3]       | Remote       | A RESTful Iglu repository server written in Scala          | Production-ready  |
 
 <a name="iglu-central" />
@@ -29,7 +29,7 @@ We do not git-submodule Iglu Central into the main Iglu repository because it is
 [snowplow-wiki]: https://github.com/snowplow/snowplow/wiki
 
 [r1]: ./jvm-embedded-repo
-[r2]: ./static-repo
+[r2]: ./static-registry
 [r3]: ./iglu-server
 
 [iglucentral-website]: http://iglucentral.com/
