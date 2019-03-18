@@ -22,14 +22,17 @@ import cats.syntax.functor._
 import cats.syntax.apply._
 import cats.effect.{ContextShift, ExitCode, IO, Timer }
 
+import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+
 import fs2.Stream
 
-import org.http4s.{ HttpApp, Response, Status, HttpRoutes, MediaType, Request }
+import org.http4s.{ HttpApp, Response, Status, HttpRoutes, MediaType, Request, Headers }
 import org.http4s.headers.`Content-Type`
 import org.http4s.client.blaze.BlazeClientBuilder
 import org.http4s.server.Router
 import org.http4s.server.blaze.BlazeServerBuilder
-import org.http4s.server.middleware.{ AutoSlash, CORS, CORSConfig }
+import org.http4s.server.middleware.{ AutoSlash, CORS, CORSConfig, Logger }
+import org.http4s.syntax.string._
 
 import org.http4s.rho.{ AuthedContext, RhoMiddleware }
 import org.http4s.rho.bits.PathAST.{PathMatch, TypedPath}
@@ -101,7 +104,14 @@ object Server {
       maxAge = 1.day.toSeconds
     )
     val serverRoutes = (if (debug) debugRoute :: routes else routes).map {
-      case (endpoint, route) => (endpoint, CORS(AutoSlash(route), corsConfig))
+      case (endpoint, route) =>
+        if (debug)
+          (endpoint, Logger.httpRoutes[IO](logBody = true, logHeaders = true, redactHeadersWhen = (Headers.SensitiveHeaders + "apikey".ci).contains, logAction = Some(s => for {
+            logger <- Slf4jLogger.create[IO]
+            _ <- logger.info(s)
+          } yield ()))(CORS(AutoSlash(route), corsConfig)))
+        else
+          (endpoint, CORS(AutoSlash(route), corsConfig))
     }
     Kleisli[IO, Request[IO], Response[IO]](req => Router(serverRoutes: _*).run(req).getOrElse(NotFound))
   }

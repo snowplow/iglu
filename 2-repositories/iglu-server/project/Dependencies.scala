@@ -28,6 +28,7 @@ object Dependencies {
     val Decline    = "0.6.0"
     val Cats       = "1.6.0"
     val CatsEffect = "1.2.0"
+    val Log4Cats   = "0.3.0"
     val Circe      = "0.11.1"
     val CirceFs2   = "0.11.0"
     val Refined    = "0.9.3"
@@ -46,6 +47,7 @@ object Dependencies {
     "co.fs2"                %% "fs2-core"              % V.Fs2,
     "com.monovore"          %% "decline"               % V.Decline,
     "org.typelevel"         %% "cats-core"             % V.Cats,
+    "io.chrisdavenport"     %% "log4cats-slf4j"        % V.Log4Cats,
     "org.http4s"            %% "http4s-blaze-server"   % V.Http4s,
     "org.http4s"            %% "http4s-blaze-client"   % V.Http4s,
     "org.http4s"            %% "http4s-circe"          % V.Http4s,
