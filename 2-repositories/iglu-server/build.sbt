@@ -2,7 +2,7 @@ lazy val root = (project in file("."))
   .settings(
     organization := "com.snowplowanalytics",
     name := "iglu-server",
-    version := "0.6.0-rc6",
+    version := "0.6.0-rc7",
     scalaVersion := "2.12.8",
     libraryDependencies ++= Dependencies.all,
     scalacOptions ++= Seq(
