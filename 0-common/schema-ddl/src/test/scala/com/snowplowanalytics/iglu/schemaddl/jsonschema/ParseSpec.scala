@@ -145,7 +145,7 @@ class ParseSpec extends Specification { def is = s2"""
                 "deepUnionTypeArray" -> Schema(
                   `type` = Type.Array,
                   items = Items.ListItems(Schema(
-                    `type` = Type.Union(List(Type.Object, Type.String, Type.Null, Type.Integer)),
+                    `type` = Type.Union(Set(Type.Object, Type.String, Type.Null, Type.Integer)),
                     properties = Properties(Map(
                       "foo" -> Schema(
                         `type` = Type.String
@@ -224,7 +224,7 @@ class ParseSpec extends Specification { def is = s2"""
                 "deepUnionTypeArray" -> Schema(
                   `type` = Type.Array,
                   items = Items.ListItems(Schema(
-                    `type` = Type.Union(List(Type.Object, Type.String, Type.Null, Type.Integer)),
+                    `type` = Type.Union(Set(Type.Object, Type.String, Type.Null, Type.Integer)),
                     properties = Properties(Map(
                       "foo" -> Schema(
                         `type` = Type.String

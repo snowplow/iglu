@@ -26,7 +26,7 @@ object ArrayProperty {
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor37
    */
   sealed trait Items extends JsonSchemaProperty with ArrayProperty {
-    def keyName = "items"
+    val keyword: Keyword = Keyword.Items
   }
   object Items {
     case class ListItems(value: Schema) extends Items
@@ -39,7 +39,7 @@ object ArrayProperty {
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor37
    */
   sealed trait AdditionalItems extends JsonSchemaProperty with ArrayProperty {
-    def keyName = "additionalItems"
+    val keyword: Keyword = Keyword.AdditionalItems
   }
   object AdditionalItems {
     case class AdditionalItemsAllowed(value: Boolean) extends AdditionalItems
@@ -52,7 +52,7 @@ object ArrayProperty {
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor42
    */
   case class MaxItems(value: BigInt) extends JsonSchemaProperty with ArrayProperty {
-    def keyName = "maxItems"
+    val keyword: Keyword = Keyword.MaxItems
   }
 
   /**
@@ -61,7 +61,7 @@ object ArrayProperty {
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor45
    */
   case class MinItems(value: BigInt) extends JsonSchemaProperty with ArrayProperty {
-    def keyName = "minItems"
+    val keyword: Keyword = Keyword.MinItems
   }
 }
 

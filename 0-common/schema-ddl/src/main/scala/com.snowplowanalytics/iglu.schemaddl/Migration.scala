@@ -34,12 +34,7 @@ import com.snowplowanalytics.iglu.core.{ SchemaMap, SchemaVer }
  * @param to target Schema version
  * @param diff ordered map of added Schema properties
  */
-case class Migration(
-  vendor: String,
-  name: String,
-  from: SchemaVer.Full,
-  to: SchemaVer.Full,
-  diff: Migration.SchemaDiff)
+case class Migration(vendor: String, name: String, from: SchemaVer.Full, to: SchemaVer.Full, diff: SchemaDiff)
 
 // When our Migrations will be precise enough, so they could handle
 // number size, varchar size, null etc we could implement build of DDLs
@@ -54,22 +49,9 @@ case class Migration(
 
 object Migration {
 
-  implicit val schemaOrdering = implicitly[Order[Int]].contramap[IgluSchema](_.self.schemaKey.version.addition)
+  // The pointer always need to be decided based on initial 1-0-0 schema
 
-  /**
-   * This class represents differences between two Schemas
-   *
-   * Nothing except [[added]] is used now
-   *
-   * @param added list of properties sorted by their appearance in JSON Schemas
-   * @param modified list of properties changed in target Schema;
-   *                 if some property was added in successive Schema and modified
-   *                 after that, it should appear in [[added]]
-   * @param removed set of keys removed in target Schema
-   */
-  case class SchemaDiff(added: List[(Pointer.SchemaPointer, Schema)],
-                        modified: SubSchemas,
-                        removed: Set[Pointer.SchemaPointer])
+  implicit val schemaOrdering = implicitly[Order[Int]].contramap[IgluSchema](_.self.schemaKey.version.addition)
 
   /**
    * Map schemas by their Schema Criterion m-r-*
@@ -99,68 +81,13 @@ object Migration {
     val successive = successiveSchemas.map(s => FlatSchema.build(s.schema))
     val target = successiveSchemas.last
 
-    val diff = diffMaps(source, successive.map(_.subschemas))
     Migration(
       sourceSchema.self.schemaKey.vendor,
       sourceSchema.self.schemaKey.name,
       sourceSchema.self.schemaKey.version,
       target.self.schemaKey.version,
-      diff)
+      SchemaDiff.diff(source, successive.map(_.subschemas)))
   }
-
-  /**
-   * Generate diff from source list of properties to target though sequence of intermediate
-   *
-   * @param source source list of JSON Schema properties
-   * @param successive non-empty list of successive JSON Schema properties including target
-   * @return diff between two Schmea
-   */
-  def diffMaps(source: SubSchemas, successive: List[SubSchemas]): SchemaDiff = {
-    val target = successive.last
-    val addedKeys = getAddedKeys(source, successive)
-    val added = getSubmap(addedKeys, target)
-    val modified = getModifiedProperties(source, target, addedKeys)
-    val removedKeys = source.map(_._1) diff target.map(_._1)
-    SchemaDiff(added, modified, removedKeys)
-  }
-
-  /**
-   * Get list of new properties in order they appear in subsequent Schemas
-   *
-   * @param source original Schema
-   * @param successive all subsequent Schemas
-   * @return possibly empty list of keys in correct order
-   */
-  def getAddedKeys(source: SubSchemas, successive: List[SubSchemas]): List[Pointer.SchemaPointer] = {
-    val (newKeys, _) = successive.foldLeft((List.empty[Pointer.SchemaPointer], source)) { case ((acc, previous), current) =>
-      (acc ++ (current.map(_._1) diff previous.map(_._1)), current)
-    }
-    newKeys
-  }
-
-  /**
-   * Get list of JSON Schema properties modified between two versions
-   *
-   * @param source original list of JSON Schema properties
-   * @param target final list of JSON Schema properties
-   * @param addedKeys keys to be excluded from this diff, added properties
-   *                  should be included in [[SchemaDiff]] separately
-   * @return list of properties changed in target Schema
-   */
-  def getModifiedProperties(source: SubSchemas, target: SubSchemas, addedKeys: List[Pointer.SchemaPointer]): SubSchemas = {
-    val targetModified = target.filter { case (k, _) => !addedKeys.contains(k) }
-    targetModified diff source
-  }
-
-  /**
-   * Get `List` ordered by key
-   *
-   * @param keys ordered list of submap keys
-   * @param original original Map
-   * @return sorted Map of new properties
-   */
-  def getSubmap[K, V](keys: List[Pointer.SchemaPointer], original: SubSchemas): List[(Pointer.SchemaPointer, Schema)] =
-    List(keys.flatMap(k => original.toMap.get(k).map((k, _))): _*)
 
   /**
    * Map each single Schema to List of subsequent Schemas

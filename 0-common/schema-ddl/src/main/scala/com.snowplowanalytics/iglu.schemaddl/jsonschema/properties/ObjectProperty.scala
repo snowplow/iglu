@@ -25,7 +25,7 @@ object ObjectProperty {
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor64
    */
   final case class Properties(value: Map[String, Schema]) extends JsonSchemaProperty with ObjectProperty {
-    def keyName = "properties"
+    val keyword: Keyword = Keyword.Properties
   }
 
   /**
@@ -34,7 +34,7 @@ object ObjectProperty {
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor64
    */
   sealed trait AdditionalProperties extends JsonSchemaProperty with ObjectProperty {
-    def keyName = "additionalProperties"
+    val keyword: Keyword = Keyword.AdditionalProperties
   }
   object AdditionalProperties {
     /**
@@ -55,7 +55,7 @@ object ObjectProperty {
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor61
    */
   final case class Required(value: List[String]) extends JsonSchemaProperty with ObjectProperty  {
-    def keyName = "required"
+    val keyword: Keyword = Keyword.Required
   }
 
   /**
@@ -64,6 +64,6 @@ object ObjectProperty {
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor64
    */
   final case class PatternProperties(value: Map[String, Schema]) extends JsonSchemaProperty with ObjectProperty {
-    def keyName = "patternProperties"
+    val keyword: Keyword = Keyword.PatternProperties
   }
 }

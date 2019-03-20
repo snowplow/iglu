@@ -24,7 +24,6 @@ import org.specs2.Specification
 import io.circe.literal._
 
 // This library
-import Migration._
 import SpecHelpers._
 
 class MigrationSpec extends Specification { def is = s2"""
@@ -65,7 +64,7 @@ class MigrationSpec extends Specification { def is = s2"""
 
     val secondSchema = SelfDescribingSchema(SchemaMap("com.acme", "example", "jsonschema", SchemaVer.Full(1,0,1)), second)
 
-    val fromSchema = json"""{"type": "integer", "maximum": 4000}""".schema
+    val fromSchema = json"""{"type": ["integer", "null"], "maximum": 4000}""".schema
     val fromPointer = "/properties/bar".jsonPointer
 
     val migrations = List(
@@ -145,8 +144,8 @@ class MigrationSpec extends Specification { def is = s2"""
         SchemaVer.Full(1,0,2),
         SchemaDiff(
           List(
-            "/properties/bar".jsonPointer -> json"""{"type": "integer", "maximum": 4000}""".schema,
-            "/properties/baz".jsonPointer -> json"""{"type": "array"}""".schema),
+            "/properties/bar".jsonPointer -> json"""{"type": ["integer", "null"], "maximum": 4000}""".schema,
+            "/properties/baz".jsonPointer -> json"""{"type": ["array", "null"]}""".schema),
           Set.empty,
           Set.empty)),
       Migration(
@@ -155,7 +154,7 @@ class MigrationSpec extends Specification { def is = s2"""
         SchemaVer.Full(1,0,0),
         SchemaVer.Full(1,0,1),
         SchemaDiff(
-          List("/properties/bar".jsonPointer -> json"""{"type": "integer", "maximum": 4000}""".schema),
+          List("/properties/bar".jsonPointer -> json"""{"type": ["integer", "null"], "maximum": 4000}""".schema),
           Set.empty,
           Set.empty)))
 
@@ -166,7 +165,7 @@ class MigrationSpec extends Specification { def is = s2"""
         SchemaVer.Full(1,0,1),
         SchemaVer.Full(1,0,2),
         SchemaDiff(
-          List("/properties/baz".jsonPointer -> json"""{"type": "array"}""".schema),
+          List("/properties/baz".jsonPointer -> json"""{"type": ["array", "null"]}""".schema),
           Set.empty,
           Set.empty))
     )

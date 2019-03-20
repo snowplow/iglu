@@ -21,7 +21,7 @@ import com.github.fge.jsonschema.core.load.configuration.LoadingConfiguration
 import com.github.fge.jsonschema.core.load.uri.URITranslatorConfiguration
 import com.github.fge.jsonschema.core.report.{ListProcessingReport, ProcessingMessage, ProcessingReport}
 import com.github.fge.jsonschema.core.tree.SchemaTree
-import com.github.fge.jsonschema.library.{DraftV4Library, Keyword}
+import com.github.fge.jsonschema.library.{DraftV4Library, Keyword => FgeKeyword}
 import com.github.fge.jsonschema.processors.syntax.SyntaxValidator
 import com.github.fge.jsonschema.main.JsonSchemaFactory
 import com.github.fge.msgsimple.bundle.MessageBundle
@@ -148,7 +148,7 @@ object SelfSyntaxChecker extends AbstractSyntaxChecker("self", NodeType.OBJECT) 
     * keyword, ready to be used for `Validator` construction
     */
   def getValidationConfiguration: ValidationConfiguration = {
-    val selfKeyword = Keyword.newBuilder("self")
+    val selfKeyword = FgeKeyword.newBuilder("self")
       .withSimpleDigester(NodeType.OBJECT)
       .withSyntaxChecker(SelfSyntaxChecker)
       .freeze()

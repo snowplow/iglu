@@ -40,7 +40,7 @@ class FlatSchemaSpec extends Specification { def is = s2"""
     val schema = json"""{"type": "object"}""".schema
     // TODO: I expect to see FlatSchema.empty, but root here considered primitive
     val expected = FlatSchema(
-      Set(Pointer.Root -> Schema.empty.copy(`type` = Some(Type.Object))),
+      Set(Pointer.Root -> Schema.empty.copy(`type` = Some(Type.Union(Set(Type.Object, Type.Null))))),
       Set.empty,
       Set.empty)
 
@@ -66,7 +66,7 @@ class FlatSchemaSpec extends Specification { def is = s2"""
 
     val subSchemas = Set(
       "/properties/nested/properties/object_without_properties".jsonPointer ->
-        json"""{"type": "object"}""".schema)
+        json"""{"type": ["object", "null"]}""".schema)
 
     val result = FlatSchema.build(json)
 
@@ -114,7 +114,7 @@ class FlatSchemaSpec extends Specification { def is = s2"""
 
     val expected = Set(
       "/properties/foo".jsonPointer ->
-        json"""{"type": "array", "items": {"type": "string"}}""".schema
+        json"""{"type": ["array", "null"], "items": {"type": "string"}}""".schema
     )
 
     val result = FlatSchema.build(schema)
@@ -150,8 +150,8 @@ class FlatSchemaSpec extends Specification { def is = s2"""
     val result = FlatSchema.build(schema)
 
     val expectedSubschemas = Set(
-      "/properties/foo/properties/two".jsonPointer -> json"""{"type": "integer"}""".schema,
-      "/properties/foo/properties/one".jsonPointer -> json"""{"type": "string"}""".schema)
+      "/properties/foo/properties/two".jsonPointer -> json"""{"type": ["integer", "null"]}""".schema,
+      "/properties/foo/properties/one".jsonPointer -> json"""{"type": ["string", "null"]}""".schema)
 
     result.subschemas must beEqualTo(expectedSubschemas) and (result.required must beEmpty)
   }
@@ -188,7 +188,7 @@ class FlatSchemaSpec extends Specification { def is = s2"""
     val expectedRequired = Set("/properties/foo".jsonPointer, "/properties/foo/properties/one".jsonPointer)
     val expectedSubschemas = Set(
       "/properties/foo/properties/nonRequiredNested/properties/nestedRequired".jsonPointer ->
-        json"""{"type": "integer"}""".schema,
+        json"""{"type": ["integer", "null"]}""".schema,
       "/properties/foo/properties/one".jsonPointer ->
         json"""{"type": "string"}""".schema,
     )
@@ -253,7 +253,7 @@ class FlatSchemaSpec extends Specification { def is = s2"""
       "/properties/one/properties/two".jsonPointer ->
         json"""{"type": "string"}""".schema,
       "/properties/one/properties/withProps/properties/included".jsonPointer ->
-        json"""{"type": "integer"}""".schema,
+        json"""{"type": ["integer", "null"]}""".schema,
     )
 
     val required = result.required must bePointers(expectedRequired)

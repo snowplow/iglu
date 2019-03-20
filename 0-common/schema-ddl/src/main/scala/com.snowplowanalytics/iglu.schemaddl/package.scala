@@ -19,10 +19,9 @@ import schemaddl.jsonschema.{ Schema, Pointer }
 
 package object schemaddl {
   /**
-   * List of Schema properties
-   * First-level key is arbitrary property (like id, name etc)
-   * Second-level is map of JSON Schema properties (type, enum etc)
-   */
+    * Set of Schemas properties attached to corresponding JSON Pointers
+    * Unlike their original Schemas, these have `null` among types if they're not required
+    */
   type SubSchemas = Set[(Pointer.SchemaPointer, Schema)]
 
   /**

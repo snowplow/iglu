@@ -26,7 +26,7 @@ object NumberProperty {
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor14
    */
   sealed trait MultipleOf extends JsonSchemaProperty with NumberProperty {
-    def keyName = "multipleOf"
+    val keyword: Keyword = Keyword.MultipleOf
   }
   object MultipleOf {
     case class NumberMultipleOf(value: BigDecimal) extends MultipleOf
@@ -39,7 +39,7 @@ object NumberProperty {
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor17
    */
   sealed trait Minimum extends JsonSchemaProperty with NumberProperty {
-    def keyName = "minimum"
+    val keyword: Keyword = Keyword.Minimum
 
     /**
      * Get value of `minimum` property as `BigDecimal` preserving point for
@@ -62,7 +62,7 @@ object NumberProperty {
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor17
    */
   sealed trait Maximum extends JsonSchemaProperty with NumberProperty {
-    def keyName = "maximum"
+    val keyword: Keyword = Keyword.Maximum
 
     /**
      * Get value of `maximum` property as `BigDecimal` preserving point for

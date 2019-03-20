@@ -134,7 +134,7 @@ object DdlGenerator {
       columnName = getName(jsonPointer)
       dataType = getDataType(schema, varcharSize, columnName)
       encoding = getEncoding(schema, dataType, columnName)
-      constraints = getConstraints(isNotNull(flatSchema)(jsonPointer, schema))
+      constraints = getConstraints(!schema.canBeNull)
     } yield Column(columnName, dataType, columnAttributes = Set(encoding), columnConstraints = constraints)
     columnSet.toList.sortBy(c => (-c.columnConstraints.size, c.columnName))
   }
@@ -220,24 +220,5 @@ object DdlGenerator {
   private[schemaddl] def getConstraints(notNull: Boolean) = {
     if (notNull) Set[ColumnConstraint](Nullability(NotNull))
     else Set.empty[ColumnConstraint]
-  }
-
-  /**
-    * Check whether field can be null.
-    * Priority of factors:
-    * - "null" in type
-    * - null in enum
-    * - property is in required array
-    *
-    * @param root whole flat schema to get information about required properties
-    * @param schema hash map of JSON Schema properties for primitive type
-    * @return nullable or not
-    */
-  def isNotNull(root: FlatSchema)(pointer: Pointer.SchemaPointer, schema: Schema) = {
-    val notNull = root.nestedRequired(pointer) &&
-      !root.nestedNullable(pointer) &&
-      (schema.`type`.exists(_.nullable) || schema.enum.exists(_.value.exists(_.isNull)))
-
-    !notNull
   }
 }

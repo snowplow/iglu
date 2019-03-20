@@ -1,13 +1,9 @@
 package com.snowplowanalytics.iglu.schemaddl
 
-import org.specs2.Specification
 import io.circe.literal._
-import jsonschema.{Pointer, Schema}
+
+import org.specs2.Specification
 import SpecHelpers._
-import jsonschema.circe.implicits._
-import jsonschema.json4s.implicits._
-import org.json4s.jackson.JsonMethods.compact
-import cats.implicits._
 
 class FlattenerSpec extends Specification { def is = s2"""
   Try out traverse $e1
@@ -109,13 +105,10 @@ class FlattenerSpec extends Specification { def is = s2"""
 
     val flatSchema = FlatSchema.build(schema)
 
-    println(flatSchema.show)
-    println(flatSchema.required)
     import redshift.generators.DdlGenerator
 
     val result = DdlGenerator.generateTableDdl(flatSchema, "events", None, 4096, false)
 
-    println(result.toDdl)
     ko
   }
 

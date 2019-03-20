@@ -54,7 +54,7 @@ object TypeSuggestions {
   val productSuggestion: DataTypeSuggestion = (properties, columnName) =>
     properties.`type` match {
       case Some(t: Type.Union) if t.isUnion =>
-        val typeSet = t.value.toSet - Type.Null
+        val typeSet = t.value - Type.Null
         if (typeSet == Set(Type.Boolean, Type.Integer))
           Some(ProductType(List(s"Product type ${t.asJson.noSpaces} encountered in $columnName"), Some(Int.MaxValue.toString.length)))
         else
@@ -89,7 +89,7 @@ object TypeSuggestions {
         Some(RedshiftDecimal(Some(36), Some(2)))
       case (Some(types), _) if types.possiblyWithNull(Type.Number) =>
         Some(RedshiftDouble)
-      case (Some(types: Type.Union), _) if (types.value.toSet - Type.Null) == Set(Type.Integer, Type.Number) =>
+      case (Some(types: Type.Union), _) if (types.value - Type.Null) == Set(Type.Integer, Type.Number) =>
         Some(RedshiftDouble)
       case _ =>
         None

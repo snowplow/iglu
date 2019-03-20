@@ -58,7 +58,7 @@ object CommonSerializers {
         }
         types.sequence[Either[String, ?], Type] match {
           case Right(List(t)) => t
-          case Right(u)       => Type.Union(u)
+          case Right(u)       => Type.Union(u.toSet)
           case Left(invalid)  => throw new MappingException(invalid + " is not valid list of types")
         }
       case JString(t) =>

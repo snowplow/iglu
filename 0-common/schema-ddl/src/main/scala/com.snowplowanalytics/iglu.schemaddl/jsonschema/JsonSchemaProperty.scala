@@ -16,8 +16,10 @@ package com.snowplowanalytics.iglu.schemaddl.jsonschema
  * Common supertype for all JSON Schema properties
  */
 trait JsonSchemaProperty extends Product with Serializable {
+  def keyword: Keyword
+
   /**
    * Each property should at least have canonical key
    */
-  def keyName: String
+  def keyName: String = keyword.name.name
 }

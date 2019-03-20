@@ -92,9 +92,7 @@ object MigrationGenerator {
         val columnName = DdlGenerator.getName(pointer)
         val dataType = getDataType(properties, varcharSize, columnName)
         val encoding = getEncoding(properties, dataType, columnName)
-        val nullable =
-          if (isNotNull(???)(pointer, properties)) None
-          else Some(Nullability(NotNull))
+        val nullable = if (properties.canBeNull) None else Some(Nullability(NotNull))
         AlterTable(tableName, AddColumn(snakeCase(columnName), dataType, None, Some(encoding), nullable))
     }
 }

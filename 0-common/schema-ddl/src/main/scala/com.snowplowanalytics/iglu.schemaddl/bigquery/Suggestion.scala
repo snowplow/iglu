@@ -50,9 +50,9 @@ object Suggestion {
     schema.`type` match {
       case Some(CommonProperties.Type.Number) =>
         Some(name => Field(name, Type.Float, Mode.required(required)))
-      case Some(CommonProperties.Type.Union(types)) if onlyNumeric(types.toSet, true) =>
+      case Some(CommonProperties.Type.Union(types)) if onlyNumeric(types, true) =>
         Some(name => Field(name, Type.Float, Mode.Nullable))
-      case Some(CommonProperties.Type.Union(types)) if onlyNumeric(types.toSet, false)  =>
+      case Some(CommonProperties.Type.Union(types)) if onlyNumeric(types, false)  =>
         Some(name => Field(name, Type.Float, Mode.required(required)))
       case Some(CommonProperties.Type.Union(types)) if withNull(types, CommonProperties.Type.Number) =>
         Some(name => Field(name, Type.Float, Mode.Nullable))
@@ -116,8 +116,8 @@ object Suggestion {
     }
   }
 
-  private def withNull(types: List[CommonProperties.Type], t: CommonProperties.Type): Boolean =
-    types.toSet == Set(t, CommonProperties.Type.Null) || types == List(t)
+  private def withNull(types: Set[CommonProperties.Type], t: CommonProperties.Type): Boolean =
+    types == Set(t, CommonProperties.Type.Null) || types == Set(t)
 
   private def onlyNumeric(types: Set[CommonProperties.Type], allowNull: Boolean): Boolean =
     if (allowNull) types == Set(CommonProperties.Type.Number, CommonProperties.Type.Integer, CommonProperties.Type.Null)

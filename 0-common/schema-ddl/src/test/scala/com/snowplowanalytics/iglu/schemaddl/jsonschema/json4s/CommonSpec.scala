@@ -53,7 +53,7 @@ class CommonSpec extends Specification { def is = s2"""
         |}
       """.stripMargin)
 
-    Schema.parse(schema) must beSome(Schema(`type` = Some(CommonProperties.Type.Union(List(CommonProperties.Type.String, CommonProperties.Type.Null)))))
+    Schema.parse(schema) must beSome(Schema(`type` = Some(CommonProperties.Type.Union(Set(CommonProperties.Type.String, CommonProperties.Type.Null)))))
   }
 
   def e3 = {

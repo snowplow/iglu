@@ -19,7 +19,7 @@ import cats.data.{NonEmptyList, State}
 import io.circe.Json
 import org.json4s.jackson.JsonMethods.compact
 
-import com.snowplowanalytics.iglu.core.SelfDescribingData
+import com.snowplowanalytics.iglu.core.{ SelfDescribingData, SchemaKey }
 
 import com.snowplowanalytics.iglu.schemaddl.VersionTree.VersionList
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.properties.CommonProperties
@@ -34,21 +34,12 @@ import com.snowplowanalytics.iglu.schemaddl.jsonschema.json4s.implicits._
   *                 some of parent properties still can be `null` and thus not required
   * @param parents keys that are not primitive, but can contain important information (e.g. nullability)
   */
-final case class FlatSchema(columns: Set[(SchemaPointer, Schema)],
-                            required: Set[SchemaPointer],
-                            parents: Set[(SchemaPointer, Schema)]) {
-
-  def subschemas: Set[(SchemaPointer, Schema)] =
-    for {
-      (pointer, schema) <- columns
-    } yield {
-      if (nestedNullable(pointer)) (pointer, schema.copy(`type` = schema.`type`.map(_.withNull)))
-      else (pointer, schema)
-    }
+// TODO: remove parents
+final case class FlatSchema(subschemas: SubSchemas, required: Set[SchemaPointer], parents: SubSchemas) {
 
   def withLeaf(pointer: SchemaPointer, schema: Schema): FlatSchema = {
     val updatedSchema =
-      if (required.contains(pointer) || schema.canBeNull)
+      if (!required.contains(pointer) || schema.canBeNull)
         schema.copy(`type` = schema.`type`.map(_.withNull))
       else schema
     FlatSchema(subschemas + (pointer -> updatedSchema), required, parents)
@@ -58,10 +49,6 @@ final case class FlatSchema(columns: Set[(SchemaPointer, Schema)],
     val currentRequired = FlatSchema.getRequired(pointer, schema).filter(nestedRequired)
     this.copy(required = currentRequired ++ required)
   }
-
-  // I think we added too much info to handle just nullability
-  // I think instead we should mark all [X, null] and -no-required
-  // i.e. if !nestedRequired - add null to type
 
   def withParent(pointer: SchemaPointer, schema: Schema): FlatSchema =
     FlatSchema(subschemas, required, parents + (pointer -> schema))
@@ -90,14 +77,6 @@ final case class FlatSchema(columns: Set[(SchemaPointer, Schema)],
 
 
 object FlatSchema {
-
-  def flatten(json: SelfDescribingData[Json]): Either[String, List[String]] = ???
-
-  /** Schema group metadata extracted from repository */
-  case class SchemaGroupMeta(vendor: String, name: String, versions: VersionList)
-  /** Full schemas */
-  case class SchemaGroup private(meta: SchemaGroupMeta, schemas: NonEmptyList[Schema])
-
   case class Changed(what: String, from: Schema.Primitive, to: Schema)
   case class Diff(added: (String, Schema), removed: List[String], changed: Changed)
 
@@ -143,7 +122,6 @@ object FlatSchema {
         flatSchema
           .withRequired(pointer, schema)
           .withLeaf(pointer, schema)
-        //
       else flatSchema
         .withRequired(pointer, schema)
         .withParent(pointer, schema)

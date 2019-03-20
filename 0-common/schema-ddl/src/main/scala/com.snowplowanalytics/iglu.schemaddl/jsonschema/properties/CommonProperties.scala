@@ -28,12 +28,19 @@ object CommonProperties {
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor79
    */
   sealed trait Type extends JsonSchemaProperty {
-    def keyName = "type"
+    val keyword: Keyword = Keyword.Type
     def asJson: Json
     def withNull: Type = this match {
-      case Type.Union(types) => Type.Union((Type.Null :: types).distinct)
+      case Type.Union(types) => Type.Union(types + Type.Null)
       case Type.Null => Type.Null
-      case other => Type.Union(List(Type.Null, other))
+      case other => Type.Union(Set(Type.Null, other))
+    }
+
+    def isSubsetOf(other: Type): Boolean = (this, other) match {
+      case (Type.Union(thisTypes), Type.Union(otherTypes)) => thisTypes.subsetOf(otherTypes)
+      case (Type.Union(thisTypes), otherType) => thisTypes == Set(otherType)
+      case (thisType, Type.Union(otherTypes)) => otherTypes.contains(thisType)
+      case (thisType, otherType) => thisType == otherType
     }
   }
 
@@ -66,7 +73,7 @@ object CommonProperties {
       def asJson = Json.fromString("object")
     }
 
-    case class Union(value: List[Type]) extends Type {
+    case class Union(value: Set[Type]) extends Type {
       def asJson = Json.fromValues(value.map(_.asJson))
 
       def hasNull: Boolean = value.contains(Null)
@@ -87,7 +94,7 @@ object CommonProperties {
     private[jsonschema] def fromProduct(arr: List[String]): Either[String, Type] =
       arr.map(fromString).map(_.toValidatedNel).sequence[ValidatedNel[String, ?], Type] match {
         case Validated.Valid(List(single)) => single.asRight
-        case Validated.Valid(product) => Union(product).asRight
+        case Validated.Valid(product) => Union(product.toSet).asRight
         case Validated.Invalid(invalid) if invalid.size == 1 => s"${invalid.head} is invalid type".asLeft
         case Validated.Invalid(invalid) => s"${invalid.toList.mkString(",")} are invalid types".asLeft
       }
@@ -98,7 +105,9 @@ object CommonProperties {
    *
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor76
    */
-  case class Enum(value: List[Json]) extends JsonSchemaProperty { def keyName = "enum" }
+  case class Enum(value: List[Json]) extends JsonSchemaProperty {
+    val keyword: Keyword = Keyword.Enum
+  }
 
 
   /**
@@ -106,7 +115,9 @@ object CommonProperties {
    *
    * @see http://json-schema.org/latest/json-schema-validation.html#anchor88
    */
-  case class OneOf(value: List[Schema]) extends JsonSchemaProperty { def keyName = "oneOf" }
+  case class OneOf(value: List[Schema]) extends JsonSchemaProperty {
+    val keyword: Keyword = Keyword.OneOf
+  }
 
 
   /**
@@ -115,6 +126,6 @@ object CommonProperties {
    * @see http://json-schema.org/latest/json-schema-validation.html#rfc.section.10.1
    */
   case class Description(value: String) extends JsonSchemaProperty {
-    def keyName = "description"
+    val keyword: Keyword = Keyword.Description
   }
 }
