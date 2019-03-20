@@ -18,9 +18,11 @@ import cats.Applicative
 import cats.implicits._
 
 import io.circe.{Encoder, Json}
+import io.circe.generic.semiauto._
 
 import org.http4s.{Request, Response, Status, Uri}
 import org.http4s.client.Client
+import org.http4s.circe._
 
 import com.snowplowanalytics.iglu.core.SchemaKey
 
@@ -55,5 +57,8 @@ object Webhook {
         "updated" -> Json.fromBoolean(event.updated)
       ))
     }
+
+  implicit val webhookEncoder: Encoder[Webhook] =
+    deriveEncoder[Webhook]
 }
 

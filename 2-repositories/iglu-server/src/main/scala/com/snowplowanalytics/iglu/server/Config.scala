@@ -21,12 +21,15 @@ import cats.effect.IO
 
 import com.monovore.decline._
 
+import io.circe.{Encoder, Json, JsonObject}
+import io.circe.generic.semiauto._
+
 import pureconfig._
 import pureconfig.generic.ProductHint
 import pureconfig.generic.semiauto._
 import pureconfig.module.http4s._
-
 import migrations.MigrateFrom
+
 import generated.BuildInfo.version
 
 /**
@@ -70,6 +73,18 @@ object Config {
 
     val postgresReader = ConfigReader.forProduct8("host", "port","dbname", "username",
       "password", "driver", "connectThreads", "maxPoolSize")(StorageConfig.Postgres.apply)
+
+    implicit val storageConfigCirceEncoder: Encoder[StorageConfig] =
+      deriveEncoder[StorageConfig].mapJson { json =>
+        json.hcursor
+          .downField("Postgres")
+          .focus
+          .getOrElse(Json.Null)
+          .mapObject { o => JsonObject.fromMap(o.toMap.map {
+            case ("password", _) => ("password", Json.fromString("******"))
+            case (k, v) => (k, v)
+          })}
+      }
   }
 
   /**
@@ -82,6 +97,9 @@ object Config {
 
   implicit def httpConfigHint =
     ProductHint[Http](ConfigFieldMapping(CamelCase, CamelCase))
+
+  implicit val httpConfigCirceEncoder: Encoder[Http] =
+    deriveEncoder[Http]
 
   implicit val pureWebhookReader: ConfigReader[Webhook] = ConfigReader.fromCursor { cur =>
     for {
@@ -123,6 +141,8 @@ object Config {
 
   implicit val pureConfigReader: ConfigReader[Config] = deriveReader[Config]
 
+  implicit val mainConfigCirceEncoder: Encoder[Config] =
+    deriveEncoder[Config]
 
   sealed trait ServerCommand {
     def config: Path

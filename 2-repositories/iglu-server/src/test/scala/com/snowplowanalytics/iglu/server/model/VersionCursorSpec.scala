@@ -22,6 +22,8 @@ class VersionCursorSpec extends org.specs2.Specification { def is = s2"""
   previousExists rejects new model if previous model does not exist yet $e3
   previousExists validates new addition $e4
   previousExists rejects new addition if previous does not exist $e5
+  isAllowed allows overriding schema if patchesAllowed set to true $e6
+  isAllowed forbids overriding schema if patchesAllowed set to false $e7
   """
 
   def e1 = {
@@ -53,5 +55,13 @@ class VersionCursorSpec extends org.specs2.Specification { def is = s2"""
     val existing = List(SchemaVer.Full(1,0,0), SchemaVer.Full(1,1,0), SchemaVer.Full(1,1,1))
     val current = VersionCursor.get(SchemaVer.Full(1,1,3))
     VersionCursor.previousExists(existing, current) must beFalse
+  }
+
+  def e6 = {
+    VersionCursor.isAllowed(SchemaVer.Full(1,0,0), List(SchemaVer.Full(1,0,0)), true) must beRight(())
+  }
+
+  def e7 = {
+    VersionCursor.isAllowed(SchemaVer.Full(1,0,0), List(SchemaVer.Full(1,0,0)), false) must beLeft(VersionCursor.Inconsistency.AlreadyExists)
   }
 }

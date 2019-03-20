@@ -22,6 +22,8 @@ import cats.syntax.functor._
 import cats.syntax.apply._
 import cats.effect.{ContextShift, ExitCode, IO, Timer }
 
+import io.circe.syntax._
+
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 
 import fs2.Stream
@@ -51,6 +53,8 @@ import com.snowplowanalytics.iglu.server.service._
 import generated.BuildInfo.version
 
 object Server {
+
+  private val logger = Slf4jLogger.getLogger[IO]
 
   type RoutesConstructor = (Storage[IO], AuthedContext[IO, Permission], RhoMiddleware[IO]) => HttpRoutes[IO]
 
@@ -85,7 +89,7 @@ object Server {
              (implicit cs: ContextShift[IO]): HttpApp[IO] = {
 
     val services: List[(String, RoutesConstructor)] = List(
-      "/api/meta"       -> MetaService.asRoutes,
+      "/api/meta"       -> MetaService.asRoutes(debug, patchesAllowed),
       "/api/schemas"    -> SchemaService.asRoutes(patchesAllowed, webhook),
       "/api/auth"       -> AuthService.asRoutes,
       "/api/validation" -> ValidationService.asRoutes,
@@ -105,19 +109,18 @@ object Server {
     )
     val serverRoutes = (if (debug) debugRoute :: routes else routes).map {
       case (endpoint, route) =>
+        val cors = CORS(AutoSlash(route), corsConfig)
         if (debug)
-          (endpoint, Logger.httpRoutes[IO](logBody = true, logHeaders = true, redactHeadersWhen = (Headers.SensitiveHeaders + "apikey".ci).contains, logAction = Some(s => for {
-            logger <- Slf4jLogger.create[IO]
-            _ <- logger.info(s)
-          } yield ()))(CORS(AutoSlash(route), corsConfig)))
+          (endpoint, Logger.httpRoutes[IO](true, true, (Headers.SensitiveHeaders + "apikey".ci).contains, Some(s => logger.info(s)))(cors))
         else
-          (endpoint, CORS(AutoSlash(route), corsConfig))
+          (endpoint, cors)
     }
     Kleisli[IO, Request[IO], Response[IO]](req => Router(serverRoutes: _*).run(req).getOrElse(NotFound))
   }
 
   def run(config: Config)(implicit ec: ExecutionContext, cs: ContextShift[IO], timer: Timer[IO]): Stream[IO, ExitCode] = {
     for {
+      _ <- Stream.eval(logger.info(s"Initializing server with following configuration: ${config.asJson.noSpaces}"))
       client <- BlazeClientBuilder[IO](ec).stream
       webhookClient = Webhook.WebhookClient(config.webhooks.getOrElse(Nil), client)
       storage <- Stream.resource(Storage.initialize[IO](ec)(config.database))

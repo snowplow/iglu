@@ -34,7 +34,9 @@ import com.snowplowanalytics.iglu.server.model.Permission
 import com.snowplowanalytics.iglu.server.storage.{ Storage, Postgres, InMemory }
 import com.snowplowanalytics.iglu.server.middleware.PermissionMiddleware
 
-class MetaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
+class MetaService[F[+_]: Sync](debug: Boolean,
+                               patchesAllowed: Boolean,
+                               swagger: SwaggerSyntax[F],
                                ctx: AuthedContext[F, Permission],
                                db: Storage[F]) extends RhoRoutes[F] {
   import swagger._
@@ -64,7 +66,7 @@ class MetaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
     }
     for {
       count <- db.getSchemas.filter(s => authInfo.canRead(s.schemaMap.schemaKey.vendor)).as(1).compile.foldMonoid
-      response <- Ok(MetaService.ServerInfo(BuildInfo.version, authInfo, database, count, false))
+      response <- Ok(MetaService.ServerInfo(BuildInfo.version, authInfo, database, count, debug, patchesAllowed))
     } yield response
   }
 }
@@ -74,12 +76,13 @@ object MetaService {
                         authInfo: Permission,
                         database: String,
                         schemaCount: Int,
-                        debug: Boolean)
+                        debug: Boolean,
+                        patchesAllowed: Boolean)
 
   implicit val serverInfoEncoderInstance: Encoder[ServerInfo] = deriveEncoder[ServerInfo]
 
-  def asRoutes(db: Storage[IO], ctx: AuthedContext[IO, Permission], rhoMiddleware: RhoMiddleware[IO]): HttpRoutes[IO] = {
-    val service = new MetaService(swaggerSyntax, ctx, db).toRoutes(rhoMiddleware)
+  def asRoutes(debug: Boolean, patchesAllowed: Boolean)(db: Storage[IO], ctx: AuthedContext[IO, Permission], rhoMiddleware: RhoMiddleware[IO]): HttpRoutes[IO] = {
+    val service = new MetaService(debug, patchesAllowed, swaggerSyntax, ctx, db).toRoutes(rhoMiddleware)
     PermissionMiddleware.wrapService(db, ctx, service)
   }
 }
