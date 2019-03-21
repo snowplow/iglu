@@ -22,7 +22,7 @@ object Dependencies {
     val IgluClient = "0.6.0-M2"
 
     val Fs2        = "1.0.3"
-    val Http4s     = "0.20.0-M6"
+    val Http4s     = "0.20.0-M7"
     val Rho        = "0.19.0-M6"
     val Doobie     = "0.6.0"
     val Decline    = "0.6.0"
