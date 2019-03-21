@@ -127,7 +127,7 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
           case Right(_) =>
             for {
               existing <- db.getSchema(schema.self).map(_.isDefined)
-              _        <- db.addSchema(schema.self, schema.schema, isPublic)
+              _        <- if (existing) db.updateSchema(schema.self, schema.schema, isPublic) else db.addSchema(schema.self, schema.schema, isPublic)
               payload   = IgluResponse.SchemaUploaded(existing, schema.self.schemaKey): IgluResponse
               _        <- webhooks.schemaPublished(schema.self.schemaKey, existing)
               response <- if (existing) Ok(payload) else Created(payload)

@@ -50,6 +50,9 @@ case class InMemory[F[_]](ref: Ref[F, InMemory.State]) extends Storage[F] {
       _ <- ref.update(_.copy(schemas = db.schemas.updated(schemaMap, schema)))
     } yield ()
 
+  def updateSchema(schemaMap: SchemaMap, body: Json, isPublic: Boolean)(implicit C: Clock[F], M: Monad[F]): F[Unit] =
+    addSchema(schemaMap, body, isPublic)
+
   def getSchemas(implicit F: Monad[F]): Stream[F, Schema] = {
     val schemas = ref.get.map(state => Stream.emits[F, Schema](state.schemas.values.toList))
     Stream.eval(schemas).flatten

@@ -48,6 +48,7 @@ trait Storage[F[_]] {
   def getSchemaBody(schemaMap: SchemaMap)(implicit F: Monad[F]): F[Option[Json]] =
     getSchema(schemaMap).nested.map(_.body).value
   def addSchema(schemaMap: SchemaMap, body: Json, isPublic: Boolean)(implicit C: Clock[F], M: Monad[F]): F[Unit]
+  def updateSchema(schemaMap: SchemaMap, body: Json, isPublic: Boolean)(implicit C: Clock[F], M: Monad[F]): F[Unit]
 
   def addDraft(draftId: DraftId, body: Json, isPublic: Boolean)(implicit C: Clock[F], M: Monad[F]): F[Unit]
   def getDraft(draftId: DraftId)(implicit F: Monad[F]): F[Option[SchemaDraft]]

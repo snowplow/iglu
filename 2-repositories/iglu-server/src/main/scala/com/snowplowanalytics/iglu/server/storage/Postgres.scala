@@ -44,6 +44,9 @@ class Postgres[F[_]](xa: Transactor[F]) extends Storage[F] { self =>
   def addSchema(schemaMap: SchemaMap, body: Json, isPublic: Boolean)(implicit C: Clock[F], M: Monad[F]): F[Unit] =
     Postgres.Sql.addSchema(schemaMap, body, isPublic).run.void.transact(xa)
 
+  def updateSchema(schemaMap: SchemaMap, body: Json, isPublic: Boolean)(implicit C: Clock[F], M: Monad[F]): F[Unit] =
+    Postgres.Sql.updateSchema(schemaMap, body, isPublic).run.void.transact(xa)
+
   def getSchemas(implicit F: Monad[F]): Stream[F, Schema] =
     Postgres.Sql.getSchemas.stream.transact(xa)
 
@@ -98,7 +101,7 @@ object Postgres {
 
   object Sql {
     def getSchema(schemaMap: SchemaMap) =
-      (fr"SELECT" ++ schemaColumns ++ fr"FROM" ++ SchemasTable ++ fr"WHERE" ++ schemaMapFr(schemaMap)).query[Schema]
+      (fr"SELECT" ++ schemaColumns ++ fr"FROM" ++ SchemasTable ++ fr"WHERE" ++ schemaMapFr(schemaMap) ++ fr"LIMIT 1").query[Schema]
 
     def getSchemas =
       (fr"SELECT" ++ schemaColumns ++ fr"FROM" ++ SchemasTable).query[Schema]
@@ -108,6 +111,12 @@ object Postgres {
       val ver = key.version
       (fr"INSERT INTO" ++ SchemasTable ++ fr"(" ++ schemaColumns ++ fr")" ++
         fr"VALUES (${key.vendor}, ${key.name}, ${key.format}, ${ver.model}, ${ver.revision}, ${ver.addition}, current_timestamp, current_timestamp, $isPublic, $schema)")
+        .update
+    }
+
+    def updateSchema(schemaMap: SchemaMap, schema: Json, isPublic: Boolean): Update0 = {
+      (fr"UPDATE" ++ SchemasTable ++ fr"SET created_at = current_timestamp, updated_at = current_timestamp, is_public = $isPublic, body = $schema"
+        ++ fr"WHERE" ++ schemaMapFr(schemaMap))
         .update
     }
 
