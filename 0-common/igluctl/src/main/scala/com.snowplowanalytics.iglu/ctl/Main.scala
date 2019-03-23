@@ -16,7 +16,6 @@ import cats.Show
 import cats.data.{EitherNel, EitherT}
 import cats.implicits._
 import cats.effect.{ExitCode, IO, IOApp}
-
 import com.snowplowanalytics.iglu.ctl.commands._
 import com.snowplowanalytics.iglu.ctl.Common.Error
 
@@ -61,6 +60,10 @@ object Main extends IOApp {
 
       case Right(Command.StaticDeploy(config)) =>
         Deploy.process(config)
+
+      case Right(Command.VersionFlag) =>
+        EitherT.fromEither[IO](List(generated.ProjectSettings.version).asRight)
+
       case Left(e) =>
         EitherT.fromEither[IO](Error.Message(e.toString).asLeft[List[String]].toEitherNel)
     }

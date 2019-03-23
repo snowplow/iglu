@@ -110,8 +110,9 @@ object Command {
   val lint = Opts.subcommand("lint", "Validate JSON schemas") {
     (input, skipWarnings, skipChecks).mapN(Lint.apply)
   }
+  val version = Opts.flag("version", "Display version").as(VersionFlag)
 
-  val igluctlCommand = Cmd(generated.ProjectSettings.name, s"Snowplow Iglu command line utils")(static.orElse(lint))
+  val igluctlCommand = Cmd(generated.ProjectSettings.name, s"Snowplow Iglu command line utils")(static.orElse(lint).orElse(version))
 
 
   sealed trait IgluctlCommand extends Product with Serializable
@@ -144,5 +145,6 @@ object Command {
                   skipWarnings: Boolean,
                   skipChecks: List[Linter]) extends IgluctlCommand
 
+  case object VersionFlag extends IgluctlCommand
 }
 
