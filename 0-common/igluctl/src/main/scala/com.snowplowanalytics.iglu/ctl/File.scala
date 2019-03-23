@@ -39,6 +39,7 @@ import com.snowplowanalytics.iglu.core.SelfDescribingSchema
 import com.snowplowanalytics.iglu.core.json4s.implicits._
 
 import com.snowplowanalytics.iglu.ctl.Common._
+import com.snowplowanalytics.iglu.ctl
 
 sealed trait File[A] extends Serializable { self =>
   def path: Path
@@ -156,20 +157,27 @@ object File {
   def readSchemas(input: Path): IO[IorNel[Error, NonEmptyList[SchemaFile]]] =
     for {
       jsonSchemas <- streamFiles(input, Some(filterJsonSchemas)).through(parseStream(_.asJsonSchema)).compile.toList
-      schemas = jsonSchemas match {
-        case Nil => NonEmptyList.of(Error.ReadError(input, "is empty")).leftIor
-        case _ =>
-          val checked = jsonSchemas.collect { case Right(schema) => schema } match {
-            case Nil =>
-              NonEmptyList.of(Error.ReadError(input, "no valid JSON Schemas")).leftIor
-            case h :: t =>
-              val files = NonEmptyList(h, t)
-              val gapErrors = Common.checkSchemasConsistency(files.map(_.content.self)).leftMap(_.map(error => Error.ConsistencyError(error)))
-              Ior.fromEither(gapErrors).putRight(files)
-          }
-          checked.leftMap(_.concat(jsonSchemas.collect { case Left(e) => e }))
-      }
+      schemas = extractResultFromJsonSchemas(jsonSchemas, input)
     } yield schemas
+
+  def extractResultFromJsonSchemas(jsonSchemas: List[Either[Common.Error, ctl.SchemaFile]], input: Path): IorNel[Error, NonEmptyList[SchemaFile]] =
+    jsonSchemas match {
+      case Nil => NonEmptyList.of(Error.ReadError(input, "is empty")).leftIor
+      case _ =>
+        val checked = jsonSchemas.collect { case Right(schema) => schema } match {
+          case Nil =>
+            NonEmptyList.of(Error.ReadError(input, "no valid JSON Schemas")).leftIor
+          case h :: t =>
+            val files = NonEmptyList(h, t)
+            val gapErrors = Common.checkSchemasConsistency(files.map(_.content.self)).leftMap(_.map(error => Error.ConsistencyError(error)))
+            Ior.fromEither(gapErrors).putRight(files)
+        }
+
+        NonEmptyList.fromList(jsonSchemas.collect { case Left(e) => e }) match {
+          case None => checked
+          case Some(e) => e.leftIor.combine(checked)
+        }
+    }
 
   /** Recursively and lazily get all non-hidden regular files in `dir` */
   def streamPaths(dir: Path): ReadStream[Path] = {

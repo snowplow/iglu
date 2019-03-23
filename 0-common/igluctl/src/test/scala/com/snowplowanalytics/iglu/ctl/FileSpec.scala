@@ -15,8 +15,10 @@ package com.snowplowanalytics.iglu.ctl
 // java
 import java.nio.file.Paths
 
+
 // cats
 import cats.syntax.either._
+import cats.data.{Ior, NonEmptyList}
 
 // json4s
 import org.json4s.jackson.JsonMethods.parse
@@ -34,6 +36,11 @@ class FileSpec extends Specification { def is = s2"""
     extractSelfDescribingSchema extracts SchemaMap from JSON file with JSON Schema $e2
     extractSelfDescribingSchema extracts SchemaMap from JSON file with JSON Schema and additional path $e3
     extractSelfDescribingSchema fails to extract SchemaMap from JSON file with JSON Schema and invalid path $e4
+    extractResultFromJsonSchemas returns 'path is empty' error when given json schema list is empty $e5
+    extractResultFromJsonSchemas returns 'no valid JSON schemas' error with other given errors when all the items in the given json schema list are error $e6
+    extractResultFromJsonSchemas returns both 'gap' error and given schemas  $e7
+    extractResultFromJsonSchemas returns both given errors and schemas $e8
+    extractResultFromJsonSchemas returns only given schemas when there is no error in given list $e9
   """
 
   def e1 = {
@@ -155,5 +162,148 @@ class FileSpec extends Specification { def is = s2"""
     val expected = Error.PathMismatch(Paths.get("/com.failure/example/jsonschema/1-0-0"),SchemaMap("com.acme","example","jsonschema",SchemaVer.Full(1,0,0)))
 
     schemaFile.asSchema must beLeft(expected)
+  }
+
+  def e5 = {
+    val path = Paths.get("mock/path")
+    val expected = Ior.left(NonEmptyList.of(Error.ReadError(path, "is empty")))
+    File.extractResultFromJsonSchemas(Nil, path) must beEqualTo(expected)
+  }
+
+  def e6 = {
+    val path = Paths.get("mock/path")
+    val mockError1 = Error.ReadError(path, "mockError1")
+    val mockError2 = Error.ReadError(path, "mockError2")
+
+    val jsonSchemas = List(
+      Either.left(mockError1),
+      Either.left(mockError2)
+    )
+
+    val noValidSchemasError = Error.ReadError(path,"no valid JSON Schemas")
+    val expected = Ior.left(
+      NonEmptyList.of(
+        mockError1,
+        mockError2,
+        noValidSchemasError
+      )
+    )
+
+    File.extractResultFromJsonSchemas(jsonSchemas, path) must beEqualTo(expected)
+  }
+
+  def e7 = {
+    val mainFolderPath = Paths.get("/additional/path/com.acme/example/jsonschema")
+    val schemaMap = SchemaMap("com.acme", "example", "jsonschema", SchemaVer.Full(1,0,1))
+    val schemaJson = parse(
+      """|{
+         |	"$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+         |	"description": "Schema for a single HTTP cookie, as defined in RFC 6265",
+         |	"self": {
+         |		"vendor": "com.acme",
+         |		"name": "example",
+         |		"format": "jsonschema",
+         |		"version": "1-0-1"
+         |	},
+         |	"properties": {
+         |		"name": {}
+         |	}
+         |}""".stripMargin)
+    val path = Paths.get("/additional/path/com.acme/example/jsonschema/1-0-1")
+    val schema = File.jsonFile(path, schemaJson).asSchema
+
+    val jsonSchemas = List(schema)
+    val nonConsistencyError = Error.ConsistencyError(Common.GapError.NotInitSingle(schemaMap))
+
+    val expected = Ior.both(
+      NonEmptyList.of(nonConsistencyError),
+      NonEmptyList.of(schema.right.get)
+    )
+
+    File.extractResultFromJsonSchemas(jsonSchemas, mainFolderPath) must beEqualTo(expected)
+  }
+
+  def e8 = {
+    val mainFolderPath = Paths.get("/additional/path/com.acme/example/jsonschema")
+    val schemaJson = parse(
+      """|{
+         |	"$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+         |	"description": "Schema for a single HTTP cookie, as defined in RFC 6265",
+         |	"self": {
+         |		"vendor": "com.acme",
+         |		"name": "example",
+         |		"format": "jsonschema",
+         |		"version": "1-0-0"
+         |	},
+         |	"properties": {
+         |		"name": {}
+         |	}
+         |}""".stripMargin)
+    val path = Paths.get("/additional/path/com.acme/example/jsonschema/1-0-0")
+    val schema = File.jsonFile(path, schemaJson).asSchema
+
+    val mockError1 = Error.ReadError(path, "mockError1")
+    val mockError2 = Error.ReadError(path, "mockError2")
+
+    val jsonSchemas = List(
+      Either.left(mockError1),
+      Either.left(mockError2),
+      schema
+    )
+
+    val expected = Ior.both(
+      NonEmptyList.of(mockError1, mockError2),
+      NonEmptyList.of(schema.right.get)
+    )
+
+    File.extractResultFromJsonSchemas(jsonSchemas, mainFolderPath) must beEqualTo(expected)
+  }
+
+  def e9 = {
+    val mainFolderPath = Paths.get("/additional/path/com.acme/example/jsonschema")
+    val schemaJson1 = parse(
+      """|{
+         |	"$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+         |	"description": "Schema for a single HTTP cookie, as defined in RFC 6265",
+         |	"self": {
+         |		"vendor": "com.acme",
+         |		"name": "example1",
+         |		"format": "jsonschema",
+         |		"version": "1-0-0"
+         |	},
+         |	"properties": {
+         |		"name": {}
+         |	}
+         |}""".stripMargin)
+    val path1 = Paths.get("/additional/path/com.acme/example1/jsonschema/1-0-0")
+    val schema1 = File.jsonFile(path1, schemaJson1).asSchema
+
+    val schemaJson2 = parse(
+      """|{
+         |	"$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+         |	"description": "Schema for a single HTTP cookie, as defined in RFC 6265",
+         |	"self": {
+         |		"vendor": "com.acme",
+         |		"name": "example2",
+         |		"format": "jsonschema",
+         |		"version": "1-0-0"
+         |	},
+         |	"properties": {
+         |		"name": {}
+         |	}
+         |}""".stripMargin)
+    val path2 = Paths.get("/additional/path/com.acme/example2/jsonschema/1-0-0")
+    val schema2 = File.jsonFile(path2, schemaJson2).asSchema
+
+    val jsonSchemas = List(schema1, schema2)
+
+    val expected = Ior.right(
+      NonEmptyList.of(
+        schema1.right.get,
+        schema2.right.get
+      )
+    )
+
+    File.extractResultFromJsonSchemas(jsonSchemas, mainFolderPath) must beEqualTo(expected)
   }
 }
