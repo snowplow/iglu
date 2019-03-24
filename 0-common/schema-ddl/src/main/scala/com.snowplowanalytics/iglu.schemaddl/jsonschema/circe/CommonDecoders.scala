@@ -29,4 +29,6 @@ trait CommonDecoders {
   implicit lazy val enumDecoder = Decoder[List[Json]].map(Enum.apply)
 
   implicit lazy val oneOfDecoder = Decoder[List[Schema]].map(OneOf.apply)
+
+  implicit lazy val anyOfDecoder = Decoder[List[Schema]].map(AnyOf.apply)
 }

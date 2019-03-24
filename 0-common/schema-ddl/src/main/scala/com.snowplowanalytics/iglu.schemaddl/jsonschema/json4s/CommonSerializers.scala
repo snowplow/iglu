@@ -18,9 +18,8 @@ package json4s
 import org.json4s._
 import org.json4s.jackson.JsonMethods.{ parse, compact }
 
-import cats.instances.either._
-import cats.instances.list._
-import cats.syntax.traverse._
+// cats
+import cats.implicits._
 
 // Circe
 import io.circe.Json
@@ -101,12 +100,29 @@ object CommonSerializers {
     {
       case JArray(values) =>
         val schemas: List[Option[Schema]] = values.map(Schema.parse(_))
-        if (schemas.forall(_.isDefined)) OneOf(schemas.map(_.get))
-        else throw new MappingException(values + " need to be array of Schemas")
+        schemas.sequence match {
+          case Some(s) => OneOf(s)
+          case None => throw new MappingException(values + " need to be array of Schemas")
+        }
     },
 
     {
       case OneOf(schemas) => JArray(schemas.map(Schema.normalize(_)))
     }
     ))
+
+  object AnyOfSerializer extends CustomSerializer[AnyOf](_ => (
+    {
+      case JArray(values) =>
+        val schemas: List[Option[Schema]] = values.map(Schema.parse(_))
+        schemas.sequence match {
+          case Some(s) => AnyOf(s)
+          case None => throw new MappingException(values + " need to be array of Schemas")
+        }
+    },
+
+    {
+      case AnyOf(schemas) => JArray(schemas.map(Schema.normalize(_)))
+    }
+  ))
 }

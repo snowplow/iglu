@@ -30,6 +30,7 @@ object Formats {
       CommonSerializers.TypeSerializer,
       CommonSerializers.EnumSerializer,
       CommonSerializers.OneOfSerializer,
+      CommonSerializers.AnyOfSerializer,
       CommonSerializers.DescriptionSerializer,
       NumberSerializers.MaximumSerializer,
       NumberSerializers.MinimumSerializer,

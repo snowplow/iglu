@@ -68,11 +68,10 @@ object Pointer {
     def key: Symbol
 
     /** Get a parse function that will enforce correct Cursor
-      * (e.g. only indexes allowed in Items and OneOf as they're arrays)
+      * (e.g. only indexes allowed in Items, OneOf and AnyOf as they're arrays)
       */
     def next: String => Either[String, Cursor] = this match {
-      case Items => i => Either.catchNonFatal(i.toInt).leftMap(_.getMessage).map(Cursor.At.apply)
-      case OneOf => i => Either.catchNonFatal(i.toInt).leftMap(_.getMessage).map(Cursor.At.apply)
+      case Items | OneOf | AnyOf => i => Either.catchNonFatal(i.toInt).leftMap(_.getMessage).map(Cursor.At.apply)
       case Properties        => i => Cursor.DownField(i).asRight
       case PatternProperties => i => Cursor.DownField(i).asRight
       case AdditionalItems      => i => fromString(i).map(Cursor.DownProperty.apply)
@@ -87,8 +86,9 @@ object Pointer {
     case object AdditionalProperties extends SchemaProperty { def key = 'additionalProperties }
     case object PatternProperties extends SchemaProperty { def key = 'patternProperties }
     case object OneOf extends SchemaProperty { def key = 'oneOf }
+    case object AnyOf extends SchemaProperty { def key = 'anyOf }
 
-    val all = List(Items, AdditionalItems, Properties, AdditionalProperties, PatternProperties, OneOf)
+    val all = List(Items, AdditionalItems, Properties, AdditionalProperties, PatternProperties, OneOf, AnyOf)
 
     def fromString(s: String): Either[String, SchemaProperty] =
       all.find(x => x.key.name == s).toRight(s)

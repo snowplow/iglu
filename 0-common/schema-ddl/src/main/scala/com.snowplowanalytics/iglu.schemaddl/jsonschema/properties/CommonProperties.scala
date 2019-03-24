@@ -102,6 +102,12 @@ object CommonProperties {
    */
   case class OneOf(value: List[Schema]) extends JsonSchemaProperty { def keyName = "oneOf" }
 
+  /**
+    * Type representing value for `anyOf` key
+    *
+    * @see http://json-schema.org/latest/json-schema-validation.html#rfc.section.6.7.2
+    */
+  case class AnyOf(value: List[Schema]) extends JsonSchemaProperty { def keyName = "anyOf" }
 
   /**
    * Type representing value for `description` key

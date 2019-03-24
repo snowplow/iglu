@@ -26,6 +26,7 @@ class JsonPointerSpec extends Specification { def is = s2"""
   traverse goes through additionalItems property $e2
   traverse goes through properties property $e3
   traverse goes through oneOf property $e4
+  traverse goes through anyOf property $e5
   """
 
   case class SchemaTypes(list: List[(Pointer.SchemaPointer, String)]) {
@@ -143,6 +144,33 @@ class JsonPointerSpec extends Specification { def is = s2"""
       "/properties/withOneOf" -> "unknown",
       "/properties/withOneOf/oneOf/0" -> "Array",
       "/properties/withOneOf/oneOf/1" -> "Object",
+      "/properties/someBool" -> "Boolean"
+    )
+
+    result must beEqualTo(expected)
+  }
+
+  def e5 = {
+    val json =
+      json"""
+          {
+            "type": "object",
+            "properties": {
+              "someBool": { "type": "boolean" },
+              "withAnyOf": {
+                "anyOf": [{ "type": "array" },{ "type": "object" }]
+              }
+            }
+          } """
+
+    val schema = json.as[Schema].fold(x => throw x, identity)
+
+    val result = Schema.traverse(schema, saveType).runS(empty).value.toMap
+    val expected = Map(
+      "/" -> "Object",
+      "/properties/withAnyOf" -> "unknown",
+      "/properties/withAnyOf/anyOf/0" -> "Array",
+      "/properties/withAnyOf/anyOf/1" -> "Object",
       "/properties/someBool" -> "Boolean"
     )
 
