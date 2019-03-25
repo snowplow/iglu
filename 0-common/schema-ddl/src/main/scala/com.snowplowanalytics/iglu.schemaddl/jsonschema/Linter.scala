@@ -18,6 +18,8 @@ import cats.implicits._
 
 import scala.reflect.runtime.{universe => ru}
 
+import com.snowplowanalytics.iglu.schemaddl.StringUtils
+
 // This library
 import Linter._
 import properties.{ArrayProperty, NumberProperty, ObjectProperty, StringProperty}
@@ -349,6 +351,31 @@ object Linter {
         case Some(_) => noIssues
         case None => Details.invalid
       }
+  }
+
+  final case object duplicateProperties extends Linter { self =>
+
+    val level: Level = Level.Warning
+
+    case class Details(keys: NonEmptyList[String]) extends Issue {
+      val linter = self
+      def show: String = s"""Following field names are duplicated after normalization: ${keys.toList.mkString(",")}"""
+    }
+
+    def apply(jsonPointer: Pointer.SchemaPointer, schema: Schema): Validated[Issue, Unit] = {
+      schema.properties match {
+        case Some(properties) => {
+          val fieldNames = properties.value.keys.toList
+          val snakeCaseFieldNames = fieldNames.map(StringUtils.snakeCase)
+          val duplicates = snakeCaseFieldNames.diff(snakeCaseFieldNames.distinct).toNel
+          duplicates match {
+            case None => noIssues
+            case Some(d) => Details(d).invalid
+          }
+        }
+        case _ => noIssues
+      }
+    }
   }
 
   private val m = ru.runtimeMirror(getClass.getClassLoader)

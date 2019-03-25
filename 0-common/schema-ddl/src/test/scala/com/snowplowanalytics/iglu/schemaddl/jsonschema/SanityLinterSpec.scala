@@ -42,6 +42,7 @@ class SanityLinterSpec extends Specification { def is = s2"""
     recognize maxLength is greater than Redshift VARCHAR(max) $e9
     recognize skipped checks (description) $e10
     selected formats will not fail with warning for 'no maxLength' $e11
+    recognize duplicate field names after normalization $e12
   """
 
   def showReport(kv: (Pointer.SchemaPointer, NonEmptyList[Linter.Issue])): (String, NonEmptyList[String]) =
@@ -443,5 +444,58 @@ class SanityLinterSpec extends Specification { def is = s2"""
     val skippedLinters = List(Linter.description)
  
     lint(schema, Linter.allLintersMap.values.toList.diff(skippedLinters)) must beEqualTo(Map())
+  }
+
+  def e12 = {
+    val schema = Schema.parse(parse(
+      """
+        |{
+        |   "type": "object",
+        |   "description": "desc text",
+        |   "properties": {
+        |       "name": {
+        |           "type": "string",
+        |           "maxLength": 10,
+        |           "description" : "name"
+        |       },
+        |       "uriField": {
+        |           "type": "string",
+        |           "format": "uri",
+        |           "description" : "uri field"
+        |       },
+        |       "hostnameField": {
+        |           "type": "string",
+        |           "format": "hostname",
+        |           "description" : "hostname field"
+        |
+        |       },
+        |       "hostname_field": {
+        |           "type": "string",
+        |           "format": "hostname",
+        |           "description" : "hostname field"
+        |
+        |       },
+        |       "uuidField": {
+        |           "type": "string",
+        |           "format": "uuid",
+        |           "description" : "uuid field"
+        |
+        |       },
+        |       "uuid_field": {
+        |           "type": "string",
+        |           "format": "uuid",
+        |           "description" : "uuid field"
+        |
+        |       }
+        |   },
+        |   "additionalProperties": false
+        |}
+      """.stripMargin
+    )).get
+
+    val expected = Map("/" ->
+      NonEmptyList.of("Following field names are duplicated after normalization: hostname_field,uuid_field"))
+
+    lint(schema, Linter.allLintersMap.values.toList).map(showReport) must beEqualTo(expected)
   }
 }
