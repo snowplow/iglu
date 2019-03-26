@@ -21,7 +21,7 @@ services:
       - "8080:8080"
     volumes:
       - "./wait-for-postgres.sh:/usr/local/bin/wait-for-postgres.sh"
-      - "./application.conf:/snowplow/config/application.conf"
+      - "../application.conf:/snowplow/config/application.conf"
     logging:
       options:
         max-size: 1G

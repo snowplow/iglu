@@ -103,7 +103,7 @@ object Server {
       anyOrigin = true,
       anyMethod = false,
       allowedMethods = Some(Set("GET", "POST", "PUT", "OPTIONS", "DELETE")),
-      allowedHeaders = Some(Set("apikey")),
+      allowedHeaders = Some(Set("content-type", "apikey")),
       allowCredentials = true,
       maxAge = 1.day.toSeconds
     )
