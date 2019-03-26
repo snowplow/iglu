@@ -86,7 +86,7 @@ object Migration {
       sourceSchema.self.schemaKey.name,
       sourceSchema.self.schemaKey.version,
       target.self.schemaKey.version,
-      SchemaDiff.diff(source, successive.map(_.subschemas)))
+      SchemaDiff.diff(source, ???))
   }
 
   /**
@@ -132,10 +132,10 @@ object Migration {
    * @param migrationMap map of each Schema to list of all available migrations
    * @return map of revision criterion to list with all added columns
    */
-  def getOrdering(migrationMap: ValidMigrationMap): Map[RevisionGroup, Validated[String, List[Pointer.SchemaPointer]]] =
+  def getOrdering(migrationMap: ValidMigrationMap): Map[RevisionGroup, Validated[String, Set[Pointer.SchemaPointer]]] =
     migrationMap.filterKeys(_.schemaKey.version.addition == 0).map {
       case (description, migrations) =>
-        val longestMigration = migrations.map(_.diff.added.map(_._1)).maxBy(x => x.length)
+        val longestMigration = migrations.map(_.diff.added.map(_._1)).maxBy(x => x.size)
         (revisionCriterion(description), longestMigration.valid)
     }
 

@@ -1,15 +1,10 @@
 package com.snowplowanalytics.iglu.schemaddl
 
-import collection.immutable.ListSet
-
-import cats._
-import cats.implicits._
-
 import com.snowplowanalytics.iglu.schemaddl.Core.VersionPoint
 import com.snowplowanalytics.iglu.schemaddl.jsonschema.{Delta, Pointer, Schema}
 
 /**
-  * This class represents differences between two Schemas
+  * This class represents differences between *two* Schemas
   * Preserves order because list of 2+ schemas need to have consistent order of changes
   *
   * @param added list of properties sorted by their appearance in JSON Schemas
@@ -18,16 +13,36 @@ import com.snowplowanalytics.iglu.schemaddl.jsonschema.{Delta, Pointer, Schema}
   *                 after that, it should appear in [[added]]
   * @param removed set of keys removed in target Schema
   */
-case class SchemaDiff(added: SortedSet[(Pointer.SchemaPointer, Schema)],
+case class SchemaDiff(added: Set[(Pointer.SchemaPointer, Schema)],
                       modified: Set[SchemaDiff.Modified],
                       removed: Set[(Pointer.SchemaPointer, Schema)])
 
 object SchemaDiff {
 
-  def xx[A: Monoid] =
-    Monoid[ListSet[A]]
+  // TODO: migrations should be working on FinalDiff!!!
 
-  val empty = SchemaDiff(SortedSet.empty[(Pointer.SchemaPointer, Schema)], Set.empty, Set.empty)
+  /**
+    * This version of `SchemaDiff` represents difference between two *or more* Schemas
+    * hence preserves an order in which properties were added/removed
+    */
+  case class FinalDiff(added: List[(Pointer.SchemaPointer, Schema)],
+                       modified: List[SchemaDiff.Modified],
+                       removed: List[(Pointer.SchemaPointer, Schema)])
+
+  // * At this point we should impose alphabetical/nullable order
+  // * Removed should be applied from the end (e.g. [[a1, a2], [a3, r2]] should become [a1, a3])
+
+
+  object FinalDiff {
+    def empty: FinalDiff = FinalDiff(List.empty, List.empty, List.empty)
+
+    // Should we have origin (1-0-0)?
+    def build(diffs: List[SchemaDiff]): FinalDiff = {
+      diffs.foldLeft(empty)
+    }
+  }
+
+  val empty = SchemaDiff(Set.empty[(Pointer.SchemaPointer, Schema)], Set.empty, Set.empty)
 
   case class Modified(pointer: Pointer.SchemaPointer, from: Schema, to: Schema) {
     /** Show only properties that were changed */
@@ -58,8 +73,13 @@ object SchemaDiff {
     * @param successive all subsequent Schemas
     * @return possibly empty list of keys in correct order
     */
-  def getAddedKeys(source: SubSchemas, successive: SubSchemas): SortedSet[Pointer.SchemaPointer] =
-    (source.map(_._1) ++ successive.map(_._1)).toList.to[SortedSet]
+  def getAddedKeys(source: SubSchemas, successive: SubSchemas): Set[(Pointer.SchemaPointer, Schema)] = {
+    val sourceKeys = source.map(_._1)
+    successive.foldLeft(Set.empty[(Pointer.SchemaPointer, Schema)]) { case (acc, (pointer, schema)) =>
+      if (sourceKeys.contains(pointer)) acc
+      else acc + (pointer -> schema)
+    }
+  }
 
   type PointCheck = SchemaDiff => Boolean
 

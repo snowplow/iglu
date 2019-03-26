@@ -74,7 +74,7 @@ class MigrationSpec extends Specification { def is = s2"""
         SchemaVer.Full(1,0,0),
         SchemaVer.Full(1,0,1),
         SchemaDiff(
-          List(fromPointer -> fromSchema),
+          Set(fromPointer -> fromSchema),
           Set.empty,
           Set.empty)))
 
@@ -143,7 +143,7 @@ class MigrationSpec extends Specification { def is = s2"""
         SchemaVer.Full(1,0,0),
         SchemaVer.Full(1,0,2),
         SchemaDiff(
-          List(
+          Set(
             "/properties/bar".jsonPointer -> json"""{"type": ["integer", "null"], "maximum": 4000}""".schema,
             "/properties/baz".jsonPointer -> json"""{"type": ["array", "null"]}""".schema),
           Set.empty,
@@ -154,7 +154,7 @@ class MigrationSpec extends Specification { def is = s2"""
         SchemaVer.Full(1,0,0),
         SchemaVer.Full(1,0,1),
         SchemaDiff(
-          List("/properties/bar".jsonPointer -> json"""{"type": ["integer", "null"], "maximum": 4000}""".schema),
+          Set("/properties/bar".jsonPointer -> json"""{"type": ["integer", "null"], "maximum": 4000}""".schema),
           Set.empty,
           Set.empty)))
 
@@ -165,7 +165,7 @@ class MigrationSpec extends Specification { def is = s2"""
         SchemaVer.Full(1,0,1),
         SchemaVer.Full(1,0,2),
         SchemaDiff(
-          List("/properties/baz".jsonPointer -> json"""{"type": ["array", "null"]}""".schema),
+          Set("/properties/baz".jsonPointer -> json"""{"type": ["array", "null"]}""".schema),
           Set.empty,
           Set.empty))
     )

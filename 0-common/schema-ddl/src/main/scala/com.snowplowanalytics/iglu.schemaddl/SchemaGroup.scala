@@ -20,10 +20,6 @@ case class SchemaGroup private(meta: Meta, schemas: NonEmptyList[Schema]) {
     * @return
     */
   def add(schema: SelfDescribingSchema[Schema], ignoreRules: Boolean): Either[String, SchemaGroup] = {
-    val diff = schemas.last
-    SchemaDiff.becameRequired()
-    SchemaDiff.getPointer(schema.schema)
-
     ???
   }
 }

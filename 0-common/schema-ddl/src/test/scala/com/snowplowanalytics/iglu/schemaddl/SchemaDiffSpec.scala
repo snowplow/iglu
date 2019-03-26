@@ -17,7 +17,7 @@ class SchemaDiffSpec extends Specification { def is = s2"""
   """
 
   def e1 = {
-    val diff = SchemaDiff.empty.copy(added = List(
+    val diff = SchemaDiff.empty.copy(added = Set(
       "/properties/foo".jsonPointer -> json"""{"type": "string"}""".schema
     ))
 
@@ -25,7 +25,7 @@ class SchemaDiffSpec extends Specification { def is = s2"""
   }
 
   def e2 = {
-    val diff = SchemaDiff.empty.copy(added = List(
+    val diff = SchemaDiff.empty.copy(added = Set(
       "/properties/foo".jsonPointer -> json"""{"type": "string", "enum": ["foo", null]}""".schema
     ))
 
@@ -85,14 +85,14 @@ class SchemaDiffSpec extends Specification { def is = s2"""
       json"""{"type": "string", "maxLength": 10}""".schema,
       json"""{"type": "string", "maxLength": 12}""".schema)
 
-    val diff = SchemaDiff.empty.copy(added = List(addedProps), modified = Set(modified))
+    val diff = SchemaDiff.empty.copy(added = Set(addedProps), modified = Set(modified))
 
     SchemaDiff.getPointer(diff) must beSome(VersionPoint.Revision)
   }
 
   def e8 = {
     val addedProps = "/properties/bar".jsonPointer -> json"""{"type": ["string", "null"]}""".schema
-    val diff = SchemaDiff.empty.copy(added = List(addedProps))
+    val diff = SchemaDiff.empty.copy(added = Set(addedProps))
 
     SchemaDiff.getPointer(diff) must beSome(VersionPoint.Addition)
   }

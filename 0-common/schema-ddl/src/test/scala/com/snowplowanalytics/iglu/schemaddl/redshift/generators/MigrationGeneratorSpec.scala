@@ -37,7 +37,7 @@ class MigrationGeneratorSpec extends Specification { def is = s2"""
   val emptySubschemas = Set.empty[(Pointer.SchemaPointer, Schema)]
 
   def e1 = {
-    val diff = SchemaDiff(List("status".jsonPointer -> json"""{"type": ["string", "null"]}""".schema), emptyModified, emptySubschemas)
+    val diff = SchemaDiff(Set("status".jsonPointer -> json"""{"type": ["string", "null"]}""".schema), emptyModified, emptySubschemas)
     val schemaMigration = Migration("com.acme", "launch_missles", SchemaVer.Full(1,0,0), SchemaVer.Full(1,0,1), diff)
     val ddlMigration = MigrationGenerator.generateMigration(schemaMigration, 4096, Some("atomic")).render
 
@@ -63,7 +63,7 @@ class MigrationGeneratorSpec extends Specification { def is = s2"""
   }
 
   def e2 = {
-    val diff = SchemaDiff(List.empty, emptyModified, emptySubschemas)
+    val diff = SchemaDiff.empty
     val schemaMigration = Migration("com.acme", "launch_missles", SchemaVer.Full(2,0,0), SchemaVer.Full(2,0,1), diff)
     val ddlMigration = MigrationGenerator.generateMigration(schemaMigration, 4096, Some("atomic")).render
 
@@ -88,7 +88,7 @@ class MigrationGeneratorSpec extends Specification { def is = s2"""
   }
 
   def e3 = {
-    val newProps = List(
+    val newProps = Set(
       "/status".jsonPointer -> json"""{"type": ["string", "null"]}""".schema,
       "/launch_time".jsonPointer -> json"""{"type": ["string", "null"], "format": "date-time"}""".schema,
       "/latitude".jsonPointer -> json"""{"type": "number", "minimum": -90, "maximum": 90}""".schema,
