@@ -84,7 +84,7 @@ object Fifth {
           case Right((map, schema, isPublic, createdAt, updatedAt)) =>
             isSchemaAllowed(previous.flatMap(_.toOption), map, isPublic) match {
               case Right(_) => previous :+ Right((map, schema, isPublic, createdAt, updatedAt))
-              case Left(error) => previous :+ Left(error)
+              case Left(error) => previous :+ Left(s"${map.schemaKey.toPath}: $error")
             }
           case Left(error) => previous :+ Left(error)
         }

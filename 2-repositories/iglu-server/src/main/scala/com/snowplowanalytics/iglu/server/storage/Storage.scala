@@ -67,7 +67,7 @@ trait Storage[F[_]] {
 object Storage {
 
   /** Storage returned an object that cannot be parsed */
-  case class IncompatibleStorage(message: String) extends Throwable
+  case class IncompatibleStorage(message: String) extends Exception(message)
 
   /**
     *
