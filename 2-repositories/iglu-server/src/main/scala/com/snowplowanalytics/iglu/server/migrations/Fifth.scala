@@ -21,6 +21,7 @@ import java.util.UUID
 import fs2.Stream
 
 import cats.{ Applicative, MonadError }
+import cats.free.Free
 import cats.syntax.show._
 import cats.syntax.either._
 import cats.syntax.functor._
@@ -34,16 +35,18 @@ import io.circe.parser.parse
 
 import doobie._
 import doobie.implicits._
+import doobie.ConnectionIO
 import doobie.postgres.implicits._
 import doobie.postgres.circe.json.implicits._
 
 import eu.timepit.refined.types.numeric.NonNegInt
 
-import com.snowplowanalytics.iglu.core.{ SchemaMap, SchemaKey, SchemaVer, SelfDescribingSchema, ParseError }
+import com.snowplowanalytics.iglu.core.{ ParseError, SchemaKey, SchemaMap, SchemaVer, SelfDescribingSchema }
 import com.snowplowanalytics.iglu.core.circe.implicits._
 import com.snowplowanalytics.iglu.server.model.VersionCursor
+import com.snowplowanalytics.iglu.server.model.VersionCursor.Inconsistency
 
-import model.{ Permission, SchemaDraft, Schema }
+import model.{ Permission, Schema, SchemaDraft }
 import storage.Postgres
 import storage.Storage.IncompatibleStorage
 
@@ -54,13 +57,20 @@ object Fifth {
   val OldSchemasTable = Fragment.const("schemas")
   val OldPermissionsTable = Fragment.const("apikeys")
 
+  case class SchemaFifth(map: SchemaMap, schema: Json, isPublic: Boolean, createdAt: Instant, updatedAt: Instant) {
+    def getWithPreceding =
+      (for (addition <- 0 to map.schemaKey.version.addition) yield SchemaFifth(map.copy(schemaKey = map.schemaKey.copy(version = SchemaVer.Full(map.schemaKey.version.model, map.schemaKey.version.revision, addition))), schema, isPublic, createdAt, updatedAt)) ++
+      (for (revision <- 0 until map.schemaKey.version.revision) yield SchemaFifth(map.copy(schemaKey = map.schemaKey.copy(version = SchemaVer.Full(map.schemaKey.version.model, revision, map.schemaKey.version.addition))), schema, isPublic, createdAt, updatedAt)) ++
+      (for (model <- 1 until map.schemaKey.version.model) yield SchemaFifth(map.copy(schemaKey = map.schemaKey.copy(version = SchemaVer.Full(model, map.schemaKey.version.revision, map.schemaKey.version.addition))), schema, isPublic, createdAt, updatedAt))
+  }
+
   def perform: ConnectionIO[Unit] =
     for {
       _ <- checkContent(querySchemas)
-      _ <- checkConsistency(querySchemas)
+      schemas <- checkConsistency(querySchemas)
       _ <- checkContent(queryDrafts)
       _ <- Bootstrap.allStatements.sequence[ConnectionIO, Int].map(_.combineAll)
-      _ <- (migrateKeys ++ migrateSchemas ++ migrateDrafts).compile.drain
+      _ <- (migrateKeys ++ migrateSchemas(schemas) ++ migrateDrafts).compile.drain
     } yield ()
 
   /** Perform query and check if entities are valid against current model, throw an exception otherwise */
@@ -77,14 +87,15 @@ object Fifth {
     }
   }
 
-  def checkConsistency(query: Query0[Either[String, (SchemaMap, Json, Boolean, Instant, Instant)]]): ConnectionIO[Unit] = {
+  def checkConsistency(query: Query0[Either[String, SchemaFifth]]): ConnectionIO[List[SchemaFifth]] = {
     val errors = query.stream
-      .fold(List[Either[String, (SchemaMap, Json, Boolean, Instant, Instant)]]()) { (previous, current) =>
+      .fold(List[Either[String, SchemaFifth]]()) { (previous, current) =>
         current match {
-          case Right((map, schema, isPublic, createdAt, updatedAt)) =>
+          case Right(SchemaFifth(map, schema, isPublic, createdAt, updatedAt)) =>
             isSchemaAllowed(previous.flatMap(_.toOption), map, isPublic) match {
-              case Right(_) => previous :+ Right((map, schema, isPublic, createdAt, updatedAt))
-              case Left(error) => previous :+ Left(s"${map.schemaKey.toPath}: $error")
+              case Right(_) => previous :+ Right(SchemaFifth(map, schema, isPublic, createdAt, updatedAt))
+              case Left(Inconsistency.PreviousMissing) => previous ++ SchemaFifth(map, schema, isPublic, createdAt, updatedAt).getWithPreceding.map(_.asRight)
+              case Left(error) => previous :+ Left(s"${map.schemaKey.toPath}: ${error.show}")
             }
           case Left(error) => previous :+ Left(error)
         }
@@ -92,7 +103,7 @@ object Fifth {
 
     errors.compile.toList.flatMap { list =>
       list.flatten.collect { case Left(error) => error } match {
-        case Nil => Applicative[ConnectionIO].pure(())
+        case Nil => Free.pure(list.flatten.collect { case Right(schema) => schema })
         case err =>
           val exception = IncompatibleStorage(s"Inconsistent entities found: ${err.mkString(", ")}")
           MonadError[ConnectionIO, Throwable].raiseError(exception)
@@ -100,14 +111,14 @@ object Fifth {
     }
   }
 
-  def isSchemaAllowed(previous: List[(SchemaMap, Json, Boolean, Instant, Instant)], current: SchemaMap, isPublic: Boolean): Either[String, Unit] = {
-    val schemas = previous.filter(x => x._1.schemaKey.vendor == current.schemaKey.vendor && x._1.schemaKey.name == current.schemaKey.name)
-    val previousPublic = schemas.forall(_._3)
-    val versions = schemas.map(_._1.schemaKey.version)
+  def isSchemaAllowed(previous: List[SchemaFifth], current: SchemaMap, isPublic: Boolean): Either[Inconsistency, Unit] = {
+    val schemas = previous.filter(x => x.map.schemaKey.vendor == current.schemaKey.vendor && x.map.schemaKey.name == current.schemaKey.name)
+    val previousPublic = schemas.forall(_.isPublic)
+    val versions = schemas.map(_.map.schemaKey.version)
     if ((previousPublic && isPublic) || (!previousPublic && !isPublic) || schemas.isEmpty)
-      VersionCursor.isAllowed(current.schemaKey.version, versions, patchesAllowed = true).leftMap(_.show)
+      VersionCursor.isAllowed(current.schemaKey.version, versions, patchesAllowed = true)
     else
-      s"""Inconsistent schema availability. Cannot add ${if (isPublic) "public" else "private"} schema, previous versions are ${if (previousPublic) "public" else "private"}""".asLeft
+      Inconsistency.Availability(isPublic, previousPublic).asLeft
   }
 
   def querySchemas =
@@ -131,18 +142,13 @@ object Fifth {
             case Right(schema) =>
               s"Self-describing payload [${schema.self.schemaKey.toSchemaUri}] does not match its DB reference [${map.schemaKey.toSchemaUri}]".asLeft
           }
-        } yield (map, schema, isPublic, createdAt, updatedAt)
+        } yield SchemaFifth(map, schema, isPublic, createdAt, updatedAt)
       }
 
-  def migrateSchemas =
+  def migrateSchemas(schemas: List[SchemaFifth]) =
     for {
-      row <- querySchemas.stream
-      _   <- row match {
-        case Right((map, body, isPublic, createdAt, updatedAt)) =>
-          Stream.eval_(addSchema(map, body, isPublic, createdAt, updatedAt).run).void
-        case Left(error) =>
-          Stream.raiseError[ConnectionIO](IncompatibleStorage(error))
-      }
+      row <- Stream.emits(schemas)
+      _   <- Stream.eval_(addSchema(row.map, row.schema, row.isPublic, row.createdAt, row.updatedAt).run).void
     } yield ()
 
   def queryDrafts =

@@ -17,25 +17,22 @@ package service
 
 import cats.effect._
 import cats.implicits._
-
 import io.circe.Json
-
 import org.http4s.HttpRoutes
 import org.http4s.circe._
 import org.http4s.rho.bits.TextMetaData
-import org.http4s.rho.{RhoMiddleware, RhoRoutes, AuthedContext}
+import org.http4s.rho.{AuthedContext, RhoMiddleware, RhoRoutes}
 import org.http4s.rho.swagger.SwaggerSyntax
 import org.http4s.rho.swagger.syntax.{io => swaggerSyntax}
-
 import com.snowplowanalytics.iglu.core.{SchemaMap, SchemaVer, SelfDescribingSchema}
 import com.snowplowanalytics.iglu.core.circe.CirceIgluCodecs._
-
 import com.snowplowanalytics.iglu.server.codecs._
 import com.snowplowanalytics.iglu.server.storage.Storage
 import com.snowplowanalytics.iglu.server.middleware.PermissionMiddleware
 import com.snowplowanalytics.iglu.server.model.{IgluResponse, Permission, Schema, VersionCursor}
 import com.snowplowanalytics.iglu.server.model.Schema.SchemaBody
-import com.snowplowanalytics.iglu.server.model.Schema.Repr.{ Format => SchemaFormat }
+import com.snowplowanalytics.iglu.server.model.Schema.Repr.{Format => SchemaFormat}
+import com.snowplowanalytics.iglu.server.model.VersionCursor.Inconsistency
 
 class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
                                  ctx: AuthedContext[F, Permission],
@@ -163,9 +160,9 @@ object SchemaService {
       previousPublic  = schemas.forall(_.metadata.isPublic)
       versions        = schemas.map(_.schemaMap.schemaKey.version)
     } yield
-      if ((previousPublic && isPublic) || (!previousPublic && !isPublic) || schemas.isEmpty)
-        VersionCursor.isAllowed(schemaMap.schemaKey.version, versions, patchesAllowed).leftMap(_.show)
-      else s"""Inconsistent schema availability. Cannot add ${if (isPublic) "public" else "private"} schema, previous versions are ${if (previousPublic) "public" else "private"}""".asLeft
+      (if ((previousPublic && isPublic) || (!previousPublic && !isPublic) || schemas.isEmpty)
+        VersionCursor.isAllowed(schemaMap.schemaKey.version, versions, patchesAllowed)
+      else Inconsistency.Availability(isPublic, previousPublic).asLeft).leftMap(_.show)
 
   /** Extract schemas from database, available for particular permission */
   def isReadable(permission: Permission)(schema: Schema): Boolean =

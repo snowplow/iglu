@@ -36,11 +36,14 @@ object VersionCursor {
   object Inconsistency {
     case object PreviousMissing extends Inconsistency
     case object AlreadyExists extends Inconsistency
+    case class Availability(isPublic: Boolean, previousPublic: Boolean) extends Inconsistency
 
     implicit val inconsistencyShowInstance: Show[Inconsistency] =
       Show.show {
         case PreviousMissing => "Previous schema in the group is missing"
         case AlreadyExists => "Schema already exists"
+        case Availability(isPublic, previousPublic) =>
+          s"Inconsistent schema availability. Cannot add ${if (isPublic) "public" else "private"} schema, previous versions are ${if (previousPublic) "public" else "private"}"
       }
   }
 
