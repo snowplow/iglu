@@ -58,10 +58,17 @@ object Fifth {
   val OldPermissionsTable = Fragment.const("apikeys")
 
   case class SchemaFifth(map: SchemaMap, schema: Json, isPublic: Boolean, createdAt: Instant, updatedAt: Instant) {
+    /**
+      * Returns a list of copies of this schema with versions backfilled from the schema's version up to 1.0.0,
+      * for schema consistency purposes.
+      *
+      * e.g. 2.1.3 -> [ 2.1.3, 2.1.2, 2.1.1, 2.1.0, 2.0.0, 1.0.0 ]
+      */
     def getWithPreceding =
-      (for (addition <- 0 to map.schemaKey.version.addition) yield SchemaFifth(map.copy(schemaKey = map.schemaKey.copy(version = SchemaVer.Full(map.schemaKey.version.model, map.schemaKey.version.revision, addition))), schema, isPublic, createdAt, updatedAt)) ++
-      (for (revision <- 0 until map.schemaKey.version.revision) yield SchemaFifth(map.copy(schemaKey = map.schemaKey.copy(version = SchemaVer.Full(map.schemaKey.version.model, revision, map.schemaKey.version.addition))), schema, isPublic, createdAt, updatedAt)) ++
-      (for (model <- 1 until map.schemaKey.version.model) yield SchemaFifth(map.copy(schemaKey = map.schemaKey.copy(version = SchemaVer.Full(model, map.schemaKey.version.revision, map.schemaKey.version.addition))), schema, isPublic, createdAt, updatedAt))
+     ((for (addition <- 0 to map.schemaKey.version.addition) yield SchemaVer.Full(map.schemaKey.version.model, map.schemaKey.version.revision, addition)) ++
+        (for (revision <- 0 until map.schemaKey.version.revision) yield SchemaVer.Full(map.schemaKey.version.model, revision, 0)) ++
+        (for (model <- 1 until map.schemaKey.version.model) yield SchemaVer.Full(model, 0, 0)))
+        .map { schemaVer => SchemaFifth(map.copy(schemaKey = map.schemaKey.copy(version = schemaVer)), schema, isPublic, createdAt, updatedAt) }
   }
 
   def perform: ConnectionIO[Unit] =
