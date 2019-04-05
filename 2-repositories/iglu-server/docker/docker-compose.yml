@@ -1,0 +1,27 @@
+version: '3'
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:9.5
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: always
+    ports:
+      - "5432:5432"
+    logging:
+      options:
+        max-size: 1G
+  iglu-server:
+    container_name: iglu-server
+    image: snowplow-docker-registry.bintray.io/snowplow/iglu-server:0.6.0-rc3
+    entrypoint: /usr/local/bin/wait-for-postgres.sh postgres --config /snowplow/config/application.conf
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./wait-for-postgres.sh:/usr/local/bin/wait-for-postgres.sh"
+      - "../application.conf:/snowplow/config/application.conf"
+    logging:
+      options:
+        max-size: 1G

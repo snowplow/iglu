@@ -1,6 +1,6 @@
 language: scala
 scala:
-- 2.11.8
+- 2.12.8
 jdk:
 - oraclejdk8
 script:
@@ -10,7 +10,7 @@ script:
 - sbt test
 - cd ../..
 before_deploy:
-- pip install --user release-manager==0.3.0
+- pip install --user release-manager==0.4.1.rc2
 deploy:
 - provider: script
   skip_cleanup: true
