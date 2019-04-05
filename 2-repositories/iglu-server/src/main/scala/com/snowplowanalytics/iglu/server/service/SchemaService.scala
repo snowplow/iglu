@@ -41,7 +41,8 @@ import com.snowplowanalytics.iglu.server.model.VersionCursor.Inconsistency
 class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
                                  ctx: AuthedContext[F, Permission],
                                  db: Storage[F],
-                                 patchesAllowed: Boolean) extends RhoRoutes[F] {
+                                 patchesAllowed: Boolean,
+                                 webhooks: Webhook.WebhookClient[F]) extends RhoRoutes[F] {
 
   import swagger._
   import SchemaService._
@@ -151,6 +152,7 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
               existing <- db.getSchema(schema.self).map(_.isDefined)
               _        <- if (existing) db.updateSchema(schema.self, schema.schema, isPublic) else db.addSchema(schema.self, schema.schema, isPublic)
               payload   = IgluResponse.SchemaUploaded(existing, schema.self.schemaKey): IgluResponse
+              _        <- webhooks.schemaPublished(schema.self.schemaKey, existing)
               response <- if (existing) Ok(payload) else Created(payload)
             } yield response
           case Left(error) =>
@@ -167,11 +169,11 @@ object SchemaService {
       "Schema representation format (can be specified either by repr=uri/meta/canonical or legacy meta=1&body=1)"
   }
 
-  def asRoutes(patchesAllowed: Boolean)
+  def asRoutes(patchesAllowed: Boolean, webhook: Webhook.WebhookClient[IO])
               (db: Storage[IO],
                ctx: AuthedContext[IO, Permission],
                rhoMiddleware: RhoMiddleware[IO]): HttpRoutes[IO] = {
-    val service = new SchemaService(swaggerSyntax, ctx, db, patchesAllowed).toRoutes(rhoMiddleware)
+    val service = new SchemaService(swaggerSyntax, ctx, db, patchesAllowed, webhook).toRoutes(rhoMiddleware)
     PermissionMiddleware.wrapService(db, ctx, service)
   }
 

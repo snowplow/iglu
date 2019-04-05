@@ -27,6 +27,7 @@ import io.circe.generic.semiauto._
 import pureconfig._
 import pureconfig.generic.ProductHint
 import pureconfig.generic.semiauto._
+import pureconfig.module.http4s._
 import migrations.MigrateFrom
 
 import generated.BuildInfo.version
@@ -40,11 +41,13 @@ import generated.BuildInfo.version
   * @param debug          If true, enables an additional endpoint (/api/debug) that outputs all internal state
   * @param patchesAllowed If true, schemas sent to the /api/schemas endpoint will overwrite existing ones rather than
   *                       be skipped if a schema with the same key already exists
+  * @param webhooks       List of webhooks triggered by specific actions or endpoints
   */
 case class Config(database: Config.StorageConfig,
                   repoServer: Config.Http,
                   debug: Option[Boolean],
-                  patchesAllowed: Option[Boolean])
+                  patchesAllowed: Option[Boolean],
+                  webhooks: Option[List[Webhook]])
 
 object Config {
 
@@ -98,6 +101,19 @@ object Config {
   implicit val httpConfigCirceEncoder: Encoder[Http] =
     deriveEncoder[Http]
 
+  implicit val pureWebhookReader: ConfigReader[Webhook] = ConfigReader.fromCursor { cur =>
+    for {
+      objCur <- cur.asObjectCursor
+      uriCursor <- objCur.atKey("uri")
+      uri <- ConfigReader[org.http4s.Uri].from(uriCursor)
+
+      prefixes <- objCur.atKeyOrUndefined("vendor-prefixes") match {
+        case keyCur if keyCur.isUndefined => List.empty.asRight
+        case keyCur => keyCur.asList.flatMap(_.traverse(cur => cur.asString))
+      }
+    } yield Webhook.SchemaPublished(uri, Some(prefixes))
+  }
+
   implicit val pureStorageReader: ConfigReader[StorageConfig] = ConfigReader.fromCursor { cur =>
     for {
       objCur  <- cur.asObjectCursor
@@ -114,6 +130,14 @@ object Config {
   }
 
   implicit val pureHttpReader: ConfigReader[Http] = deriveReader[Http]
+
+  implicit val pureWebhooksReader: ConfigReader[List[Webhook]] = ConfigReader.fromCursor { cur =>
+    for {
+      objCur  <- cur.asObjectCursor
+      schemaPublishedCursors <- objCur.atKeyOrUndefined("schema-published").asList
+      webhooks <- schemaPublishedCursors.traverse(cur => pureWebhookReader.from(cur))
+    } yield webhooks
+  }
 
   implicit val pureConfigReader: ConfigReader[Config] = deriveReader[Config]
 

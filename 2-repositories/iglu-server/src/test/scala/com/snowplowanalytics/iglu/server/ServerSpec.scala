@@ -50,7 +50,7 @@ object ServerSpec {
   def request(req: Request[IO]): IO[Response[IO]] = {
     for {
       storage <- storage.InMemory.get[IO](SpecHelpers.exampleState)
-      service <- SchemaService.asRoutes(false)(storage, SpecHelpers.ctx, middleware).run(req).value
+      service <- SchemaService.asRoutes(false, Webhook.WebhookClient(List(), client))(storage, SpecHelpers.ctx, middleware).run(req).value
     } yield service.getOrElse(Response(Status.NotFound))
   }
 }
