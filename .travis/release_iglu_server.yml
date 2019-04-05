@@ -29,4 +29,4 @@ packages:
 
         # The binaries to put in the zip
         binary_paths:
-          - 2-repositories/iglu-server/target/scala-2.11/iglu-server-{{ packages.0.build_version }}.jar
+          - 2-repositories/iglu-server/target/scala-2.12/iglu-server-{{ packages.0.build_version }}.jar
