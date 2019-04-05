@@ -357,7 +357,7 @@ object SchemaServiceSpec {
   def request(reqs: List[Request[IO]], patchesAllowed: Boolean): IO[Response[IO]] = {
     for {
       storage <- InMemory.getInMemory[IO](SpecHelpers.exampleState)
-      service = SchemaService.asRoutes(patchesAllowed)(storage, SpecHelpers.ctx, createRhoMiddleware())
+      service = SchemaService.asRoutes(patchesAllowed, Webhook.WebhookClient(List(), client))(storage, SpecHelpers.ctx, createRhoMiddleware())
       responses <- reqs.traverse(service.run).value
     } yield responses.flatMap(_.lastOption).getOrElse(Response(Status.NotFound))
   }
@@ -365,7 +365,7 @@ object SchemaServiceSpec {
   def state(reqs: List[Request[IO]], patchesAllowed: Boolean): IO[(List[Response[IO]], InMemory.State)] = {
     for {
       storage <- InMemory.getInMemory[IO](SpecHelpers.exampleState)
-      service = SchemaService.asRoutes(patchesAllowed)(storage, SpecHelpers.ctx, createRhoMiddleware())
+      service = SchemaService.asRoutes(patchesAllowed, Webhook.WebhookClient(List(), client))(storage, SpecHelpers.ctx, createRhoMiddleware())
       responses <- reqs.traverse(service.run).value
       state <- storage.ref.get
     } yield (responses.getOrElse(List.empty), state)

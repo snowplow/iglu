@@ -30,6 +30,7 @@ import fs2.Stream
 
 import org.http4s.{ HttpApp, Response, Status, HttpRoutes, MediaType, Request, Headers }
 import org.http4s.headers.`Content-Type`
+import org.http4s.client.blaze.BlazeClientBuilder
 import org.http4s.server.Router
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.middleware.{ AutoSlash, CORS, CORSConfig, Logger }
@@ -83,12 +84,13 @@ object Server {
   def httpApp(storage: Storage[IO],
               debug: Boolean,
               patchesAllowed: Boolean,
+              webhook: Webhook.WebhookClient[IO],
               ec: ExecutionContext)
              (implicit cs: ContextShift[IO]): HttpApp[IO] = {
 
     val services: List[(String, RoutesConstructor)] = List(
       "/api/meta"       -> MetaService.asRoutes(debug, patchesAllowed),
-      "/api/schemas"    -> SchemaService.asRoutes(patchesAllowed),
+      "/api/schemas"    -> SchemaService.asRoutes(patchesAllowed, webhook),
       "/api/auth"       -> AuthService.asRoutes,
       "/api/validation" -> ValidationService.asRoutes,
       "/api/drafts"     -> DraftService.asRoutes,
@@ -119,10 +121,12 @@ object Server {
   def run(config: Config)(implicit ec: ExecutionContext, cs: ContextShift[IO], timer: Timer[IO]): Stream[IO, ExitCode] = {
     for {
       _ <- Stream.eval(logger.info(s"Initializing server with following configuration: ${config.asJson.noSpaces}"))
+      client <- BlazeClientBuilder[IO](ec).stream
+      webhookClient = Webhook.WebhookClient(config.webhooks.getOrElse(Nil), client)
       storage <- Stream.resource(Storage.initialize[IO](ec)(config.database))
       builder = BlazeServerBuilder[IO]
         .bindHttp(config.repoServer.port, config.repoServer.interface)
-        .withHttpApp(httpApp(storage, config.debug.getOrElse(false), config.patchesAllowed.getOrElse(false), ec))
+        .withHttpApp(httpApp(storage, config.debug.getOrElse(false), config.patchesAllowed.getOrElse(false), webhookClient, ec))
       stream <- builder.serve
     } yield stream
 
