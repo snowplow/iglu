@@ -16,6 +16,8 @@ package com.snowplowanalytics.iglu.server
 
 import java.nio.file.Paths
 
+import org.http4s.Uri
+
 import io.circe.syntax._
 import io.circe.literal._
 
@@ -43,7 +45,11 @@ class ConfigSpec extends org.specs2.Specification { def is = s2"""
       Config.StorageConfig.Postgres("postgres", 5432, "igludb", "sp_user", "sp_password", "org.postgresql.Driver", None, Some(5)),
       Config.Http("0.0.0.0", 8080),
       Some(true),
-      Some(true)
+      Some(true),
+      Some(List(
+        Webhook.SchemaPublished(Uri.uri("https://example.com/endpoint"), Some(List.empty)),
+        Webhook.SchemaPublished(Uri.uri("https://example2.com/endpoint"), Some(List("com", "org.acme", "org.snowplow")))
+      ))
     )
     val result = Config
       .serverCommand.parse(input.split(" ").toList)
@@ -56,7 +62,7 @@ class ConfigSpec extends org.specs2.Specification { def is = s2"""
     val config = getClass.getResource("/valid-dummy-config.conf").toURI
     val configPath = Paths.get(config)
     val input = s"--config ${configPath}"
-    val expected = Config(Config.StorageConfig.Dummy, Config.Http("0.0.0.0", 8080), Some(true), None)
+    val expected = Config(Config.StorageConfig.Dummy, Config.Http("0.0.0.0", 8080), Some(true), None, None)
     val result = Config
       .serverCommand.parse(input.split(" ").toList)
       .leftMap(_.toString)
@@ -69,7 +75,11 @@ class ConfigSpec extends org.specs2.Specification { def is = s2"""
       Config.StorageConfig.Postgres("postgres", 5432, "igludb", "sp_user", "sp_password", "org.postgresql.Driver", None, Some(5)),
       Config.Http("0.0.0.0", 8080),
       Some(true),
-      Some(true)
+      Some(true),
+      Some(List(
+        Webhook.SchemaPublished(Uri.uri("https://example.com/endpoint"), Some(List.empty)),
+        Webhook.SchemaPublished(Uri.uri("https://example2.com/endpoint"), Some(List("com", "org.acme", "org.snowplow")))
+      ))
     )
 
     val expected = json"""{
@@ -88,7 +98,26 @@ class ConfigSpec extends org.specs2.Specification { def is = s2"""
         "port" : 8080
       },
       "debug" : true,
-      "patchesAllowed" : true
+      "patchesAllowed" : true,
+      "webhooks" : [
+        {
+          "SchemaPublished" : {
+            "uri" : "https://example.com/endpoint",
+            "vendorPrefixes" : [
+            ]
+          }
+        },
+        {
+          "SchemaPublished" : {
+            "uri" : "https://example2.com/endpoint",
+            "vendorPrefixes" : [
+              "com",
+              "org.acme",
+              "org.snowplow"
+            ]
+          }
+        }
+      ]
     }"""
 
     input.asJson must beEqualTo(expected)
