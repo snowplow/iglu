@@ -38,6 +38,9 @@ class Postgres[F[_]](xa: Transactor[F]) extends Storage[F] { self =>
   def getSchema(schemaMap: SchemaMap)(implicit F: Monad[F]): F[Option[Schema]] =
     Postgres.Sql.getSchema(schemaMap).option.transact(xa)
 
+  def deleteSchema(schemaMap: SchemaMap)(implicit F: Monad[F]): F[Unit] =
+    Postgres.Sql.deleteSchema(schemaMap).run.void.transact(xa)
+
   def getPermission(apikey: UUID)(implicit F: Monad[F]): F[Option[Permission]] =
     Postgres.Sql.getPermission(apikey).option.transact(xa)
 
@@ -104,6 +107,9 @@ object Postgres {
   object Sql {
     def getSchema(schemaMap: SchemaMap) =
       (fr"SELECT" ++ schemaColumns ++ fr"FROM" ++ SchemasTable ++ fr"WHERE" ++ schemaMapFr(schemaMap) ++ fr"LIMIT 1").query[Schema]
+
+    def deleteSchema(schemaMap: SchemaMap) =
+      (fr"DELETE" ++ schemaColumns ++ fr"FROM" ++ SchemasTable ++ fr"WHERE" ++ schemaMapFr(schemaMap)).update
 
     def getSchemas =
       (fr"SELECT" ++ schemaColumns ++ fr"FROM" ++ SchemasTable ++ Ordering).query[Schema]

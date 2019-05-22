@@ -62,6 +62,9 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
   "Get a particular schema by its Iglu URI" **
     GET / 'vendor / 'name / 'format / version +? reprCanonical >>> ctx.auth |>> getSchema _
 
+  "Delete a particular schema from Iglu by its URI" **
+    DELETE / 'vendor / 'name / 'format / version >>> ctx.auth |>> deleteSchema _
+
   "Get list of schemas by vendor name" **
     GET / 'vendor / 'name +? reprUri >>> ctx.auth |>> getSchemasByName _
 
@@ -94,6 +97,16 @@ class SchemaService[F[+_]: Sync](swagger: SwaggerSyntax[F],
       case Some(schema) if schema.metadata.isPublic => Ok(schema.withFormat(schemaFormat))
       case Some(schema) if permission.canRead(schema.schemaMap.schemaKey.vendor) => Ok(schema.withFormat(schemaFormat))
       case _ => NotFound(IgluResponse.SchemaNotFound: IgluResponse)
+    }
+  }
+
+  def deleteSchema(vendor: String, name: String, format: String, version: SchemaVer.Full, permission: Permission) = {
+    permission match {
+      case Permission.Master if patchesAllowed =>
+        db.deleteSchema(SchemaMap(vendor, name, format, version)) *> Ok(IgluResponse.Message("Schema deleted"): IgluResponse)
+      case Permission.Master =>
+        MethodNotAllowed(IgluResponse.Message("DELETE is forbidden on production registry"): IgluResponse)
+      case _ => Unauthorized(IgluResponse.Message("Not enough permissions"): IgluResponse)
     }
   }
 

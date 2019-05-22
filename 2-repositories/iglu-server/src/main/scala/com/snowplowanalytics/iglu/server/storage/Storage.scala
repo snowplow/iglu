@@ -47,6 +47,7 @@ trait Storage[F[_]] {
     if (wildcard) getSchemas.filter(_.schemaMap.schemaKey.vendor.startsWith(vendor))
     else getSchemas.filter(_.schemaMap.schemaKey.vendor === vendor )
   }
+  def deleteSchema(schemaMap: SchemaMap)(implicit F: Monad[F]): F[Unit]
   def getSchemasByVendorName(vendor: String, name: String)(implicit F: Monad[F]): Stream[F, Schema] =
     getSchemasByVendor(vendor, false).filter(_.schemaMap.schemaKey.name === name)
   def getSchemas(implicit F: Monad[F]): Stream[F, Schema]

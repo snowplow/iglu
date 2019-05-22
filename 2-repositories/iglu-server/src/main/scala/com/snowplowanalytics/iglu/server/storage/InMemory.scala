@@ -40,6 +40,13 @@ case class InMemory[F[_]](ref: Ref[F, InMemory.State]) extends Storage[F] {
   def getPermission(apiKey: UUID)(implicit F: Monad[F]): F[Option[Permission]] =
     for { db <- ref.get } yield db.permission.get(apiKey)
 
+  def deleteSchema(schemaMap: SchemaMap)(implicit F: Monad[F]): F[Unit] =
+    for {
+      db <- ref.get
+      newState = db.copy(schemas = db.schemas - schemaMap)
+      _ <- ref.set(newState)
+    } yield ()
+
   def addSchema(schemaMap: SchemaMap, body: Json, isPublic: Boolean)(implicit C: Clock[F], M: Monad[F]): F[Unit] =
     for {
       db <- ref.get
