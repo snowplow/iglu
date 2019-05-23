@@ -79,7 +79,7 @@ object PermissionMiddleware {
       case Some(Left(error)) =>
         val body = Utils.toBytes[F, IgluResponse](IgluResponse.Message(s"Error parsing apikey HTTP header. ${error.getMessage}"))
         F.pure(Response[F](Status.BadRequest, body = body))
-      case _ =>
+      case _ => // TODO: relax this behavior to exist only for /schemas/ven/name/format/ver
         F.pure(Response[F](Status.NotFound, body = notFoundBody))
     }
 }
