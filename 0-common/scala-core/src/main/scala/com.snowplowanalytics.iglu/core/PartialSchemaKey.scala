@@ -65,7 +65,7 @@ object PartialSchemaKey {
     */
   def fromUri(schemaUri: String): Either[ParseError, PartialSchemaKey] = schemaUri match {
     case schemaUriRegex(vnd, n, f, m, r, a) =>
-      SchemaVer.parse(s"$m-$r-$a").right.map(PartialSchemaKey(vnd, n, f, _))
+      SchemaVer.parse(s"$m-$r-$a").map(PartialSchemaKey(vnd, n, f, _))
     case _ => Left(ParseError.InvalidIgluUri)
   }
 }

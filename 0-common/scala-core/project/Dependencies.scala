@@ -15,10 +15,10 @@ import sbt._
 object Dependencies {
   object V {
     // Scala
-    val json4s          = "3.2.11"
-    val circe           = "0.10.1"
-    val cats            = "1.4.0"
-    val specs2          = "4.3.2"
+    val json4s          = "3.6.7"
+    val circe           = "0.12.1"
+    val cats            = "2.0.0"
+    val specs2          = "4.7.1"
   }
 
   object Libraries {

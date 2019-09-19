@@ -15,8 +15,6 @@ package com.snowplowanalytics.iglu.core.circe
 // specs2
 import org.specs2.Specification
 
-import cats.syntax.either._
-
 // circe
 import io.circe._
 import io.circe.literal._
@@ -111,7 +109,7 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
         }
       """
 
-    SchemaMap.extract(json) must beLeft(ParseError.InvalidSchemaVer)
+    SchemaMap.extract(json) must beLeft[ParseError](ParseError.InvalidSchemaVer)
   }
 
   def e7 = {
@@ -125,6 +123,6 @@ class ExtractSchemaKeySpec extends Specification { def is = s2"""
         }
       """
 
-    SchemaKey.extract(json) must beLeft
+    SchemaKey.extract(json) must beLeft[ParseError]
   }
 }

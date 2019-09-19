@@ -14,7 +14,6 @@ package com.snowplowanalytics.iglu.core
 package circe
 
 import cats.{ Show, Eq }
-import cats.syntax.either._
 
 import io.circe._
 
@@ -52,7 +51,9 @@ trait instances {
       def getContent(schema: Json): Json =
         Json.fromJsonObject {
           JsonObject.fromMap {
-            schema.asObject.map(_.toMap.filterKeys(_ != "self")).getOrElse(Map.empty)
+            schema.asObject
+              .map(_.toMap.filter { case (key, _) => key != "self" })
+              .getOrElse(Map.empty)
           }
         }
     }

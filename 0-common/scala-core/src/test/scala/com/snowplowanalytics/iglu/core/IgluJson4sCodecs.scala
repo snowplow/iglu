@@ -69,7 +69,7 @@ object IgluJson4sCodecs {
   object DataSerializer extends CustomSerializer[SelfDescribingData[JValue]](_ => (
     {
       case fullInstance: JObject =>
-        val schemaKey = (fullInstance \ "schema").extractOpt[String].flatMap(x => SchemaKey.fromUri(x).right.toOption).getOrElse {
+        val schemaKey = (fullInstance \ "schema").extractOpt[String].flatMap(x => SchemaKey.fromUri(x).toOption).getOrElse {
           throw new MappingException("Does not contain schema key with valid Schema URI")
         }
         val data = fullInstance \ "data" match {

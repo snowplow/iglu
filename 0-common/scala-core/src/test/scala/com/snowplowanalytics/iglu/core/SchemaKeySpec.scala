@@ -83,7 +83,7 @@ class SchemaKeySpec extends Specification { def is = s2"""
       DescribedString("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", 1, 1, 1, "111")
     )
 
-    describedData.sortBy(SchemaKey.extract(_).right.getOrElse(throw new RuntimeException("Not possible")) ) must beEqualTo(Seq(
+    describedData.sortBy(SchemaKey.extract(_).getOrElse(throw new RuntimeException("Not possible")) ) must beEqualTo(Seq(
       DescribedString("com.snowplowanalytics.snowplow", "aobile_context", "jsonschema", 2, 1, 0, "210"),
       DescribedString("com.snowplowanalytics.snowplow", "mobile_context", "avro", 2, 1, 0, "210"),
       DescribedString("com.snowplowanalytics.snowplow", "mobile_context", "jsonschema", 1, 0, 0, "100"),

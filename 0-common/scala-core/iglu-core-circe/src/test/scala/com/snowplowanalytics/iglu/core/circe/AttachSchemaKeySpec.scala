@@ -16,9 +16,6 @@ package com.snowplowanalytics.iglu.core.circe
 import com.snowplowanalytics.iglu.core.typeclasses.NormalizeSchema
 import org.specs2.Specification
 
-// cats (for Scala 2.11)
-import cats.syntax.either._
-
 // Circe
 import io.circe._
 import io.circe.literal._

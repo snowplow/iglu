@@ -21,8 +21,8 @@ object BuildSettings {
   lazy val commonSettings = Seq[Setting[_]](
     organization                        := "com.snowplowanalytics",
     version                             := "0.4.0",
-    scalaVersion                        := "2.12.6",
-    crossScalaVersions                  := Seq("2.11.12", "2.12.6"),
+    scalaVersion                        := "2.13.1",
+    crossScalaVersions                  := Seq("2.12.10", "2.13.1"),
     scalacOptions                       := compilerFlags.value,
     scalacOptions in (Compile, console) --=
       Seq("-Ywarn-unused:imports", "-Xfatal-warnings")
@@ -108,15 +108,19 @@ object BuildSettings {
   // All recommended compiler flags, working on particular version of Scalac
   lazy val compilerFlags = {
     scalaVersion.map { version =>
-      if (version.startsWith("2.12."))
+      if (version.startsWith("2.13."))
         allScalacFlags.diff(Seq(
+          "-Xlint:by-name-right-associative", // not available
+          "-Xlint:unsound-match", // not available
+          "-Yno-adapted-args", // not available. Can be returned in future https://github.com/scala/bug/issues/11110
+          "-Ypartial-unification", // enabled by default
+          "-Ywarn-inaccessible", // not available. the same as -Xlint:inaccessible
+          "-Ywarn-infer-any", // not available. The same as -Xlint:infer-any
+          "-Ywarn-nullary-override", // not available. The same as -Xlint:nullary-override
+          "-Ywarn-nullary-unit", // not available. The same as -Xlint:nullary-unit
+          "-Xfuture",   // not available
           "-Ywarn-unused:imports"         // cats.syntax.either._
         ))
-      else if (version.startsWith("2.11."))
-        allScalacFlags.diff(Seq(
-          "-Xlint:constant",              // not available
-          "-Ywarn-extra-implicit"
-        )).filterNot(_.startsWith("-Ywarn-unused:"))
       else allScalacFlags
     }
   }
