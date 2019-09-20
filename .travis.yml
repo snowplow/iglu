@@ -1,8 +1,9 @@
 language: scala
+dist: trusty
 scala:
 - 2.11.8
 jdk:
-- openjdk8
+- oraclejdk8
 script:
 - .travis/publish_local.sh
 - cd 2-repositories/iglu-server
