@@ -34,4 +34,15 @@ object EncodeSuggestions {
       case RedshiftVarchar(_) => Some(ZstdEncoding)
       case _ => None
     }
+
+  val az64Suggestion: EncodingSuggestion = (properties, dataType, columnName) =>
+    dataType match {
+      case RedshiftSmallInt => Some(AZ64Encoding)
+      case RedshiftInteger=> Some(AZ64Encoding)
+      case RedshiftBigInt => Some(AZ64Encoding)
+      case RedshiftDecimal(_,_) => Some(AZ64Encoding)
+      case RedshiftDate => Some(AZ64Encoding)
+      case RedshiftTimestamp => Some(AZ64Encoding)
+      case RedshiftTimestampTz => Some(AZ64Encoding)
+    }
 }

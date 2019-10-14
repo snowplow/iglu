@@ -183,7 +183,7 @@ object DdlGenerator {
   )
 
   // List of compression encoding suggestions
-  val encodingSuggestions: List[EncodingSuggestion] = List(lzoSuggestion, zstdSuggestion)
+  val encodingSuggestions: List[EncodingSuggestion] = List(lzoSuggestion, zstdSuggestion, az64Suggestion)
 
 
   /**

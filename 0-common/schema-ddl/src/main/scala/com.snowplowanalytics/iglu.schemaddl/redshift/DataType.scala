@@ -22,6 +22,10 @@ case object RedshiftTimestamp extends DataType {
   def toDdl = "TIMESTAMP"
 }
 
+case object RedshiftTimestampTz extends DataType {
+  def toDdl = "TIMESTAMPTZ"
+}
+
 case object RedshiftDate extends DataType {
   def toDdl = "DATE"
 }

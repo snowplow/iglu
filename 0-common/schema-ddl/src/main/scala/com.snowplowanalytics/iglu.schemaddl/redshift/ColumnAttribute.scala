@@ -48,6 +48,8 @@ case class CompressionEncoding(value: CompressionEncodingValue) extends ColumnAt
 
 sealed trait CompressionEncodingValue extends Ddl
 
+case object AZ64Encoding extends CompressionEncodingValue { def toDdl = "AZ64" }
+
 case object RawEncoding extends CompressionEncodingValue { def toDdl = "RAW" }
 
 case object ByteDictEncoding extends CompressionEncodingValue { def toDdl = "BYTEDICT" }
