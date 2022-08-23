@@ -1,9 +1,6 @@
 [submodule "1-clients/iglu-scala-client"]
 	path = 1-clients/scala-client
 	url = https://github.com/snowplow/iglu-scala-client.git
-[submodule "1-clients/objc-client"]
-	path = 1-clients/objc-client
-	url = https://github.com/snowplow/iglu-objc-client.git
 [submodule "1-clients/ruby-client"]
 	path = 1-clients/ruby-client
 	url = https://github.com/snowplow/iglu-ruby-client.git
@@ -19,3 +16,6 @@
 [submodule "1-clients/javascript"]
 	path = 1-clients/javascript
 	url = https://github.com/snowplow/iglu-javascript-client.git
+[submodule "1-clients/objc"]
+	path = 1-clients/objc
+	url = https://github.com/snowplow/iglu-objc-client.git
