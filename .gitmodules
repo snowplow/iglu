@@ -7,3 +7,6 @@
 [submodule "1-clients/ruby-client"]
 	path = 1-clients/ruby-client
 	url = https://github.com/snowplow/iglu-ruby-client.git
+[submodule "0-common/igluctl"]
+	path = 0-common/igluctl
+	url = https://github.com/snowplow/igluctl.git
