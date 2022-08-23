@@ -13,3 +13,6 @@
 [submodule "0-common/scala-core"]
 	path = 0-common/scala-core
 	url = https://github.com/snowplow/iglu-scala-core.git
+[submodule "0-common/schema-ddl"]
+	path = 0-common/schema-ddl
+	url = https://github.com/snowplow/schema-ddl.git
