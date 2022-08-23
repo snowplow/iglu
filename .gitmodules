@@ -1,6 +1,3 @@
-[submodule "1-clients/iglu-scala-client"]
-	path = 1-clients/scala-client
-	url = https://github.com/snowplow/iglu-scala-client.git
 [submodule "0-common/igluctl"]
 	path = 0-common/igluctl
 	url = https://github.com/snowplow/igluctl.git
@@ -19,3 +16,6 @@
 [submodule "1-clients/ruby"]
 	path = 1-clients/ruby
 	url = https://github.com/snowplow/iglu-ruby-client.git
+[submodule "1-clients/scala"]
+	path = 1-clients/scala
+	url = https://github.com/snowplow/iglu-scala-client.git
