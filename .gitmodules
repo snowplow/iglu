@@ -10,3 +10,6 @@
 [submodule "0-common/igluctl"]
 	path = 0-common/igluctl
 	url = https://github.com/snowplow/igluctl.git
+[submodule "0-common/scala-core"]
+	path = 0-common/scala-core
+	url = https://github.com/snowplow/iglu-scala-core.git
