@@ -16,3 +16,6 @@
 [submodule "0-common/schema-ddl"]
 	path = 0-common/schema-ddl
 	url = https://github.com/snowplow/schema-ddl.git
+[submodule "1-clients/javascript"]
+	path = 1-clients/javascript
+	url = https://github.com/snowplow/iglu-javascript-client.git
