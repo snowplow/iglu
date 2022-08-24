@@ -7,16 +7,16 @@
 		"format": "jsonschema",
 		"version": "1-0-0"
 	},
-	
+
 	"type": "object",
 
 	"properties": {
 
 		"myStringProperty": {
-			"type": "string"			
+			"type": "string"
 		},
 
-		"myIntProperty": {
+		"myNumberProperty": {
 			"type": "number"
 		}
 	},
@@ -24,4 +24,3 @@
 	"required": ["myStringProperty", "myNumberProperty"],
 	"additionalProperties": false
 }
-
