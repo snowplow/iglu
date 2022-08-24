@@ -19,3 +19,6 @@
 [submodule "1-clients/scala"]
 	path = 1-clients/scala
 	url = https://github.com/snowplow/iglu-scala-client.git
+[submodule "2-repositories/iglu-server"]
+	path = 2-repositories/iglu-server
+	url = https://github.com/snowplow/iglu-server.git
