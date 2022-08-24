@@ -25,3 +25,6 @@
 [submodule "2-repositories/iglu-central"]
 	path = 2-repositories/iglu-central
 	url = https://github.com/snowplow/iglu-central.git
+[submodule "2-repositories/example-schema-registry"]
+	path = 2-repositories/example-schema-registry
+	url = https://github.com/snowplow/iglu-example-schema-registry.git
