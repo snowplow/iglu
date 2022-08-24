@@ -22,3 +22,6 @@
 [submodule "2-repositories/iglu-server"]
 	path = 2-repositories/iglu-server
 	url = https://github.com/snowplow/iglu-server.git
+[submodule "2-repositories/iglu-central"]
+	path = 2-repositories/iglu-central
+	url = https://github.com/snowplow/iglu-central.git
