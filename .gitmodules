@@ -28,3 +28,6 @@
 [submodule "2-repositories/example-schema-registry"]
 	path = 2-repositories/example-schema-registry
 	url = https://github.com/snowplow/iglu-example-schema-registry.git
+[submodule "3-infrastructure/terraform-aws-iglu-server-ec2"]
+	path = 3-infrastructure/terraform-aws-iglu-server-ec2
+	url = https://github.com/snowplow-devops/terraform-aws-iglu-server-ec2.git
