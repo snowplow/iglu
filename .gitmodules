@@ -31,3 +31,6 @@
 [submodule "3-infrastructure/terraform-aws-iglu-server-ec2"]
 	path = 3-infrastructure/terraform-aws-iglu-server-ec2
 	url = https://github.com/snowplow-devops/terraform-aws-iglu-server-ec2.git
+[submodule "3-infrastructure/terraform-google-iglu-server-ce"]
+	path = 3-infrastructure/terraform-google-iglu-server-ce
+	url = https://github.com/snowplow-devops/terraform-google-iglu-server-ce.git
