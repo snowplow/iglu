@@ -1,36 +1,79 @@
-# Iglu Schema Repository
+# Snowplow Iglu
 
-[![Join the chat at https://gitter.im/snowplow/iglu](https://badges.gitter.im/snowplow/iglu.svg)](https://gitter.im/snowplow/iglu?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[ ![Build Status][travis-image] ][travis]
-[ ![Release][release-image] ][releases]
-[ ![License][license-image] ][license]
+[![Latest release][latest-release-badge]][latest-release]
+[![License][license-image]][license]
+[![Discourse posts][discourse-image]][discourse]
 
-Iglu is a machine-readable, open-source schema repository for **[JSON Schema][json-schema]** from the team at **[Snowplow Analytics][snowplow-website]**. A schema repository (sometimes called a registry) is like npm or Maven or git, but holds data schemas instead of software or code.
+[![Snowplow logo][logo-image]][website]
 
-Iglu is used extensively in **[Snowplow][snowplow-repo]**. For a presentation on how we came to build Iglu, see **[this blog post][snowplow-schema-post]**.
+## Overview
+
+Iglu is a machine-readable, open-source schema repository for **[JSON Schema][json-schema]** from the team at **[Snowplow][website]**. A schema repository (also called a registry) is like npm or Maven or git, but holds data schemas instead of software or code.
+
+Iglu is used extensively in **[Snowplow][snowplow-github]**. For a presentation on how we came to build Iglu, see **[this blog post][snowplow-schema-post]**.
+
+### Table of contents
+
+* [Where to start?](#where-to-start)
+* [Iglu technology 101](#iglu-technology-101)
+* [About this umbrella repository](#about-this-repository)
+
+### Where to start?
+
+The [documentation][documentation] is a great place to learn more, especially:
+
+* [Iglu Common Architecture][iglu-docs-architecture]
+* [Iglu Clients][iglu-docs-clients]
+* [Iglu Repositories][iglu-docs-repositories]
+
+Would rather dive into the code? Then you are already in the right place!
+
+---
 
 ## Iglu technology 101
 
-Iglu consists of two key components:
+[![Iglu architecture][iglu-architecture-image]][iglu-docs-architecture]
 
-1. Clients that can resolve schemas from one or more Iglu repositories
-2. Servers that can host an Iglu repository over HTTP
+The repository structure outlines the interrelations among the architectural components of Iglu. To briefly explain these components:
 
-![iglu-technical-architecture][iglu-technical-architecture]
+* **[Common][iglu-common]**: Common libraries and tools of the Iglu ecosystem.
+* **[Clients][iglu-clients]**: Iglu clients are used for interacting with Iglu server repos and for resolving schemas in embedded and remote Iglu schema repositories.
+* **[Repositories][iglu-repositories]**: Iglu repositories act as stores of data schemas, that can be embedded or hosted over HTTP.
+* **[Infrastructure][iglu-infrastructure]**: Containers (e.g. terraform-modules) bundling infrastructure as code configuration for Iglu Server.
 
-We also operate **[Iglu Central][iglu-central]** (**[repo][iglu-central-repo]**), which is like RubyGems.org or Maven Central but for storing publically-available JSON Schemas.
+---
 
-At this time, Iglu only supports **[self-describing JSON Schemas][self-desc-jsons]** that use **[SchemaVer][schemaver]**.
+## About this repository
 
-## Find out more
+This repository is an umbrella repository for all loosely-coupled Iglu components and is updated on each component release.
 
-| **[Technical Docs][techdocs]**     | **[Setup Guide][setup]**     | **[Roadmap][roadmap]**           | **[Contributing][contributing]**           |
-|-------------------------------------|-------------------------------|-----------------------------------|---------------------------------------------|
-| [![i1][techdocs-image]][techdocs] | [![i2][setup-image]][setup] | [![i3][roadmap-image]][roadmap] | [![i4][contributing-image]][contributing] |
+Since August 2022, all components have been extracted into their dedicated repositories and are still here as [git submodules][submodules]. This repository serves as an entry point and as a historical artifact.
 
-## Questions or need help?
+### Common
 
-All support for Iglu is handled through the standard Snowplow Analytics channels. Check out the **[Talk to us][talk-to-us]** page on the Snowplow wiki.
+* [Igluctl][igluctl]
+* [Scala Core][scala-core]
+* [Schema DDL][schema-ddl]
+
+### Clients
+
+* [JavaScript][javascript-client]
+* [Objective C][objc-client]
+* [Ruby][ruby-client]
+* [Scala][scala-client]
+
+### Repositories
+
+* [Example Schema Registry][example-schema-registry]
+* [Iglu Central][iglu-central]
+* [Iglu Server][iglu-server]
+* [JVM Embedded Repo][jvm-embedded-repo]
+* [Static Registry][static-registry]
+
+### Infrastructure
+
+* [Terraform AWS Iglu Server EC2][terraform-aws-iglu-server-ec2]
+* [Terraform Google Iglu Server Compute Engine][terraform-google-iglu-server-ce]
 
 ## Copyright and license
 
@@ -45,36 +88,49 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-[travis-image]: https://travis-ci.org/snowplow/iglu.png?branch=master
-[travis]: http://travis-ci.org/snowplow/iglu
+[latest-release-badge]: https://img.shields.io/github/last-commit/snowplow/iglu?label=latest%20release
+[latest-release]: https://
 
-[release-image]: https://img.shields.io/badge/release-11_Capul_de_bour-orange.svg?style=flat
-[releases]: https://github.com/snowplow/snowplow/releases
+[license-image]: https://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
+[license]: https://www.apache.org/licenses/LICENSE-2.0
 
-[license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
-[license]: http://www.apache.org/licenses/LICENSE-2.0
+[discourse-image]: https://img.shields.io/discourse/posts?server=https%3A%2F%2Fdiscourse.snowplow.io
+[discourse]: https://discourse.snowplow.io/
 
-[json-schema]: http://json-schema.org/
-[snowplow-website]: http://snowplowanalytics.com
-[snowplow-repo]: https://github.com/snowplow/snowplow
-[iglu-central-repo]: https://github.com/snowplow/iglu-central
+[logo-image]: media/snowplow_logo.png
+[website]: https://snowplow.io
+[snowplow-github]: https://github.com/snowplow/snowplow
+[documentation]: https://docs.snowplow.io
 
-[snowplow-schema-post]: http://snowplowanalytics.com/blog/2014/06/06/making-snowplow-schemas-flexible-a-technical-approach/
-[self-desc-jsons]: http://snowplowanalytics.com/blog/2014/05/15/introducing-self-describing-jsons/
-[schemaver]: http://snowplowanalytics.com/blog/2014/05/13/introducing-schemaver-for-semantic-versioning-of-schemas/
+[iglu-architecture-image]: media/iglu_architecture.png
+[iglu-docs-architecture]: https://docs.snowplow.io/docs/pipeline-components-and-applications/iglu/common-architecture/
+[iglu-docs-clients]: https://docs.snowplow.io/docs/pipeline-components-and-applications/iglu/iglu-clients/
+[iglu-docs-repositories]: https://docs.snowplow.io/docs/pipeline-components-and-applications/iglu/iglu-repositories/
 
-[iglu-central]: http://iglucentral.com
+[json-schema]: https://json-schema.org/
+[snowplow-schema-post]: https://snowplow.io/blog/2014/06/06/making-snowplow-schemas-flexible-a-technical-approach/
 
-[iglu-technical-architecture]: https://github.com/snowplow/iglu/wiki/technical-documentation/images/technical-architecture.png
+[submodules]: https://git-scm.com/book/en/v2/Git-Tools-Submodules
 
-[techdocs-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/techdocs.png
-[setup-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/setup.png
-[roadmap-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/roadmap.png
-[contributing-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/contributing.png
+[iglu-common]: ./0-common
+[iglu-clients]: ./1-clients
+[iglu-repositories]: ./2-repositories
+[iglu-infrastructure]: ./3-infrastructure
 
-[techdocs]: https://github.com/snowplow/iglu/wiki/Iglu-technical-documentation
-[setup]: https://github.com/snowplow/iglu/wiki/Setting-up-Iglu
-[roadmap]: https://github.com/snowplow/iglu/wiki/Product-roadmap
-[contributing]: https://github.com/snowplow/iglu/wiki/Contributing
+[igluctl]: https://github.com/snowplow-incubator/igluctl.git
+[scala-core]: https://github.com/snowplow/iglu-scala-core.git
+[schema-ddl]: https://github.com/snowplow/schema-ddl.git
 
-[talk-to-us]: https://github.com/snowplow/snowplow/wiki/Talk-to-us
+[javascript-client]: https://github.com/snowplow/iglu-javascript-client.git
+[objc-client]: https://github.com/snowplow/iglu-objc-client.git
+[ruby-client]: https://github.com/snowplow/iglu-ruby-client.git
+[scala-client]: https://github.com/snowplow/iglu-scala-client.git
+
+[example-schema-registry]: https://github.com/snowplow/iglu-example-schema-registry.git
+[iglu-central]: https://github.com/snowplow/iglu-central.git
+[iglu-server]: https://github.com/snowplow-incubator/iglu-server.git
+[jvm-embedded-repo]: ./2-repositories/jvm-embedded-repo
+[static-registry]: ./2-repositories/static-registry
+
+[terraform-aws-iglu-server-ec2]: https://github.com/snowplow-devops/terraform-aws-iglu-server-ec2.git
+[terraform-google-iglu-server-ce]: https://github.com/snowplow-devops/terraform-google-iglu-server-ce.git

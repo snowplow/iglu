@@ -4,9 +4,9 @@ A static registry is simply an Iglu registry server structured as a static websi
 
 ## Find out more
 
-| **[Technical Docs][techdocs]**     | **[Setup Guide][setup]**     | **[Roadmap][roadmap]**           | **[Contributing][contributing]**           |
-|-------------------------------------|-------------------------------|-----------------------------------|---------------------------------------------|
-| [![i1][techdocs-image]][techdocs] | [![i2][setup-image]][setup] | [![i3][roadmap-image]][roadmap] | [![i4][contributing-image]][contributing] |
+| **[Technical Docs][techdocs]**    |
+|-----------------------------------|
+| [![i1][techdocs-image]][techdocs] |
 
 ## Copyright and license
 
@@ -22,13 +22,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 [techdocs-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/techdocs.png
-[setup-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/setup.png
-[roadmap-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/roadmap.png
-[contributing-image]: https://d3i6fms1cm1j0i.cloudfront.net/github/images/contributing.png
-
-[techdocs]: https://github.com/snowplow/iglu/wiki/Static-repo
-[setup]: https://github.com/snowplow/iglu/wiki/Static-repo-setup
-[roadmap]: https://github.com/snowplow/iglu/wiki/Product-roadmap
-[contributing]: https://github.com/snowplow/iglu/wiki/Contributing
+[techdocs]: https://docs.snowplow.io/docs/pipeline-components-and-applications/iglu/iglu-repositories/static-repo/
 
 [license]: http://www.apache.org/licenses/LICENSE-2.0
