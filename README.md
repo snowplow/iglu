@@ -74,6 +74,7 @@ Since August 2022, all components have been extracted into their dedicated repos
 
 * [Terraform AWS Iglu Server EC2][terraform-aws-iglu-server-ec2]
 * [Terraform Google Iglu Server Compute Engine][terraform-google-iglu-server-ce]
+* [Iglu Server Helm Chart][iglu-server-helm-chart]
 
 ## Copyright and license
 
@@ -134,3 +135,4 @@ limitations under the License.
 
 [terraform-aws-iglu-server-ec2]: https://github.com/snowplow-devops/terraform-aws-iglu-server-ec2.git
 [terraform-google-iglu-server-ce]: https://github.com/snowplow-devops/terraform-google-iglu-server-ce.git
+[iglu-server-helm-chart]: https://github.com/snowplow-devops/helm-charts/tree/main/charts/snowplow-iglu-server
