@@ -10,7 +10,7 @@ A JVM-embedded repo is an Iglu repository **embedded** inside a Java or Scala ap
 
 ## Copyright and license
 
-JVM-Embedded Repo is copyright 2014-2022 Snowplow Analytics Ltd.
+JVM-Embedded Repo is copyright 2014-2023 Snowplow Analytics Ltd.
 
 Licensed under the **[Apache License, Version 2.0][license]** (the "License");
 you may not use this software except in compliance with the License.
