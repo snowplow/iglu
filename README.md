@@ -64,7 +64,6 @@ Since August 2022, all components have been extracted into their dedicated repos
 
 ### Repositories
 
-* [Example Schema Registry][example-schema-registry]
 * [Iglu Central][iglu-central]
 * [Iglu Server][iglu-server]
 * [JVM Embedded Repo][jvm-embedded-repo]
@@ -127,7 +126,6 @@ limitations under the License.
 [ruby-client]: https://github.com/snowplow/iglu-ruby-client.git
 [scala-client]: https://github.com/snowplow/iglu-scala-client.git
 
-[example-schema-registry]: https://github.com/snowplow/iglu-example-schema-registry.git
 [iglu-central]: https://github.com/snowplow/iglu-central.git
 [iglu-server]: https://github.com/snowplow-incubator/iglu-server.git
 [jvm-embedded-repo]: ./2-repositories/jvm-embedded-repo
